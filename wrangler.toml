@@ -17,7 +17,7 @@ name = "scommerce-staging"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "scommerce-db"
+database_name = "scommerce"
 # database_id = "your-database-id-here" # Replace after creating D1 database
 
 # R2 Storage Configuration
@@ -47,7 +47,5 @@ command = "bun install && bun run build"
 cwd = "."
 watch_dir = "src"
 
-# Assets configuration
-[assets]
-directory = ".next/standalone/static"
-binding = "ASSETS"
+# Note: Static assets are automatically handled by Cloudflare Pages
+# No additional assets configuration needed for Next.js deployment
