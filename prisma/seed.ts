@@ -8,6 +8,11 @@ async function main() {
 
   // Clear existing data
   console.log('Clearing existing data...')
+  await prisma.homepageSettings.deleteMany()
+  await prisma.promotion.deleteMany()
+  await prisma.reel.deleteMany()
+  await prisma.story.deleteMany()
+  await prisma.banner.deleteMany()
   await prisma.adminLog.deleteMany()
   await prisma.cartItem.deleteMany()
   await prisma.orderItem.deleteMany()
@@ -140,7 +145,6 @@ async function main() {
       lowStockAlert: 5,
       isActive: true,
       isFeatured: true,
-      attributes: JSON.stringify({ colors: ['Red', 'Maroon', 'Gold'], sizes: ['Standard'], material: 'Silk' }),
     },
     {
       name: 'Pink Chanderi Saree',
@@ -157,7 +161,6 @@ async function main() {
       lowStockAlert: 5,
       isActive: true,
       isFeatured: true,
-      attributes: JSON.stringify({ colors: ['Pink', 'Peach', 'Mint'], sizes: ['Standard'], material: 'Chanderi Silk' }),
     },
     {
       name: 'Embroidered Georgette Saree',
@@ -174,7 +177,6 @@ async function main() {
       lowStockAlert: 5,
       isActive: true,
       isFeatured: false,
-      attributes: JSON.stringify({ colors: ['Blue', 'Navy', 'Black'], sizes: ['Standard'], material: 'Georgette' }),
     },
     {
       name: 'Printed Cotton Saree',
@@ -190,7 +192,8 @@ async function main() {
       lowStockAlert: 10,
       isActive: true,
       isFeatured: false,
-      attributes: JSON.stringify({ colors: ['Yellow', 'Green', 'Pink'], sizes: ['Standard'], material: 'Cotton' }),
+      hasVariants: false,
+      basePrice: 79.99,
     },
 
     // Salwar Suits
@@ -210,7 +213,6 @@ async function main() {
       lowStockAlert: 5,
       isActive: true,
       isFeatured: true,
-      attributes: JSON.stringify({ colors: ['Maroon', 'Navy', 'Teal'], sizes: ['S', 'M', 'L', 'XL'], material: 'Georgette' }),
     },
     {
       name: 'Straight Cut Palazzo Suit',
@@ -227,7 +229,6 @@ async function main() {
       lowStockAlert: 8,
       isActive: true,
       isFeatured: false,
-      attributes: JSON.stringify({ colors: ['Beige', 'Grey', 'Black'], sizes: ['S', 'M', 'L', 'XL'], material: 'Rayon' }),
     },
     {
       name: 'Printed Cotton Suit',
@@ -243,7 +244,8 @@ async function main() {
       lowStockAlert: 10,
       isActive: true,
       isFeatured: false,
-      attributes: JSON.stringify({ colors: ['Pink', 'Blue', 'Green'], sizes: ['S', 'M', 'L', 'XL'], material: 'Cotton' }),
+      hasVariants: false,
+      basePrice: 89.99,
     },
 
     // Lehengas
@@ -263,7 +265,6 @@ async function main() {
       lowStockAlert: 3,
       isActive: true,
       isFeatured: true,
-      attributes: JSON.stringify({ colors: ['Red', 'Maroon'], sizes: ['S', 'M', 'L'], material: 'Velvet' }),
     },
     {
       name: 'Designer Lehenga',
@@ -280,7 +281,6 @@ async function main() {
       lowStockAlert: 5,
       isActive: true,
       isFeatured: true,
-      attributes: JSON.stringify({ colors: ['Pink', 'Peach', 'Mint'], sizes: ['S', 'M', 'L'], material: 'Net' }),
     },
 
     // Kurtas
@@ -299,7 +299,6 @@ async function main() {
       lowStockAlert: 10,
       isActive: true,
       isFeatured: true,
-      attributes: JSON.stringify({ colors: ['White', 'Cream', 'Navy'], sizes: ['S', 'M', 'L', 'XL'], material: 'Cotton' }),
     },
     {
       name: 'Embroidered Kurta Pajama',
@@ -316,7 +315,6 @@ async function main() {
       lowStockAlert: 8,
       isActive: true,
       isFeatured: true,
-      attributes: JSON.stringify({ colors: ['Maroon', 'Navy', 'Black'], sizes: ['S', 'M', 'L', 'XL'], material: 'Silk Blend' }),
     },
     {
       name: 'Sherwani Set',
@@ -334,7 +332,6 @@ async function main() {
       lowStockAlert: 5,
       isActive: true,
       isFeatured: true,
-      attributes: JSON.stringify({ colors: ['Ivory', 'Gold', 'Black'], sizes: ['S', 'M', 'L', 'XL'], material: 'Velvet' }),
     },
 
     // Gowns
@@ -353,7 +350,6 @@ async function main() {
       lowStockAlert: 5,
       isActive: true,
       isFeatured: true,
-      attributes: JSON.stringify({ colors: ['Red', 'Black', 'Navy'], sizes: ['S', 'M', 'L'], material: 'Silk Blend' }),
     },
     {
       name: 'Party Gown',
@@ -370,7 +366,6 @@ async function main() {
       lowStockAlert: 6,
       isActive: true,
       isFeatured: false,
-      attributes: JSON.stringify({ colors: ['Gold', 'Silver', 'Rose Gold'], sizes: ['S', 'M', 'L'], material: 'Georgette' }),
     },
 
     // Tops
@@ -389,7 +384,6 @@ async function main() {
       lowStockAlert: 12,
       isActive: true,
       isFeatured: false,
-      attributes: JSON.stringify({ colors: ['Pink', 'Blue', 'White'], sizes: ['S', 'M', 'L', 'XL'], material: 'Cotton Blend' }),
     },
     {
       name: 'Printed Tunica',
@@ -405,7 +399,8 @@ async function main() {
       lowStockAlert: 15,
       isActive: true,
       isFeatured: false,
-      attributes: JSON.stringify({ colors: ['Yellow', 'Orange', 'Green'], sizes: ['S', 'M', 'L', 'XL'], material: 'Rayon' }),
+      hasVariants: false,
+      basePrice: 49.99,
     },
 
     // Dress Materials
@@ -423,7 +418,8 @@ async function main() {
       lowStockAlert: 8,
       isActive: true,
       isFeatured: false,
-      attributes: JSON.stringify({ colors: ['Multi-color', 'Blue', 'Pink'], material: 'Cotton Silk' }),
+      hasVariants: false,
+      basePrice: 99.99,
     },
   ]
 
@@ -622,12 +618,184 @@ async function main() {
   })
   console.log('Created cart items')
 
+  // Create homepage content
+  console.log('Creating homepage content...')
+
+  // Create banners
+  const banners = await prisma.banner.createMany({
+    data: [
+      {
+        title: 'EOSS: Up to 70% Off + Free Stitching & Shipping*',
+        description: 'End of Season Sale with massive discounts',
+        image: 'https://medias.utsavfashion.com/media/wysiwyg/home/2026/1604/hs-thu-gen-yes-eoss-160426.jpg',
+        mobileImage: 'https://medias.utsavfashion.com/media/wysiwyg/home/2026/1604/hs-thu-gen-yes-eoss-160426mob.jpg',
+        buttonText: 'Shop Now',
+        buttonLink: '/collections/sale',
+        isActive: true,
+        order: 0,
+      },
+      {
+        title: 'Wedding Styles for Women, Men & Kids. Shop!',
+        description: 'Exclusive wedding collection for the whole family',
+        image: 'https://medias.utsavfashion.com/media/wysiwyg/home/2026/2603/hs-thu-gen-yes-wedding-dutyfree-260326.jpg',
+        mobileImage: 'https://medias.utsavfashion.com/media/wysiwyg/home/2026/2603/hs-thu-gen-yes-wedding-dutyfree-260326mob.jpg',
+        buttonText: 'Shop Wedding',
+        buttonLink: '/collections/wedding',
+        isActive: true,
+        order: 1,
+      },
+      {
+        title: 'Menswear Edit: Shop Nehru Jackets, Sherwanis, Bandhgalas & more',
+        description: 'Premium menswear collection for special occasions',
+        image: 'https://medias.utsavfashion.com/media/wysiwyg/home/2026/0904/hs-thu-gen-yes-menswear-090426.jpg',
+        mobileImage: 'https://medias.utsavfashion.com/media/wysiwyg/home/2026/0904/hs-thu-gen-yes-menswear-090426mob.jpg',
+        buttonText: 'Explore',
+        buttonLink: '/collections/menswear',
+        isActive: true,
+        order: 2,
+      },
+    ],
+  })
+  console.log(`Created ${banners.count} banners`)
+
+  // Create stories
+  const stories = await prisma.story.createMany({
+    data: [
+      {
+        title: 'Fashion Collection',
+        thumbnail: 'https://img.youtube.com/vi/cmpjAr1lfKc/default.jpg',
+        images: JSON.stringify(['https://img.youtube.com/vi/cmpjAr1lfKc/maxresdefault.jpg']),
+        isActive: true,
+        order: 0,
+      },
+      {
+        title: 'Style Trends',
+        thumbnail: 'https://img.youtube.com/vi/3sRG8eXoFek/default.jpg',
+        images: JSON.stringify(['https://img.youtube.com/vi/3sRG8eXoFek/maxresdefault.jpg']),
+        isActive: true,
+        order: 1,
+      },
+      {
+        title: 'Designer Looks',
+        thumbnail: 'https://img.youtube.com/vi/WNL4wZ4rdh4/default.jpg',
+        images: JSON.stringify(['https://img.youtube.com/vi/WNL4wZ4rdh4/maxresdefault.jpg']),
+        isActive: true,
+        order: 2,
+      },
+      {
+        title: 'Trending Styles',
+        thumbnail: 'https://img.youtube.com/vi/76weitaUxn0/default.jpg',
+        images: JSON.stringify(['https://img.youtube.com/vi/76weitaUxn0/maxresdefault.jpg']),
+        isActive: true,
+        order: 3,
+      },
+    ],
+  })
+  console.log(`Created ${stories.count} stories`)
+
+  // Create reels
+  const reels = await prisma.reel.createMany({
+    data: [
+      {
+        title: 'Fashion Collection',
+        thumbnail: 'https://img.youtube.com/vi/cmpjAr1lfKc/hqdefault.jpg',
+        videoUrl: 'https://www.youtube.com/embed/cmpjAr1lfKc',
+        productIds: JSON.stringify([productList[0]?.id, productList[1]?.id]),
+        isActive: true,
+        order: 0,
+      },
+      {
+        title: 'Style Trends',
+        thumbnail: 'https://img.youtube.com/vi/3sRG8eXoFek/hqdefault.jpg',
+        videoUrl: 'https://www.youtube.com/embed/3sRG8eXoFek',
+        productIds: JSON.stringify([productList[2]?.id]),
+        isActive: true,
+        order: 1,
+      },
+      {
+        title: 'Designer Looks',
+        thumbnail: 'https://img.youtube.com/vi/WNL4wZ4rdh4/hqdefault.jpg',
+        videoUrl: 'https://www.youtube.com/embed/WNL4wZ4rdh4',
+        productIds: JSON.stringify([productList[3]?.id, productList[4]?.id]),
+        isActive: true,
+        order: 2,
+      },
+      {
+        title: 'Summer Collection',
+        thumbnail: 'https://img.youtube.com/vi/3d94-t1ufS0/hqdefault.jpg',
+        videoUrl: 'https://www.youtube.com/embed/3d94-t1ufS0',
+        productIds: JSON.stringify([productList[5]?.id]),
+        isActive: true,
+        order: 3,
+      },
+    ],
+  })
+  console.log(`Created ${reels.count} reels`)
+
+  // Create promotions
+  const promotions = await prisma.promotion.createMany({
+    data: [
+      {
+        title: 'Festive Collection',
+        description: 'Up to 50% Off',
+        image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/Pure_Silk_Sarees_1.jpg?v=1775458062',
+        ctaText: 'Shop Now',
+        ctaLink: '/collections/wedding',
+        type: 'banner',
+        isActive: true,
+        order: 0,
+      },
+      {
+        title: 'New Arrivals',
+        description: 'Shop Latest Trends',
+        image: 'https://medias.utsavfashion.com/media/wysiwyg/home/2026/2603/hs-thu-gen-yes-wedding-dutyfree-260326.jpg',
+        ctaText: 'Explore',
+        ctaLink: '/shop',
+        type: 'banner',
+        isActive: true,
+        order: 1,
+      },
+    ],
+  })
+  console.log(`Created ${promotions.count} promotions`)
+
+  // Create homepage settings
+  await prisma.homepageSettings.createMany({
+    data: [
+      {
+        sectionName: 'banners',
+        isEnabled: true,
+        autoPlay: 5000,
+      },
+      {
+        sectionName: 'stories',
+        isEnabled: true,
+        autoPlay: 4000,
+      },
+      {
+        sectionName: 'reels',
+        isEnabled: true,
+        autoPlay: 0,
+      },
+      {
+        sectionName: 'promotions',
+        isEnabled: true,
+        autoPlay: 0,
+      },
+    ],
+  })
+  console.log('Created homepage settings')
+
   console.log('Database seeding completed successfully!')
   console.log('\n=== Summary ===')
   console.log(`Users: ${3} (1 admin, 2 regular)`)
   console.log(`Categories: ${categories.count}`)
   console.log(`Products: ${products.length}`)
   console.log(`Orders: ${orderCount}`)
+  console.log(`Banners: ${banners.count}`)
+  console.log(`Stories: ${stories.count}`)
+  console.log(`Reels: ${reels.count}`)
+  console.log(`Promotions: ${promotions.count}`)
   console.log('\nLogin Credentials:')
   console.log('Admin:')
   console.log('  Email: admin@example.com')

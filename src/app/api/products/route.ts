@@ -99,8 +99,13 @@ export async function GET(request: Request) {
 
     // Transform products to match expected frontend format
     const transformedProducts = products.map(product => {
-      const images = JSON.parse(product.images || '[]')
-      const attributes = JSON.parse(product.attributes || '{}')
+      const images = product.images ? JSON.parse(product.images) : []
+      let attributes: any = {}
+
+      // If product has variants, include that information
+      if (product.hasVariants) {
+        attributes.hasVariants = true
+      }
 
       // Calculate badge based on discount
       let badge: string | undefined
@@ -115,7 +120,7 @@ export async function GET(request: Request) {
         name: product.name,
         slug: product.slug,
         description: product.description,
-        price: product.price,
+        price: product.basePrice || product.price,
         originalPrice: product.comparePrice || undefined,
         image: images[0] || product.category?.image || '',
         images: images,
@@ -124,9 +129,13 @@ export async function GET(request: Request) {
         badge,
         category: product.category?.name,
         categorySlug: product.category?.slug,
+        categoryId: product.categoryId,
         stock: product.stock,
+        hasVariants: product.hasVariants,
+        basePrice: product.basePrice || product.price,
         attributes,
         isFeatured: product.isFeatured,
+        isActive: product.isActive,
         lowStockAlert: product.lowStockAlert,
       }
     })

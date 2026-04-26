@@ -22,6 +22,7 @@ model User {
   password       String?
   emailVerified  Boolean  @default(false)
   emailToken     String?  // For email verification
+  newEmail       String?  // Temporary field for pending email change
   resetToken     String?  // For password reset
   resetTokenExpiry DateTime? // Password reset token expiry
   role           String   @default("user") // "user" or "admin"
@@ -50,33 +51,65 @@ model Product {
   name           String
   slug           String   @unique
   description    String?
-  price          Float
+  categoryId     String
+  category       Category  @relation(fields: [categoryId], references: [id])
+  price          Float     @default(0) // For backward compatibility - will be renamed to basePrice in migration
+  basePrice      Float     @default(0) // Base price for products without variants
   comparePrice   Float?
   discount       Float?    @default(0)
   discountType   String?   @default("percentage") // 'percentage' | 'fixed'
-  categoryId     String
-  category       Category  @relation(fields: [categoryId], references: [id])
-  images         String
-  stock          Int      @default(0)
+  images         String?   // Default images (JSON array) - used if no variants
+  stock          Int       @default(0) // Total stock - calculated from variants if they exist
   lowStockAlert  Int       @default(10)
   reorderLevel   Int       @default(5)
   reorderQty     Int       @default(20)
-  isActive       Boolean  @default(true)
-  isFeatured     Boolean  @default(false)
-  attributes     String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  isActive       Boolean   @default(true)
+  isFeatured     Boolean   @default(false)
+  hasVariants    Boolean   @default(false) // Indicates if product has variants
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  variants       ProductVariant[]
   orderItems     OrderItem[]
   cartItems      CartItem[]
   wishlistItems  WishlistItem[]
   reviews        ProductReview[]
   inventoryAlerts InventoryAlert[]
-  
+
   @@index([categoryId])
   @@index([isFeatured])
   @@index([isActive, createdAt(sort: Desc)])
   @@index([slug])
   @@index([isActive, isFeatured])
+}
+
+model ProductVariant {
+  id              String   @id @default(cuid())
+  productId       String
+  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sku             String   @unique
+  name            String   // e.g., "Red - XL", "Blue - M"
+  price           Float    // Variant-specific price
+  comparePrice    Float?
+  stock           Int      @default(0) // Variant-specific inventory
+  images          String?  // JSON array of variant image URLs
+  size            String?  // Size variant: S, M, L, XL, etc.
+  color           String?  // Color variant: Red, Blue, Black, etc.
+  material        String?  // Material variant: Cotton, Silk, etc.
+  isActive        Boolean  @default(true)
+  isDefault       Boolean  @default(false) // Default variant to show on product page
+  lowStockAlert   Int      @default(10)
+  reorderLevel    Int      @default(5)
+  reorderQty      Int      @default(20)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  orderItems      OrderItem[]
+  cartItems       CartItem[]
+  inventoryAlerts InventoryAlert[]
+
+  @@index([productId])
+  @@index([sku])
+  @@index([productId, isActive])
+  @@index([productId, size, color])
 }
 
 model ProductReview {
@@ -157,11 +190,21 @@ model OrderItem {
   order       Order    @relation(fields: [orderId], references: [id])
   productId   String
   product     Product  @relation(fields: [productId], references: [id])
+  variantId   String?  // Link to variant if product has variants
+  variant     ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
   quantity    Int
   price       Float
   productName String
   productImage String?
+  variantSku  String?  // Capture SKU at time of order
+  variantSize String?  // Capture size at time of order
+  variantColor String? // Capture color at time of order
+  variantMaterial String? // Capture material at time of order
   createdAt   DateTime @default(now())
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([variantId])
 }
 
 model CartItem {
@@ -170,12 +213,15 @@ model CartItem {
   user      User     @relation(fields: [userId], references: [id])
   productId String
   product   Product  @relation(fields: [productId], references: [id])
+  variantId String?  // Link to variant if product has variants
+  variant   ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
   quantity  Int      @default(1)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([userId, productId])
+  @@index([variantId])
   @@unique([userId, productId])
 }
 
@@ -191,14 +237,20 @@ model AdminLog {
 
 model InventoryAlert {
   id          String   @id @default(cuid())
-  productId   String
-  product     Product  @relation(fields: [productId], references: [id])
+  variantId   String?  // Support variant-level alerts
+  variant     ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  productId   String?  // Support product-level alerts (backward compatibility)
+  product     Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
   alertType   AlertType @default(LOW_STOCK)
   quantity    Int
   isRead      Boolean  @default(false)
   isResolved  Boolean  @default(false)
   resolvedAt   DateTime?
   createdAt   DateTime @default(now())
+
+  @@index([variantId])
+  @@index([productId])
+  @@index([isRead, isResolved])
 }
 
 enum OrderStatus {

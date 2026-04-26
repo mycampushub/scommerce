@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "sonner";
+import { OrganizationStructuredData } from "@/components/product-structured-data";
+import { AnalyticsScripts, SearchConsoleVerification } from "@/components/analytics-scripts";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,25 +16,46 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://yourdomain.com";
+
 export const metadata: Metadata = {
-  title: "Z.ai Code Scaffold - AI-Powered Development",
-  description: "Modern Next.js scaffold optimized for AI-powered development with Z.ai. Built with TypeScript, Tailwind CSS, and shadcn/ui.",
-  keywords: ["Z.ai", "Next.js", "TypeScript", "Tailwind CSS", "shadcn/ui", "AI development", "React"],
-  authors: [{ name: "Z.ai Team" }],
+  title: {
+    default: "Modern E-commerce - Fashion & Lifestyle",
+    template: "%s | Modern E-commerce",
+  },
+  description: "Discover traditional and contemporary fashion at Modern E-commerce. Shop sarees, salwar kameez, kurtas, gowns, lehengas, and menswear with nationwide delivery across Bangladesh.",
+  keywords: ["e-commerce", "fashion", "saree", "salwar kameez", "kurtas", "gowns", "lehengas", "menswear", "Bangladesh", "online shopping"],
+  authors: [{ name: "Modern E-commerce Team" }],
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+    icon: "/favicon.ico",
+    apple: "/favicon.ico",
+  },
+  verification: {
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
   },
   openGraph: {
-    title: "Z.ai Code Scaffold",
-    description: "AI-powered development with modern React stack",
-    url: "https://chat.z.ai",
-    siteName: "Z.ai",
+    title: "Modern E-commerce - Fashion & Lifestyle",
+    description: "Discover traditional and contemporary fashion with nationwide delivery across Bangladesh",
+    url: SITE_URL,
+    siteName: "Modern E-commerce",
     type: "website",
+    locale: "en_BD",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Z.ai Code Scaffold",
-    description: "AI-powered development with modern React stack",
+    title: "Modern E-commerce - Fashion & Lifestyle",
+    description: "Discover traditional and contemporary fashion with nationwide delivery across Bangladesh",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
   },
 };
 
@@ -43,9 +66,19 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <SearchConsoleVerification />
+        <OrganizationStructuredData
+          siteName="Modern E-commerce"
+          siteUrl={SITE_URL}
+          logo="/logo.svg"
+          description="Modern e-commerce platform for fashion and lifestyle products"
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
+        <AnalyticsScripts />
         {children}
         <Toaster />
         <SonnerToaster position="bottom-right" />

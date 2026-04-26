@@ -61,9 +61,16 @@ import {
   TrendingDown,
   Loader2,
   RefreshCw,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Layers,
+  Copy,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react'
 import { ImageUpload } from '@/components/admin/image-upload'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 
 interface Product {
   id: string
@@ -93,6 +100,23 @@ interface Category {
   slug: string
 }
 
+interface ProductVariant {
+  id: string
+  sku: string
+  name: string
+  price: number
+  comparePrice: number | null
+  stock: number
+  images: string[] | null
+  size: string | null
+  color: string | null
+  material: string | null
+  isDefault: boolean
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
 export default function ProductsPage() {
   const { toast } = useToast()
   const [loading, setLoading] = useState(true)
@@ -119,8 +143,53 @@ export default function ProductsPage() {
     isFeatured: false,
   })
 
+  // Add product modal state
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [addFormData, setAddFormData] = useState({
+    name: '',
+    slug: '',
+    description: '',
+    price: '',
+    comparePrice: '',
+    categoryId: '',
+    images: [] as string[],
+    stock: '0',
+    isActive: true,
+    isFeatured: false,
+  })
+
   // Delete modal state
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null)
+
+  // Variant management modal state
+  const [isVariantsModalOpen, setIsVariantsModalOpen] = useState(false)
+  const [selectedProductForVariants, setSelectedProductForVariants] = useState<Product | null>(null)
+  const [variants, setVariants] = useState<ProductVariant[]>([])
+  const [variantsLoading, setVariantsLoading] = useState(false)
+  const [activeVariantTab, setActiveVariantTab] = useState<'list' | 'matrix'>('list')
+
+  // Variant form state
+  const [editingVariant, setEditingVariant] = useState<ProductVariant | null>(null)
+  const [variantFormData, setVariantFormData] = useState({
+    sku: '',
+    name: '',
+    price: '',
+    comparePrice: '',
+    stock: '',
+    size: '',
+    color: '',
+    material: '',
+    images: [] as string[],
+    isDefault: false,
+    isActive: true,
+  })
+
+  // Matrix builder state
+  const [matrixSizes, setMatrixSizes] = useState('')
+  const [matrixColors, setMatrixColors] = useState('')
+  const [matrixMaterials, setMatrixMaterials] = useState('')
+  const [matrixBasePrice, setMatrixBasePrice] = useState('')
+  const [matrixStock, setMatrixStock] = useState('')
 
   useEffect(() => {
     fetchProducts()
@@ -242,6 +311,66 @@ export default function ProductsPage() {
     }
   }
 
+  const handleAddProduct = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    try {
+      const response = await fetch('/api/admin/products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: addFormData.name,
+          slug: addFormData.slug || addFormData.name.toLowerCase().replace(/\s+/g, '-'),
+          description: addFormData.description,
+          price: parseFloat(addFormData.price),
+          comparePrice: addFormData.comparePrice ? parseFloat(addFormData.comparePrice) : null,
+          categoryId: addFormData.categoryId || null,
+          images: JSON.stringify(addFormData.images),
+          stock: parseInt(addFormData.stock),
+          basePrice: parseFloat(addFormData.price),
+          hasVariants: false,
+          isActive: addFormData.isActive,
+          isFeatured: addFormData.isFeatured,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to create product')
+      }
+
+      toast({
+        title: 'Success',
+        description: 'Product created successfully',
+      })
+
+      setIsAddModalOpen(false)
+      setAddFormData({
+        name: '',
+        slug: '',
+        description: '',
+        price: '',
+        comparePrice: '',
+        categoryId: '',
+        images: [],
+        stock: '0',
+        isActive: true,
+        isFeatured: false,
+      })
+      fetchProducts()
+    } catch (err: any) {
+      console.error('Error adding product:', err)
+      toast({
+        title: 'Error',
+        description: err.message || 'Failed to create product',
+        variant: 'destructive',
+      })
+    }
+  }
+
   const handleDeleteProduct = async () => {
     if (!deleteProductId) return
 
@@ -307,6 +436,243 @@ export default function ProductsPage() {
     }
   }
 
+  // Variant management functions
+  const openVariantsModal = async (product: Product) => {
+    setSelectedProductForVariants(product)
+    setIsVariantsModalOpen(true)
+    await fetchVariants(product.id)
+  }
+
+  const fetchVariants = async (productId: string) => {
+    try {
+      setVariantsLoading(true)
+      const response = await fetch(`/api/admin/products/${productId}/variants`)
+      const result = await response.json()
+
+      if (result.success) {
+        setVariants(result.data.variants || [])
+      }
+    } catch (err: any) {
+      console.error('Error fetching variants:', err)
+      toast({
+        title: 'Error',
+        description: 'Failed to fetch variants',
+        variant: 'destructive',
+      })
+    } finally {
+      setVariantsLoading(false)
+    }
+  }
+
+  const openAddVariantModal = () => {
+    setEditingVariant(null)
+    setVariantFormData({
+      sku: '',
+      name: '',
+      price: '',
+      comparePrice: '',
+      stock: '',
+      size: '',
+      color: '',
+      material: '',
+      images: [],
+      isDefault: variants.length === 0,
+      isActive: true,
+    })
+  }
+
+  const openEditVariantModal = (variant: ProductVariant) => {
+    setEditingVariant(variant)
+    setVariantFormData({
+      sku: variant.sku,
+      name: variant.name,
+      price: variant.price.toString(),
+      comparePrice: variant.comparePrice?.toString() || '',
+      stock: variant.stock.toString(),
+      size: variant.size || '',
+      color: variant.color || '',
+      material: variant.material || '',
+      images: variant.images || [],
+      isDefault: variant.isDefault,
+      isActive: variant.isActive,
+    })
+  }
+
+  const handleSaveVariant = async () => {
+    if (!selectedProductForVariants) return
+
+    try {
+      const payload = {
+        name: variantFormData.name || `${variantFormData.size} / ${variantFormData.color}`,
+        price: parseFloat(variantFormData.price),
+        comparePrice: variantFormData.comparePrice ? parseFloat(variantFormData.comparePrice) : null,
+        stock: parseInt(variantFormData.stock),
+        size: variantFormData.size || null,
+        color: variantFormData.color || null,
+        material: variantFormData.material || null,
+        images: JSON.stringify(variantFormData.images),
+        isDefault: variantFormData.isDefault,
+        isActive: variantFormData.isActive,
+      }
+
+      let response
+      if (editingVariant) {
+        // Update existing variant
+        response = await fetch(`/api/admin/products/${selectedProductForVariants.id}/variants/${editingVariant.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+      } else {
+        // Create new variant
+        response = await fetch(`/api/admin/products/${selectedProductForVariants.id}/variants`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+      }
+
+      const result = await response.json()
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to save variant')
+      }
+
+      toast({
+        title: 'Success',
+        description: editingVariant ? 'Variant updated successfully' : 'Variant created successfully',
+      })
+
+      await fetchVariants(selectedProductForVariants.id)
+      setVariantFormData({
+        sku: '',
+        name: '',
+        price: '',
+        comparePrice: '',
+        stock: '',
+        size: '',
+        color: '',
+        material: '',
+        images: [],
+        isDefault: false,
+        isActive: true,
+      })
+    } catch (err: any) {
+      console.error('Error saving variant:', err)
+      toast({
+        title: 'Error',
+        description: err.message || 'Failed to save variant',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleDeleteVariant = async (variantId: string) => {
+    if (!selectedProductForVariants) return
+
+    try {
+      const response = await fetch(`/api/admin/products/${selectedProductForVariants.id}/variants/${variantId}`, {
+        method: 'DELETE',
+      })
+
+      const result = await response.json()
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to delete variant')
+      }
+
+      toast({
+        title: 'Success',
+        description: 'Variant deleted successfully',
+      })
+
+      await fetchVariants(selectedProductForVariants.id)
+    } catch (err: any) {
+      console.error('Error deleting variant:', err)
+      toast({
+        title: 'Error',
+        description: err.message || 'Failed to delete variant',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleGenerateMatrix = async () => {
+    if (!selectedProductForVariants) return
+
+    try {
+      const sizes = matrixSizes.split(',').map(s => s.trim()).filter(Boolean)
+      const colors = matrixColors.split(',').map(c => c.trim()).filter(Boolean)
+      const materials = matrixMaterials.split(',').map(m => m.trim()).filter(Boolean)
+      const basePrice = parseFloat(matrixBasePrice) || selectedProductForVariants.price
+      const stock = parseInt(matrixStock) || 0
+
+      if (sizes.length === 0 && colors.length === 0 && materials.length === 0) {
+        toast({
+          title: 'Error',
+          description: 'Please enter at least one size, color, or material',
+          variant: 'destructive',
+        })
+        return
+      }
+
+      // Generate all combinations
+      const combinations: Array<{ size: string | null; color: string | null; material: string | null }> = []
+
+      sizes.forEach(size => {
+        colors.forEach(color => {
+          materials.forEach(material => {
+            combinations.push({ size, color, material })
+          })
+        })
+      })
+
+      // Create variants for each combination
+      for (const combo of combinations) {
+        const variantName = [combo.size, combo.color, combo.material].filter(Boolean).join(' / ')
+        const payload = {
+          name: variantName,
+          price: basePrice,
+          comparePrice: null,
+          stock,
+          size: combo.size || null,
+          color: combo.color || null,
+          material: combo.material || null,
+          images: '[]',
+          isDefault: false,
+          isActive: true,
+        }
+
+        await fetch(`/api/admin/products/${selectedProductForVariants.id}/variants`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+      }
+
+      toast({
+        title: 'Success',
+        description: `Created ${combinations.length} variants successfully`,
+      })
+
+      await fetchVariants(selectedProductForVariants.id)
+
+      // Reset matrix form
+      setMatrixSizes('')
+      setMatrixColors('')
+      setMatrixMaterials('')
+      setMatrixBasePrice('')
+      setMatrixStock('')
+    } catch (err: any) {
+      console.error('Error generating matrix:', err)
+      toast({
+        title: 'Error',
+        description: err.message || 'Failed to generate variants',
+        variant: 'destructive',
+      })
+    }
+  }
+
   const getStockStatus = (product: Product) => {
     if (product.stock === 0) return { label: 'Out of Stock', color: 'text-red-600', bgColor: 'bg-red-100' }
     if (product.stock < product.lowStockAlert) return { label: 'Low Stock', color: 'text-orange-600', bgColor: 'bg-orange-100' }
@@ -332,7 +698,10 @@ export default function ProductsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Products</h1>
           <p className="text-sm text-gray-500 mt-1">Manage your product inventory</p>
         </div>
-        <Button className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700">
+        <Button
+          onClick={() => setIsAddModalOpen(true)}
+          className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
+        >
           <Plus className="h-4 w-4 mr-2" />
           Add Product
         </Button>
@@ -531,6 +900,10 @@ export default function ProductsPage() {
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
                             <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => openVariantsModal(product)}>
+                              <Layers className="h-4 w-4 mr-2" />
+                              Manage Variants
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => openEditModal(product)}>
                               <Edit className="h-4 w-4 mr-2" />
                               Edit
@@ -707,6 +1080,537 @@ export default function ProductsPage() {
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Product Modal */}
+      <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add New Product</DialogTitle>
+            <DialogDescription>Create a new product for your store</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAddProduct} className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Product Name *</label>
+                <Input
+                  value={addFormData.name}
+                  onChange={(e) => setAddFormData({ ...addFormData, name: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Slug</label>
+                <Input
+                  value={addFormData.slug}
+                  onChange={(e) => setAddFormData({ ...addFormData, slug: e.target.value })}
+                  placeholder="Auto-generated from name"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Description</label>
+              <Textarea
+                value={addFormData.description}
+                onChange={(e) => setAddFormData({ ...addFormData, description: e.target.value })}
+                placeholder="Product description..."
+                rows={3}
+              />
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Price *</label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={addFormData.price}
+                  onChange={(e) => setAddFormData({ ...addFormData, price: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Compare Price</label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={addFormData.comparePrice}
+                  onChange={(e) => setAddFormData({ ...addFormData, comparePrice: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Initial Stock *</label>
+                <Input
+                  type="number"
+                  value={addFormData.stock}
+                  onChange={(e) => setAddFormData({ ...addFormData, stock: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Category</label>
+              <Select
+                value={addFormData.categoryId}
+                onValueChange={(value) => setAddFormData({ ...addFormData, categoryId: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Images</label>
+              <ImageUpload
+                images={addFormData.images}
+                onImagesChange={(images) => setAddFormData({ ...addFormData, images })}
+                maxImages={10}
+              />
+            </div>
+
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={addFormData.isActive}
+                  onChange={(e) => setAddFormData({ ...addFormData, isActive: e.target.checked })}
+                  className="h-4 w-4"
+                />
+                <span className="text-sm font-medium">Active</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={addFormData.isFeatured}
+                  onChange={(e) => setAddFormData({ ...addFormData, isFeatured: e.target.checked })}
+                  className="h-4 w-4"
+                />
+                <span className="text-sm font-medium">Featured</span>
+              </label>
+            </div>
+
+            <div className="flex gap-2 pt-4">
+              <Button type="submit" className="flex-1 bg-gradient-to-r from-violet-600 to-indigo-600">
+                Create Product
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setIsAddModalOpen(false)}>
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Variant Management Modal */}
+      <Dialog open={isVariantsModalOpen} onOpenChange={setIsVariantsModalOpen}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Manage Variants - {selectedProductForVariants?.name}</DialogTitle>
+            <DialogDescription>Create and manage product variants (sizes, colors, materials)</DialogDescription>
+          </DialogHeader>
+
+          <Tabs value={activeVariantTab} onValueChange={(v) => setActiveVariantTab(v as 'list' | 'matrix')} className="mt-4">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="list">Variant List</TabsTrigger>
+              <TabsTrigger value="matrix">Matrix Builder</TabsTrigger>
+            </TabsList>
+
+            {/* Variant List Tab */}
+            <TabsContent value="list" className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold">Existing Variants ({variants.length})</h3>
+                <Button onClick={openAddVariantModal} className="bg-gradient-to-r from-violet-600 to-indigo-600">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Variant
+                </Button>
+              </div>
+
+              {variantsLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
+                </div>
+              ) : variants.length === 0 ? (
+                <div className="text-center py-12 border-2 border-dashed rounded-lg">
+                  <Layers className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500">No variants yet</p>
+                  <p className="text-sm text-gray-400">Add your first variant or use the Matrix Builder</p>
+                </div>
+              ) : (
+                <div className="border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-gray-50">
+                        <TableHead className="font-semibold">Variant</TableHead>
+                        <TableHead className="font-semibold">SKU</TableHead>
+                        <TableHead className="font-semibold">Price</TableHead>
+                        <TableHead className="font-semibold">Stock</TableHead>
+                        <TableHead className="font-semibold">Status</TableHead>
+                        <TableHead className="text-right font-semibold">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {variants.map((variant) => (
+                        <TableRow key={variant.id} className="hover:bg-gray-50">
+                          <TableCell>
+                            <div className="space-y-1">
+                              <p className="font-medium text-sm">{variant.name}</p>
+                              <div className="flex gap-1 flex-wrap">
+                                {variant.size && <Badge variant="outline" className="text-xs">{variant.size}</Badge>}
+                                {variant.color && <Badge variant="outline" className="text-xs bg-purple-50">{variant.color}</Badge>}
+                                {variant.material && <Badge variant="outline" className="text-xs bg-blue-50">{variant.material}</Badge>}
+                              </div>
+                              {variant.isDefault && (
+                                <Badge className="text-xs bg-green-100 text-green-700">Default</Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <code className="text-xs bg-gray-100 px-2 py-1 rounded">{variant.sku}</code>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="font-semibold">${variant.price.toFixed(2)}</p>
+                              {variant.comparePrice && (
+                                <p className="text-xs text-gray-500 line-through">${variant.comparePrice.toFixed(2)}</p>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <span className={`font-semibold ${
+                              variant.stock === 0 ? 'text-red-600' :
+                              variant.stock < 5 ? 'text-orange-600' : 'text-green-600'
+                            }`}>
+                              {variant.stock}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={variant.isActive ? 'default' : 'secondary'} className={
+                              variant.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                            }>
+                              {variant.isActive ? 'Active' : 'Inactive'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => openEditVariantModal(variant)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="text-red-600 hover:text-red-700">
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete Variant</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to delete "{variant.name}"? This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleDeleteVariant(variant.id)}
+                                      className="bg-red-600 hover:bg-red-700"
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+
+              {/* Add/Edit Variant Form */}
+              {(editingVariant !== null || variantFormData.name !== '') && (
+                <div className="border-t pt-4">
+                  <h4 className="font-semibold mb-4">{editingVariant ? 'Edit Variant' : 'Add New Variant'}</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label>SKU</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={variantFormData.sku}
+                          onChange={(e) => setVariantFormData({ ...variantFormData, sku: e.target.value })}
+                          placeholder="Auto-generated if empty"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Variant Name</Label>
+                      <Input
+                        value={variantFormData.name}
+                        onChange={(e) => setVariantFormData({ ...variantFormData, name: e.target.value })}
+                        placeholder="e.g., Red - XL - Cotton"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Price</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={variantFormData.price}
+                        onChange={(e) => setVariantFormData({ ...variantFormData, price: e.target.value })}
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Compare Price</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={variantFormData.comparePrice}
+                        onChange={(e) => setVariantFormData({ ...variantFormData, comparePrice: e.target.value })}
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Stock</Label>
+                      <Input
+                        type="number"
+                        value={variantFormData.stock}
+                        onChange={(e) => setVariantFormData({ ...variantFormData, stock: e.target.value })}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Size</Label>
+                      <Input
+                        value={variantFormData.size}
+                        onChange={(e) => setVariantFormData({ ...variantFormData, size: e.target.value })}
+                        placeholder="e.g., S, M, L, XL"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Color</Label>
+                      <Input
+                        value={variantFormData.color}
+                        onChange={(e) => setVariantFormData({ ...variantFormData, color: e.target.value })}
+                        placeholder="e.g., Red, Blue, Black"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Material</Label>
+                      <Input
+                        value={variantFormData.material}
+                        onChange={(e) => setVariantFormData({ ...variantFormData, material: e.target.value })}
+                        placeholder="e.g., Cotton, Silk, Wool"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Images</Label>
+                      <ImageUpload
+                        images={variantFormData.images}
+                        onImagesChange={(images) => setVariantFormData({ ...variantFormData, images })}
+                        maxImages={5}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 mt-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={variantFormData.isDefault}
+                        onChange={(e) => setVariantFormData({ ...variantFormData, isDefault: e.target.checked })}
+                        className="h-4 w-4"
+                      />
+                      <span className="text-sm font-medium">Default Variant</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={variantFormData.isActive}
+                        onChange={(e) => setVariantFormData({ ...variantFormData, isActive: e.target.checked })}
+                        className="h-4 w-4"
+                      />
+                      <span className="text-sm font-medium">Active</span>
+                    </label>
+                  </div>
+                  <div className="flex gap-2 mt-4">
+                    <Button onClick={handleSaveVariant} className="flex-1 bg-gradient-to-r from-violet-600 to-indigo-600">
+                      <CheckCircle2 className="h-4 w-4 mr-2" />
+                      {editingVariant ? 'Update Variant' : 'Create Variant'}
+                    </Button>
+                    <Button variant="outline" onClick={() => {
+                      setEditingVariant(null)
+                      setVariantFormData({
+                        sku: '',
+                        name: '',
+                        price: '',
+                        comparePrice: '',
+                        stock: '',
+                        size: '',
+                        color: '',
+                        material: '',
+                        images: [],
+                        isDefault: false,
+                        isActive: true,
+                      })
+                    }}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+
+            {/* Matrix Builder Tab */}
+            <TabsContent value="matrix" className="space-y-6">
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Variant Matrix Builder</h3>
+                <p className="text-sm text-gray-600">
+                  Create multiple variants at once by combining sizes, colors, and materials.
+                </p>
+              </div>
+
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label>Sizes (comma-separated)</Label>
+                      <Textarea
+                        value={matrixSizes}
+                        onChange={(e) => setMatrixSizes(e.target.value)}
+                        placeholder="S, M, L, XL, XXL"
+                        rows={3}
+                      />
+                      <p className="text-xs text-gray-500">Example: S, M, L, XL, XXL</p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Colors (comma-separated)</Label>
+                      <Textarea
+                        value={matrixColors}
+                        onChange={(e) => setMatrixColors(e.target.value)}
+                        placeholder="Red, Blue, Green, Black"
+                        rows={3}
+                      />
+                      <p className="text-xs text-gray-500">Example: Red, Blue, Green, Black</p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Materials (comma-separated)</Label>
+                      <Textarea
+                        value={matrixMaterials}
+                        onChange={(e) => setMatrixMaterials(e.target.value)}
+                        placeholder="Cotton, Silk, Wool, Polyester"
+                        rows={3}
+                      />
+                      <p className="text-xs text-gray-500">Example: Cotton, Silk, Wool, Polyester</p>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Base Price</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={matrixBasePrice}
+                          onChange={(e) => setMatrixBasePrice(e.target.value)}
+                          placeholder={selectedProductForVariants?.price.toString()}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Stock per Variant</Label>
+                        <Input
+                          type="number"
+                          value={matrixStock}
+                          onChange={(e) => setMatrixStock(e.target.value)}
+                          placeholder="0"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                    <h4 className="font-semibold mb-2">Preview</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4 text-gray-500" />
+                        <span className="text-gray-600">
+                          Sizes: <strong>{matrixSizes ? matrixSizes.split(',').length : 0}</strong>
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4 text-gray-500" />
+                        <span className="text-gray-600">
+                          Colors: <strong>{matrixColors ? matrixColors.split(',').length : 0}</strong>
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4 text-gray-500" />
+                        <span className="text-gray-600">
+                          Materials: <strong>{matrixMaterials ? matrixMaterials.split(',').length : 0}</strong>
+                        </span>
+                      </div>
+                      <div className="pt-2 border-t border-gray-200 mt-2">
+                        <p className="text-gray-600">
+                          Total variants to create: <strong className="text-violet-600">
+                            {matrixSizes.split(',').filter(Boolean).length *
+                             matrixColors.split(',').filter(Boolean).length *
+                             matrixMaterials.split(',').filter(Boolean).length ||
+                             Math.max(
+                               matrixSizes.split(',').filter(Boolean).length,
+                               matrixColors.split(',').filter(Boolean).length,
+                               matrixMaterials.split(',').filter(Boolean).length
+                             )}
+                          </strong>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 mt-6">
+                    <Button
+                      onClick={handleGenerateMatrix}
+                      disabled={!matrixSizes && !matrixColors && !matrixMaterials}
+                      className="flex-1 bg-gradient-to-r from-violet-600 to-indigo-600"
+                    >
+                      <Layers className="h-4 w-4 mr-2" />
+                      Generate Variants
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setMatrixSizes('')
+                        setMatrixColors('')
+                        setMatrixMaterials('')
+                        setMatrixBasePrice('')
+                        setMatrixStock('')
+                      }}
+                    >
+                      Reset
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
     </div>

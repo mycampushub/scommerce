@@ -18,7 +18,10 @@ import {
   Mail,
   Globe,
   Building,
-  Palette
+  Palette,
+  Link as LinkIcon,
+  BarChart3,
+  Plug
 } from 'lucide-react'
 
 export default function SettingsPage() {
@@ -31,10 +34,14 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="general" className="space-y-6">
-        <TabsList className="bg-white shadow-md">
+        <TabsList className="bg-white shadow-md flex-wrap gap-2">
           <TabsTrigger value="general" className="data-[state=active]:bg-violet-600 data-[state=active]:text-white">
             <Globe className="h-4 w-4 mr-2" />
             General
+          </TabsTrigger>
+          <TabsTrigger value="integrations" className="data-[state=active]:bg-violet-600 data-[state=active]:text-white">
+            <Plug className="h-4 w-4 mr-2" />
+            Integrations
           </TabsTrigger>
           <TabsTrigger value="store" className="data-[state=active]:bg-violet-600 data-[state=active]:text-white">
             <Building className="h-4 w-4 mr-2" />
@@ -121,6 +128,144 @@ export default function SettingsPage() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Integrations Settings */}
+        <TabsContent value="integrations" className="space-y-6">
+          {/* Analytics & Tracking */}
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold text-gray-900">Analytics & Tracking</CardTitle>
+              <CardDescription className="text-gray-500">Connect analytics and tracking platforms</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                {[
+                  { name: 'Google Analytics 4', key: 'GA_MEASUREMENT_ID', desc: 'Track user behavior and conversions', connected: false, placeholder: 'G-XXXXXXXXXX' },
+                  { name: 'Google Tag Manager', key: 'GTM_ID', desc: 'Manage all your tracking codes', connected: false, placeholder: 'GTM-XXXXXX' },
+                  { name: 'Google Search Console', key: 'GOOGLE_SITE_VERIFICATION', desc: 'Monitor and maintain your site presence', connected: false, placeholder: 'Verification code' },
+                  { name: 'Facebook Pixel', key: 'FACEBOOK_PIXEL_ID', desc: 'Track Facebook ad conversions', connected: false, placeholder: 'XXXXXXXXXXXXXXXX' },
+                ].map((integration, i) => (
+                  <div key={i} className="flex items-start justify-between p-4 bg-gray-50 rounded-lg">
+                    <div className="flex-1 pr-4">
+                      <div className="flex items-center gap-2">
+                        <BarChart3 className="h-5 w-5 text-gray-600" />
+                        <p className="font-medium text-sm text-gray-900">{integration.name}</p>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">{integration.desc}</p>
+                      <div className="mt-3 space-y-2">
+                        <Label htmlFor={integration.key} className="text-xs font-medium">API Key / ID</Label>
+                        <Input
+                          id={integration.key}
+                          type="password"
+                          placeholder={integration.placeholder}
+                          className="text-sm"
+                        />
+                      </div>
+                    </div>
+                    <Badge variant={integration.connected ? 'default' : 'outline'}>
+                      {integration.connected ? 'Connected' : 'Not Connected'}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Payment Gateways */}
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold text-gray-900">Payment Gateways</CardTitle>
+              <CardDescription className="text-gray-500">Configure payment processing integrations</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                {[
+                  { name: 'Stripe', desc: 'Accept credit cards worldwide', keys: ['Publishable Key', 'Secret Key'], connected: false },
+                  { name: 'PayPal', desc: 'Popular payment method', keys: ['Client ID', 'Secret'], connected: false },
+                  { name: 'bKash', desc: 'Bangladesh mobile payment', keys: ['App Key', 'App Secret'], connected: false },
+                  { name: 'Nagad', desc: 'Bangladesh mobile payment', keys: ['Merchant ID', 'Public Key'], connected: false },
+                ].map((gateway, i) => (
+                  <div key={i} className="border rounded-lg p-4 space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <CreditCard className="h-5 w-5 text-gray-600" />
+                          <p className="font-medium text-sm text-gray-900">{gateway.name}</p>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">{gateway.desc}</p>
+                      </div>
+                      <Badge variant={gateway.connected ? 'default' : 'outline'}>
+                        {gateway.connected ? 'Connected' : 'Not Connected'}
+                      </Badge>
+                    </div>
+                    {gateway.keys.map((keyName, j) => (
+                      <div key={j} className="space-y-2">
+                        <Label htmlFor={`${gateway.name}-${keyName}`} className="text-xs font-medium">{keyName}</Label>
+                        <Input
+                          id={`${gateway.name}-${keyName}`}
+                          type="password"
+                          placeholder={`Enter ${keyName}`}
+                          className="text-sm"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Shipping Integrations */}
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold text-gray-900">Shipping Integrations</CardTitle>
+              <CardDescription className="text-gray-500">Connect shipping carriers for real-time rates</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                {[
+                  { name: 'Pathao', desc: 'Local delivery in Bangladesh', keys: ['API Key', 'Store ID'], connected: false },
+                  { name: 'SteadFast', desc: 'Logistics solutions', keys: ['API Key', 'Secret Key'], connected: false },
+                  { name: 'Paperfly', desc: 'Courier services', keys: ['API Key', 'Client ID'], connected: false },
+                ].map((carrier, i) => (
+                  <div key={i} className="border rounded-lg p-4 space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <Truck className="h-5 w-5 text-gray-600" />
+                          <p className="font-medium text-sm text-gray-900">{carrier.name}</p>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">{carrier.desc}</p>
+                      </div>
+                      <Badge variant={carrier.connected ? 'default' : 'outline'}>
+                        {carrier.connected ? 'Connected' : 'Not Connected'}
+                      </Badge>
+                    </div>
+                    {carrier.keys.map((keyName, j) => (
+                      <div key={j} className="space-y-2">
+                        <Label htmlFor={`${carrier.name}-${keyName}`} className="text-xs font-medium">{keyName}</Label>
+                        <Input
+                          id={`${carrier.name}-${keyName}`}
+                          type="password"
+                          placeholder={`Enter ${keyName}`}
+                          className="text-sm"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="flex justify-end gap-2">
+            <Button variant="outline">Cancel</Button>
+            <Button className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700">
+              <Save className="h-4 w-4 mr-2" />
+              Save Integrations
+            </Button>
+          </div>
         </TabsContent>
 
         {/* Store Settings */}

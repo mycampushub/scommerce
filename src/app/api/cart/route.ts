@@ -32,6 +32,15 @@ export async function GET(request: NextRequest) {
                 isActive: true,
               },
             },
+            variant: {
+              select: {
+                id: true,
+                sku: true,
+                size: true,
+                color: true,
+                material: true,
+              },
+            },
           },
           orderBy: { createdAt: 'desc' },
         })
@@ -44,8 +53,11 @@ export async function GET(request: NextRequest) {
           originalPrice: item.product.comparePrice,
           image: item.product.images ? JSON.parse(item.product.images)[0] : '',
           quantity: item.quantity,
-          size: null, // Size and color would be stored in cart attributes if needed
-          color: null,
+          variantId: item.variantId || undefined,
+          variantSku: item.variantSku || undefined,
+          size: item.variant?.size || null,
+          color: item.variant?.color || null,
+          material: item.variant?.material || null,
         }))
 
         return NextResponse.json({
@@ -116,13 +128,12 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        // Check if item already exists
-        const existingItem = await db.cartItem.findUnique({
+        // Check if item already exists (by variant if present, else by product)
+        const existingItem = await db.cartItem.findFirst({
           where: {
-            userId_productId: {
-              userId,
-              productId: item.productId,
-            },
+            userId,
+            productId: item.productId,
+            ...(item.variantId ? { variantId: item.variantId } : { variantId: null }),
           },
         })
 
@@ -143,6 +154,8 @@ export async function POST(request: NextRequest) {
             userId,
             productId: item.productId,
             quantity: item.quantity || 1,
+            ...(item.variantId && { variantId: item.variantId }),
+            ...(item.variantSku && { variantSku: item.variantSku }),
           },
         })
         return NextResponse.json({ success: true, item: cartItem })
@@ -161,10 +174,9 @@ export async function POST(request: NextRequest) {
         // Update existing cart item
         const cartItem = await db.cartItem.updateMany({
           where: {
-            userId_productId: {
-              userId,
-              productId: item.productId!,
-            },
+            userId,
+            productId: item.productId!,
+            ...(item.variantId ? { variantId: item.variantId } : { variantId: null }),
           },
           data: {
             quantity: item.quantity,
@@ -178,10 +190,9 @@ export async function POST(request: NextRequest) {
         // Remove cart item
         const cartItem = await db.cartItem.deleteMany({
           where: {
-            userId_productId: {
-              userId,
-              productId: item.productId!,
-            },
+            userId,
+            productId: item.productId!,
+            ...(item.variantId ? { variantId: item.variantId } : { variantId: null }),
           },
         })
 
@@ -205,6 +216,8 @@ export async function POST(request: NextRequest) {
             userId,
             productId: item.id,
             quantity: item.quantity || 1,
+            ...(item.variantId && { variantId: item.variantId }),
+            ...(item.variantSku && { variantSku: item.variantSku }),
           })),
           skipDuplicates: true,
         })

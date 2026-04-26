@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { ShoppingBag, ArrowRight, Check, Trash2, Home as HomeIcon } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -28,6 +28,9 @@ export default function CheckoutPage() {
   const { items, getTotal, clearCart } = useCartStore()
   const [step, setStep] = useState(1)
   const [isProcessing, setIsProcessing] = useState(false)
+  const [stockIssues, setStockIssues] = useState<{[key: string]: { inStock: boolean, availableStock: number }}>({})
+  const [shippingCost, setShippingCost] = useState(150)
+  const [calculatingShipping, setCalculatingShipping] = useState(false)
 
   const [shippingInfo, setShippingInfo] = useState({
     firstName: '',
@@ -53,8 +56,101 @@ export default function CheckoutPage() {
 
   const total = getTotal()
 
-  const handleShippingSubmit = (e: React.FormEvent) => {
+  // Calculate shipping based on division
+  const calculateShippingCost = async (division: string) => {
+    if (!division) return
+    setCalculatingShipping(true)
+    try {
+      const response = await fetch('/api/shipping/calculate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          subtotal: total,
+          division,
+          weight: 1, // Default weight 1kg
+        }),
+      })
+      const result = await response.json()
+      if (result.success) {
+        setShippingCost(result.data.shippingCost)
+      }
+    } catch (error) {
+      console.error('Error calculating shipping:', error)
+      setShippingCost(150) // Fallback to default
+    } finally {
+      setCalculatingShipping(false)
+    }
+  }
+
+  // Calculate shipping when division changes
+  useEffect(() => {
+    if (shippingInfo.division) {
+      calculateShippingCost(shippingInfo.division)
+    }
+  }, [shippingInfo.division, total])
+
+  // Check stock status for all cart items
+  const checkStockStatus = async () => {
+    try {
+      const itemKeys: {[key: string]: string} = {}
+      
+      for (const item of items) {
+        const itemKey = `${item.id}-${item.variantId || 'no-variant'}`
+        const response = await fetch(`/api/products/${item.id}`)
+        const data = await response.json()
+        
+        if (data.success && data.data) {
+          const product = data.data
+          let stock = 0
+          
+          if (item.variantId) {
+            // Check variant stock
+            const variant = product.variants?.find(v => v.id === item.variantId)
+            stock = variant?.stock || 0
+          } else {
+            // Check product stock
+            stock = product.stock || 0
+          }
+          
+          itemKeys[itemKey] = {
+            inStock: stock >= item.quantity,
+            availableStock: stock
+          }
+        }
+      }
+      
+      setStockIssues(itemKeys)
+      
+      // Check if any items are out of stock
+      const hasOutOfStock = Object.values(itemKeys).some(item => !item.inStock)
+      if (hasOutOfStock) {
+        toast.error('Some items in your cart are out of stock')
+      }
+      
+      return !hasOutOfStock
+    } catch (error) {
+      console.error('Error checking stock:', error)
+      return true // Allow checkout if stock check fails
+    }
+  }
+
+  // Check stock status on mount
+  useEffect(() => {
+    if (items.length > 0) {
+      checkStockStatus()
+    }
+  }, [items])
+
+  const handleShippingSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Check stock status before proceeding
+    const stockOk = await checkStockStatus()
+    if (!stockOk) {
+      return
+    }
     
     // Validate all required fields
     const requiredFields = ['firstName', 'lastName', 'email', 'phone', 'address', 'division', 'district', 'city']
@@ -111,12 +207,18 @@ export default function CheckoutPage() {
   }
 
   const handlePlaceOrder = async () => {
+    // Double-check stock before placing order
+    const stockOk = await checkStockStatus()
+    if (!stockOk) {
+      return
+    }
+    
     setIsProcessing(true)
     
     try {
       // Calculate order totals
       const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
-      const shipping = subtotal > 5000 ? 0 : 150 // BDT: Free shipping over ৳5,000
+      const shipping = shippingCost
       const tax = subtotal * 0.18 // 18% tax rate
       const discount = 0 // Can be extended to include promo codes
       const total = subtotal + shipping + tax - discount
@@ -130,7 +232,15 @@ export default function CheckoutPage() {
         productName: item.name,
         productImage: item.image,
         price: item.price,
-        quantity: item.quantity
+        quantity: item.quantity,
+        // Include variant information if available
+        ...(item.variantId && {
+          variantId: item.variantId,
+          variantSku: item.variantSku,
+          variantSize: item.size,
+          variantColor: item.color,
+          variantMaterial: item.material,
+        }),
       }))
       
       // Prepare order data
@@ -249,7 +359,7 @@ export default function CheckoutPage() {
         </div>
       </section>
 
-      {/* Checkout Content */}
+      {/* Check stock on mount */}
       <section className="flex-1 py-8 md:py-12">
         <div className="container mx-auto px-4">
           <div className="flex flex-col lg:flex-row gap-8">
@@ -560,8 +670,8 @@ export default function CheckoutPage() {
                         Back
                       </button>
                       <button
-                        onClick={handlePlaceOrder}
-                        disabled={isProcessing}
+                        type="submit"
+                        disabled={isProcessing || Object.values(stockIssues).some(issue => !issue.inStock)}
                         className="flex-1 bg-pink-600 text-white py-4 rounded-xl font-semibold hover:bg-pink-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                       >
                         {isProcessing ? 'Processing...' : 'Place Order'}
@@ -578,23 +688,63 @@ export default function CheckoutPage() {
               <div className="bg-white rounded-xl p-6 shadow-sm sticky top-24">
                 <h2 className="text-xl font-bold text-gray-900 mb-6">Order Summary</h2>
 
-                {/* Cart Items */}
+                {/* Cart Items with Stock Status */}
                 <div className="space-y-4 mb-6 max-h-64 overflow-y-auto">
-                  {items.map((item) => (
-                    <div key={`${item.id}-${item.size}-${item.color}`} className="flex gap-3">
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="w-16 h-20 object-cover rounded-lg"
-                      />
-                      <div className="flex-1">
-                        <h3 className="font-medium text-gray-900 text-sm line-clamp-2">{item.name}</h3>
-                        <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
-                        <p className="text-sm font-semibold text-gray-900 mt-1">{formatCurrency(item.price * item.quantity)}</p>
+                  {items.map((item) => {
+                    const itemKey = `${item.id}-${item.variantId || 'no-variant'}`
+                    const stockInfo = stockIssues[itemKey]
+                    const isOutOfStock = stockInfo?.inStock === false
+                    const stockCount = stockInfo?.availableStock || 0
+                    
+                    return (
+                      <div key={itemKey} className={`flex gap-3 ${isOutOfStock ? 'opacity-60' : ''}`}>
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="w-16 h-20 object-cover rounded-lg"
+                        />
+                        <div className="flex-1">
+                          <h3 className="font-medium text-gray-900 text-sm line-clamp-2">{item.name}</h3>
+                          {item.variantId && (
+                            <p className="text-xs text-gray-500">
+                              {item.size && `Size: ${item.size}`}
+                              {item.size && item.color && ' | '}
+                              {item.color && `Color: ${item.color}`}
+                            </p>
+                          )}
+                          <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <p className="text-sm font-semibold text-gray-900">{formatCurrency(item.price * item.quantity)}</p>
+                            {stockInfo && (
+                              <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                isOutOfStock 
+                                  ? 'bg-red-100 text-red-700' 
+                                  : stockCount < 5 
+                                    ? 'bg-yellow-100 text-yellow-700' 
+                                    : 'bg-green-100 text-green-700'
+                              }`}>
+                                {isOutOfStock 
+                                  ? 'Out of Stock' 
+                                  : stockCount < 5 
+                                    ? `Only ${stockCount} left` 
+                                    : 'In Stock'}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
+                
+                {/* Stock Warning */}
+                {Object.values(stockIssues).some(issue => !issue.inStock) && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                    <p className="text-sm text-red-700 font-medium">
+                      Some items in your cart are out of stock. Please remove them or reduce quantities before placing your order.
+                    </p>
+                  </div>
+                )}
 
                 <div className="border-t border-gray-200 pt-4 space-y-3">
                   <div className="flex justify-between">
@@ -603,7 +753,15 @@ export default function CheckoutPage() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Shipping</span>
-                    <span className="font-semibold">{total > 5000 ? 'FREE' : formatCurrency(150)}</span>
+                    <span className="font-semibold">
+                      {calculatingShipping ? (
+                        <span className="text-gray-400">Calculating...</span>
+                      ) : shippingCost === 0 ? (
+                        <span className="text-green-600">FREE</span>
+                      ) : (
+                        formatCurrency(shippingCost)
+                      )}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Tax (18%)</span>
@@ -611,9 +769,32 @@ export default function CheckoutPage() {
                   </div>
                   <div className="border-t border-gray-200 pt-3 flex justify-between">
                     <span className="text-lg font-bold text-gray-900">Total</span>
-                    <span className="text-lg font-bold text-pink-600">{formatCurrency(total + (total * 0.18) + (total > 5000 ? 0 : 150))}</span>
+                    <span className="text-lg font-bold text-pink-600">{formatCurrency(total + (total * 0.18) + shippingCost)}</span>
                   </div>
                 </div>
+
+                {/* Free Shipping Progress */}
+                {shippingCost > 0 && total < 5000 && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-blue-800">
+                        Free shipping progress
+                      </span>
+                      <span className="text-sm text-blue-600">
+                        {formatCurrency(total)} / ৳5,000
+                      </span>
+                    </div>
+                    <div className="w-full bg-blue-200 rounded-full h-2">
+                      <div
+                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${Math.min((total / 5000) * 100, 100)}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-xs text-blue-600 mt-2">
+                      Add {formatCurrency(5000 - total)} more for free shipping!
+                    </p>
+                  </div>
+                )}
 
                 {/* Trust Badges */}
                 <div className="mt-6 space-y-3">

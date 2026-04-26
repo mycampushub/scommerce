@@ -36,36 +36,69 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check stock availability for all products
+    // Check stock availability for all products/variants
     const outOfStockItems: string[] = []
     for (const item of validatedData.orderItems) {
-      const product = await db.product.findUnique({
-        where: { id: item.productId },
-        select: { id: true, name: true, stock: true, isActive: true },
-      })
+      if (item.variantId) {
+        // Check variant-level stock
+        const variant = await db.productVariant.findUnique({
+          where: { id: item.variantId },
+          select: { id: true, sku: true, stock: true, isActive: true },
+        })
 
-      if (!product) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: `Product ${item.productId} not found`,
-          },
-          { status: 404 }
-        )
-      }
+        if (!variant) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: `Variant ${item.variantSku || item.variantId} not found`,
+            },
+            { status: 404 }
+          )
+        }
 
-      if (!product.isActive) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: `Product ${product.name} is not available`,
-          },
-          { status: 400 }
-        )
-      }
+        if (!variant.isActive) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: `Variant ${item.variantSku} is not available`,
+            },
+            { status: 400 }
+          )
+        }
 
-      if (product.stock < item.quantity) {
-        outOfStockItems.push(product.name)
+        if (variant.stock < item.quantity) {
+          outOfStockItems.push(`${item.productName} (${item.variantSku || item.variantSize || item.variantColor})`)
+        }
+      } else {
+        // Check product-level stock (backward compatibility)
+        const product = await db.product.findUnique({
+          where: { id: item.productId },
+          select: { id: true, name: true, stock: true, isActive: true },
+        })
+
+        if (!product) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: `Product ${item.productId} not found`,
+            },
+            { status: 404 }
+          )
+        }
+
+        if (!product.isActive) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: `Product ${product.name} is not available`,
+            },
+            { status: 400 }
+          )
+        }
+
+        if (product.stock < item.quantity) {
+          outOfStockItems.push(product.name)
+        }
       }
     }
 
@@ -120,6 +153,14 @@ export async function POST(request: NextRequest) {
             price: parseFloat(item.price.toFixed(2)),
             productName: item.productName,
             productImage: item.productImage,
+            // Include variant information if provided
+            ...(item.variantId && {
+              variantId: item.variantId,
+              variantSku: item.variantSku,
+              variantSize: item.variantSize,
+              variantColor: item.variantColor,
+              variantMaterial: item.variantMaterial,
+            }),
           })),
         },
       },
@@ -129,78 +170,150 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // Update product stock and generate alerts
+    // Update product/variant stock and generate alerts
     for (const item of validatedData.orderItems) {
       const quantity = item.quantity
-      
-      // Fetch current product details
-      const product = await db.product.findUnique({
-        where: { id: item.productId },
-        select: { 
-          id: true, 
-          name: true, 
-          stock: true, 
-          lowStockAlert: true, 
-          reorderLevel: true,
-          reorderQty: true 
-        },
-      })
 
-      if (!product) continue
-
-      // Update stock
-      const newStock = product.stock - quantity
-      await db.product.update({
-        where: { id: item.productId },
-        data: { stock: newStock },
-      })
-
-      // Generate inventory alerts based on new stock level
-      if (newStock === 0) {
-        await db.inventoryAlert.create({
-          data: {
-            productId: item.productId,
-            alertType: AlertType.OUT_OF_STOCK,
-            quantity: 0,
-          },
-        })
-      } else if (newStock < product.reorderLevel) {
-        // Check if REORDER_NEEDED alert already exists and is not resolved
-        const existingAlert = await db.inventoryAlert.findFirst({
-          where: {
-            productId: item.productId,
-            alertType: AlertType.REORDER_NEEDED,
-            isResolved: false,
+      if (item.variantId) {
+        // Update variant-level inventory
+        const variant = await db.productVariant.findUnique({
+          where: { id: item.variantId },
+          select: {
+            id: true,
+            stock: true,
+            lowStockAlert: true,
+            reorderLevel: true,
+            reorderQty: true,
           },
         })
 
-        if (!existingAlert) {
+        if (!variant) continue
+
+        // Update variant stock
+        const newStock = variant.stock - quantity
+        await db.productVariant.update({
+          where: { id: item.variantId },
+          data: { stock: newStock },
+        })
+
+        // Generate variant-specific alerts
+        if (newStock === 0) {
           await db.inventoryAlert.create({
             data: {
+              variantId: item.variantId,
+              alertType: AlertType.OUT_OF_STOCK,
+              quantity: 0,
+            },
+          })
+        } else if (newStock < variant.reorderLevel) {
+          // Check if REORDER_NEEDED alert already exists and is not resolved
+          const existingAlert = await db.inventoryAlert.findFirst({
+            where: {
+              variantId: item.variantId,
+              alertType: AlertType.REORDER_NEEDED,
+              isResolved: false,
+            },
+          })
+
+          if (!existingAlert) {
+            await db.inventoryAlert.create({
+              data: {
+                variantId: item.variantId,
+                alertType: AlertType.REORDER_NEEDED,
+                quantity: newStock,
+              },
+            })
+          }
+        } else if (newStock < variant.lowStockAlert) {
+          // Check if LOW_STOCK alert already exists and is not resolved
+          const existingAlert = await db.inventoryAlert.findFirst({
+            where: {
+              variantId: item.variantId,
+              alertType: AlertType.LOW_STOCK,
+              isResolved: false,
+            },
+          })
+
+          if (!existingAlert) {
+            await db.inventoryAlert.create({
+              data: {
+                variantId: item.variantId,
+                alertType: AlertType.LOW_STOCK,
+                quantity: newStock,
+              },
+            })
+          }
+        }
+      } else {
+        // Update product-level inventory (backward compatibility)
+        const product = await db.product.findUnique({
+          where: { id: item.productId },
+          select: {
+            id: true,
+            name: true,
+            stock: true,
+            lowStockAlert: true,
+            reorderLevel: true,
+            reorderQty: true,
+          },
+        })
+
+        if (!product) continue
+
+        // Update stock
+        const newStock = product.stock - quantity
+        await db.product.update({
+          where: { id: item.productId },
+          data: { stock: newStock },
+        })
+
+        // Generate inventory alerts based on new stock level
+        if (newStock === 0) {
+          await db.inventoryAlert.create({
+            data: {
+              productId: item.productId,
+              alertType: AlertType.OUT_OF_STOCK,
+              quantity: 0,
+            },
+          })
+        } else if (newStock < product.reorderLevel) {
+          // Check if REORDER_NEEDED alert already exists and is not resolved
+          const existingAlert = await db.inventoryAlert.findFirst({
+            where: {
               productId: item.productId,
               alertType: AlertType.REORDER_NEEDED,
-              quantity: newStock,
+              isResolved: false,
             },
           })
-        }
-      } else if (newStock < product.lowStockAlert) {
-        // Check if LOW_STOCK alert already exists and is not resolved
-        const existingAlert = await db.inventoryAlert.findFirst({
-          where: {
-            productId: item.productId,
-            alertType: AlertType.LOW_STOCK,
-            isResolved: false,
-          },
-        })
 
-        if (!existingAlert) {
-          await db.inventoryAlert.create({
-            data: {
+          if (!existingAlert) {
+            await db.inventoryAlert.create({
+              data: {
+                productId: item.productId,
+                alertType: AlertType.REORDER_NEEDED,
+                quantity: newStock,
+              },
+            })
+          }
+        } else if (newStock < product.lowStockAlert) {
+          // Check if LOW_STOCK alert already exists and is not resolved
+          const existingAlert = await db.inventoryAlert.findFirst({
+            where: {
               productId: item.productId,
               alertType: AlertType.LOW_STOCK,
-              quantity: newStock,
+              isResolved: false,
             },
           })
+
+          if (!existingAlert) {
+            await db.inventoryAlert.create({
+              data: {
+                productId: item.productId,
+                alertType: AlertType.LOW_STOCK,
+                quantity: newStock,
+              },
+            })
+          }
         }
       }
     }

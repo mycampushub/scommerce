@@ -1,11 +1,33 @@
 'use client'
 
 import React, { useEffect, useState, Suspense } from 'react'
-import { Check, ShoppingBag, Home as HomeIcon, ArrowLeft, Download, Share2, Package } from 'lucide-react'
+import { Check, ShoppingBag, Home as HomeIcon, ArrowLeft, Download, Share2, Package, X, RotateCcw } from 'lucide-react'
 import Link from 'next/link'
 import { useCartStore } from '@/lib/store/cart-store'
 import { useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 
 interface OrderItem {
   id: string
@@ -34,6 +56,13 @@ interface Order {
   trackingNumber: string | null
   trackingStatus: string | null
   estimatedDeliveryDate: string | null
+  cancelledAt: string | null
+  cancelledBy: string | null
+  cancellationReason: string | null
+  refundedAt: string | null
+  refundedAmount: number | null
+  refundMethod: string | null
+  refundReason: string | null
   orderItems: OrderItem[]
   createdAt: string
 }
@@ -174,6 +203,14 @@ function OrderConfirmationContent() {
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showCancelDialog, setShowCancelDialog] = useState(false)
+  const [cancelLoading, setCancelLoading] = useState(false)
+  const [cancelReason, setCancelReason] = useState('')
+  const [showRefundDialog, setShowRefundDialog] = useState(false)
+  const [refundLoading, setRefundLoading] = useState(false)
+  const [refundAmount, setRefundAmount] = useState('')
+  const [refundReason, setRefundReason] = useState('')
+  const [refundMethod, setRefundMethod] = useState('')
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -212,6 +249,111 @@ function OrderConfirmationContent() {
       day: 'numeric'
     })
   }
+
+  const handleCancelOrder = async () => {
+    if (!order) return
+
+    setCancelLoading(true)
+    try {
+      const response = await fetch(`/api/orders/${order.id}/cancel`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: order.userId, // Will be checked by backend
+          cancelledBy: 'user',
+          reason: cancelReason || 'Customer requested cancellation',
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed to cancel order')
+      }
+
+      toast.success('Order cancelled successfully')
+
+      // Refresh order details
+      await fetchOrder()
+
+      setShowCancelDialog(false)
+      setCancelReason('')
+    } catch (err: any) {
+      console.error('Error cancelling order:', err)
+      toast.error(err.message || 'Failed to cancel order')
+    } finally {
+      setCancelLoading(false)
+    }
+  }
+
+  const handleRefundRequest = async () => {
+    if (!order) return
+
+    // Validate inputs
+    const amount = parseFloat(refundAmount)
+    if (!amount || amount <= 0) {
+      toast.error('Please enter a valid refund amount')
+      return
+    }
+
+    if (amount > order.total) {
+      toast.error(`Refund amount cannot exceed order total of ৳${order.total.toFixed(2)}`)
+      return
+    }
+
+    if (refundReason.length < 10) {
+      toast.error('Refund reason must be at least 10 characters')
+      return
+    }
+
+    if (!refundMethod) {
+      toast.error('Please select a refund method')
+      return
+    }
+
+    setRefundLoading(true)
+    try {
+      const response = await fetch(`/api/orders/${order.id}/refund`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: order.userId,
+          amount,
+          reason: refundReason,
+          refundMethod,
+          initiatedBy: 'user',
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed to process refund request')
+      }
+
+      toast.success('Refund request submitted successfully')
+
+      // Refresh order details
+      await fetchOrder()
+
+      setShowRefundDialog(false)
+      setRefundAmount('')
+      setRefundReason('')
+      setRefundMethod('')
+    } catch (err: any) {
+      console.error('Error processing refund:', err)
+      toast.error(err.message || 'Failed to process refund request')
+    } finally {
+      setRefundLoading(false)
+    }
+  }
+
+  const canCancelOrder = order && ['PENDING', 'CONFIRMED'].includes(order.status)
+  const canRequestRefund = order && order.status === 'DELIVERED' && !order.refundedAt
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -283,7 +425,12 @@ function OrderConfirmationContent() {
                       </div>
                       <div>
                         <p className="text-sm text-gray-500 mb-1">Status</p>
-                        <p className="font-bold text-green-600 capitalize">{order.status}</p>
+                        <p className={`font-bold capitalize ${
+                          order.status === 'CANCELLED' ? 'text-red-600' :
+                          order.status === 'DELIVERED' ? 'text-green-600' :
+                          order.status === 'SHIPPED' ? 'text-blue-600' :
+                          'text-gray-900'
+                        }`}>{order.status}</p>
                       </div>
                     </div>
                   </div>
@@ -331,6 +478,40 @@ function OrderConfirmationContent() {
                     </div>
                   )}
 
+                  {/* Cancellation Information */}
+                  {order.status === 'CANCELLED' && (
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-6 mb-8 text-left">
+                      <h3 className="font-bold text-red-900 mb-3">Order Cancelled</h3>
+                      <div className="space-y-2">
+                        {order.cancelledAt && (
+                          <div>
+                            <p className="text-xs text-gray-500">Cancelled On</p>
+                            <p className="font-semibold">{formatDate(order.cancelledAt)}</p>
+                          </div>
+                        )}
+                        {order.cancelledBy && (
+                          <div>
+                            <p className="text-xs text-gray-500">Cancelled By</p>
+                            <p className="font-semibold capitalize">{order.cancelledBy}</p>
+                          </div>
+                        )}
+                        {order.cancellationReason && (
+                          <div>
+                            <p className="text-xs text-gray-500">Reason</p>
+                            <p className="font-semibold">{order.cancellationReason}</p>
+                          </div>
+                        )}
+                        {order.refundedAmount > 0 && (
+                          <div className="pt-2 border-t border-red-200">
+                            <p className="text-sm text-green-700 font-semibold">
+                              Refund of ৳{order.refundedAmount.toFixed(2)} has been processed
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Action Buttons */}
                   <div className="flex flex-col sm:flex-row gap-4 justify-center">
                     <Link
@@ -340,6 +521,26 @@ function OrderConfirmationContent() {
                       Continue Shopping
                       <ArrowLeft className="w-5 h-5 rotate-180" />
                     </Link>
+                    {canCancelOrder && (
+                      <Button
+                        onClick={() => setShowCancelDialog(true)}
+                        variant="outline"
+                        className="border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400"
+                      >
+                        <X className="w-5 h-5 mr-2" />
+                        Cancel Order
+                      </Button>
+                    )}
+                    {canRequestRefund && (
+                      <Button
+                        onClick={() => setShowRefundDialog(true)}
+                        variant="outline"
+                        className="border-amber-300 text-amber-600 hover:bg-amber-50 hover:border-amber-400"
+                      >
+                        <RotateCcw className="w-5 h-5 mr-2" />
+                        Request Refund
+                      </Button>
+                    )}
                     <button className="inline-flex items-center justify-center gap-2 border border-gray-300 text-gray-700 px-8 py-4 rounded-xl font-semibold hover:bg-gray-50 transition-colors">
                       <Download className="w-5 h-5" />
                       Download Invoice
@@ -478,6 +679,120 @@ function OrderConfirmationContent() {
 
       <Footer />
       <MobileBottomNav />
+
+      {/* Cancel Order Confirmation Dialog */}
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Order?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel this order? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <label htmlFor="cancel-reason" className="block text-sm font-medium text-gray-700 mb-2">
+              Reason for cancellation (optional)
+            </label>
+            <textarea
+              id="cancel-reason"
+              rows={3}
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              placeholder="Please tell us why you want to cancel this order..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={cancelLoading}>Keep Order</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault()
+                handleCancelOrder()
+              }}
+              disabled={cancelLoading}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {cancelLoading ? 'Cancelling...' : 'Yes, Cancel Order'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Refund Request Dialog */}
+      <Dialog open={showRefundDialog} onOpenChange={setShowRefundDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Request Refund</DialogTitle>
+            <DialogDescription>
+              Please provide details for your refund request. This will be reviewed by our team.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="refund-amount">Refund Amount (৳)</Label>
+              <Input
+                id="refund-amount"
+                type="number"
+                step="0.01"
+                placeholder={`Max: ৳${order?.total.toFixed(2) || '0.00'}`}
+                value={refundAmount}
+                onChange={(e) => setRefundAmount(e.target.value)}
+                disabled={refundLoading}
+              />
+              <p className="text-xs text-gray-500">
+                Order total: ৳{order?.total.toFixed(2) || '0.00'}
+              </p>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="refund-method">Refund Method</Label>
+              <select
+                id="refund-method"
+                value={refundMethod}
+                onChange={(e) => setRefundMethod(e.target.value)}
+                disabled={refundLoading}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500"
+              >
+                <option value="">Select refund method</option>
+                <option value="original_payment">Original Payment Method</option>
+                <option value="bank_transfer">Bank Transfer</option>
+                <option value="bkash">bKash</option>
+                <option value="nagad">Nagad</option>
+                <option value="store_credit">Store Credit</option>
+              </select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="refund-reason">Reason for Refund</Label>
+              <Textarea
+                id="refund-reason"
+                rows={4}
+                placeholder="Please explain why you are requesting a refund (minimum 10 characters)..."
+                value={refundReason}
+                onChange={(e) => setRefundReason(e.target.value)}
+                disabled={refundLoading}
+              />
+              <p className="text-xs text-gray-500">
+                {refundReason.length}/10 characters minimum
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowRefundDialog(false)}
+              disabled={refundLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleRefundRequest}
+              disabled={refundLoading}
+              className="bg-amber-600 hover:bg-amber-700"
+            >
+              {refundLoading ? 'Submitting...' : 'Submit Refund Request'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -87,6 +87,8 @@ export default function CustomersPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
+  const [customerOrders, setCustomerOrders] = useState<any[]>([])
+  const [loadingOrders, setLoadingOrders] = useState(false)
 
   // Form state
   const [addFormData, setAddFormData] = useState({
@@ -158,9 +160,21 @@ export default function CustomersPage() {
     setIsEditModalOpen(true)
   }
 
-  const openDetailModal = (customer: Customer) => {
+  const openDetailModal = async (customer: Customer) => {
     setSelectedCustomer(customer)
     setIsDetailModalOpen(true)
+    setLoadingOrders(true)
+    try {
+      const response = await fetch(`/api/admin/orders?userId=${customer.id}`)
+      const result = await response.json()
+      if (result.success) {
+        setCustomerOrders(result.data || [])
+      }
+    } catch (err) {
+      console.error('Error fetching customer orders:', err)
+    } finally {
+      setLoadingOrders(false)
+    }
   }
 
   const handleAddCustomer = async (e: React.FormEvent) => {

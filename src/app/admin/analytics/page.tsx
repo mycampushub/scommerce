@@ -76,9 +76,52 @@ export default function AnalyticsPage() {
     }).format(value)
   }
 
-  const handleExport = () => {
+  const handleExport = (format: 'json' | 'csv') => {
     if (!analytics) return
 
+    if (format === 'csv') {
+      // CSV Export
+      const rows = [
+        ['Date', 'Revenue', 'Orders', 'Category', 'Product', 'Quantity', 'Total']
+      ]
+
+      analytics.salesChartData.forEach((item: any) => {
+        rows.push([
+          item.date,
+          item.revenue,
+          item.orders,
+          '',
+          '',
+          '',
+          item.revenue
+        ])
+      })
+
+      analytics.categorySales.forEach((cat: any) => {
+        rows.push(['', cat.value, '', cat.name, '', '', cat.value])
+      })
+
+      analytics.topProducts.forEach((prod: any, idx: number) => {
+        rows.push(['', prod.revenue, prod.count, prod.category, prod.name, prod.count, prod.revenue])
+      })
+
+      const csvContent = rows.map(row => row.map(cell => `"${cell || ''}"`).join(',')).join('\n')
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `analytics-export-${new Date().toISOString().split('T')[0]}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+
+      toast({
+        title: 'Success',
+        description: 'Analytics exported to CSV',
+      })
+      return
+    }
+
+    // JSON Export (existing)
     const data = {
       salesChartData: analytics.salesChartData,
       categorySales: analytics.categorySales,
@@ -133,11 +176,15 @@ export default function AnalyticsPage() {
               <SelectItem value="365">Last year</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" onClick={handleExport}>
+          <Button variant="outline" onClick={() => handleExport('json')} disabled={!analytics}>
             <Download className="h-4 w-4 mr-2" />
-            Export
+            Export JSON
           </Button>
-          <Button variant="outline" onClick={handlePrint}>
+          <Button variant="outline" onClick={() => handleExport('csv')} disabled={!analytics}>
+            <Download className="h-4 w-4 mr-2" />
+            Export CSV
+          </Button>
+          <Button variant="outline" onClick={handlePrint} disabled={!analytics}>
             Print Report
           </Button>
         </div>

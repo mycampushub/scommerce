@@ -43,12 +43,18 @@ export async function POST(request: NextRequest) {
     // Get existing database cart items
     const existingDbCart = await db.cartItem.findMany({
       where: { userId },
-      include: { product: true },
+      include: { 
+        product: true,
+        variant: true,
+      },
     })
 
-    // Create a map for quick lookup
+    // Create a map for quick lookup (using productId + variantId as key)
     const dbCartMap = new Map(
-      existingDbCart.map((item) => [item.productId, item])
+      existingDbCart.map((item) => [
+        `${item.productId}-${item.variantId || 'no-variant'}`,
+        item
+      ])
     )
 
     let addedCount = 0
@@ -56,10 +62,11 @@ export async function POST(request: NextRequest) {
 
     // Merge local cart with database cart
     for (const localItem of localCart) {
-      const existingItem = dbCartMap.get(localItem.id)
+      const itemKey = `${localItem.id}-${localItem.variantId || 'no-variant'}`
+      const existingItem = dbCartMap.get(itemKey)
 
       if (existingItem) {
-        // Item exists in both, keep the higher quantity
+        // Item exists in both, keep higher quantity
         const newQuantity = Math.max(
           existingItem.quantity,
           localItem.quantity || 1
@@ -79,6 +86,8 @@ export async function POST(request: NextRequest) {
             userId,
             productId: localItem.id,
             quantity: localItem.quantity || 1,
+            ...(localItem.variantId && { variantId: localItem.variantId }),
+            ...(localItem.variantSku && { variantSku: localItem.variantSku }),
           },
         })
         addedCount++
@@ -100,6 +109,15 @@ export async function POST(request: NextRequest) {
             isActive: true,
           },
         },
+        variant: {
+          select: {
+            id: true,
+            sku: true,
+            size: true,
+            color: true,
+            material: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     })
@@ -112,8 +130,11 @@ export async function POST(request: NextRequest) {
       originalPrice: item.product.comparePrice,
       image: item.product.images ? JSON.parse(item.product.images)[0] : '',
       quantity: item.quantity,
-      size: null,
-      color: null,
+      variantId: item.variantId || undefined,
+      variantSku: item.variantSku || undefined,
+      size: item.variant?.size || null,
+      color: item.variant?.color || null,
+      material: item.variant?.material || null,
     }))
 
     return NextResponse.json({

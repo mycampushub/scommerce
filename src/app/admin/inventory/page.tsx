@@ -72,10 +72,27 @@ export default function InventoryPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [stockFilter, setStockFilter] = useState('all')
   const [alertFilter, setAlertFilter] = useState('all')
+  const [autoRefresh, setAutoRefresh] = useState(false)
+  const [refreshInterval, setRefreshInterval] = useState(30000) // 30 seconds default
 
   useEffect(() => {
     fetchData()
   }, [stockFilter, alertFilter])
+
+  // Auto-refresh polling for live stock updates
+  useEffect(() => {
+    if (!autoRefresh) return
+
+    const interval = setInterval(() => {
+      fetchData()
+      toast({
+        title: 'Data Updated',
+        description: 'Inventory data has been refreshed',
+      })
+    }, refreshInterval)
+
+    return () => clearInterval(interval)
+  }, [autoRefresh, refreshInterval])
 
   const fetchData = async () => {
     try {
@@ -283,6 +300,26 @@ export default function InventoryPage() {
           <p className="text-sm text-gray-500 mt-1">Manage product stock and inventory alerts</p>
         </div>
         <div className="flex gap-2">
+          <Select value={refreshInterval.toString()} onValueChange={(val) => setRefreshInterval(parseInt(val))}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Refresh every" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="15000">15 seconds</SelectItem>
+              <SelectItem value="30000">30 seconds</SelectItem>
+              <SelectItem value="60000">1 minute</SelectItem>
+              <SelectItem value="120000">2 minutes</SelectItem>
+              <SelectItem value="300000">5 minutes</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button
+            variant={autoRefresh ? "default" : "outline"}
+            onClick={() => setAutoRefresh(!autoRefresh)}
+            className={autoRefresh ? "bg-green-600 hover:bg-green-700" : ""}
+          >
+            <RefreshCw className={`h-4 w-4 ${autoRefresh ? "animate-spin" : ""}`} />
+            {autoRefresh ? "Auto" : "Manual"}
+          </Button>
           <Button variant="outline" onClick={fetchData} disabled={loading}>
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             Refresh

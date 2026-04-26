@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { Search, ShoppingCart, Menu, Loader2, Heart } from 'lucide-react'
 import Link from 'next/link'
 import { useCartStore } from '@/lib/store/cart-store'
@@ -11,6 +12,7 @@ import { UserMenu } from '@/components/user-menu'
 import { Button } from '@/components/ui/button'
 
 export function Header() {
+  const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [wishlistCount, setWishlistCount] = useState(0)
   const { getItemCount } = useCartStore()
@@ -49,7 +51,7 @@ export function Header() {
           {/* Logo */}
           <Link href="/" className="flex items-center">
             <img
-              src="/upload/logo.png"
+              src="/logo.svg"
               alt="modern ecommerce"
               className="h-10 md:h-12 w-auto"
             />
@@ -57,11 +59,46 @@ export function Header() {
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-8">
-            <Link href="/collections/saree" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Sarees</Link>
-            <Link href="/collections/salwar" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Salwar Suits</Link>
-            <Link href="/collections/lehengas" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Lehengas</Link>
-            <Link href="/collections/kurtas" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Kurtas</Link>
-            <Link href="/collections/menswear" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Menswear</Link>
+            <Link 
+              href="/collections/saree" 
+              className={`text-gray-700 hover:text-pink-600 transition-colors font-medium ${
+                pathname?.startsWith('/collections/saree') ? 'text-pink-600' : ''
+              }`}
+            >
+              Sarees
+            </Link>
+            <Link 
+              href="/collections/salwar" 
+              className={`text-gray-700 hover:text-pink-600 transition-colors font-medium ${
+                pathname?.startsWith('/collections/salwar') ? 'text-pink-600' : ''
+              }`}
+            >
+              Salwar Suits
+            </Link>
+            <Link 
+              href="/collections/lehengas" 
+              className={`text-gray-700 hover:text-pink-600 transition-colors font-medium ${
+                pathname?.startsWith('/collections/lehengas') ? 'text-pink-600' : ''
+              }`}
+            >
+              Lehangas
+            </Link>
+            <Link 
+              href="/collections/kurtas" 
+              className={`text-gray-700 hover:text-pink-600 transition-colors font-medium ${
+                pathname?.startsWith('/collections/kurtas') ? 'text-pink-600' : ''
+              }`}
+            >
+              Kurtas
+            </Link>
+            <Link 
+              href="/collections/menswear" 
+              className={`text-gray-700 hover:text-pink-600 transition-colors font-medium ${
+                pathname?.startsWith('/collections/menswear') ? 'text-pink-600' : ''
+              }`}
+            >
+              Menswear
+            </Link>
           </nav>
 
           {/* Right Icons */}
@@ -108,11 +145,46 @@ export function Header() {
         {mobileMenuOpen && (
           <div className="lg:hidden border-t border-gray-200 py-4">
             <nav className="flex flex-col gap-4">
-              <Link href="/collections/saree" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Sarees</Link>
-              <Link href="/collections/salwar" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Salwar Suits</Link>
-              <Link href="/collections/lehengas" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Lehengas</Link>
-              <Link href="/collections/kurtas" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Kurtas</Link>
-              <Link href="/collections/menswear" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Menswear</Link>
+              <Link 
+                href="/collections/saree" 
+                className={`text-gray-700 hover:text-pink-600 transition-colors font-medium ${
+                  pathname?.startsWith('/collections/saree') ? 'text-pink-600' : ''
+                }`}
+              >
+                Sarees
+              </Link>
+              <Link 
+                href="/collections/salwar" 
+                className={`text-gray-700 hover:text-pink-600 transition-colors font-medium ${
+                  pathname?.startsWith('/collections/salwar') ? 'text-pink-600' : ''
+                }`}
+              >
+                Salwar Suits
+              </Link>
+              <Link 
+                href="/collections/lehengas" 
+                className={`text-gray-700 hover:text-pink-600 transition-colors font-medium ${
+                  pathname?.startsWith('/collections/lehengas') ? 'text-pink-600' : ''
+                }`}
+              >
+                Lehangas
+              </Link>
+              <Link 
+                href="/collections/kurtas" 
+                className={`text-gray-700 hover:text-pink-600 transition-colors font-medium ${
+                  pathname?.startsWith('/collections/kurtas') ? 'text-pink-600' : ''
+                }`}
+              >
+                Kurtas
+              </Link>
+              <Link 
+                href="/collections/menswear" 
+                className={`text-gray-700 hover:text-pink-600 transition-colors font-medium ${
+                  pathname?.startsWith('/collections/menswear') ? 'text-pink-600' : ''
+                }`}
+              >
+                Menswear
+              </Link>
             </nav>
             <div className="flex items-center gap-4 mt-4 pt-4 border-t border-gray-200">
               <button

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Heart, Trash2, ShoppingCart, ShoppingBag, ArrowRight, Loader2 } from 'lucide-react'
+import { Heart, Trash2, ShoppingCart, ShoppingBag, ArrowRight, Loader2, CheckSquare, Square } from 'lucide-react'
 import Link from 'next/link'
 import { useCartStore } from '@/lib/store/cart-store'
 import { useAuth } from '@/hooks/use-auth'
@@ -36,6 +36,9 @@ export default function WishlistPage() {
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([])
   const [loading, setLoading] = useState(true)
   const [removing, setRemoving] = useState<string | null>(null)
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
+  const [movingAll, setMovingAll] = useState(false)
+  const [bulkRemoving, setBulkRemoving] = useState(false)
 
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -102,12 +105,115 @@ export default function WishlistPage() {
       })
 
       toast.success('Added to cart')
-      
-      // Optionally remove from wishlist after adding to cart
-      // await handleRemoveFromWishlist(item.productId)
     } catch (error) {
       console.error('Error adding to cart:', error)
       toast.error('Failed to add to cart')
+    }
+  }
+
+  const handleSelectAll = () => {
+    if (selectedItems.size === wishlistItems.length) {
+      setSelectedItems(new Set())
+    } else {
+      setSelectedItems(new Set(wishlistItems.map(item => item.id)))
+    }
+  }
+
+  const handleSelectItem = (itemId: string) => {
+    const newSelected = new Set(selectedItems)
+    if (newSelected.has(itemId)) {
+      newSelected.delete(itemId)
+    } else {
+      newSelected.add(itemId)
+    }
+    setSelectedItems(newSelected)
+  }
+
+  const handleMoveAllToCart = async () => {
+    if (selectedItems.size === 0) {
+      toast.error('Please select items to move to cart')
+      return
+    }
+
+    try {
+      setMovingAll(true)
+      let successCount = 0
+      let failedCount = 0
+
+      for (const itemId of selectedItems) {
+        const item = wishlistItems.find(i => i.id === itemId)
+        if (item && item.product.stock > 0) {
+          const images = JSON.parse(item.product.images || '[]')
+          const imageUrl = Array.isArray(images) && images.length > 0 ? images[0] : item.product.images
+
+          addItem({
+            id: item.product.id,
+            name: item.product.name,
+            price: item.product.price,
+            originalPrice: item.product.comparePrice,
+            image: imageUrl,
+            quantity: 1,
+          })
+          successCount++
+        } else {
+          failedCount++
+        }
+      }
+
+      if (successCount > 0) {
+        toast.success(`Moved ${successCount} item${successCount > 1 ? 's' : ''} to cart${failedCount > 0 ? ` (${failedCount} out of stock)` : ''}`)
+      }
+      if (failedCount > 0 && successCount === 0) {
+        toast.error('All selected items are out of stock')
+      }
+
+      setSelectedItems(new Set())
+    } catch (error) {
+      console.error('Error moving items to cart:', error)
+      toast.error('Failed to move items to cart')
+    } finally {
+      setMovingAll(false)
+    }
+  }
+
+  const handleBulkRemove = async () => {
+    if (selectedItems.size === 0) {
+      toast.error('Please select items to remove')
+      return
+    }
+
+    if (!confirm(`Are you sure you want to remove ${selectedItems.size} item${selectedItems.size > 1 ? 's' : ''} from your wishlist?`)) {
+      return
+    }
+
+    try {
+      setBulkRemoving(true)
+      let removedCount = 0
+
+      for (const itemId of selectedItems) {
+        const item = wishlistItems.find(i => i.id === itemId)
+        if (item) {
+          const response = await fetch(`/api/wishlist?productId=${item.productId}`, {
+            method: 'DELETE',
+          })
+          const data = await response.json()
+          if (data.success) {
+            removedCount++
+          }
+        }
+      }
+
+      if (removedCount > 0) {
+        toast.success(`Removed ${removedCount} item${removedCount > 1 ? 's' : ''} from wishlist`)
+        await fetchWishlist()
+      }
+
+      setSelectedItems(new Set())
+    } catch (error) {
+      console.error('Error removing items:', error)
+      toast.error('Failed to remove items')
+    } finally {
+      setBulkRemoving(false)
     }
   }
 
@@ -160,6 +266,51 @@ export default function WishlistPage() {
 
       {/* Wishlist Content */}
       <div className="container mx-auto px-4 py-8">
+        {wishlistItems.length > 0 && (
+          <div className="mb-6 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center bg-white p-4 rounded-lg shadow-sm border">
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selectedItems.size === wishlistItems.length}
+                  onChange={handleSelectAll}
+                  className="w-5 h-5 rounded border-gray-300 text-pink-600 focus:ring-pink-600"
+                />
+                <span className="text-sm text-gray-600">
+                  {selectedItems.size === wishlistItems.length ? 'Deselect All' : 'Select All'} ({selectedItems.size})
+                </span>
+              </label>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleMoveAllToCart}
+                disabled={selectedItems.size === 0 || movingAll}
+                size="sm"
+              >
+                {movingAll ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <ShoppingCart className="w-4 h-4 mr-2" />
+                )}
+                Move All to Cart
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleBulkRemove}
+                disabled={selectedItems.size === 0 || bulkRemoving}
+                size="sm"
+              >
+                {bulkRemoving ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4 mr-2" />
+                )}
+                Remove Selected
+              </Button>
+            </div>
+          </div>
+        )}
+
         {wishlistItems.length === 0 ? (
           <Card>
             <CardContent className="py-16">
@@ -187,8 +338,10 @@ export default function WishlistPage() {
               const imageUrl = Array.isArray(images) && images.length > 0 ? images[0] : item.product.images
               const isOutOfStock = item.product.stock <= 0
 
+              const isSelected = selectedItems.has(item.id)
+
               return (
-                <Card key={item.id} className="overflow-hidden">
+                <Card key={item.id} className={`overflow-hidden transition-all ${isSelected ? 'ring-2 ring-pink-600' : ''}`}>
                   <CardContent className="p-0">
                     {/* Product Image */}
                     <div className="relative aspect-[3/4] bg-gray-100">
@@ -205,6 +358,18 @@ export default function WishlistPage() {
                           <span className="text-white font-semibold text-lg">Out of Stock</span>
                         </div>
                       )}
+
+                      {/* Select Checkbox */}
+                      <button
+                        onClick={() => handleSelectItem(item.id)}
+                        className="absolute top-3 left-3 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors z-10"
+                      >
+                        {isSelected ? (
+                          <CheckSquare className="w-5 h-5 text-pink-600" />
+                        ) : (
+                          <Square className="w-5 h-5 text-gray-400" />
+                        )}
+                      </button>
 
                       {/* Remove Button */}
                       <button
