@@ -65,3 +65,7 @@ server.log
 *.db
 db/*.db
 prisma/*.db
+
+# Backup files
+*.bak
+open-next.config.ts.bak
