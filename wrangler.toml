@@ -1,0 +1,41 @@
+# Cloudflare Workers/Pages Configuration
+# This file is used by the Wrangler CLI for local development and deployment
+
+name = "ecommerce-website"
+compatibility_date = "2024-01-01"
+
+# Pages Configuration (for Cloudflare Pages deployment)
+[env.production]
+name = "ecommerce-website-prod"
+
+[env.staging]
+name = "ecommerce-website-staging"
+
+# D1 Database Configuration
+# Create database with: wrangler d1 create ecommerce-db
+# Then add the database_id below
+
+[[d1_databases]]
+binding = "DB"
+database_name = "ecommerce-db"
+# database_id = "your-database-id-here" # Replace after creating D1 database
+
+# KV Namespace Configuration (optional, for caching)
+# [[kv_namespaces]]
+# binding = "CACHE"
+# id = "your-kv-namespace-id"
+
+# Environment Variables (also set in Cloudflare Dashboard)
+[vars]
+NODE_ENV = "production"
+
+# Build configuration for Pages
+[build]
+command = "bun install && bun run build"
+cwd = "."
+watch_dir = "src"
+
+# Assets configuration
+[assets]
+directory = ".next/standalone/static"
+binding = "ASSETS"

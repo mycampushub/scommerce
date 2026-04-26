@@ -1,0 +1,1624 @@
+'use client'
+
+import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { ChevronLeft, ChevronRight, X, Heart, MessageCircle, Share2, ShoppingCart, Star, Play, Search, User, Menu, Phone, Mail } from 'lucide-react'
+
+// Types
+interface Banner {
+  id: string
+  title: string
+  mobileImage: string
+  desktopImage: string
+  ctaButtons: Array<{ label: string; href: string; variant: 'primary' | 'secondary' }>
+}
+
+interface Story {
+  id: string
+  title: string
+  thumbnail: string
+  images: string[]
+}
+
+interface Category {
+  id: string
+  name: string
+  image: string
+  href: string
+}
+
+interface VideoReel {
+  id: string
+  thumbnail: string
+  videoUrl: string
+  title: string
+  product: {
+    name: string
+    price: number
+    image: string
+  }
+}
+
+interface Product {
+  id: string
+  name: string
+  price: number
+  originalPrice?: number
+  image: string
+  rating: number
+  reviews: number
+  badge?: string
+}
+
+interface Promotion {
+  id: string
+  title: string
+  subtitle: string
+  image: string
+  href: string
+}
+
+interface StickyCard {
+  id: string
+  title: string
+  description: string
+  image: string
+  cta: string
+  href: string
+  reversed: boolean
+}
+
+// Data
+const banners: Banner[] = [
+  {
+    id: '1',
+    title: 'EOSS: Up to 70% Off + Free Stitching & Shipping*',
+    mobileImage: 'https://medias.utsavfashion.com/media/wysiwyg/home/2026/1604/hs-thu-gen-yes-eoss-160426mob.jpg',
+    desktopImage: 'https://medias.utsavfashion.com/media/wysiwyg/home/2026/1604/hs-thu-gen-yes-eoss-160426.jpg',
+    ctaButtons: [
+      { label: 'Sarees', href: '/saree', variant: 'primary' },
+      { label: 'Salwar Suits', href: '/salwar', variant: 'secondary' },
+      { label: 'Kurta Pajama', href: '/men/kurta-pajama', variant: 'secondary' }
+    ]
+  },
+  {
+    id: '2',
+    title: 'Wedding Styles for Women, Men & Kids. Shop!',
+    mobileImage: 'https://medias.utsavfashion.com/media/wysiwyg/home/2026/2603/hs-thu-gen-yes-wedding-dutyfree-260326mob.jpg',
+    desktopImage: 'https://medias.utsavfashion.com/media/wysiwyg/home/2026/2603/hs-thu-gen-yes-wedding-dutyfree-260326.jpg',
+    ctaButtons: [
+      { label: 'Under US$50', href: '/shopby?price=-50', variant: 'secondary' },
+      { label: 'Under US$75', href: '/shopby?price=-75', variant: 'secondary' },
+      { label: 'Wedding', href: '/wedding', variant: 'secondary' }
+    ]
+  },
+  {
+    id: '3',
+    title: 'Menswear Edit: Shop Nehru Jackets, Sherwanis, Bandhgalas & more',
+    mobileImage: 'https://medias.utsavfashion.com/media/wysiwyg/home/2026/0904/hs-thu-gen-yes-menswear-090426mob.jpg',
+    desktopImage: 'https://medias.utsavfashion.com/media/wysiwyg/home/2026/0904/hs-thu-gen-yes-menswear-090426.jpg',
+    ctaButtons: [
+      { label: 'Sherwanis', href: '/men/sherwani', variant: 'primary' },
+      { label: 'Nehru Jackets', href: '/men/nehru-jacket', variant: 'secondary' },
+      { label: 'Bandhgala', href: '/men/bandhgala', variant: 'secondary' }
+    ]
+  }
+]
+
+const stories: Story[] = [
+  {
+    id: '1',
+    title: 'Modern Drapes',
+    thumbnail: 'https://whatmore-brand-story-assets.b-cdn.net/utsavfashion_STRTFEDEDAP/bfee8d54-39ad-4248-b6f8-0775da4b624f.webp',
+    images: [
+      'https://whatmore-brand-story-assets.b-cdn.net/utsavfashion_STRTFEDEDAP/bfee8d54-39ad-4248-b6f8-0775da4b624f.webp',
+      'https://whatmore-brand-story-assets.b-cdn.net/utsavfashion_STRTFEDEDAP/bfee8d54-39ad-4248-b6f8-0775da4b624f.webp'
+    ]
+  },
+  {
+    id: '2',
+    title: 'Regal Menswear',
+    thumbnail: 'https://whatmore-brand-story-assets.b-cdn.net/utsavfashion_STRTFEDEDAP/05db5078-0dab-4456-b6c3-7501d078df01.webp',
+    images: [
+      'https://whatmore-brand-story-assets.b-cdn.net/utsavfashion_STRTFEDEDAP/05db5078-0dab-4456-b6c3-7501d078df01.webp',
+      'https://whatmore-brand-story-assets.b-cdn.net/utsavfashion_STRTFEDEDAP/05db5078-0dab-4456-b6c3-7501d078df01.webp'
+    ]
+  },
+  {
+    id: '3',
+    title: 'Fusion Favs',
+    thumbnail: 'https://whatmore-brand-story-assets.b-cdn.net/utsavfashion_STRTFEDEDAP/03827949-2e96-4610-a0f4-64cf76e93366.webp',
+    images: [
+      'https://whatmore-brand-story-assets.b-cdn.net/utsavfashion_STRTFEDEDAP/03827949-2e96-4610-a0f4-64cf76e93366.webp',
+      'https://whatmore-brand-story-assets.b-cdn.net/utsavfashion_STRTFEDEDAP/03827949-2e96-4610-a0f4-64cf76e93366.webp'
+    ]
+  },
+  {
+    id: '4',
+    title: 'Combos',
+    thumbnail: 'https://whatmore-brand-story-assets.b-cdn.net/utsavfashion_STRTFEDEDAP/a8b8ee06-ec86-4f52-a2b9-dbb224f141f0.webp',
+    images: [
+      'https://whatmore-brand-story-assets.b-cdn.net/utsavfashion_STRTFEDEDAP/a8b8ee06-ec86-4f52-a2b9-dbb224f141f0.webp',
+      'https://whatmore-brand-story-assets.b-cdn.net/utsavfashion_STRTFEDEDAP/a8b8ee06-ec86-4f52-a2b9-dbb224f141f0.webp'
+    ]
+  }
+]
+
+const categories: Category[] = [
+  { id: '1', name: 'SALE', image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/01_5.jpg?v=1775455849', href: '/collections/sale?title=SALE&type=category' },
+  { id: '2', name: 'SAREES', image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/02_5.jpg?v=1775455849', href: '/collections/sarees?title=SAREES&type=category' },
+  { id: '3', name: 'SALWAR SUITS', image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/03_5.jpg?v=1775455849', href: '/collections/readymade-salwar-suits?title=SALWAR%20SUITS&type=category' },
+  { id: '4', name: 'DRESS MATERIALS', image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/04_5.jpg?v=1775455849', href: '/collections/unstitched-dress-materials?title=DRESS%20MATERIALS&type=category' },
+  { id: '5', name: 'LEHENGAS', image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/05_5.jpg?v=1775455849', href: '/collections/lehengas?title=LEHENGAS&type=category' },
+  { id: '6', name: 'GOWNS', image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/06.jpg?v=1775455849', href: '/collections/gowns?title=GOWNS&type=category' },
+  { id: '7', name: 'KURTAS', image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/01_5.jpg?v=1775455849', href: '/collections/kurtas?title=KURTAS&type=category' },
+  { id: '8', name: 'MENSWEAR', image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/01_5.jpg?v=1775455849', href: '/collections/menswear?title=MENSWEAR&type=category' }
+]
+
+const reels: VideoReel[] = [
+  {
+    id: '1',
+    thumbnail: 'https://medias.utsavfashion.com/media/wysiwyg/home/2026/1604/hs-thu-gen-yes-eoss-160426.jpg',
+    videoUrl: '',
+    title: 'Summer Fashion Haul',
+    product: { name: 'Floral Summer Dress', price: 89.99, image: 'https://medias.utsavfashion.com/media/wysiwyg/home/2026/1604/hs-thu-gen-yes-eoss-160426.jpg' }
+  },
+  {
+    id: '2',
+    thumbnail: 'https://medias.utsavfashion.com/media/wysiwyg/home/2026/2603/hs-thu-gen-yes-wedding-dutyfree-260326.jpg',
+    videoUrl: '',
+    title: 'Trending Outfits',
+    product: { name: 'Elegant Evening Gown', price: 149.99, image: 'https://medias.utsavfashion.com/media/wysiwyg/home/2026/2603/hs-thu-gen-yes-wedding-dutyfree-260326.jpg' }
+  },
+  {
+    id: '3',
+    thumbnail: 'https://medias.utsavfashion.com/media/wysiwyg/home/2026/0904/hs-thu-gen-yes-menswear-090426.jpg',
+    videoUrl: '',
+    title: 'Style Tips & Tricks',
+    product: { name: 'Casual Chic Blouse', price: 59.99, image: 'https://medias.utsavfashion.com/media/wysiwyg/home/2026/0904/hs-thu-gen-yes-menswear-090426.jpg' }
+  },
+  {
+    id: '4',
+    thumbnail: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/01_5.jpg?v=1775455849',
+    videoUrl: '',
+    title: 'Must-Have Items',
+    product: { name: 'Classic Trench Coat', price: 199.99, image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/01_5.jpg?v=1775455849' }
+  },
+  {
+    id: '5',
+    thumbnail: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/02_5.jpg?v=1775455849',
+    videoUrl: '',
+    title: 'New Arrivals',
+    product: { name: 'Designer Silk Saree', price: 249.99, image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/02_5.jpg?v=1775455849' }
+  }
+]
+
+const featuredProducts: Product[] = [
+  {
+    id: '1',
+    name: 'Embroidered Silk Saree',
+    price: 189.99,
+    originalPrice: 249.99,
+    image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/02_5.jpg?v=1775455849',
+    rating: 4.5,
+    reviews: 128,
+    badge: 'Sale'
+  },
+  {
+    id: '2',
+    name: 'Designer Lehenga Choli',
+    price: 299.99,
+    image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/05_5.jpg?v=1775455849',
+    rating: 4.8,
+    reviews: 89,
+    badge: 'New'
+  },
+  {
+    id: '3',
+    name: 'Cotton Salwar Suit',
+    price: 79.99,
+    image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/03_5.jpg?v=1775455849',
+    rating: 4.3,
+    reviews: 156
+  },
+  {
+    id: '4',
+    name: 'Anarkali Dress',
+    price: 159.99,
+    originalPrice: 199.99,
+    image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/06.jpg?v=1775455849',
+    rating: 4.6,
+    reviews: 73,
+    badge: 'Sale'
+  },
+  {
+    id: '5',
+    name: 'Banarasi Saree',
+    price: 349.99,
+    image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/01_5.jpg?v=1775455849',
+    rating: 4.9,
+    reviews: 201
+  },
+  {
+    id: '6',
+    name: 'Palazzo Suit Set',
+    price: 119.99,
+    image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/04_5.jpg?v=1775455849',
+    rating: 4.4,
+    reviews: 94
+  }
+]
+
+const mosaicProducts: Product[] = [
+  {
+    id: 'm1',
+    name: 'Royal Blue Silk Saree',
+    price: 279.99,
+    image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/02_5.jpg?v=1775455849',
+    rating: 4.7,
+    reviews: 45
+  },
+  {
+    id: 'm2',
+    name: 'Wedding Sherwani',
+    price: 459.99,
+    image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/02_5.jpg?v=1775455849',
+    rating: 4.8,
+    reviews: 67
+  },
+  {
+    id: 'm3',
+    name: 'Designer Gown',
+    price: 389.99,
+    image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/06.jpg?v=1775455849',
+    rating: 4.6,
+    reviews: 38
+  },
+  {
+    id: 'm4',
+    name: 'Embroidered Kurti',
+    price: 89.99,
+    image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/03_5.jpg?v=1775455849',
+    rating: 4.4,
+    reviews: 112
+  },
+  {
+    id: 'm5',
+    name: 'Velvet Lehenga',
+    price: 529.99,
+    image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/05_5.jpg?v=1775455849',
+    rating: 4.9,
+    reviews: 23
+  },
+  {
+    id: 'm6',
+    name: 'Cotton Anarkali',
+    price: 149.99,
+    image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/04_5.jpg?v=1775455849',
+    rating: 4.5,
+    reviews: 78
+  }
+]
+
+const promotions: Promotion[] = [
+  {
+    id: '1',
+    title: 'Festive Collection',
+    subtitle: 'Up to 50% Off',
+    image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/Pure_Silk_Sarees_1.jpg?v=1775458062',
+    href: '/collections/festive'
+  },
+  {
+    id: '2',
+    title: 'New Arrivals',
+    subtitle: 'Shop Latest Trends',
+    image: 'https://medias.utsavfashion.com/media/wysiwyg/home/2026/2603/hs-thu-gen-yes-wedding-dutyfree-260326.jpg',
+    href: '/collections/new-arrivals'
+  }
+]
+
+const stickyCards: StickyCard[] = [
+  {
+    id: '1',
+    title: 'Wedding Collection',
+    description: 'Discover our exclusive range of bridal wear, groom attire, and wedding accessories. Make your special day unforgettable with our timeless designs.',
+    image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/02_5.jpg?v=1775455849',
+    cta: 'Explore Collection',
+    href: '/wedding',
+    reversed: false
+  },
+  {
+    id: '2',
+    title: 'Summer Essentials',
+    description: 'Beat the heat in style with our summer collection. From lightweight fabrics to vibrant colors, find your perfect summer wardrobe.',
+    image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/03_5.jpg?v=1775455849',
+    cta: 'Shop Summer',
+    href: '/collections/summer',
+    reversed: true
+  }
+]
+
+const newCategoryProducts: Product[] = [
+  {
+    id: 'n1',
+    name: 'Sequin Party Gown',
+    price: 299.99,
+    image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/06.jpg?v=1775455849',
+    rating: 4.7,
+    reviews: 45,
+    badge: 'New'
+  },
+  {
+    id: 'n2',
+    name: 'Cotton Kurta Set',
+    price: 149.99,
+    image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/03_5.jpg?v=1775455849',
+    rating: 4.5,
+    reviews: 78,
+    badge: 'New'
+  },
+  {
+    id: 'n3',
+    name: 'Silk Palazzo Suit',
+    price: 189.99,
+    image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/04_5.jpg?v=1775455849',
+    rating: 4.6,
+    reviews: 56,
+    badge: 'New'
+  },
+  {
+    id: 'n4',
+    name: 'Embroidered Top',
+    price: 89.99,
+    image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/01_5.jpg?v=1775455849',
+    rating: 4.4,
+    reviews: 32,
+    badge: 'New'
+  }
+]
+
+const topsCategoryProducts: Product[] = [
+  {
+    id: 't1',
+    name: 'Designer Crop Top',
+    price: 79.99,
+    image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/02_5.jpg?v=1775455849',
+    rating: 4.5,
+    reviews: 67
+  },
+  {
+    id: 't2',
+    name: 'Peplum Top',
+    price: 99.99,
+    image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/05_5.jpg?v=1775455849',
+    rating: 4.6,
+    reviews: 43
+  },
+  {
+    id: 't3',
+    name: 'Boat Neck Top',
+    price: 69.99,
+    image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/03_5.jpg?v=1775455849',
+    rating: 4.3,
+    reviews: 51
+  },
+  {
+    id: 't4',
+    name: 'Embroidered Tunic',
+    price: 119.99,
+    image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/04_5.jpg?v=1775455849',
+    rating: 4.7,
+    reviews: 38
+  }
+]
+
+const dressesCategoryProducts: Product[] = [
+  {
+    id: 'd1',
+    name: 'A-Line Dress',
+    price: 199.99,
+    image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/06.jpg?v=1775455849',
+    rating: 4.8,
+    reviews: 92
+  },
+  {
+    id: 'd2',
+    name: 'Maxi Dress',
+    price: 249.99,
+    image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/02_5.jpg?v=1775455849',
+    rating: 4.7,
+    reviews: 67
+  },
+  {
+    id: 'd3',
+    name: 'Wrap Dress',
+    price: 179.99,
+    image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/05_5.jpg?v=1775455849',
+    rating: 4.6,
+    reviews: 54
+  },
+  {
+    id: 'd4',
+    name: 'Shift Dress',
+    price: 159.99,
+    image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/01_5.jpg?v=1775455849',
+    rating: 4.5,
+    reviews: 41
+  }
+]
+
+const preLovedCategoryProducts: Product[] = [
+  {
+    id: 'p1',
+    name: 'Vintage Silk Saree',
+    price: 399.99,
+    originalPrice: 799.99,
+    image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/02_5.jpg?v=1775455849',
+    rating: 4.9,
+    reviews: 28,
+    badge: 'Pre-Loved'
+  },
+  {
+    id: 'p2',
+    name: 'Classic Lehenga',
+    price: 349.99,
+    originalPrice: 699.99,
+    image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/05_5.jpg?v=1775455849',
+    rating: 4.8,
+    reviews: 19,
+    badge: 'Pre-Loved'
+  },
+  {
+    id: 'p3',
+    name: 'Antique Gown',
+    price: 299.99,
+    originalPrice: 599.99,
+    image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/06.jpg?v=1775455849',
+    rating: 4.7,
+    reviews: 15,
+    badge: 'Pre-Loved'
+  },
+  {
+    id: 'p4',
+    name: 'Vintage Salwar Suit',
+    price: 199.99,
+    originalPrice: 399.99,
+    image: 'https://cdn.shopify.com/s/files/1/0049/3649/9315/files/03_5.jpg?v=1775455849',
+    rating: 4.6,
+    reviews: 22,
+    badge: 'Pre-Loved'
+  }
+]
+
+// 0. Navbar Component
+function Navbar() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  return (
+    <header className="bg-white shadow-sm">
+      <div className="container mx-auto px-4">
+        <div className="flex items-center justify-between h-16 md:h-20">
+          {/* Logo */}
+          <a href="/" className="flex items-center">
+            <img
+              src="/upload/logo.png"
+              alt="modern ecommerce"
+              className="h-10 md:h-12 w-auto"
+            />
+          </a>
+
+          {/* Desktop Navigation */}
+          <nav className="hidden lg:flex items-center gap-8">
+            <a href="/saree" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Sarees</a>
+            <a href="/salwar" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Salwar Suits</a>
+            <a href="/lehengas" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Lehengas</a>
+            <a href="/kurtas" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Kurtas</a>
+            <a href="/menswear" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Menswear</a>
+          </nav>
+
+          {/* Right Icons */}
+          <div className="flex items-center gap-4">
+            <button className="hidden md:flex items-center gap-2 text-gray-700 hover:text-pink-600 transition-colors">
+              <Search className="w-5 h-5" />
+            </button>
+            <button className="hidden md:flex items-center gap-2 text-gray-700 hover:text-pink-600 transition-colors relative">
+              <ShoppingCart className="w-5 h-5" />
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-pink-600 text-white text-xs rounded-full flex items-center justify-center">3</span>
+            </button>
+            <button className="hidden md:flex items-center gap-2 text-gray-700 hover:text-pink-600 transition-colors">
+              <User className="w-5 h-5" />
+            </button>
+            <button 
+              className="lg:hidden p-2"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="lg:hidden border-t border-gray-200 py-4">
+            <nav className="flex flex-col gap-4">
+              <a href="/saree" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Sarees</a>
+              <a href="/salwar" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Salwar Suits</a>
+              <a href="/lehengas" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Lehengas</a>
+              <a href="/kurtas" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Kurtas</a>
+              <a href="/menswear" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Menswear</a>
+            </nav>
+            <div className="flex items-center gap-4 mt-4 pt-4 border-t border-gray-200">
+              <button className="flex items-center gap-2 text-gray-700">
+                <Search className="w-5 h-5" />
+              </button>
+              <button className="flex items-center gap-2 text-gray-700 relative">
+                <ShoppingCart className="w-5 h-5" />
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-pink-600 text-white text-xs rounded-full flex items-center justify-center">3</span>
+              </button>
+              <button className="flex items-center gap-2 text-gray-700">
+                <User className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </header>
+  )
+}
+
+// 1. Hero Carousel Component
+function HeroCarousel() {
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [isTransitioning, setIsTransitioning] = useState(false)
+
+  const nextSlide = useCallback(() => {
+    if (!isTransitioning) {
+      setIsTransitioning(true)
+      setCurrentIndex((prev) => (prev + 1) % banners.length)
+      setTimeout(() => setIsTransitioning(false), 500)
+    }
+  }, [isTransitioning, banners.length])
+
+  const prevSlide = useCallback(() => {
+    if (!isTransitioning) {
+      setIsTransitioning(true)
+      setCurrentIndex((prev) => (prev - 1 + banners.length) % banners.length)
+      setTimeout(() => setIsTransitioning(false), 500)
+    }
+  }, [isTransitioning, banners.length])
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      nextSlide()
+    }, 5000)
+    return () => clearInterval(timer)
+  }, [nextSlide])
+
+  return (
+    <section className="relative w-full" style={{ minHeight: '378px' }}>
+      <div className="relative w-full overflow-hidden">
+        <div 
+          className="flex transition-transform duration-500 ease-in-out"
+          style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+        >
+          {banners.map((banner, index) => (
+            <div key={banner.id} className="flex-shrink-0 w-full relative">
+              <picture className="block w-full h-full">
+                <source media="(max-width: 767px)" srcSet={banner.mobileImage} width="580" height="700" />
+                <source media="(min-width: 768px)" srcSet={banner.desktopImage} width="1400" height="450" />
+                <img
+                  src={banner.desktopImage}
+                  alt={banner.title}
+                  className="w-full h-auto object-cover"
+                  width="1400"
+                  height="450"
+                  loading={index === 0 ? "eager" : "lazy"}
+                />
+              </picture>
+              <div className="banner-cta-container absolute bottom-4 left-4 md:bottom-8 md:left-8 flex gap-2 md:gap-3">
+                {banner.ctaButtons.map((cta, i) => (
+                  <a
+                    key={i}
+                    href={cta.href}
+                    className={`inline-block px-3 py-1.5 md:px-5 md:py-2 text-sm md:text-base font-medium rounded-full transition-colors ${
+                      cta.variant === 'primary' 
+                        ? 'bg-white text-black hover:bg-gray-100' 
+                        : 'bg-transparent text-white border border-white hover:bg-white/10'
+                    }`}
+                  >
+                    {cta.label}
+                  </a>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <button onClick={prevSlide} className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 bg-white/90 hover:bg-white flex items-center justify-center rounded-full shadow-lg transition-all z-10" aria-label="Previous">
+          <ChevronLeft className="w-5 h-5 md:w-6 md:h-6 text-gray-800" />
+        </button>
+        <button onClick={nextSlide} className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 bg-white/90 hover:bg-white flex items-center justify-center rounded-full shadow-lg transition-all z-10" aria-label="Next">
+          <ChevronRight className="w-5 h-5 md:w-6 md:h-6 text-gray-800" />
+        </button>
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+          {banners.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => {
+                if (!isTransitioning) {
+                  setIsTransitioning(true)
+                  setCurrentIndex(index)
+                  setTimeout(() => setIsTransitioning(false), 500)
+                }
+              }}
+              className={`w-2 h-2 rounded-full transition-all ${index === currentIndex ? 'bg-white w-6' : 'bg-white/50'}`}
+              aria-label={`Page dot ${index + 1}`}
+              aria-current={index === currentIndex ? 'step' : undefined}
+            />
+          ))}
+        </div>
+      </div>
+      <div className="text-center py-2">
+        <img
+          src="https://medias.utsavfashion.com/media/wysiwyg/home/2020/0602/terms-conditions-white.png"
+          alt="Terms & Conditions"
+          className="inline-block cursor-pointer"
+          width="129"
+          height="19"
+        />
+      </div>
+    </section>
+  )
+}
+
+// 2. Section Marquee Component
+function SectionMarquee() {
+  const marqueeText = "FREE SHIPPING WORLDWIDE | EASY RETURNS & EXCHANGES | CUSTOM STITCHING AVAILABLE"
+  
+  return (
+    <section className="bg-pink-600 overflow-hidden py-3">
+      <div className="animate-marquee flex whitespace-nowrap" style={{ animation: 'marquee 20s linear infinite' }}>
+        {[...Array(6)].map((_, i) => (
+          <span key={i} className="text-white text-sm md:text-base font-medium px-8">
+            {marqueeText}
+          </span>
+        ))}
+      </div>
+      <style jsx>{`
+        @keyframes marquee {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+      `}</style>
+    </section>
+  )
+}
+
+// 3. Stories Component (Whatmore widget - SEPARATE)
+function Stories() {
+  const [selectedStory, setSelectedStory] = useState<Story | null>(null)
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [progress, setProgress] = useState(0)
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null)
+
+  const openStory = (story: Story) => {
+    setSelectedStory(story)
+    setCurrentImageIndex(0)
+    setProgress(0)
+  }
+
+  const closeStory = () => {
+    setSelectedStory(null)
+    setCurrentImageIndex(0)
+    setProgress(0)
+    if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
+  }
+
+  useEffect(() => {
+    if (selectedStory) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+  }, [selectedStory])
+
+  const nextImage = () => {
+    if (selectedStory && currentImageIndex < selectedStory.images.length - 1) {
+      setCurrentImageIndex((prev) => prev + 1)
+      setProgress(0)
+    } else {
+      closeStory()
+    }
+  }
+
+  useEffect(() => {
+    if (selectedStory) {
+      progressIntervalRef.current = setInterval(() => {
+        setProgress((prev) => {
+          if (prev >= 100) {
+            nextImage()
+            return 0
+          }
+          return prev + 2.5
+        })
+      }, 100)
+      return () => {
+        if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
+      }
+    }
+  }, [selectedStory, currentImageIndex])
+
+  return (
+    <>
+      <section className="w-full py-8 md:py-12">
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6 text-center">
+          Trending Stories
+        </h2>
+        <div id="wmstories" className="wmstories" style={{ marginTop: '0px', marginBottom: '0px' }}>
+          <div className="whatmore-base" style={{ minHeight: '0px' }}>
+            <div className="whatmore-widget-container" style={{ minHeight: '0px', marginTop: '0px', marginBottom: '0px' }}>
+              <div style={{ height: '100%' }}>
+                <div className="whatmore-story-container" style={{ position: 'relative', width: '100%', height: 'fit-content' }}>
+                  <div className="whatmore-story-horizontal-flex flex justify-start md:justify-center" style={{ flexFlow: 'row', height: 'fit-content', width: '100%', overflowX: 'auto', scrollbarWidth: 'none' }}>
+                  {stories.map((story) => (
+                    <div
+                      key={story.id}
+                      onClick={() => openStory(story)}
+                      className="whatmore-scale-on-tap flex flex-col justify-center items-center flex-shrink-0 cursor-pointer"
+                      style={{ display: 'flex', flexFlow: 'column', justifyContent: 'center', alignItems: 'center', flexShrink: 0, height: 'fit-content', width: '105.4px', margin: '10px' }}
+                    >
+                    <div style={{ display: 'flex', boxSizing: 'border-box', flexFlow: 'column', justifyContent: 'center', flexShrink: 0, height: 'fit-content', width: 'fit-content', borderRadius: '50%', boxShadow: 'rgba(253, 96, 54, 0.314) 0px 2px 1px 0px, rgba(253, 96, 54, 0.314) 0px -2px 1px 0px, rgba(253, 96, 54, 0.314) 2px 0px 1px 0px, rgba(253, 96, 54, 0.5) -2px 0px 1px 0px, rgba(253, 96, 54, 0.5) 2px -2px 1px 0px, rgba(253, 96, 54, 0.855) -2px 2px 1px 0px, rgba(253, 96, 54, 0.855) 2px 2px 1px 0px, rgba(253, 96, 54, 0.855) -2px -2px 1px 0px' }}>
+                      <div className="whatmore-story-thumbnail-wrapper" style={{ flexShrink: 0, objectFit: 'cover', height: '105.4px', width: '105.4px', borderRadius: '50%', border: '3px solid white', backgroundColor: 'rgb(255, 25, 160)', overflow: 'hidden' }}>
+                        <img
+                          className="whatmore-story-thumbnail"
+                          src={story.thumbnail}
+                          alt={story.title}
+                          loading="lazy"
+                          style={{ objectFit: 'cover', width: '100%', height: '100%', backgroundColor: 'white' }}
+                        />
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', flexFlow: 'column', justifyContent: 'center', flexShrink: 0, height: 'fit-content', width: '100%', marginTop: '10px' }}>
+                      <p className="wht-story-title wst-portrait text-center" style={{ color: '#000', fontFamily: '"Source Sans Pro", sans-serif', fontWeight: 'normal', lineHeight: '110%', margin: '0', padding: '0', overflow: 'hidden', textOverflow: 'ellipsis', width: 'auto', fontSize: '12.648px' }}>
+                        {story.title}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        </div>
+      </section>
+      {selectedStory && (
+        <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center">
+          <button onClick={closeStory} className="absolute top-4 right-4 z-20 text-white hover:bg-white/20 rounded-full p-2 transition-colors" aria-label="Close story">
+            <X className="w-6 h-6" />
+          </button>
+          <div className="absolute top-4 left-4 right-12 flex gap-1 z-20">
+            {selectedStory.images.map((_, index) => (
+              <div key={index} className="flex-1 h-1 bg-white/30 rounded-full overflow-hidden">
+                <div className="h-full bg-white transition-all" style={{ width: index < currentImageIndex ? '100%' : index === currentImageIndex ? `${progress}%` : '0%' }} />
+              </div>
+            ))}
+          </div>
+          <div className="relative w-full h-full md:h-[90vh] md:max-w-md bg-black flex items-center justify-center" onClick={nextImage}>
+            <img src={selectedStory.images[currentImageIndex]} alt={selectedStory.title} className="w-full h-full object-contain md:object-cover" loading="eager" />
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full overflow-hidden">
+                  <img src={selectedStory.thumbnail} alt="" className="w-full h-full object-cover" width="40" height="40" />
+                </div>
+                <div>
+                  <p className="text-white font-semibold text-sm">{selectedStory.title}</p>
+                  <p className="text-white/70 text-xs">2h ago</p>
+                </div>
+              </div>
+              <p className="text-white/90 text-sm">Check out our latest collection! ✨</p>
+            </div>
+            <button onClick={(e) => { e.stopPropagation(); nextImage(); }} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-white p-2 hidden md:block">
+              <ChevronRight className="w-8 h-8" />
+            </button>
+            <button onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(prev => Math.max(0, prev - 1)); }} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50 hover:text-white p-2 hidden md:block">
+              <ChevronLeft className="w-8 h-8" />
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
+// 4. Category Menu Component
+function Categories() {
+  return (
+    <section className="w-full py-8 md:py-12 bg-white">
+      <div className="container mx-auto px-4">
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6 text-center">
+          Shop by Category
+        </h2>
+        <div className="px-3 py-3 md:px-12 md:py-6" data-testid="category-menu">
+          {/* Mobile View - Horizontal Scroll */}
+          <div
+            role="list"
+            data-testid="category-menu-scroll"
+            className="flex gap-2 overflow-x-auto pb-2 md:hidden"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
+          >
+            {categories.map((category, index) => (
+              <a
+                key={category.id}
+                data-testid={`category-menu-item-${index}`}
+                href={category.href}
+                className="flex-shrink-0"
+              >
+                <div className="w-[78px] flex flex-col items-center group">
+                  <div className="relative rounded-lg overflow-hidden">
+                    <img
+                      src={category.image}
+                      alt={category.name}
+                      className="rounded-lg object-cover group-hover:scale-105 transition-transform duration-300"
+                      style={{ width: '78px', height: '104px' }}
+                      data-testid={`category-menu-item-${index}-image`}
+                      width="78"
+                      height="104"
+                      loading="lazy"
+                    />
+                  </div>
+                  <span
+                    className="text-center font-medium text-[10px] mt-2 leading-tight block w-[78px] transition-colors group-hover:text-pink-600"
+                    data-testid={`category-menu-item-${index}-text`}
+                    style={{
+                      color: '#8c8b8b',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}
+                  >
+                    {category.name}
+                  </span>
+                </div>
+              </a>
+            ))}
+          </div>
+
+          {/* Desktop View - Grid with 4x2 layout */}
+          <div
+            role="list"
+            data-testid="category-menu-desktop"
+            className="hidden md:grid grid-cols-4 gap-4 md:gap-6"
+          >
+            {categories.map((category, index) => (
+              <a
+                key={category.id}
+                data-testid={`category-menu-item-${index}`}
+                href={category.href}
+              >
+                <div className="flex flex-col w-full group">
+                  <div className="relative w-full aspect-[3/4] rounded-xl overflow-hidden">
+                    <img
+                      src={category.image}
+                      alt={category.name}
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      data-testid={`category-menu-item-${index}-image-desktop`}
+                      style={{ position: 'absolute', top: '0', left: '0', width: '100%', height: '100%', objectFit: 'cover' }}
+                      loading="lazy"
+                    />
+                  </div>
+                  <span
+                    className="text-center font-medium text-[13px] mt-2 leading-tight block transition-colors group-hover:text-pink-600"
+                    data-testid={`category-menu-item-${index}-text-desktop`}
+                    style={{
+                      color: '#8c8b8b',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 3,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}
+                  >
+                    {category.name}
+                  </span>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// 5. Home Video Carousel Component
+function VideoReels() {
+  const [selectedReel, setSelectedReel] = useState<VideoReel | null>(null)
+  const [currentIndex, setCurrentIndex] = useState(0)
+
+  const handlePrev = () => {
+    setCurrentIndex((prev) => (prev - 1 + reels.length) % reels.length)
+  }
+
+  const handleNext = () => {
+    setCurrentIndex((prev) => (prev + 1) % reels.length)
+  }
+
+  return (
+    <>
+      <section className="homevideocarousel clr container mx-auto px-4 py-12">
+        <h3 className="text-2xl md:text-3xl font-bold mb-6 flex items-center gap-2 text-gray-900">
+          <span className="text-pink-600">⚡</span>
+          Video Shorts
+        </h3>
+        <div className="flex gap-4 overflow-x-auto pb-4" style={{ scrollbarWidth: 'none' }}>
+          {reels.map((reel, index) => (
+            <div
+              key={reel.id}
+              className={`flex-shrink-0 w-48 md:w-56 cursor-pointer group transition-all ${index === currentIndex ? 'scale-105' : ''}`}
+              onClick={() => setSelectedReel(reel)}
+            >
+              <div className="relative aspect-[9/16] overflow-hidden bg-muted rounded-xl">
+                <img src={reel.thumbnail} alt={reel.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Play className="w-6 h-6 fill-pink-500 text-pink-500 ml-1" />
+                  </div>
+                </div>
+                <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
+                  <p className="text-white text-sm font-medium truncate">{reel.title}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+      {selectedReel && (
+        <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center">
+          <button onClick={() => setSelectedReel(null)} className="absolute top-4 right-4 z-10 text-white hover:bg-white/20 rounded-full p-2 transition-colors" aria-label="Close video">
+            <X className="w-6 h-6" />
+          </button>
+          <div className="relative w-full max-w-md h-full md:h-[85vh] flex flex-col md:flex-row">
+            <div className="flex-1 flex items-center justify-center bg-black md:max-w-[400px] mx-auto">
+              <div className="relative aspect-[9/16] h-full w-full md:h-auto">
+                <img src={selectedReel.thumbnail} alt={selectedReel.title} className="w-full h-full object-cover" />
+                <div className="absolute top-4 left-4 right-4 flex gap-1 z-20">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="flex-1 h-1 bg-white/30 rounded-full overflow-hidden">
+                      <div className={`h-full bg-white ${i === 1 ? 'w-1/2' : ''}`} />
+                    </div>
+                  ))}
+                </div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Play className="w-20 h-20 text-white/80" />
+                </div>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-4 hidden md:flex">
+                  <button onClick={handlePrev} className="text-white/50 hover:text-white p-2 transition-colors">
+                    <ChevronLeft className="w-8 h-8" />
+                  </button>
+                  <button onClick={handleNext} className="text-white/50 hover:text-white p-2 transition-colors">
+                    <ChevronRight className="w-8 h-8" />
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="hidden md:flex w-64 bg-white flex-col">
+              <div className="p-4 border-b">
+                <div className="relative aspect-square mb-4 rounded-lg overflow-hidden">
+                  <img src={selectedReel.product.image} alt={selectedReel.product.name} className="w-full h-full object-cover" />
+                </div>
+                <h4 className="font-bold text-lg">{selectedReel.product.name}</h4>
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="text-xl font-bold text-pink-600">${selectedReel.product.price}</span>
+                  <button className="w-full mt-2 bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-full transition-colors">
+                    Add to Cart
+                  </button>
+                </div>
+              </div>
+              <div className="flex-1 p-4">
+                <div className="flex flex-col gap-4">
+                  <button className="w-full justify-start gap-2 flex items-center px-4 py-2 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors">
+                    <Heart className="w-4 h-4" /> Wishlist
+                  </button>
+                  <button className="w-full justify-start gap-2 flex items-center px-4 py-2 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors">
+                    <Share2 className="w-4 h-4" /> Share
+                  </button>
+                  <button className="w-full justify-start gap-2 flex items-center px-4 py-2 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors">
+                    <MessageCircle className="w-4 h-4" /> Comment
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="md:hidden absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <img src={selectedReel.product.image} alt={selectedReel.product.name} className="w-16 h-16 rounded-lg object-cover" />
+                <div className="flex-1">
+                  <p className="font-semibold text-sm">{selectedReel.product.name}</p>
+                  <p className="text-pink-600 font-bold">${selectedReel.product.price}</p>
+                </div>
+                <button className="bg-pink-600 hover:bg-pink-700 text-white p-2 rounded-full transition-colors">
+                  <ShoppingCart className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="flex justify-around border-t pt-3">
+                <button className="flex flex-col gap-1 items-center text-gray-600">
+                  <Heart className="w-5 h-5" />
+                  <span className="text-xs">Like</span>
+                </button>
+                <button className="flex flex-col gap-1 items-center text-gray-600">
+                  <MessageCircle className="w-5 h-5" />
+                  <span className="text-xs">Comment</span>
+                </button>
+                <button className="flex flex-col gap-1 items-center text-gray-600">
+                  <Share2 className="w-5 h-5" />
+                  <span className="text-xs">Share</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
+// 6. Fullscreen Video Component
+function FullscreenVideo() {
+  return (
+    <section className="relative w-full overflow-hidden bg-black py-12 md:py-16">
+      <div className="container mx-auto px-4">
+        <div className="relative w-full mx-auto" style={{ maxWidth: '1080px', aspectRatio: '16/9' }}>
+          <iframe
+            className="absolute inset-0 w-full h-full"
+            src="https://www.youtube-nocookie.com/embed/Gk-s0icT2CI?autoplay=1&mute=1&loop=1&playlist=Gk-s0icT2CI&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&playsinline=1"
+            title="YouTube video player"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            referrerPolicy="strict-origin-when-cross-origin"
+            allowFullScreen
+          />
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// 7. Featured Collection Carousel Component
+function FeaturedCollection() {
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const itemsPerPage = 4
+
+  const handlePrev = () => {
+    setCurrentIndex((prev) => Math.max(0, prev - 1))
+  }
+
+  const handleNext = () => {
+    setCurrentIndex((prev) => Math.min(Math.ceil(featuredProducts.length / itemsPerPage) - 1, prev + 1))
+  }
+
+  return (
+    <section className="featured-collection container mx-auto px-4 py-12">
+      <div className="flex items-center justify-between mb-8">
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Featured Collection</h2>
+        <div className="flex gap-2">
+          <button onClick={handlePrev} className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-50" disabled={currentIndex === 0}>
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <button onClick={handleNext} className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-50" disabled={currentIndex >= Math.ceil(featuredProducts.length / itemsPerPage) - 1}>
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+      <div className="overflow-hidden">
+        <div className="flex transition-transform duration-500 ease-in-out" style={{ transform: `translateX(-${currentIndex * 100}%)` }}>
+          {Array.from({ length: Math.ceil(featuredProducts.length / itemsPerPage) }).map((_, pageIndex) => (
+            <div key={pageIndex} className="flex-shrink-0 w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 px-1">
+              {featuredProducts.slice(pageIndex * itemsPerPage, (pageIndex + 1) * itemsPerPage).map((product) => (
+                <div key={product.id} className="product-grid-item group">
+                  <div className="product__media relative aspect-[3/4] overflow-hidden rounded-xl mb-4 bg-gray-100">
+                    {product.badge && (
+                      <span className="absolute top-3 left-3 z-10 bg-pink-600 text-white text-xs px-3 py-1 rounded-full font-medium">
+                        {product.badge}
+                      </span>
+                    )}
+                    <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all" />
+                    <button className="product-grid-item__quick-buy absolute bottom-4 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-white text-gray-900 px-6 py-2 rounded-full text-sm font-medium hover:bg-pink-600 hover:text-white">
+                      Quick View
+                    </button>
+                  </div>
+                  <h3 className="product-grid-item__title font-medium text-gray-900 mb-2 line-clamp-2">
+                    {product.name}
+                  </h3>
+                  <div className="flex items-center gap-1 mb-2">
+                    <div className="flex">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className={`w-4 h-4 ${i < Math.floor(product.rating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
+                      ))}
+                    </div>
+                    <span className="text-sm text-gray-500">({product.reviews})</span>
+                  </div>
+                  <div className="product-grid-item__price flex items-center gap-2">
+                    <span className="text-lg font-bold text-gray-900">${product.price}</span>
+                    {product.originalPrice && (
+                      <span className="text-sm text-gray-400 line-through">${product.originalPrice}</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// 8. Mosaic Product Grid Component
+function MosaicGrid() {
+  return (
+    <section className="mosaic bg-gray-50 py-12">
+      <div className="container mx-auto px-4">
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8 text-center">Shop the Look</h2>
+        <div className="mosaic__grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {mosaicProducts.map((product, index) => (
+            <div
+              key={product.id}
+              className={`product-card group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 ${index >= 4 ? 'hidden lg:block' : ''}`}
+            >
+              <div className="relative aspect-[3/4] overflow-hidden">
+                <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <button className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white text-gray-900 px-6 py-2 rounded-full text-sm font-medium opacity-0 group-hover:opacity-100 transition-all transform translate-y-4 group-hover:translate-y-0 hover:bg-pink-600 hover:text-white">
+                  Shop Now
+                </button>
+              </div>
+              <div className="p-4">
+                <h3 className="font-medium text-gray-900 mb-2 line-clamp-1 group-hover:text-pink-600 transition-colors">
+                  {product.name}
+                </h3>
+                <div className="flex items-center gap-1 mb-2">
+                  <div className="flex">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className={`w-4 h-4 ${i < Math.floor(product.rating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
+                    ))}
+                  </div>
+                  <span className="text-sm text-gray-500">({product.reviews})</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-bold text-gray-900">${product.price}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// 9. Promotion Row Component
+function PromotionRow() {
+  return (
+    <section className="w-full bg-white">
+      <div className="container mx-auto px-4 py-8">
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4 text-center tracking-wide">Showroom View</h2>
+      </div>
+      <img
+        src="/upload/special-offer.png"
+        alt="Special Offer"
+        className="w-full h-auto"
+      />
+    </section>
+  )
+}
+
+// 10. Carousel Card Component (for Wedding Collection and Summer Essentials)
+interface CarouselCard {
+  id: string
+  title: string
+  caption: string
+  description: string
+  images: {
+    desktop: string[]
+    mobile: string
+  }
+  cta: {
+    text: string
+    href: string
+  }
+}
+
+const carouselCards: CarouselCard[] = [
+  {
+    id: 'wedding',
+    title: 'Wedding Collection',
+    caption: 'SHOP FOR A CAUSE',
+    description: 'Discover our exclusive range of bridal wear, groom attire, and wedding accessories. Make your special day unforgettable with our timeless designs.',
+    images: {
+      desktop: [
+        'https://www.jamsworld.com/cdn/shop/files/Jackie_Dress_Chat.jpg?v=1775169886',
+        'https://www.jamsworld.com/cdn/shop/files/Jamsworld69b0ae062f4e7169b0ae062f65f.6494709169b0ae062f65f_b998727e-a318-42ca-a671-9709098560d6.jpg?v=1774314280'
+      ],
+      mobile: 'https://www.jamsworld.com/cdn/shop/files/Jackie_Dress_Chat.jpg?v=1775169886'
+    },
+    cta: {
+      text: 'SHOP NOW',
+      href: '/wedding'
+    }
+  },
+  {
+    id: 'summer',
+    title: 'Summer Essentials',
+    caption: 'BEAT THE HEAT',
+    description: 'Beat the heat in style with our summer collection. From lightweight fabrics to vibrant colors, find your perfect summer wardrobe.',
+    images: {
+      desktop: [
+        'https://www.jamsworld.com/cdn/shop/files/Untitled_design_-_2025-11-10T083257.190.png?v=1774401891',
+        'https://www.jamsworld.com/cdn/shop/files/Untitled_design_-_2025-11-10T083257.190.png?v=1774401891'
+      ],
+      mobile: 'https://www.jamsworld.com/cdn/shop/files/Untitled_design_-_2025-11-10T083257.190.png?v=1774401891'
+    },
+    cta: {
+      text: 'SHOP NOW',
+      href: '/collections/summer'
+    }
+  }
+]
+
+function CarouselCard({ card }: { card: CarouselCard }) {
+  const [currentIndex, setCurrentIndex] = useState(0)
+  
+  const nextSlide = () => {
+    setCurrentIndex((prev) => (prev + 1) % card.images.desktop.length)
+  }
+  
+  const prevSlide = () => {
+    setCurrentIndex((prev) => (prev - 1 + card.images.desktop.length) % card.images.desktop.length)
+  }
+  
+  const goToSlide = (index: number) => {
+    setCurrentIndex(index)
+  }
+  
+  return (
+    <div className="w-full py-12 bg-white">
+      <div className="container mx-auto px-4">
+        {/* Card 1 - Wedding Collection */}
+        <div className="flex flex-col md:flex-row items-center gap-8 mb-12">
+          {/* Mobile: Heading first, then image */}
+          {/* Desktop: Side by side */}
+          <div className="text-center md:text-left order-1 md:order-none w-full md:w-1/2">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2 uppercase tracking-wide">{card.title}</h2>
+            <p className="text-gray-600 mb-4">{card.description}</p>
+            <a href={card.cta.href} className="inline-block bg-pink-600 hover:bg-pink-700 text-white px-6 py-2 md:px-8 md:py-3 rounded-full font-semibold text-sm md:text-base transition-colors">
+              {card.cta.text}
+            </a>
+          </div>
+          {/* Image under heading on mobile, side by side on desktop */}
+          <div className="w-full md:w-1/2 order-2 md:order-none">
+            <div className="relative w-full">
+              {/* Navigation buttons */}
+              <button 
+                onClick={prevSlide}
+                className="absolute left-2 md:left-4 top-1/2 z-10 w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/90 hover:bg-white/80 flex items-center justify-center transition-colors"
+                aria-label="Previous"
+              >
+                <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path d="M15 7l-6 12l-6 12M5 5v12" />
+                </svg>
+              </button>
+              
+              {/* Navigation dots */}
+              <div className="absolute bottom-4 left-1/2 md:left-4 z-10 flex gap-2">
+                {card.images.desktop.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => goToSlide(index)}
+                    className={`w-2 h-2 rounded-full transition-colors ${currentIndex === index ? 'bg-pink-600' : 'bg-white/70 hover:bg-white/80'}`}
+                    aria-label={`Go to slide ${index + 1}`}
+                  />
+                ))}
+              </div>
+              
+              {/* Carousel */}
+              <div className="overflow-hidden relative">
+                <div 
+                  className="flex transition-transform duration-500 ease-in-out"
+                  style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+                >
+                  {card.images.desktop.map((img, index) => (
+                    <picture key={index} className="block w-full">
+                      <source 
+                        media="(max-width: 767px)" 
+                        srcSet={img.replace(/width=\d+/g, '/width=320 1x, width=640 2x, width=960 2x, width=1280 2x')}
+                      />
+                      <img 
+                        src={img} 
+                        alt={`${card.title} slide ${index + 1}`}
+                        className="w-full h-auto"
+                        loading="lazy"
+                      />
+                    </picture>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// 11. Sticky Image Cards Component (replaced with Carousel)
+function StickyImageCards() {
+  return (
+    <section className="py-12 bg-gray-50">
+      <div className="container mx-auto px-4">
+        {carouselCards.map((card, index) => (
+          <CarouselCard key={card.id} card={card} />
+        ))}
+      </div>
+    </section>
+  )
+}
+
+// 11. Floating Category Carousel - Full width, always visible, overlaps content while scrolling
+function FloatingCategoryCarousel() {
+  const [currentIndex, setCurrentIndex] = useState(0)
+  
+  const categories = [
+    { id: 'new', name: 'NEW', href: '/collections/new-arrivals', products: newCategoryProducts },
+    { id: 'tops', name: 'Tops', href: '/collections/tops', products: topsCategoryProducts },
+    { id: 'dresses', name: 'Dresses', href: '/collections/dresses', products: dressesCategoryProducts },
+    { id: 'preloved', name: 'PRE-LOVED', href: '/collections/vintage', products: preLovedCategoryProducts }
+  ]
+
+  const handlePrev = () => {
+    setCurrentIndex((prev) => (prev - 1 + categories.length) % categories.length)
+  }
+
+  const handleNext = () => {
+    setCurrentIndex((prev) => (prev + 1) % categories.length)
+  }
+
+  const currentCategory = categories[currentIndex]
+
+  return (
+    <section className="relative z-50 w-full bg-gradient-to-b from-white to-gray-50 shadow-xl">
+      <div className="container mx-auto px-4 py-8">
+        {/* Category Navigation - Full Width */}
+        <div className="flex items-center justify-between mb-8">
+          <button 
+            onClick={handlePrev} 
+            className="w-12 h-12 rounded-full border border-gray-300 flex items-center justify-center hover:bg-pink-600 hover:border-pink-600 hover:text-white transition-colors"
+            aria-label="Previous category"
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+          
+          <div className="flex gap-4 md:gap-8">
+            {categories.map((cat, index) => (
+              <button
+                key={cat.id}
+                onClick={() => setCurrentIndex(index)}
+                className={`text-sm md:text-base font-semibold transition-colors ${
+                  index === currentIndex 
+                    ? 'text-pink-600 underline decoration-2 underline-offset-4' 
+                    : 'text-gray-500 hover:text-pink-600'
+                }`}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
+          
+          <button 
+            onClick={handleNext} 
+            className="w-12 h-12 rounded-full border border-gray-300 flex items-center justify-center hover:bg-pink-600 hover:border-pink-600 hover:text-white transition-colors"
+            aria-label="Next category"
+          >
+            <ChevronRight className="w-6 h-6" />
+          </button>
+        </div>
+
+        {/* Category Products - Display One by One */}
+        <div className="overflow-hidden">
+          <div 
+            className="flex transition-transform duration-500 ease-in-out"
+            style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+          >
+            {categories.map((category) => (
+              <div key={category.id} className="flex-shrink-0 w-full">
+                <div className="text-center mb-6">
+                  <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+                    {category.name}
+                  </h2>
+                  <a 
+                    href={category.href}
+                    className="text-pink-600 hover:text-pink-700 font-medium inline-flex items-center gap-2"
+                  >
+                    View All
+                    <ChevronRight className="w-4 h-4" />
+                  </a>
+                </div>
+                
+                {/* Products Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+                  {category.products.map((product) => (
+                    <div key={product.id} className="group">
+                      <div className="relative aspect-[3/4] overflow-hidden rounded-xl mb-3 bg-gray-100">
+                        {product.badge && (
+                          <span className="absolute top-2 left-2 z-10 bg-pink-600 text-white text-xs px-2 py-1 rounded-full font-medium">
+                            {product.badge}
+                          </span>
+                        )}
+                        <img 
+                          src={product.image} 
+                          alt={product.name} 
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+                          loading="lazy"
+                        />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all" />
+                        <button className="absolute bottom-3 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-white text-gray-900 px-4 py-2 rounded-full text-sm font-medium hover:bg-pink-600 hover:text-white">
+                          Quick View
+                        </button>
+                      </div>
+                      <h3 className="font-medium text-gray-900 mb-1 line-clamp-2 text-sm md:text-base">
+                        {product.name}
+                      </h3>
+                      <div className="flex items-center gap-1 mb-1">
+                        <div className="flex">
+                          {[...Array(5)].map((_, i) => (
+                            <Star 
+                              key={i} 
+                              className={`w-3 h-3 md:w-4 md:h-4 ${
+                                i < Math.floor(product.rating) 
+                                  ? 'fill-yellow-400 text-yellow-400' 
+                                  : 'text-gray-300'
+                              }`} 
+                            />
+                          ))}
+                        </div>
+                        <span className="text-xs md:text-sm text-gray-500">({product.reviews})</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm md:text-lg font-bold text-gray-900">${product.price}</span>
+                        {product.originalPrice && (
+                          <span className="text-xs md:text-sm text-gray-400 line-through">${product.originalPrice}</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// 12. Footer Component
+function Footer() {
+  return (
+    <footer className="bg-gray-900 text-white">
+      <div className="container mx-auto px-4 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
+          {/* Shop */}
+          <div>
+            <h3 className="text-lg font-bold mb-4 text-pink-500">Shop</h3>
+            <ul className="space-y-2">
+              <li><a href="/saree" className="text-gray-300 hover:text-white transition-colors">Sarees</a></li>
+              <li><a href="/salwar" className="text-gray-300 hover:text-white transition-colors">Salwar Suits</a></li>
+              <li><a href="/lehengas" className="text-gray-300 hover:text-white transition-colors">Lehengas</a></li>
+              <li><a href="/gowns" className="text-gray-300 hover:text-white transition-colors">Gowns</a></li>
+              <li><a href="/kurtas" className="text-gray-300 hover:text-white transition-colors">Kurtas</a></li>
+            </ul>
+          </div>
+          
+          {/* Categories */}
+          <div>
+            <h3 className="text-lg font-bold mb-4 text-pink-500">Categories</h3>
+            <ul className="space-y-2">
+              <li><a href="/collections/sale" className="text-gray-300 hover:text-white transition-colors">Sale</a></li>
+              <li><a href="/collections/new-arrivals" className="text-gray-300 hover:text-white transition-colors">New Arrivals</a></li>
+              <li><a href="/collections/best-sellers" className="text-gray-300 hover:text-white transition-colors">Best Sellers</a></li>
+              <li><a href="/collections/wedding" className="text-gray-300 hover:text-white transition-colors">Wedding</a></li>
+              <li><a href="/collections/festive" className="text-gray-300 hover:text-white transition-colors">Festive</a></li>
+            </ul>
+          </div>
+          
+          {/* Customer Service */}
+          <div>
+            <h3 className="text-lg font-bold mb-4 text-pink-500">Customer Service</h3>
+            <ul className="space-y-2">
+              <li><a href="/about" className="text-gray-300 hover:text-white transition-colors">About Us</a></li>
+              <li><a href="/contact" className="text-gray-300 hover:text-white transition-colors">Contact Us</a></li>
+              <li><a href="/shipping" className="text-gray-300 hover:text-white transition-colors">Shipping Info</a></li>
+              <li><a href="/returns" className="text-gray-300 hover:text-white transition-colors">Returns & Exchanges</a></li>
+              <li><a href="/faq" className="text-gray-300 hover:text-white transition-colors">FAQs</a></li>
+            </ul>
+          </div>
+          
+          {/* Connect */}
+          <div>
+            <h3 className="text-lg font-bold mb-4 text-pink-500">Connect With Us</h3>
+            <ul className="space-y-2">
+              <li><a href="#" className="text-gray-300 hover:text-white transition-colors">Instagram</a></li>
+              <li><a href="#" className="text-gray-300 hover:text-white transition-colors">Facebook</a></li>
+              <li><a href="#" className="text-gray-300 hover:text-white transition-colors">Twitter</a></li>
+              <li><a href="#" className="text-gray-300 hover:text-white transition-colors">Pinterest</a></li>
+              <li><a href="#" className="text-gray-300 hover:text-white transition-colors">YouTube</a></li>
+            </ul>
+          </div>
+        </div>
+        
+        {/* Newsletter */}
+        <div className="border-t border-gray-700 pt-8 mb-8">
+          <div className="max-w-md mx-auto text-center">
+            <h3 className="text-xl font-bold mb-2">Subscribe to Our Newsletter</h3>
+            <p className="text-gray-400 mb-4">Get exclusive offers, new arrivals, and fashion tips delivered to your inbox.</p>
+            <div className="flex gap-2">
+              <input
+                type="email"
+                placeholder="Enter your email"
+                className="flex-1 px-4 py-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:border-pink-500 focus:outline-none transition-colors"
+              />
+              <button className="px-6 py-3 bg-pink-600 hover:bg-pink-700 rounded-lg font-semibold transition-colors">
+                Subscribe
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        {/* Copyright */}
+        <div className="border-t border-gray-700 pt-8 text-center">
+          <p className="text-gray-400 text-sm">
+            © 2024 modern ecommerce. All rights reserved.
+          </p>
+          <div className="flex justify-center gap-4 mt-4 text-sm">
+            <a href="/privacy" className="text-gray-400 hover:text-white transition-colors">Privacy Policy</a>
+            <a href="/terms" className="text-gray-400 hover:text-white transition-colors">Terms of Service</a>
+            <a href="/shipping" className="text-gray-400 hover:text-white transition-colors">Shipping Policy</a>
+          </div>
+        </div>
+      </div>
+    </footer>
+  )
+}
+
+// Main Home Component
+export default function Home() {
+  return (
+    <div className="min-h-screen flex flex-col bg-white">
+      <Navbar />
+      <main className="w-full flex-grow">
+        <HeroCarousel />
+        <SectionMarquee />
+        <Stories />
+        <FloatingCategoryCarousel />
+        <FullscreenVideo />
+        <Categories />
+        <VideoReels />
+        <FeaturedCollection />
+        <MosaicGrid />
+        <PromotionRow />
+        <StickyImageCards />
+      </main>
+      <Footer />
+      <style jsx global>{`
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
+    </div>
+  )
+}

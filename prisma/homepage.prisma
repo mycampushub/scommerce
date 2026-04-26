@@ -1,0 +1,61 @@
+// Homepage content models for admin management
+
+model Banner {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  image       String
+  mobileImage String? // Separate image for mobile
+  buttonText  String?
+  buttonLink  String?
+  isActive    Boolean  @default(true)
+  order       Int      @default(0) // Display order
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Story {
+  id          String   @id @default(cuid())
+  title       String
+  thumbnail   String
+  images      String // JSON array of image URLs
+  isActive    Boolean  @default(true)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Reel {
+  id          String   @id @default(cuid())
+  title       String
+  thumbnail   String
+  videoUrl    String // URL or upload path
+  productIds String? // JSON array of related product IDs
+  isActive    Boolean  @default(true)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Promotion {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  image       String
+  ctaText     String? // Call to action text
+  ctaLink     String?
+  isActive    Boolean  @default(true)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model HomepageSettings {
+  id               String   @id @default(cuid())
+  sectionName       String   @unique // e.g., 'banner', 'stories', 'reels', 'promotions'
+  isEnabled        Boolean  @default(true)
+  autoPlay         Int      @default(5000) // Auto-play timing in ms
+  displayLimit     Int?     // Max items to display
+  settings         String?  // JSON for additional settings
+  updatedAt        DateTime @updatedAt
+}
