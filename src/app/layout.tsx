@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "sonner";
 import { OrganizationStructuredData } from "@/components/product-structured-data";
 import { AnalyticsScripts, SearchConsoleVerification } from "@/components/analytics-scripts";
+import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,9 +27,15 @@ export const metadata: Metadata = {
   description: "Discover traditional and contemporary fashion at Modern E-commerce. Shop sarees, salwar kameez, kurtas, gowns, lehengas, and menswear with nationwide delivery across Bangladesh.",
   keywords: ["e-commerce", "fashion", "saree", "salwar kameez", "kurtas", "gowns", "lehengas", "menswear", "Bangladesh", "online shopping"],
   authors: [{ name: "Modern E-commerce Team" }],
+  manifest: "/manifest.json",
   icons: {
     icon: "/favicon.ico",
     apple: "/favicon.ico",
+  },
+  other: {
+    "apple-mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-status-bar-style": "default",
+    "apple-mobile-web-app-title": "SCommerce",
   },
   verification: {
     google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
@@ -79,6 +86,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
         <AnalyticsScripts />
+        <ServiceWorkerRegistration />
         {children}
         <Toaster />
         <SonnerToaster position="bottom-right" />

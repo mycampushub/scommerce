@@ -1,12 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { verifyAdminAuth } from '@/lib/admin-auth'
 
 export async function GET(request: NextRequest) {
+  // Verify admin authentication
+  const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
+
   try {
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search') || ''
     const category = searchParams.get('category') || ''
     const status = searchParams.get('status') || ''
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '20')
+    const skip = (page - 1) * limit
 
     let products = await db.product.findMany({
       include: {
@@ -15,6 +25,8 @@ export async function GET(request: NextRequest) {
       orderBy: {
         createdAt: 'desc',
       },
+      skip,
+      take: limit,
     })
 
     if (search) {
@@ -35,10 +47,22 @@ export async function GET(request: NextRequest) {
       products = products.filter((p) => !p.isActive)
     }
 
+    // Get total count for pagination
+    const totalCount = await db.product.count()
+    const totalPages = Math.ceil(totalCount / limit)
+
     return NextResponse.json({
       success: true,
       data: products,
       total: products.length,
+      totalCount,
+      pagination: {
+        page,
+        limit,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
     })
   } catch (error) {
     console.error('Error fetching products:', error)
@@ -53,6 +77,12 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  // Verify admin authentication (admin only)
+  const userOrResponse = await verifyAdminAuth(request, ['admin'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
+
   try {
     const contentType = request.headers.get('content-type') || ''
 

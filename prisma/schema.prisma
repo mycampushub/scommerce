@@ -25,13 +25,34 @@ model User {
   newEmail       String?  // Temporary field for pending email change
   resetToken     String?  // For password reset
   resetTokenExpiry DateTime? // Password reset token expiry
-  role           String   @default("user") // "user" or "admin"
+  role           String   @default("user") // "user", "admin", or "staff"
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   orders         Order[]
   cartItems     CartItem[]
   wishlistItems  WishlistItem[]
   reviews        ProductReview[]
+  addresses      Address[]
+}
+
+model Address {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName    String
+  phone       String
+  addressLine1 String
+  addressLine2 String?
+  city        String
+  district    String?
+  division    String
+  postalCode  String?
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([isDefault])
 }
 
 model Category {
@@ -128,6 +149,9 @@ model ProductReview {
   updatedAt   DateTime @updatedAt
 
   @@unique([productId, userId])
+  @@index([productId])
+  @@index([userId])
+  @@index([isApproved])
 }
 
 model WishlistItem {
@@ -233,6 +257,10 @@ model AdminLog {
   adminId   String
   details   String?
   createdAt DateTime @default(now())
+
+  @@index([adminId])
+  @@index([entity])
+  @@index([createdAt])
 }
 
 model InventoryAlert {
@@ -291,6 +319,8 @@ model Post {
   authorId  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([authorId])
 }
 
 // Homepage content management models
@@ -306,6 +336,9 @@ model Banner {
   order       Int      @default(0) // Display order
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([order])
 }
 
 model Story {
@@ -317,6 +350,9 @@ model Story {
   order       Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([order])
 }
 
 model Reel {
@@ -329,6 +365,9 @@ model Reel {
   order       Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([order])
 }
 
 model Promotion {

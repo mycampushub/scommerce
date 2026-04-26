@@ -1,24 +1,33 @@
 # Cloudflare Workers/Pages Configuration
 # This file is used by the Wrangler CLI for local development and deployment
 
-name = "ecommerce-website"
+name = "scommerce"
 compatibility_date = "2024-01-01"
 
 # Pages Configuration (for Cloudflare Pages deployment)
 [env.production]
-name = "ecommerce-website-prod"
+name = "scommerce-prod"
 
 [env.staging]
-name = "ecommerce-website-staging"
+name = "scommerce-staging"
 
 # D1 Database Configuration
-# Create database with: wrangler d1 create ecommerce-db
+# Create database with: wrangler d1 create scommerce-db
 # Then add the database_id below
 
 [[d1_databases]]
 binding = "DB"
-database_name = "ecommerce-db"
+database_name = "scommerce-db"
 # database_id = "your-database-id-here" # Replace after creating D1 database
+
+# R2 Storage Configuration
+# Create bucket with: wrangler r2 bucket create scommerce-uploads
+# Then uncomment and configure below
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "scommerce-uploads"
+# bucket_id = "your-bucket-id-here" # Replace after creating R2 bucket
 
 # KV Namespace Configuration (optional, for caching)
 # [[kv_namespaces]]
@@ -28,6 +37,9 @@ database_name = "ecommerce-db"
 # Environment Variables (also set in Cloudflare Dashboard)
 [vars]
 NODE_ENV = "production"
+# Redis configuration (if using external Redis)
+# REDIS_URL = "redis://your-redis-url"
+# REDIS_PASSWORD = "your-redis-password"
 
 # Build configuration for Pages
 [build]

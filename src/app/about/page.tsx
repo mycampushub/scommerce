@@ -14,7 +14,7 @@ function Navbar() {
         <div className="flex items-center justify-between h-16 md:h-20">
           <Link href="/" className="flex items-center">
             <img
-              src="/upload/logo.png"
+              src="/logo.svg"
               alt="modern ecommerce"
               className="h-10 md:h-12 w-auto"
             />

@@ -175,7 +175,7 @@ export function generateDisplaySKU(sku: string): string {
   return `${catCode}-${prodCode.substring(0, 4)}-${random}`
 }
 
-export default {
+const skuGenerator = {
   generateSKU,
   generateProductSKU,
   validateSKU,
@@ -185,3 +185,5 @@ export default {
   formatSKUForDisplay,
   generateDisplaySKU,
 }
+
+export default skuGenerator

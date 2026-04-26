@@ -21,10 +21,34 @@ export async function GET(request: NextRequest) {
     // Get the current product to determine category
     const currentProduct = await db.product.findUnique({
       where: { id: productId },
-      select: { categoryId: true, price: true, hasVariants: true },
+      select: { categoryId: true, basePrice: true, price: true, hasVariants: true },
     })
 
     const targetCategoryId = categoryId || currentProduct?.categoryId
+
+    // Get product ratings and reviews count from ProductReview table
+    const allReviews = await db.productReview.groupBy({
+      by: ['productId'],
+      where: { isApproved: true },
+      _avg: { rating: true },
+      _count: { rating: true },
+    })
+
+    // Create a map for quick lookup
+    const reviewsMap = new Map(
+      allReviews.map((review) => [
+        review.productId,
+        {
+          rating: review._avg.rating || 0,
+          reviews: review._count.rating || 0,
+        },
+      ])
+    )
+
+    // Helper function to get product rating and reviews count
+    const getProductRating = (productId: string) => {
+      return reviewsMap.get(productId) || { rating: 0, reviews: 0 }
+    }
 
     // Strategy 1: Category-based recommendations
     if (type === 'category' || type === 'mixed') {
@@ -45,8 +69,6 @@ export async function GET(request: NextRequest) {
           basePrice: true,
           comparePrice: true,
           images: true,
-          rating: true,
-          reviews: true,
           stock: true,
           categoryId: true,
           category: {
@@ -86,7 +108,7 @@ export async function GET(request: NextRequest) {
           ],
         },
         take: Math.ceil(limit / 2),
-        orderBy: { rating: 'desc' },
+        orderBy: { createdAt: 'desc' },
         select: {
           id: true,
           name: true,
@@ -95,8 +117,6 @@ export async function GET(request: NextRequest) {
           basePrice: true,
           comparePrice: true,
           images: true,
-          rating: true,
-          reviews: true,
           stock: true,
           categoryId: true,
           category: {
@@ -116,14 +136,9 @@ export async function GET(request: NextRequest) {
         where: {
           id: { not: productId },
           isActive: true,
-          rating: { gte: 4 },
-          reviews: { gte: 5 },
         },
-        take: Math.ceil(limit / 3),
-        orderBy: [
-          { rating: 'desc' },
-          { reviews: 'desc' },
-        ],
+        take: Math.ceil(limit / 2),
+        orderBy: { createdAt: 'desc' },
         select: {
           id: true,
           name: true,
@@ -132,8 +147,6 @@ export async function GET(request: NextRequest) {
           basePrice: true,
           comparePrice: true,
           images: true,
-          rating: true,
-          reviews: true,
           stock: true,
           categoryId: true,
           category: {
@@ -156,6 +169,7 @@ export async function GET(request: NextRequest) {
 
     // Calculate recommendation score and sort
     const scoredProducts = uniqueProducts.map((product) => {
+      const { rating, reviews } = getProductRating(product.id)
       let score = 0
 
       // Category match bonus
@@ -164,10 +178,10 @@ export async function GET(request: NextRequest) {
       }
 
       // Rating bonus
-      score += product.rating * 2
+      score += rating * 2
 
       // Reviews bonus (social proof)
-      score += Math.min(product.reviews / 10, 10)
+      score += Math.min(reviews / 10, 10)
 
       // Price similarity bonus
       const productPrice = product.basePrice || product.price
@@ -180,6 +194,8 @@ export async function GET(request: NextRequest) {
 
       return {
         ...product,
+        rating,
+        reviews,
         recommendationScore: score,
       }
     })

@@ -332,7 +332,7 @@ function Navbar({ cartCount = 3 }: { cartCount?: number }) {
           {/* Logo */}
           <a href="/" className="flex items-center">
             <img
-              src="/upload/logo.png"
+              src="/logo.svg"
               alt="modern ecommerce"
               className="h-10 md:h-12 w-auto"
             />
