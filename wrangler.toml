@@ -1,38 +1,13 @@
-# Cloudflare Workers/Pages Configuration
-# This file is used by the Wrangler CLI for local development and deployment
+# Cloudflare Pages Configuration
+# This file is used by Cloudflare Pages deployment
+#
+# Note: For Cloudflare Pages with Next.js:
+# - D1, R2, and KV bindings are configured in Cloudflare Dashboard
+# - Build configuration is handled by Pages deployment settings
+# - This file is kept for local development reference only
 
 name = "scommerce"
 compatibility_date = "2024-01-01"
-
-# Pages Configuration (for Cloudflare Pages deployment)
-[env.production]
-name = "scommerce-prod"
-
-[env.staging]
-name = "scommerce-staging"
-
-# D1 Database Configuration
-# Create database with: wrangler d1 create scommerce-db
-# Then add the database_id below
-
-[[d1_databases]]
-binding = "DB"
-database_name = "scommerce"
-# database_id = "your-database-id-here" # Replace after creating D1 database
-
-# R2 Storage Configuration
-# Create bucket with: wrangler r2 bucket create scommerce-uploads
-# Then uncomment and configure below
-
-[[r2_buckets]]
-binding = "BUCKET"
-bucket_name = "scommerce-uploads"
-# bucket_id = "your-bucket-id-here" # Replace after creating R2 bucket
-
-# KV Namespace Configuration (optional, for caching)
-# [[kv_namespaces]]
-# binding = "CACHE"
-# id = "your-kv-namespace-id"
 
 # Environment Variables (also set in Cloudflare Dashboard)
 [vars]
@@ -41,11 +16,16 @@ NODE_ENV = "production"
 # REDIS_URL = "redis://your-redis-url"
 # REDIS_PASSWORD = "your-redis-password"
 
-# Build configuration for Pages
-[build]
-command = "bun install && bun run build"
-cwd = "."
-watch_dir = "src"
-
-# Note: Static assets are automatically handled by Cloudflare Pages
-# No additional assets configuration needed for Next.js deployment
+# Cloudflare Pages Configuration Reference
+#
+# For production deployment, configure in Cloudflare Dashboard:
+# 1. Connect D1 Database binding: "DB"
+# 2. Connect R2 Storage binding: "BUCKET"
+# 3. (Optional) Connect KV Namespace binding: "CACHE"
+# 4. Set environment variables for DATABASE_URL, NEXT_PUBLIC_SITE_URL, etc.
+#
+# To create D1 database: wrangler d1 create scommerce-db
+# To create R2 bucket: wrangler r2 bucket create scommerce-uploads
+#
+# Build command is handled by Cloudflare Pages deployment settings
+# No need for [build] section in wrangler.toml for Pages
