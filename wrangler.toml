@@ -5,24 +5,3 @@ compatibility_flags = ["nodejs_compat"]
 
 [observability]
 enabled = true
-
-# Bindings configuration
-[[assets]]
-directory = ".open-next/assets"
-binding = "ASSETS"
-
-[images]
-binding = "IMAGES"
-
-# KV, D1, R2 bindings would go here if needed
-# [[kv_namespaces]]
-# binding = "KV"
-# id = "your-kv-id"
-
-# [[d1_databases]]
-# binding = "DB"
-# database_name = "your-database"
-
-# [[r2_buckets]]
-# binding = "BUCKET"
-# bucket_name = "your-bucket"
