@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000 2>&1 | tee dev.log",
-    "build": "next build && npx @cloudflare/next-on-pages --skip-build",
+    "build": "next build",
     "build:standalone": "next build",
     "preview": "wrangler pages dev .vercel/output/static",
     "start": "next start",

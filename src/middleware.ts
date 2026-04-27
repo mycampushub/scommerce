@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { verifyToken } from '@/lib/jwt'
 
+export const runtime = 'edge'
+
 // Paths that require authentication
 const protectedPaths = ['/admin', '/admin/']
 const publicPaths = ['/login', '/register', '/api/auth']

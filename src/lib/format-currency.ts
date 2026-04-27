@@ -45,5 +45,4 @@ export {
   calculateTax,
   calculateShipping,
   calculateTotal,
-  SettingsRepository,
 };
