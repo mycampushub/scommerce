@@ -59,7 +59,7 @@ export async function GET(request: Request) {
     // 'new' doesn't need a condition - we'll sort by createdAt desc
 
     // Filter by category
-    let category = null;
+    let category: any = null;
     if (categorySlug) {
       category = await CategoryRepository.findBySlug(env, categorySlug);
       if (category) {

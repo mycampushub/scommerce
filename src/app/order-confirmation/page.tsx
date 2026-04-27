@@ -261,7 +261,7 @@ function OrderConfirmationContent() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          userId: order.userId, // Will be checked by backend
+          userId: (order as any).userId, // Will be checked by backend
           cancelledBy: 'user',
           reason: cancelReason || 'Customer requested cancellation',
         }),

@@ -389,7 +389,7 @@ export class ClientCache {
 /**
  * React hook for client-side caching (implementation below) */
 
-const clientCache = new ClientCache();
+export const clientCache = new ClientCache();
 
 export function useClientCache<T>(
   key: string,

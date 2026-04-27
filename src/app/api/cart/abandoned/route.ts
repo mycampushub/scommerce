@@ -186,7 +186,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user emails
-    const users = []
+    const users: any[] = []
     for (const userId of userIds) {
       const user = await UserRepository.findById(env, userId)
       if (user) {

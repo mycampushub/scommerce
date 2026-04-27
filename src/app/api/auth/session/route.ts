@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Verify JWT token directly
-    const sessionData = verifyToken(sessionToken);
+    const sessionData = await verifyToken(sessionToken);
 
     return NextResponse.json({
       success: true,

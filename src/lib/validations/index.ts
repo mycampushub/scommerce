@@ -62,6 +62,7 @@ export const orderItemSchema = z.object({
 });
 
 export const createOrderSchema = z.object({
+  userId: z.string().uuid().optional(),
   customerName: z.string().min(1, 'Customer name is required'),
   customerEmail: z.string().email('Invalid email address'),
   customerPhone: z.string().min(10, 'Phone number must be at least 10 digits'),

@@ -11,7 +11,7 @@ export const runtime = 'edge';
 export async function POST(request: NextRequest) {
   const env = getEnv(request)
   const clientIp = getClientIp(request)
-  const rateLimitResult = rateLimit('change-password:' + clientIp, {
+  const rateLimitResult = await rateLimit(env, 'change-password:' + clientIp, {
     maxRequests: 5,
     windowMs: 15 * 60 * 1000,
   })
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
 
     if (!validation.success) {
       return NextResponse.json(
-        { success: false, error: validation.error.errors[0].message },
+        { success: false, error: validation.error.issues[0].message },
         { status: 400 }
       )
     }

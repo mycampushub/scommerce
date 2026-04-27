@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getEnv } from '@/lib/cloudflare';
 import { OrderRepository } from '@/db/order.repository';
 import { ProductRepository } from '@/db/product.repository';
-import { execute, parseJSON } from '@/db/db';
+import { execute, parseJSON, queryFirst } from '@/db/db';
 
 export const runtime = 'edge';
 
@@ -84,11 +84,25 @@ export async function POST(
     const orderItems = await OrderRepository.getItems(env, params.id);
     for (const item of orderItems) {
       if (item.variantId) {
+        // Get current variant stock
+        const variant = await queryFirst<{ stock: number }>(
+          env,
+          'SELECT stock FROM product_variants WHERE id = ?',
+          item.variantId
+        );
+        const currentStock = variant?.stock || 0;
         // Restore variant stock
-        await ProductRepository.updateVariantStock(env, item.variantId, (item.variantStock || 0) + item.quantity);
+        await ProductRepository.updateVariantStock(env, item.variantId, currentStock + item.quantity);
       } else {
+        // Get current product stock
+        const product = await queryFirst<{ stock: number }>(
+          env,
+          'SELECT stock FROM products WHERE id = ?',
+          item.productId
+        );
+        const currentStock = product?.stock || 0;
         // Restore product stock
-        await ProductRepository.updateProductStock(env, item.productId, (item.productStock || 0) + item.quantity);
+        await ProductRepository.updateProductStock(env, item.productId, currentStock + item.quantity);
       }
     }
 

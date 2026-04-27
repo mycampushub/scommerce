@@ -56,7 +56,8 @@ export async function GET(request: NextRequest) {
 
     // Format products
     const formattedProducts = products.map((product: any) => {
-      const images = product.images ? parseJSON<string[]>(product.images) : []
+      const parsedImages = parseJSON<string[]>(product.images)
+      const images = parsedImages || []
       return {
         id: product.id,
         name: product.name,

@@ -4,29 +4,29 @@ import { createContext, useContext, ReactNode } from 'react';
 import { clientCache } from '@/lib/client-cache';
 
 interface CacheContextType {
-  get: <T>(key: string) => T | null;
-  set: <T>(key: string, value: T, ttl?: number) => void;
-  remove: (key: string) => void;
-  clear: () => void;
+  get: <T>(key: string) => Promise<T | null>;
+  set: <T>(key: string, value: T, ttl?: number) => Promise<void>;
+  remove: (key: string) => Promise<void>;
+  clear: () => Promise<void>;
 }
 
 const CacheContext = createContext<CacheContextType | undefined>(undefined);
 
 export function CacheProvider({ children }: { children: ReactNode }) {
-  const get = <T,>(key: string): T | null => {
+  const get = <T,>(key: string): Promise<T | null> => {
     return clientCache.get<T>(key);
   };
 
-  const set = <T,>(key: string, value: T, ttl?: number): void => {
-    clientCache.set(key, value, ttl);
+  const set = <T,>(key: string, value: T, ttl?: number): Promise<void> => {
+    return clientCache.set(key, value, { ttl });
   };
 
-  const remove = (key: string): void => {
-    clientCache.remove(key);
+  const remove = (key: string): Promise<void> => {
+    return clientCache.delete(key);
   };
 
-  const clear = (): void => {
-    clientCache.clear();
+  const clear = (): Promise<void> => {
+    return clientCache.clear();
   };
 
   return (
