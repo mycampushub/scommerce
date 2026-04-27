@@ -15,6 +15,7 @@ export interface JWTPayload {
   userId: string;
   email: string;
   role?: string;
+  [key: string]: unknown;
 }
 
 export async function hashPassword(password: string): Promise<string> {
@@ -49,7 +50,7 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
   }
 }
 
-export async function decodeToken(token: string): JWTPayload | null {
+export function decodeToken(token: string): JWTPayload | null {
   try {
     // Split token and decode payload (base64url)
     const parts = token.split('.');

@@ -29,25 +29,12 @@ class RedisCache {
 
   private async initRedis() {
     try {
-      // Dynamically import ioredis to avoid dependency issues
-      const Redis = (await import('ioredis')).default
-      this.redisClient = new Redis(this.redisUrl, {
-        password: process.env.REDIS_PASSWORD,
-        retryStrategy: (times: number) => {
-          const delay = Math.min(times * 50, 2000)
-          return delay
-        },
-      })
-
-      this.redisClient.on('error', (error: Error) => {
-        console.error('Redis client error:', error)
-        this.enabled = false
-      })
-
-      console.log('Redis caching initialized')
+      // Cloudflare Pages uses KV, so we disable Redis and use in-memory cache
+      this.enabled = false;
+      console.log("Using in-memory cache instead of Redis");
     } catch (error) {
-      console.warn('Failed to initialize Redis, falling back to memory cache:', error)
-      this.enabled = false
+      console.warn("Failed to initialize Redis, falling back to memory cache:", error);
+      this.enabled = false;
     }
   }
 

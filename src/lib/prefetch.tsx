@@ -5,7 +5,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { fetchWithCache } from './client-cache';
 import { ClientCacheOptions } from './client-cache';
 
@@ -207,7 +207,7 @@ export function PrefetchLink({
   children,
   config = {},
   ...props
-}: React.HTMLAttributes<HTMLAnchorElement> & {
+}: React.AnchorHTMLAttributes<HTMLAnchorElement> & {
   prefetchKey: string;
   fetchFn: () => Promise<unknown>;
   config?: PrefetchConfig;

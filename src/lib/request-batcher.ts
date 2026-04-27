@@ -22,7 +22,7 @@ export interface BatchConfig {
 
 export class RequestBatcher {
   private static instances: Map<string, RequestBatcher> = new Map();
-  private queue: Map<string, BatchRequest<unknown>[]> = new Map();
+  private queue: Map<string, BatchRequest<any>[]> = new Map();
   private timeouts: Map<string, NodeJS.Timeout> = new Map();
   private config: BatchConfig;
 

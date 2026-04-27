@@ -41,7 +41,9 @@ class MemoryCache {
     // Remove oldest entries if at capacity
     if (this.cache.size >= this.maxSize) {
       const oldestKey = this.cache.keys().next().value;
-      this.cache.delete(oldestKey);
+      if (oldestKey !== undefined) {
+        this.cache.delete(oldestKey);
+      }
     }
 
     this.cache.set(key, {
@@ -128,7 +130,7 @@ export class LocalStorageCache {
       .forEach(key => localStorage.removeItem(key));
   }
 
-  private cleanup(): void {
+  public cleanup(): void {
     // Remove expired entries
     Object.keys(localStorage)
       .filter(key => key.startsWith(this.prefix))
@@ -382,7 +384,7 @@ export class ClientCache {
    */
   async cleanup(): Promise<void> {
     await this.indexedDBCache.cleanup();
-    this.localStorageCache.cleanup?.();
+    this.localStorageCache.cleanup();
   }
 }
 

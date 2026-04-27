@@ -86,7 +86,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   if (process.env.DATABASE_URL) {
     try {
       // Dynamic import to avoid build-time errors
-      const { db } = await import('@/db/db')
+      const { db } = await import('@/db/db') as any
 
       // Get all active products
       const products = await db.product.findMany({

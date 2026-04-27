@@ -13,6 +13,7 @@ export interface JWTPayload {
   email: string
   name: string | null
   role: string
+  [key: string]: unknown
 }
 
 /**

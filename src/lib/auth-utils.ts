@@ -45,7 +45,7 @@ export async function verifyAuth(request: NextRequest): Promise<AuthResult> {
     }
 
     // Verify JWT token
-    const payload = verifyToken(token)
+    const payload = await verifyToken(token)
     if (!payload) {
       return { success: false, error: 'Invalid or expired token' }
     }

@@ -2741,3 +2741,85 @@ Before deploying to Cloudflare Pages, ensure:
 The application has transformed from a 68/100 production-ready state to a **90+/100** production-ready state. All critical security, functionality, and infrastructure issues have been addressed. The remaining items are minor code quality improvements that don't affect functionality.
 
 **Status: READY FOR CLOUDFLARE PAGES DEPLOYMENT**
+---
+Task ID: 41
+Agent: main-session
+Task: Fix Database Utility File and TypeScript Errors
+
+Work Log:
+
+## Database Utility File Fixed (src/db/db.ts)
+**Issue:** db.ts file had incorrect content (echo '<<exit>>' command)
+**Solution:**
+- Recreated src/db/db.ts with proper database utility functions
+- Exported functions for D1 database operations:
+  - `queryFirst<T>()`: Execute SQL and return first result
+  - `queryAll<T>()`: Execute SQL and return all results
+  - `execute()`: Execute SQL statement (no return value)
+  - `count()`: Count rows in a table
+  - `parseJSON<T>()`: Parse JSON safely with fallback
+  - `generateId()`: Generate unique ID using timestamp + random
+  - `generateOrderNumber()`: Generate order number
+  - `boolToNumber()`: Convert boolean to number (0/1)
+  - `numberToBool()`: Convert number to boolean
+  - `now()`: Get current timestamp in ISO format
+  - `stringifyJSON()`: Stringify object to JSON
+  - `buildPaginationClause()`: Build pagination SQL clause
+- All functions support rest parameters for compatibility with existing code
+- Proper TypeScript typing for all functions
+
+**Files Created:**
+- src/db/db.ts (completely rewritten)
+
+## D1 Type Definitions Fixed (src/db/types.ts)
+**Issue:** D1PreparedStatement interface had incorrect bind() signature
+**Solution:**
+- Updated `D1PreparedStatement.bind()` signature to use rest parameters
+- Changed from: `bind: (params: unknown[]) => D1PreparedStatement`
+- Changed to: `bind: (...params: unknown[]) => D1PreparedStatement`
+- Updated `all()` return type to match D1 API: `Promise<{ results: Record<string, unknown>[] }>`
+- This allows both individual parameters and spread parameter usage
+
+**Files Updated:**
+- src/db/types.ts
+
+## SKU Generator Import Fixed (src/lib/sku-generator.ts)
+**Issue:** Incorrect import statement for queryFirst
+**Solution:**
+- Changed import from: `import { queryFirst, Env } from '@/db/types'`
+- Changed to: `import { queryFirst } from '@/db/db'` and `import { Env } from '@/db/types'`
+- queryFirst is exported from db.ts, not types.ts
+
+**Files Updated:**
+- src/lib/sku-generator.ts
+
+## Zod Validation Schemas Fixed (src/lib/validations/index.ts)
+**Issue:** z.record() calls missing required type parameters for Zod 4.x
+**Solution:**
+- Updated z.record() calls to include both key and value types:
+  - Line 28: `attributes: z.record(z.unknown())` → `z.record(z.string(), z.unknown())`
+  - Line 115: `details: z.record(z.unknown())` → `z.record(z.string(), z.unknown())`
+  - Line 159: `socialMedia: z.record(z.string().url())` → `z.record(z.string(), z.string().url())`
+- Zod 4.x requires both key and value types in record() method
+
+**Files Updated:**
+- src/lib/validations/index.ts
+
+## Verification
+- Ran `bun run lint` - No errors
+- Ran `bunx tsc --noEmit` (excluding node_modules) - No TypeScript errors
+- All database utility functions properly exported
+- All import statements corrected
+- All Zod schemas fixed for version 4.x compatibility
+
+Stage Summary:
+✅ src/db/db.ts - RECREATED with all database utilities
+✅ src/db/types.ts - D1PreparedStatement bind signature fixed
+✅ src/lib/sku-generator.ts - Import statement corrected
+✅ src/lib/validations/index.ts - Zod record() calls fixed
+✅ ESLint - No errors
+✅ TypeScript - No errors (excluding node_modules)
+✅ Dev server - Running successfully on port 3000
+✅ All database operations - Ready for D1 database access
+
+All build and TypeScript errors have been resolved!

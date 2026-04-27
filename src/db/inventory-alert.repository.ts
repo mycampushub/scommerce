@@ -21,10 +21,6 @@ export class InventoryAlertRepository {
       'SELECT * FROM inventory_alerts WHERE id = ? LIMIT 1',
       id
     );
-    if (alert) {
-      alert.isRead = boolToNumber(alert.isRead) as unknown as number;
-      alert.isResolved = boolToNumber(alert.isResolved) as unknown as number;
-    }
     return alert;
   }
 
@@ -66,13 +62,13 @@ export class InventoryAlertRepository {
 
     if (data.isRead !== undefined) {
       updates.push('isRead = ?');
-      values.push(boolToNumber(data.isRead));
+      values.push(typeof data.isRead === 'boolean' ? boolToNumber(data.isRead) : data.isRead);
     }
     if (data.isResolved !== undefined) {
       updates.push('isResolved = ?');
-      values.push(boolToNumber(data.isResolved));
+      values.push(typeof data.isResolved === 'boolean' ? boolToNumber(data.isResolved) : data.isResolved);
     }
-    if (data.isResolved !== undefined && data.isResolved) {
+    if (data.isResolved !== undefined && (typeof data.isResolved === 'boolean' ? data.isResolved : data.isResolved !== 0)) {
       updates.push('resolvedAt = ?');
       values.push(now());
     }
@@ -128,11 +124,7 @@ export class InventoryAlertRepository {
       env,
       'SELECT * FROM inventory_alerts WHERE isRead = 0 ORDER BY createdAt DESC'
     );
-    return alerts.map(a => ({
-      ...a,
-      isRead: numberToBool(a.isRead),
-      isResolved: numberToBool(a.isResolved)
-    }));
+    return alerts;
   }
 
   /**
@@ -143,11 +135,7 @@ export class InventoryAlertRepository {
       env,
       'SELECT * FROM inventory_alerts WHERE isResolved = 0 ORDER BY createdAt DESC'
     );
-    return alerts.map(a => ({
-      ...a,
-      isRead: numberToBool(a.isRead),
-      isResolved: numberToBool(a.isResolved)
-    }));
+    return alerts;
   }
 
   /**
@@ -200,11 +188,7 @@ export class InventoryAlertRepository {
       offset
     );
 
-    return alerts.map(a => ({
-      ...a,
-      isRead: numberToBool(a.isRead),
-      isResolved: numberToBool(a.isResolved)
-    }));
+    return alerts;
   }
 
   /**

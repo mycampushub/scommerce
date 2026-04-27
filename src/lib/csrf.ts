@@ -79,7 +79,7 @@ export async function validateCSRFToken(
 
   try {
     const tokenData = await env.KV.get(csrfKey, 'text');
-    if (!tokenData) {
+    if (!tokenData || typeof tokenData !== 'string') {
       return false;
     }
 

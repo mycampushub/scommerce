@@ -92,7 +92,7 @@ export class PromotionRepository {
     }
     if (data.isActive !== undefined) {
       updates.push('isActive = ?');
-      values.push(boolToNumber(data.isActive));
+      values.push(typeof data.isActive === 'boolean' ? boolToNumber(data.isActive) : data.isActive);
     }
     if (data.orderNum !== undefined) {
       updates.push('orderNum = ?');

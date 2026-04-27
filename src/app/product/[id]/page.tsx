@@ -73,6 +73,7 @@ interface RelatedProduct {
 function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const isHeaderVisible = useScrollDirection()
+  const { getItemCount } = useCartStore()
 
   return (
     <header className={`bg-white shadow-sm z-40 transition-transform duration-300 ${
@@ -100,7 +101,7 @@ function Navbar() {
             <button className="hidden md:flex items-center gap-2 text-gray-700 hover:text-pink-600 transition-colors relative">
               <ShoppingCart className="w-5 h-5" />
               <span className="absolute -top-1 -right-1 w-5 h-5 bg-pink-600 text-white text-xs rounded-full flex items-center justify-center">
-                {items.reduce((sum, item) => sum + item.quantity, 0)}
+                {getItemCount()}
               </span>
             </button>
             <button 
@@ -199,6 +200,7 @@ function Footer() {
 function MobileBottomNav() {
   const pathname = usePathname()
   const isVisible = useScrollDirection()
+  const { getItemCount } = useCartStore()
 
   return (
     <>
@@ -250,7 +252,7 @@ function MobileBottomNav() {
                   aria-label="View cart"
                 >
                   <ShoppingCart className="w-6 h-6" strokeWidth={2} />
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-pink-600 text-white text-xs rounded-full flex items-center justify-center">{itemCount}</span>
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-pink-600 text-white text-xs rounded-full flex items-center justify-center">{getItemCount()}</span>
                 </button>
               </div>
             </div>
@@ -264,7 +266,7 @@ function MobileBottomNav() {
 export default function ProductPage() {
   const pathname = usePathname()
   const productId = pathname.split('/').pop() || ''
-  const { addItem } = useCartStore()
+  const { addItem, getItemCount } = useCartStore()
   const { addProduct } = useRecentlyViewedStore()
   const { user } = useAuth()
   
@@ -389,10 +391,10 @@ export default function ProductPage() {
   }, [product, addProduct])
 
   // Handle variant selection
-  const handleVariantSelection = (size: string, color: string, material: string) => {
-    setSelectedSize(size)
-    setSelectedColor(color)
-    setSelectedMaterial(material)
+  const handleVariantSelection = (size: string | undefined, color?: string, material?: string) => {
+    setSelectedSize(size || '')
+    setSelectedColor(color || '')
+    setSelectedMaterial(material || '')
 
     // Find matching variant
     const matchingVariant = variants.find(v =>
@@ -680,7 +682,7 @@ export default function ProductPage() {
                         {availableSizes.map((size) => (
                           <button
                             key={size}
-                            onClick={() => handleVariantSelection(size, selectedColor, selectedMaterial)}
+                            onClick={() => handleVariantSelection(size, selectedColor as string, selectedMaterial as string)}
                             className={`w-20 py-3 rounded-lg border-2 font-medium transition-all ${
                               selectedSize === size
                                 ? 'border-pink-600 bg-pink-50 text-pink-600'
@@ -702,7 +704,7 @@ export default function ProductPage() {
                         {availableColors.map((color) => (
                           <button
                             key={color}
-                            onClick={() => handleVariantSelection(selectedSize, color, selectedMaterial)}
+                            onClick={() => handleVariantSelection(selectedSize as string, color, selectedMaterial as string)}
                             className={`px-4 py-2 rounded-lg border-2 transition-all ${
                               selectedColor === color
                                 ? 'border-pink-600 bg-pink-50 text-pink-600'
@@ -724,7 +726,7 @@ export default function ProductPage() {
                         {availableMaterials.map((material) => (
                           <button
                             key={material}
-                            onClick={() => handleVariantSelection(selectedSize, selectedColor, material)}
+                            onClick={() => handleVariantSelection(selectedSize as string, selectedColor as string, material)}
                             className={`px-4 py-2 rounded-lg border-2 transition-all ${
                               selectedMaterial === material
                                 ? 'border-pink-600 bg-pink-50 text-pink-600'

@@ -1,4 +1,4 @@
-import { Env, Product, ProductVariant } from '@/db/types';
+import { Env, Product, ProductVariant, Category } from '@/db/types';
 import {
   generateId,
   boolToNumber,
@@ -21,9 +21,6 @@ export class ProductRepository {
       'SELECT * FROM products WHERE slug = ? AND isActive = 1 LIMIT 1',
       slug
     );
-    if (product && product.images) {
-      product.images = parseJSON<string[]>(product.images) || [];
-    }
     return product;
   }
 
@@ -36,9 +33,6 @@ export class ProductRepository {
       'SELECT * FROM products WHERE id = ? LIMIT 1',
       id
     );
-    if (product && product.images) {
-      product.images = parseJSON<string[]>(product.images) || [];
-    }
     return product;
   }
 
@@ -86,7 +80,7 @@ export class ProductRepository {
       data.lowStockAlert || 10,
       data.reorderLevel || 5,
       data.reorderQty || 20,
-      boolToNumber(data.isActive !== undefined ? true : data.isActive),
+      boolToNumber(data.isActive ?? true),
       boolToNumber(data.isFeatured || false),
       boolToNumber(data.hasVariants || false),
       currentTime,
@@ -147,9 +141,9 @@ export class ProductRepository {
       updates.push('lowStockAlert = ?');
       values.push(data.lowStockAlert);
     }
-    if (data.reorderLevel !== undefined) {
+    if (data.reorderQty !== undefined) {
       updates.push('reorderLevel = ?');
-      values.push(data.reorderLevel);
+      values.push(data.reorderQty);
     }
     if (data.reorderQty !== undefined) {
       updates.push('reorderQty = ?');
@@ -157,15 +151,15 @@ export class ProductRepository {
     }
     if (data.isActive !== undefined) {
       updates.push('isActive = ?');
-      values.push(boolToNumber(data.isActive));
+      values.push(typeof data.isActive === 'boolean' ? boolToNumber(data.isActive) : data.isActive);
     }
     if (data.isFeatured !== undefined) {
       updates.push('isFeatured = ?');
-      values.push(boolToNumber(data.isFeatured));
+      values.push(typeof data.isFeatured === 'boolean' ? boolToNumber(data.isFeatured) : data.isFeatured);
     }
     if (data.hasVariants !== undefined) {
       updates.push('hasVariants = ?');
-      values.push(boolToNumber(data.hasVariants));
+      values.push(typeof data.hasVariants === 'boolean' ? boolToNumber(data.hasVariants) : data.hasVariants);
     }
 
     if (updates.length === 0) return this.findById(env, id);
@@ -201,10 +195,7 @@ export class ProductRepository {
       limit,
       offset
     );
-    return products.map(p => ({
-      ...p,
-      images: p.images ? parseJSON<string[]>(p.images) || [] : []
-    }));
+    return products;
   }
 
   /**
@@ -216,10 +207,7 @@ export class ProductRepository {
       `SELECT * FROM products WHERE isActive = 1 AND isFeatured = 1 ORDER BY createdAt DESC LIMIT ?`,
       limit
     );
-    return products.map(p => ({
-      ...p,
-      images: p.images ? parseJSON<string[]>(p.images) || [] : []
-    }));
+    return products;
   }
 
   /**
@@ -238,10 +226,7 @@ export class ProductRepository {
       limit,
       offset
     );
-    return products.map(p => ({
-      ...p,
-      images: p.images ? parseJSON<string[]>(p.images) || [] : []
-    }));
+    return products;
   }
 
   /**
@@ -256,10 +241,7 @@ export class ProductRepository {
       `%${query}%`,
       limit
     );
-    return products.map(p => ({
-      ...p,
-      images: p.images ? parseJSON<string[]>(p.images) || [] : []
-    }));
+    return products;
   }
 
   /**
@@ -274,10 +256,7 @@ export class ProductRepository {
       env,
       `SELECT * FROM products ORDER BY createdAt DESC ${pagination}`
     );
-    return products.map(p => ({
-      ...p,
-      images: p.images ? parseJSON<string[]>(p.images) || [] : []
-    }));
+    return products;
   }
 
   /**
@@ -301,10 +280,7 @@ export class ProductRepository {
       'SELECT * FROM product_variants WHERE productId = ? AND isActive = 1 ORDER BY createdAt ASC',
       productId
     );
-    return variants.map(v => ({
-      ...v,
-      images: v.images ? parseJSON<string[]>(v.images) || [] : []
-    }));
+    return variants;
   }
 
   /**
@@ -316,9 +292,6 @@ export class ProductRepository {
       'SELECT * FROM product_variants WHERE sku = ? LIMIT 1',
       sku
     );
-    if (variant && variant.images) {
-      variant.images = parseJSON<string[]>(variant.images) || [];
-    }
     return variant;
   }
 
@@ -358,7 +331,7 @@ export class ProductRepository {
       data.size || null,
       data.color || null,
       data.material || null,
-      boolToNumber(data.isActive !== undefined ? true : data.isActive),
+      boolToNumber(data.isActive ?? true),
       boolToNumber(data.isDefault || false),
       currentTime,
       currentTime
@@ -376,9 +349,6 @@ export class ProductRepository {
       'SELECT * FROM product_variants WHERE id = ? LIMIT 1',
       id
     );
-    if (variant && variant.images) {
-      variant.images = parseJSON<string[]>(variant.images) || [];
-    }
     return variant;
   }
 
@@ -427,11 +397,11 @@ export class ProductRepository {
     }
     if (data.isActive !== undefined) {
       updates.push('isActive = ?');
-      values.push(boolToNumber(data.isActive));
+      values.push(typeof data.isActive === 'boolean' ? boolToNumber(data.isActive) : data.isActive);
     }
     if (data.isDefault !== undefined) {
       updates.push('isDefault = ?');
-      values.push(boolToNumber(data.isDefault));
+      values.push(typeof data.isDefault === 'boolean' ? boolToNumber(data.isDefault) : data.isDefault);
     }
 
     if (updates.length === 0) return this.findVariantById(env, id);
