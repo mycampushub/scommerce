@@ -104,7 +104,7 @@ export class UserRepository {
     }
     if (data.emailVerified !== undefined) {
       updates.push('emailVerified = ?');
-      values.push(typeof data.emailVerified === 'boolean' ? boolToNumber(data.emailVerified) : data.emailVerified);
+      values.push(boolToNumber(data.emailVerified));
     }
     if (data.emailToken !== undefined) {
       updates.push('emailToken = ?');

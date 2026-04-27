@@ -2,10 +2,12 @@ import { Env, Story } from '@/db/types';
 import {
   generateId,
   boolToNumber,
+  numberToBool,
   now,
   queryFirst,
   queryAll,
   execute,
+  parseJSON,
   stringifyJSON,
 } from '@/db/db';
 
@@ -19,6 +21,9 @@ export class StoryRepository {
       'SELECT * FROM stories WHERE id = ? LIMIT 1',
       id
     );
+    if (story) {
+      story.images = parseJSON<string[]>(story.images) || [];
+    }
     return story;
   }
 
@@ -73,7 +78,7 @@ export class StoryRepository {
     }
     if (data.isActive !== undefined) {
       updates.push('isActive = ?');
-      values.push(typeof data.isActive === 'boolean' ? boolToNumber(data.isActive) : data.isActive);
+      values.push(boolToNumber(data.isActive));
     }
     if (data.orderNum !== undefined) {
       updates.push('orderNum = ?');
@@ -110,7 +115,11 @@ export class StoryRepository {
       env,
       'SELECT * FROM stories WHERE isActive = 1 ORDER BY orderNum ASC, createdAt DESC'
     );
-    return stories;
+    return stories.map(s => ({
+      ...s,
+      isActive: numberToBool(s.isActive),
+      images: parseJSON<string[]>(s.images) || [],
+    }));
   }
 
   /**
@@ -121,7 +130,11 @@ export class StoryRepository {
       env,
       'SELECT * FROM stories ORDER BY orderNum ASC, createdAt DESC'
     );
-    return stories;
+    return stories.map(s => ({
+      ...s,
+      isActive: numberToBool(s.isActive),
+      images: parseJSON<string[]>(s.images) || [],
+    }));
   }
 
   /**

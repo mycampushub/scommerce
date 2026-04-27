@@ -54,7 +54,7 @@ export class CategoryRepository {
       data.slug,
       data.description || null,
       data.image || null,
-      boolToNumber(typeof data.isActive === "boolean" ? data.isActive : (data.isActive !== undefined)),
+      boolToNumber(data.isActive !== undefined ? true : data.isActive),
       currentTime,
       currentTime
     );
@@ -87,7 +87,7 @@ export class CategoryRepository {
     }
     if (data.isActive !== undefined) {
       updates.push('isActive = ?');
-      values.push(boolToNumber(typeof data.isActive === "boolean" ? data.isActive : (data.isActive !== undefined)));
+      values.push(boolToNumber(data.isActive));
     }
 
     if (updates.length === 0) return this.findById(env, id);

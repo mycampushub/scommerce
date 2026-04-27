@@ -39,14 +39,11 @@ export class CartRepository {
 
     if (existing) {
       // Update quantity
-      const result = await this.updateQuantity(
+      return this.updateQuantity(
         env,
         existing.id,
         existing.quantity + (data.quantity || 1)
       );
-      if (result) {
-        return result;
-      }
     }
 
     // Create new cart item

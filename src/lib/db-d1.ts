@@ -95,17 +95,17 @@ export class D1Client {
    * Execute a raw SQL query and return all results
    */
   async query<T = any>(sql: string, params: any[] = []): Promise<T[]> {
-    const stmt = this.db.prepare(sql).bind(params);
-    const results = await stmt.all();
-    return results as T[];
+    const stmt = this.db.prepare(sql);
+    const results = await stmt.all(...params);
+    return results.results as T[];
   }
 
   /**
    * Execute a query and return the first result
    */
   async first<T = any>(sql: string, params: any[] = []): Promise<T | null> {
-    const stmt = this.db.prepare(sql).bind(params);
-    const result = await stmt.first();
+    const stmt = this.db.prepare(sql);
+    const result = await stmt.first(...params);
     return result as T | null;
   }
 
@@ -113,8 +113,8 @@ export class D1Client {
    * Execute a query and return the run result
    */
   async run(sql: string, params: any[] = []): Promise<D1Result> {
-    const stmt = this.db.prepare(sql).bind(params);
-    return await stmt.run();
+    const stmt = this.db.prepare(sql);
+    return await stmt.run(...params);
   }
 
   /**

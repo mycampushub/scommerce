@@ -31,7 +31,7 @@ export async function verifyAdminAuth(
       )
     }
 
-    const payload = await verifyToken(token)
+    const payload = verifyToken(token)
     if (!payload) {
       return NextResponse.json(
         { success: false, error: 'Invalid or expired token' },

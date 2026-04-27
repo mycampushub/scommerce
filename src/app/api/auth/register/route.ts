@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
   const { email, name, phone, password, confirmPassword, adminSecret } = body;
 
   // Rate limit by IP to prevent spam registration
-  const rateLimitResult = await rateLimit(env, `register:${clientIp}`, {
+  const rateLimitResult = rateLimit(`register:${clientIp}`, {
     maxRequests: 3, // 3 registration attempts
     windowMs: 60 * 60 * 1000, // 1 hour
   });
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     const validation = registerSchema.safeParse({ email, name, password });
     if (!validation.success) {
       return NextResponse.json(
-        { success: false, error: validation.error.issues[0].message },
+        { success: false, error: validation.error.errors[0].message },
         { status: 400 }
       );
     }
@@ -103,12 +103,8 @@ export async function POST(request: NextRequest) {
       phone,
       password: hashedPassword,
       emailVerified: false,
-      role: isAdmin ? 'admin' : 'user',
-    });
-
-    // Update user with email verification token
-    await UserRepository.update(env, user.id, {
       emailToken,
+      role: isAdmin ? 'admin' : 'user',
     });
 
     // Return user data (converting emailVerified from number to boolean for frontend)

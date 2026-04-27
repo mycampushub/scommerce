@@ -170,7 +170,7 @@ export default function CustomersPage() {
       if (result.success) {
         setCustomerOrders(result.data || [])
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error fetching customer orders:', err)
     } finally {
       setLoadingOrders(false)
@@ -278,7 +278,7 @@ export default function CustomersPage() {
           variant: 'destructive',
         })
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error toggling VIP status:', err)
       toast({
         title: 'Error',
@@ -319,7 +319,7 @@ export default function CustomersPage() {
           variant: 'destructive',
         })
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error banning customer:', err)
       toast({
         title: 'Error',
@@ -356,7 +356,7 @@ export default function CustomersPage() {
           variant: 'destructive',
         })
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error unbanning customer:', err)
       toast({
         title: 'Error',
@@ -391,7 +391,7 @@ export default function CustomersPage() {
           variant: 'destructive',
         })
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error deleting customer:', err)
       toast({
         title: 'Error',
@@ -557,6 +557,7 @@ export default function CustomersPage() {
                 placeholder="Search customers..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 className="pl-10"
               />
             </div>

@@ -33,7 +33,7 @@ export async function GET(
     const orderItems = await OrderRepository.getItems(env, id)
 
     // Fetch user if exists
-    let user: any = null
+    let user = null
     if (order.userId) {
       user = await UserRepository.findById(env, order.userId)
     }

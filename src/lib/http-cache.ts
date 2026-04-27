@@ -149,8 +149,8 @@ export function createNotModifiedResponse(lastModified?: Date): NextResponse {
 export function handleConditionalRequest(
   request: NextRequest,
   etag: string,
-  data: string | unknown,
-  lastModified?: Date
+  lastModified?: Date,
+  data: string | unknown
 ): NextResponse | null {
   const ifNoneMatch = request.headers.get('If-None-Match');
   const ifModifiedSince = request.headers.get('If-Modified-Since');

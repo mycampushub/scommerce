@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
 import { UserRepository } from '@/db/user.repository'
-import { queryFirst, boolToNumber } from '@/db/db'
+import { queryFirst } from '@/db/db'
 
 export const runtime = 'edge';
 
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const user = await queryFirst<{ id: string; email: string; newEmail: string; name: string }>(
+    const user = await queryFirst(
       env,
       'SELECT id, email, newEmail, name FROM users WHERE emailToken = ? AND newEmail IS NOT NULL LIMIT 1',
       token
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
 
     await UserRepository.update(env, user.id, {
       email: user.newEmail,
-      emailVerified: boolToNumber(true),
+      emailVerified: true,
       newEmail: null,
       emailToken: null,
     })

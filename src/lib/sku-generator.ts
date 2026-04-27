@@ -3,8 +3,7 @@
  * Generates unique SKUs based on product category, name, and variant attributes
  */
 
-import { queryFirst } from '@/db/db'
-import { Env } from '@/db/types'
+import { queryFirst, Env } from '@/db/db'
 
 /**
  * Generate SKU for a product variant

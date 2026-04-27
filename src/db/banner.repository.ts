@@ -90,7 +90,7 @@ export class BannerRepository {
     }
     if (data.isActive !== undefined) {
       updates.push('isActive = ?');
-      values.push(boolToNumber(data.isActive !== undefined ? true : data.isActive));
+      values.push(boolToNumber(data.isActive));
     }
     if (data.orderNum !== undefined) {
       updates.push('orderNum = ?');
@@ -127,7 +127,10 @@ export class BannerRepository {
       env,
       'SELECT * FROM banners WHERE isActive = 1 ORDER BY orderNum ASC, createdAt DESC'
     );
-    return banners;
+    return banners.map(b => ({
+      ...b,
+      isActive: numberToBool(b.isActive),
+    }));
   }
 
   /**
@@ -140,6 +143,7 @@ export class BannerRepository {
     );
     return banners.map(b => ({
       ...b,
+      isActive: numberToBool(b.isActive),
     }));
   }
 

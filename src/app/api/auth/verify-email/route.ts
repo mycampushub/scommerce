@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
 import { UserRepository } from '@/db/user.repository'
-import { queryFirst, numberToBool, boolToNumber } from '@/db/db'
+import { queryFirst } from '@/db/db'
+import { numberToBool } from '@/db/db'
 
 export const runtime = 'edge';
 
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Find user by email token
-    const user = await queryFirst<{ id: string; emailVerified: number }>(
+    const user = await queryFirst(
       env,
       'SELECT * FROM users WHERE emailToken = ? LIMIT 1',
       token
@@ -43,7 +44,7 @@ export async function GET(request: NextRequest) {
 
     // Update user: mark as verified and clear token
     await UserRepository.update(env, user.id, {
-      emailVerified: boolToNumber(true),
+      emailVerified: true,
       emailToken: null,
     })
 

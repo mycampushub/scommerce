@@ -108,10 +108,7 @@ export default function CheckoutPage() {
   // Check stock status for all cart items
   const checkStockStatus = async () => {
     try {
-      const itemKeys: {[key: string]: {
-        inStock: boolean;
-        availableStock: number;
-      }} = {}
+      const itemKeys: {[key: string]: string} = {}
       
       for (const item of items) {
         const itemKey = `${item.id}-${item.variantId || 'no-variant'}`

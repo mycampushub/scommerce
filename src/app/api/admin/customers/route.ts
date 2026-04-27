@@ -34,21 +34,16 @@ export async function GET(request: NextRequest) {
     const customers = users.filter((user) => user.role !== 'admin')
 
     // Add order counts and convert booleans
-    const customersWithCounts = await Promise.all(
-      customers.map(async (customer) => {
-        const orderCount = await count(env, 'orders', 'WHERE userId = ?', customer.id)
-        return {
-          ...customer,
-          _count: { orders: orderCount },
-          emailVerified: numberToBool(customer.emailVerified as number)
-        }
-      })
-    )
+    for (const customer of customers) {
+      const orderCount = await count(env, 'orders', 'WHERE userId = ?', customer.id)
+      customer._count = { orders: orderCount }
+      customer.emailVerified = numberToBool(customer.emailVerified)
+    }
 
     return NextResponse.json({
       success: true,
-      data: customersWithCounts,
-      total: customersWithCounts.length,
+      data: customers,
+      total: customers.length,
     })
   } catch (error) {
     console.error('Error fetching customers:', error)
@@ -70,13 +65,14 @@ export async function POST(request: NextRequest) {
     const customer = await UserRepository.create(env, {
       email: body.email,
       name: body.name,
-      password: 'tempPassword123', // TODO: Send password reset email to customer
       role: 'user' as any,
     })
 
+    customer.emailVerified = numberToBool(customer.emailVerified)
+
     return NextResponse.json({
       success: true,
-      data: { ...customer, emailVerified: numberToBool(customer.emailVerified as number) },
+      data: customer,
     })
   } catch (error) {
     console.error('Error creating customer:', error)

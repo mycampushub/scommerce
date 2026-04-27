@@ -10,8 +10,8 @@ export interface RecentlyViewedProduct {
   image: string
   rating?: number
   reviews?: number
-  categoryId?: string | null
-  category?: string | null
+  categoryId?: string
+  category?: string
   viewedAt: number
 }
 

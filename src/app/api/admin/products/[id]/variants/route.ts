@@ -50,7 +50,7 @@ export async function GET(
     }
 
     // Fetch category for response
-    let category: any = null
+    let category = null
     if (product.categoryId) {
       category = await CategoryRepository.findById(env, product.categoryId)
     }
@@ -135,7 +135,7 @@ export async function POST(
     }
 
     // Fetch category for SKU generation
-    let category: any = null
+    let category = null
     if (product.categoryId) {
       category = await CategoryRepository.findById(env, product.categoryId)
     }
@@ -189,11 +189,14 @@ export async function POST(
       material: validatedData.material,
       isActive: validatedData.isActive,
       isDefault: validatedData.isDefault,
+      lowStockAlert: validatedData.lowStockAlert,
+      reorderLevel: validatedData.reorderLevel,
+      reorderQty: validatedData.reorderQty,
     })
 
     // Update product to indicate it has variants
     if (!product.hasVariants) {
-      await ProductRepository.update(env, id, { hasVariants: boolToNumber(true) })
+      await ProductRepository.update(env, id, { hasVariants: true })
     }
 
     return NextResponse.json({
@@ -222,7 +225,7 @@ export async function POST(
         {
           success: false,
           error: 'Validation error',
-          details: error.issues,
+          details: error.errors,
         },
         { status: 400 }
       )

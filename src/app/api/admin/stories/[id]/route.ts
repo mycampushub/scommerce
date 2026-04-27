@@ -52,7 +52,7 @@ export async function PUT(
     const story = await StoryRepository.update(env, id, {
       ...(title !== undefined && { title }),
       ...(thumbnail !== undefined && { thumbnail }),
-      ...(images !== undefined && { images: Array.isArray(images) ? JSON.stringify(images) : '[]' }),
+      ...(images !== undefined && { images: Array.isArray(images) ? images : [] }),
       ...(isActive !== undefined && { isActive }),
       ...(order !== undefined && { orderNum: order })
     })

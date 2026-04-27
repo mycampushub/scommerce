@@ -1,93 +1,36 @@
 import { Env } from './types';
 
 /**
- * Execute a SQL query and return the first result
- */
-export async function queryFirst<T = Record<string, unknown>>(
-  env: Env,
-  sql: string,
-  ...params: unknown[]
-): Promise<T | null> {
-  const stmt = env.DB.prepare(sql);
-  const result = await stmt.bind(...params).first() as T | null;
-
-  return result;
-}
-
-/**
- * Execute a SQL query and return all results
- */
-export async function queryAll<T = Record<string, unknown>>(
-  env: Env,
-  sql: string,
-  ...params: unknown[]
-): Promise<T[]> {
-  const stmt = env.DB.prepare(sql);
-  const result = await stmt.bind(...params).all() as { results: T[] };
-
-  return result?.results || [];
-}
-
-/**
- * Execute a SQL statement (no return value)
- */
-export async function execute(
-  env: Env,
-  sql: string,
-  ...params: unknown[]
-): Promise<void> {
-  const stmt = env.DB.prepare(sql);
-  await stmt.bind(...params).run();
-}
-
-/**
- * Count rows in a table
- */
-export async function count(env: Env, sql: string, ...params: unknown[]): Promise<number> {
-  const result = await queryFirst<{ count: number }>(env, sql, ...params);
-  return result?.count || 0;
-}
-
-/**
- * Parse JSON safely
- */
-export function parseJSON<T = unknown>(value: string | null | undefined, fallback?: T): T | null {
-  if (!value) return fallback ?? null;
-  try {
-    return JSON.parse(value) as T;
-  } catch {
-    return fallback ?? null;
-  }
-}
-
-/**
- * Generate a unique ID using timestamp and random string
+ * Generate a unique ID (replaces Prisma's @default(cuid()))
  */
 export function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 }
 
 /**
- * Generate an order number
+ * Generate a unique order number
  */
 export function generateOrderNumber(): string {
-  const timestamp = Date.now();
-  const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-  return `ORD-${timestamp}-${random}`;
+  const date = new Date();
+  const year = date.getFullYear().toString().slice(-2);
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return `SC${year}${month}${day}${random}`;
 }
 
 /**
- * Convert boolean to number (0 or 1)
+ * Convert SQLite integer boolean to JavaScript boolean
  */
-export function boolToNumber(value: boolean | number): number {
-  return typeof value === 'boolean' ? (value ? 1 : 0) : (value ? 1 : 0);
+export function boolToNumber(bool: boolean): number {
+  return bool ? 1 : 0;
 }
 
 /**
- * Convert number to boolean
+ * Convert SQLite integer to JavaScript boolean
  */
-export function numberToBool(value: number | null | undefined): boolean {
-  return value === 1;
+export function numberToBool(num: number | undefined | null): boolean {
+  return num === 1 ? true : false;
 }
 
 /**
@@ -98,16 +41,98 @@ export function now(): string {
 }
 
 /**
- * Stringify an object to JSON
+ * Parse JSON string safely
  */
-export function stringifyJSON(value: unknown): string {
-  return typeof value === 'string' ? value : JSON.stringify(value);
+export function parseJSON<T = unknown>(json: string | null | undefined): T | null {
+  if (!json) return null;
+  try {
+    return JSON.parse(json) as T;
+  } catch {
+    return null;
+  }
 }
 
 /**
- * Build pagination clause for SQL queries
+ * Serialize object to JSON string
  */
-export function buildPaginationClause(options: { limit?: number; offset?: number } = {}): string {
-  const { limit = 20, offset = 0 } = options;
+export function stringifyJSON(obj: unknown): string {
+  return JSON.stringify(obj);
+}
+
+/**
+ * Pagination helper
+ */
+export interface PaginationOptions {
+  limit?: number;
+  offset?: number;
+}
+
+export function buildPaginationClause(options: PaginationOptions = {}): string {
+  const { limit = 10, offset = 0 } = options;
   return `LIMIT ${limit} OFFSET ${offset}`;
+}
+
+/**
+ * Helper to execute a query and get the first result
+ */
+export async function queryFirst<T = Record<string, unknown>>(
+  env: Env,
+  sql: string,
+  ...params: unknown[]
+): Promise<T | null> {
+  const stmt = env.DB.prepare(sql);
+  const result = stmt.bind(...params).first();
+  return (result as T) || null;
+}
+
+/**
+ * Helper to execute a query and get all results
+ */
+export async function queryAll<T = Record<string, unknown>>(
+  env: Env,
+  sql: string,
+  ...params: unknown[]
+): Promise<T[]> {
+  const stmt = env.DB.prepare(sql);
+  const results = stmt.bind(...params).all();
+  return (results as T[]) || [];
+}
+
+/**
+ * Helper to execute a statement and return success status
+ */
+export async function execute(
+  env: Env,
+  sql: string,
+  ...params: unknown[]
+): Promise<{ success: boolean; meta?: any }> {
+  const stmt = env.DB.prepare(sql);
+  const result = stmt.bind(...params).run();
+  return { success: result.success, meta: result.meta };
+}
+
+/**
+ * Helper to batch execute multiple statements
+ */
+export async function batchExecute(
+  env: Env,
+  statements: Array<{ sql: string; params: unknown[] }>
+): Promise<Array<{ success: boolean; meta?: any }>> {
+  const preparedStatements = statements.map(s => env.DB.prepare(s.sql).bind(...s.params));
+  const results = env.DB.batch(preparedStatements);
+  return results as Array<{ success: boolean; meta?: any }>;
+}
+
+/**
+ * Helper for counting records
+ */
+export async function count(
+  env: Env,
+  table: string,
+  whereClause: string = '',
+  ...params: unknown[]
+): Promise<number> {
+  const sql = `SELECT COUNT(*) as count FROM ${table} ${whereClause}`;
+  const result = await queryFirst<{ count: number }>(env, sql, ...params);
+  return result?.count || 0;
 }

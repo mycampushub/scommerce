@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
 import { OrderRepository } from '@/db/order.repository'
-import { UserRepository } from '@/db/user.repository'
 import { queryAll, execute, parseJSON, generateId, generateOrderNumber, now } from '@/db/db'
 
 export const runtime = 'edge';

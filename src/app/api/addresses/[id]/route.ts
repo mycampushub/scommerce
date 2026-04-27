@@ -27,7 +27,7 @@ export async function PUT(
       )
     }
 
-    const payload = await verifyToken(token)
+    const payload = verifyToken(token)
     if (!payload) {
       return NextResponse.json(
         { success: false, error: 'Invalid or expired token' },
@@ -53,7 +53,7 @@ export async function PUT(
     const body = await request.json()
 
     // If this is set as default, unset any existing default address
-    if (body.isDefault && !numberToBool(existingAddress.isDefault as number)) {
+    if (body.isDefault && !numberToBool(existingAddress.isDefault)) {
       await execute(
         env,
         'UPDATE addresses SET isDefault = 0 WHERE userId = ? AND isDefault = 1 AND id != ?',
@@ -107,7 +107,7 @@ export async function PUT(
       // No changes, return existing address
       return NextResponse.json({
         success: true,
-        data: { ...existingAddress, isDefault: numberToBool(existingAddress.isDefault as number) },
+        data: { ...existingAddress, isDefault: numberToBool(existingAddress.isDefault) },
       })
     }
 
@@ -129,7 +129,7 @@ export async function PUT(
 
     return NextResponse.json({
       success: true,
-      data: address ? { ...address, isDefault: numberToBool(address.isDefault as number) } : null,
+      data: address ? { ...address, isDefault: numberToBool(address.isDefault) } : null,
     })
   } catch (error) {
     console.error('Error updating address:', error)
@@ -162,7 +162,7 @@ export async function DELETE(
       )
     }
 
-    const payload = await verifyToken(token)
+    const payload = verifyToken(token)
     if (!payload) {
       return NextResponse.json(
         { success: false, error: 'Invalid or expired token' },
@@ -186,7 +186,7 @@ export async function DELETE(
     }
 
     // If deleting default address, make another one default if available
-    if (numberToBool(existingAddress.isDefault as number)) {
+    if (numberToBool(existingAddress.isDefault)) {
       const otherAddresses = await queryAll(
         env,
         'SELECT * FROM addresses WHERE userId = ? AND id != ? LIMIT 1',

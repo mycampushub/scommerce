@@ -7,7 +7,7 @@ export const runtime = 'edge';
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const { id } = await params
@@ -34,19 +34,19 @@ export async function PUT(
 
     // Update alert
     const updates: string[] = []
-    const values: any[] = []
+    const params: any[] = []
 
     if (body.isRead !== undefined) {
       updates.push('isRead = ?')
-      values.push(boolToNumber(body.isRead))
+      params.push(boolToNumber(body.isRead))
     }
 
     if (body.isResolved !== undefined) {
       updates.push('isResolved = ?')
-      values.push(boolToNumber(body.isResolved))
+      params.push(boolToNumber(body.isResolved))
       if (body.isResolved === true) {
         updates.push('resolvedAt = ?')
-        values.push(now())
+        params.push(now())
       } else {
         updates.push('resolvedAt = NULL')
       }
@@ -54,13 +54,13 @@ export async function PUT(
 
     if (updates.length > 0) {
       updates.push('updatedAt = ?')
-      values.push(now())
-      values.push(alertId)
+      params.push(now())
+      params.push(alertId)
 
       await execute(
         env,
         `UPDATE inventory_alerts SET ${updates.join(', ')} WHERE id = ?`,
-        ...values
+        ...params
       )
     }
 
@@ -72,15 +72,13 @@ export async function PUT(
 
     // Enrich with product data
     const product = await ProductRepository.findById(env, alert.productId)
+    ;(alert as any).product = product
+    alert.isRead = numberToBool(alert.isRead)
+    alert.isResolved = numberToBool(alert.isResolved)
 
     return NextResponse.json({
       success: true,
-      data: {
-        ...alert,
-        product,
-        isRead: numberToBool(alert.isRead as number),
-        isResolved: numberToBool(alert.isResolved as number),
-      },
+      data: alert,
       message: 'Alert updated successfully',
     })
   } catch (error) {
@@ -97,7 +95,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const { id } = await params

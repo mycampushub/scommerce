@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const payload = await verifyToken(token)
+    const payload = verifyToken(token)
     if (!payload) {
       return NextResponse.json(
         { success: false, error: 'Invalid or expired token' },
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const payload = await verifyToken(token)
+    const payload = verifyToken(token)
     if (!payload) {
       return NextResponse.json(
         { success: false, error: 'Invalid or expired token' },
@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: address ? { ...address, isDefault: numberToBool(address.isDefault as number) } : null,
+      data: address ? { ...address, isDefault: numberToBool(address.isDefault) } : null,
     })
   } catch (error) {
     console.error('Error creating address:', error)

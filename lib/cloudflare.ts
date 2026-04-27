@@ -1,4 +1,4 @@
-import { Env } from '../src/db/types';
+import { Env } from '../db/types';
 
 /**
  * Get the D1 database from the request context

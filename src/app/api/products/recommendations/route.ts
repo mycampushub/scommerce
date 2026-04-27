@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
 
     // Strategy 2: Price-based recommendations (similar price range)
     if (type === 'popular' || type === 'mixed') {
-      const priceRange = (currentProduct?.price as number || 0) || (currentProduct?.basePrice as number || 0)
+      const priceRange = currentProduct?.price || currentProduct?.basePrice || 0
       const minPrice = priceRange * 0.5
       const maxPrice = priceRange * 1.5
 
@@ -137,7 +137,7 @@ export async function GET(request: NextRequest) {
 
       // Price similarity bonus
       const productPrice = product.basePrice || product.price
-      const currentPrice = (currentProduct?.price as number || 0) || (currentProduct?.basePrice as number || 0)
+      const currentPrice = currentProduct?.price || currentProduct?.basePrice || 0
       const priceDiff = Math.abs(productPrice - currentPrice)
       const priceRatio = currentPrice > 0 ? priceDiff / currentPrice : 1
       if (priceRatio < 0.3) {
@@ -158,8 +158,7 @@ export async function GET(request: NextRequest) {
 
     // Format product data
     const formattedProducts = finalProducts.map((product: any) => {
-      const parsedImages = parseJSON<string[]>(product.images)
-      const images = parsedImages || []
+      const images = product.images ? parseJSON<string[]>(product.images) : []
       return {
         id: product.id,
         name: product.name,

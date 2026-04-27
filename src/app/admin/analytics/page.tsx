@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -115,7 +114,10 @@ export default function AnalyticsPage() {
       a.click()
       URL.revokeObjectURL(url)
 
-      toast.success('Analytics exported to CSV')
+      toast({
+        title: 'Success',
+        description: 'Analytics exported to CSV',
+      })
       return
     }
 

@@ -16,7 +16,7 @@ export interface HomepageSettingsData {
   isEnabled?: boolean;
   autoPlay?: number;
   displayLimit?: number | null;
-  settings?: Record<string, unknown> | string | null;
+  settings?: Record<string, unknown> | null;
 }
 
 export class HomepageSettingsRepository {
@@ -29,16 +29,10 @@ export class HomepageSettingsRepository {
       'SELECT * FROM homepage_settings WHERE sectionName = ? LIMIT 1',
       sectionName
     );
-    
-    if (setting) {
-      if (setting.settings) {
-        const parsed = parseJSON<Record<string, unknown>>(setting.settings);
-        setting.settings = typeof parsed === 'object' ? JSON.stringify(parsed) : setting.settings;
-      }
-      return setting;
+    if (setting && setting.settings) {
+      setting.settings = parseJSON<Record<string, unknown>>(setting.settings);
     }
-    
-    return null;
+    return setting;
   }
 
   /**
@@ -50,16 +44,10 @@ export class HomepageSettingsRepository {
       'SELECT * FROM homepage_settings WHERE id = ? LIMIT 1',
       id
     );
-    
-    if (setting) {
-      if (setting.settings) {
-        const parsed = parseJSON<Record<string, unknown>>(setting.settings);
-        setting.settings = typeof parsed === 'object' ? JSON.stringify(parsed) : setting.settings;
-      }
-      return setting;
+    if (setting && setting.settings) {
+      setting.settings = parseJSON<Record<string, unknown>>(setting.settings);
     }
-    
-    return null;
+    return setting;
   }
 
   /**
@@ -76,7 +64,7 @@ export class HomepageSettingsRepository {
 
       if (data.isEnabled !== undefined) {
         updates.push('isEnabled = ?');
-        values.push((data.isEnabled as any));
+        values.push(boolToNumber(data.isEnabled));
       }
       if (data.autoPlay !== undefined) {
         updates.push('autoPlay = ?');
@@ -114,7 +102,7 @@ export class HomepageSettingsRepository {
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         id,
         data.sectionName,
-        ((data.isEnabled !== undefined ? data.isEnabled : true) as any),
+        boolToNumber(data.isEnabled !== undefined ? data.isEnabled : true),
         data.autoPlay ?? 5000,
         data.displayLimit ?? null,
         data.settings ? stringifyJSON(data.settings) : null,
@@ -134,7 +122,7 @@ export class HomepageSettingsRepository {
 
     if (data.isEnabled !== undefined) {
       updates.push('isEnabled = ?');
-      values.push((data.isEnabled as any));
+      values.push(boolToNumber(data.isEnabled));
     }
     if (data.autoPlay !== undefined) {
       updates.push('autoPlay = ?');
@@ -179,13 +167,10 @@ export class HomepageSettingsRepository {
       env,
       'SELECT * FROM homepage_settings ORDER BY sectionName ASC'
     );
-    return settings.map((s) => {
-      if (s.settings) {
-        const parsed = parseJSON<Record<string, unknown>>(s.settings);
-        s.settings = typeof parsed === 'object' ? JSON.stringify(parsed) : s.settings;
-      }
-      return s;
-    });
+    return settings.map(s => ({
+      ...s,
+      settings: s.settings ? parseJSON<Record<string, unknown>>(s.settings) : null
+    }));
   }
 
   /**
@@ -196,13 +181,10 @@ export class HomepageSettingsRepository {
       env,
       'SELECT * FROM homepage_settings WHERE isEnabled = 1 ORDER BY sectionName ASC'
     );
-    return settings.map((s) => {
-      if (s.settings) {
-        const parsed = parseJSON<Record<string, unknown>>(s.settings);
-        s.settings = typeof parsed === 'object' ? JSON.stringify(parsed) : s.settings;
-      }
-      return s;
-    });
+    return settings.map(s => ({
+      ...s,
+      settings: s.settings ? parseJSON<Record<string, unknown>>(s.settings) : null
+    }));
   }
 
   /**

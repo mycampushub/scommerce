@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://yourdomain.com'
 
-export const runtime = 'nodejs';
+export const runtime = 'edge';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Static pages with their priorities and change frequencies
@@ -86,7 +86,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   if (process.env.DATABASE_URL) {
     try {
       // Dynamic import to avoid build-time errors
-      const { db } = await import('@/db/db') as any
+      const { db } = await import('@/lib/db')
 
       // Get all active products
       const products = await db.product.findMany({

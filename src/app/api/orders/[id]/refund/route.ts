@@ -3,7 +3,6 @@ import { getEnv } from '@/lib/cloudflare';
 import { OrderRepository } from '@/db/order.repository';
 import { ProductRepository } from '@/db/product.repository';
 import { z } from 'zod';
-import { queryFirst } from '@/db/db';
 
 export const runtime = 'edge';
 
@@ -39,7 +38,7 @@ export async function POST(
       return NextResponse.json(
         {
           success: false,
-          error: validation.error.issues[0].message,
+          error: validation.error.errors[0].message,
         },
         { status: 400 }
       );
@@ -150,38 +149,17 @@ export async function POST(
       const orderItems = await OrderRepository.getItems(env, params.id);
       for (const item of orderItems) {
         if (item.variantId) {
-          // Get current variant stock
-          const variant = await queryFirst<{ stock: number }>(
-            env,
-            'SELECT stock FROM product_variants WHERE id = ?',
-            item.variantId
-          );
-          const currentStock = variant?.stock || 0;
           // Restore variant stock
-          await ProductRepository.updateVariantStock(env, item.variantId, currentStock + item.quantity);
+          await ProductRepository.updateVariantStock(env, item.variantId, (item.variantStock || 0) + item.quantity);
         } else {
-          // Get current product stock
-          const product = await queryFirst<{ stock: number }>(
-            env,
-            'SELECT stock FROM products WHERE id = ?',
-            item.productId
-          );
-          const currentStock = product?.stock || 0;
           // Restore product stock
-          await ProductRepository.updateProductStock(env, item.productId, currentStock + item.quantity);
+          await ProductRepository.updateProductStock(env, item.productId, (item.productStock || 0) + item.quantity);
         }
       }
     }
 
     // Process refund
     const updatedOrder = await OrderRepository.refund(env, params.id, amount, refundMethod, reason);
-
-    if (!updatedOrder) {
-      return NextResponse.json({
-        success: false,
-        error: 'Failed to process refund',
-      }, { status: 500 });
-    }
 
     // TODO: Send notification email to customer about refund
     // await sendRefundConfirmationEmail(updatedOrder);

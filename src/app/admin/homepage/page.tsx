@@ -517,7 +517,7 @@ export default function HomepageManagementPage() {
     newItems[newIndex].order = temp
     newItems.sort((a, b) => a.order - b.order)
 
-    setItems(newItems as any)
+    setItems(newItems)
 
     try {
       await fetch(apiPath, {
@@ -590,15 +590,17 @@ export default function HomepageManagementPage() {
                   <div>
                     <Label>Desktop Image</Label>
                     <ImageUpload
-                      images={bannerForm.image ? [bannerForm.image] : []}
-                      onImagesChange={(urls) => setBannerForm({ ...bannerForm, image: urls[0] || '' })}
+                      value={bannerForm.image}
+                      onChange={(url) => setBannerForm({ ...bannerForm, image: url })}
+                      aspectRatio="landscape"
                     />
                   </div>
                   <div>
                     <Label>Mobile Image (Optional)</Label>
                     <ImageUpload
-                      images={bannerForm.mobileImage ? [bannerForm.mobileImage] : []}
-                      onImagesChange={(urls) => setBannerForm({ ...bannerForm, mobileImage: urls[0] || '' })}
+                      value={bannerForm.mobileImage}
+                      onChange={(url) => setBannerForm({ ...bannerForm, mobileImage: url })}
+                      aspectRatio="portrait"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
@@ -739,15 +741,18 @@ export default function HomepageManagementPage() {
                   <div>
                     <Label>Thumbnail</Label>
                     <ImageUpload
-                      images={storyForm.thumbnail ? [storyForm.thumbnail] : []}
-                      onImagesChange={(urls) => setStoryForm({ ...storyForm, thumbnail: urls[0] || '' })}
+                      value={storyForm.thumbnail}
+                      onChange={(url) => setStoryForm({ ...storyForm, thumbnail: url })}
+                      aspectRatio="square"
                     />
                   </div>
                   <div>
                     <Label>Images (Multiple)</Label>
                     <ImageUpload
-                      images={storyForm.images}
-                      onImagesChange={(urls) => setStoryForm({ ...storyForm, images: urls })}
+                      value={storyForm.images[0] || ''}
+                      onChange={(url) => setStoryForm({ ...storyForm, images: [url, ...storyForm.images.slice(1)] })}
+                      aspectRatio="portrait"
+                      multiple
                     />
                     {storyForm.images.length > 0 && (
                       <div className="mt-2 flex gap-2 flex-wrap">
@@ -813,6 +818,7 @@ export default function HomepageManagementPage() {
                       <Switch
                         checked={story.isActive}
                         onCheckedChange={() => handleToggleStoryActive(story)}
+                        size="sm"
                       />
                       <Button
                         variant="ghost"
@@ -879,8 +885,9 @@ export default function HomepageManagementPage() {
                   <div>
                     <Label>Thumbnail</Label>
                     <ImageUpload
-                      images={reelForm.thumbnail ? [reelForm.thumbnail] : []}
-                      onImagesChange={(urls) => setReelForm({ ...reelForm, thumbnail: urls[0] || '' })}
+                      value={reelForm.thumbnail}
+                      onChange={(url) => setReelForm({ ...reelForm, thumbnail: url })}
+                      aspectRatio="portrait"
                     />
                   </div>
                   <div>
@@ -959,6 +966,7 @@ export default function HomepageManagementPage() {
                       <Switch
                         checked={reel.isActive}
                         onCheckedChange={() => handleToggleReelActive(reel)}
+                        size="sm"
                       />
                       <Button
                         variant="ghost"
@@ -1035,8 +1043,9 @@ export default function HomepageManagementPage() {
                   <div>
                     <Label>Image</Label>
                     <ImageUpload
-                      images={promotionForm.image ? [promotionForm.image] : []}
-                      onImagesChange={(urls) => setPromotionForm({ ...promotionForm, image: urls[0] || '' })}
+                      value={promotionForm.image}
+                      onChange={(url) => setPromotionForm({ ...promotionForm, image: url })}
+                      aspectRatio="landscape"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">

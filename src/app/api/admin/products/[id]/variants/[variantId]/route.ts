@@ -116,7 +116,7 @@ export async function PUT(
     }
 
     // Fetch category for SKU generation
-    let category: any = null
+    let category = null
     if (existingVariant.categoryId) {
       category = await CategoryRepository.findById(env, existingVariant.categoryId)
     }
@@ -172,23 +172,16 @@ export async function PUT(
       price: validatedData.price,
       comparePrice: validatedData.comparePrice,
       stock: validatedData.stock,
-      images: validatedData.images ? JSON.stringify(validatedData.images) : undefined,
+      images: validatedData.images,
       size: validatedData.size,
       color: validatedData.color,
       material: validatedData.material,
-      isActive: validatedData.isActive !== undefined ? boolToNumber(validatedData.isActive) : undefined,
-      isDefault: validatedData.isDefault !== undefined ? boolToNumber(validatedData.isDefault) : undefined,
+      isActive: validatedData.isActive,
+      isDefault: validatedData.isDefault,
       lowStockAlert: validatedData.lowStockAlert,
       reorderLevel: validatedData.reorderLevel,
       reorderQty: validatedData.reorderQty,
     })
-
-    if (!variant) {
-      return NextResponse.json(
-        { success: false, error: 'Failed to update variant' },
-        { status: 500 }
-      )
-    }
 
     return NextResponse.json({
       success: true,
@@ -219,7 +212,7 @@ export async function PUT(
         {
           success: false,
           error: 'Validation error',
-          details: error.issues,
+          details: error.errors,
         },
         { status: 400 }
       )
@@ -294,7 +287,7 @@ export async function DELETE(
     )
 
     if (remainingVariants === 0) {
-      await ProductRepository.update(env, id, { hasVariants: boolToNumber(false) })
+      await ProductRepository.update(env, id, { hasVariants: false })
     }
 
     return NextResponse.json({

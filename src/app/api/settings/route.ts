@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { verifyToken } = await import('@/lib/jwt');
-    const payload = await verifyToken(token);
+    const payload = verifyToken(token);
 
     if (!payload || payload.role !== 'admin') {
       return NextResponse.json(

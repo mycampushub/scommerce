@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/auth';
+import { verifyToken } from '@/lib/jwt';
 
 // Edge Runtime export for Cloudflare
 export const runtime = 'edge';
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Verify JWT token directly
-    const sessionData = await verifyToken(sessionToken);
+    const sessionData = verifyToken(sessionToken);
 
     return NextResponse.json({
       success: true,

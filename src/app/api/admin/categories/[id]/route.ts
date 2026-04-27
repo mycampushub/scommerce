@@ -73,9 +73,11 @@ export async function PUT(
       )
     }
 
+    category.isActive = numberToBool(category.isActive)
+
     return NextResponse.json({
       success: true,
-      data: { ...category, isActive: numberToBool(category.isActive as number) },
+      data: category,
     })
   } catch (error) {
     console.error('Error updating category:', error)

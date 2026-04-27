@@ -22,7 +22,7 @@ export interface Product {
   rating: number
   reviews: number
   badge?: string
-  category?: string
+  category: string
   description?: string
   sizes?: string[]
   colors?: string[]
@@ -157,9 +157,7 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
           {/* Product Details */}
           <div className="flex flex-col">
             <div className="mb-4">
-              {product.category && (
-                <span className="text-sm text-gray-500">{product.category}</span>
-              )}
+              <span className="text-sm text-gray-500">{product.category}</span>
               <h2 className="text-xl font-bold text-gray-900 mt-1">{product.name}</h2>
             </div>
 

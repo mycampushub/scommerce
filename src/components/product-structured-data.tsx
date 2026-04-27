@@ -76,7 +76,7 @@ export function ProductStructuredData({ product, siteUrl = 'https://yourdomain.c
           ? 'https://schema.org/InStock'
           : 'https://schema.org/OutOfStock',
       },
-    } as any
+    }
   }
 
   return (

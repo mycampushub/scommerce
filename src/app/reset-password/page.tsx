@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import { Link } from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -11,7 +11,7 @@ import { Loader2, ArrowLeft, Lock, Eye, EyeOff, CheckCircle2, AlertCircle } from
 import { useToast } from '@/hooks/use-toast'
 import ResetPasswordTokenHandler from '@/components/reset-password-token-handler'
 
-function ResetPasswordContent() {
+function ResetPasswordContent({ onToken }: { onToken: (token: string) => void }) {
   const router = useRouter()
   const { toast } = useToast()
   const [token, setToken] = useState('')
@@ -289,9 +289,15 @@ export default function ResetPasswordPage() {
       </div>
     }>
       <ResetPasswordTokenHandler onToken={(token) => {
-        (window as any).__RESET_PASSWORD_TOKEN__ = token
+        window.__RESET_PASSWORD_TOKEN__ = token
       }} />
-      <ResetPasswordContent />
+      <ResetPasswordContent onToken={(token) => {
+        const savedToken = typeof window !== 'undefined' ? window.__RESET_PASSWORD_TOKEN__ : null
+        if (savedToken) {
+          onToken(savedToken)
+          delete window.__RESET_PASSWORD_TOKEN__
+        }
+      }} />
     </Suspense>
   )
 }

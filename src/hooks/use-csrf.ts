@@ -116,7 +116,7 @@ export async function fetchWithCSRF(
         if (tokenResponse.ok) {
           const data = await tokenResponse.json();
           csrfToken = data.token;
-          if (typeof window !== 'undefined' && csrfToken) {
+          if (typeof window !== 'undefined') {
             localStorage.setItem('csrf_token', csrfToken);
           }
         }

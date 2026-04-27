@@ -1,9 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Cloudflare Pages compatibility - next-on-pages handles the build
   reactStrictMode: true,
+  
+  // Image optimization - required for Cloudflare Pages
   images: {
-    // For static export compatibility
     unoptimized: true,
   },
 };

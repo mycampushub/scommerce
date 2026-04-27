@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { createToken } from '@/lib/auth';
+import { createToken } from '@/lib/jwt';
 import { rateLimit, createRateLimitResponse, getClientIp } from '@/lib/rate-limit';
 import { loginSchema } from '@/lib/validations';
 import { UserRepository } from '@/db/user.repository';
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
 
   // Rate limit by IP + email combination for better protection
   const rateLimitKey = `login:${clientIp}:${email || 'unknown'}`;
-  const rateLimitResult = await rateLimit(env, rateLimitKey, {
+  const rateLimitResult = rateLimit(rateLimitKey, {
     maxRequests: 5, // 5 attempts
     windowMs: 15 * 60 * 1000, // 15 minutes
   });
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: validation.error.issues[0].message,
+          error: validation.error.errors[0].message,
         },
         { status: 400 }
       );

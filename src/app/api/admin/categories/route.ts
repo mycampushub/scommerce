@@ -22,13 +22,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Add product counts
-    const categoriesWithCounts: any[] = []
+    const categoriesWithCounts = []
     for (const category of categories) {
       const productCount = await count(env, 'products', 'WHERE categoryId = ?', category.id)
       categoriesWithCounts.push({
         ...category,
         _count: { products: productCount },
-        isActive: numberToBool(category.isActive as number)
+        isActive: numberToBool(category.isActive)
       })
     }
 
@@ -62,9 +62,11 @@ export async function POST(request: NextRequest) {
       isActive: body.isActive ?? true,
     })
 
+    category.isActive = numberToBool(category.isActive)
+
     return NextResponse.json({
       success: true,
-      data: { ...category, isActive: numberToBool(category.isActive as number) },
+      data: category,
     })
   } catch (error) {
     console.error('Error creating category:', error)

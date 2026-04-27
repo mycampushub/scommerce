@@ -3,33 +3,43 @@
  * Protects against XSS attacks by sanitizing user input
  */
 
+import * as DOMPurify from 'dompurify';
+
 /**
  * Sanitize HTML content to prevent XSS attacks
- * Simple implementation without external dependencies
  * @param dirty - Untrusted HTML string
+ * @param options - DOMPurify configuration options
  * @returns Sanitized HTML string
  */
-export function sanitizeHTML(dirty: string): string {
+export function sanitizeHTML(
+  dirty: string,
+  options?: DOMPurify.Config
+): string {
+  // Default configuration for stricter sanitization
+  const defaultOptions: DOMPurify.Config = {
+    ALLOWED_TAGS: [
+      'p', 'br', 'b', 'strong', 'i', 'em', 'u', 'a', 'ul', 'ol', 'li',
+      'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'code', 'pre',
+      'span', 'div', 'table', 'thead', 'tbody', 'tr', 'td', 'th'
+    ],
+    ALLOWED_ATTR: [
+      'href', 'target', 'rel', 'class', 'id', 'style',
+      'data-*', 'aria-*'
+    ],
+    FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed'],
+    FORBID_ATTR: ['onerror', 'onclick', 'onload', 'onmouseover'],
+    FORCE_BODY: false,
+    SANITIZE_DOM: true,
+    KEEP_CONTENT: true,
+    ...options,
+  };
+
   // Handle empty or non-string input
   if (typeof dirty !== 'string') {
     return '';
   }
 
-  // Remove script tags and their content
-  let clean = dirty
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*<\/script>)/gi, '')
-    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*<\/iframe>)/gi, '')
-    .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*<\/object>)/gi, '')
-    .replace(/<embed\b[^<]*(?:(?!<\/embed>)<[^<]*<\/embed>)/gi, '');
-
-  // Remove dangerous event handlers
-  const dangerousEvents = ['onerror', 'onload', 'onmouseover', 'onfocus', 'onblur'];
-  dangerousEvents.forEach(event => {
-    const regex = new RegExp(`on${event}\\s*=`, 'gi');
-    clean = clean.replace(regex, '');
-  });
-
-  return clean;
+  return DOMPurify.sanitize(dirty, defaultOptions);
 }
 
 /**
@@ -42,8 +52,10 @@ export function stripHTML(dirty: string): string {
     return '';
   }
 
-  // Remove all HTML tags
-  return dirty.replace(/<[^>]+>/g, '');
+  return DOMPurify.sanitize(dirty, {
+    ALLOWED_TAGS: [], // No tags allowed
+    KEEP_CONTENT: true, // Keep text content
+  });
 }
 
 /**
@@ -125,13 +137,10 @@ export function sanitizePhone(phone: string): string {
  */
 export function sanitizeNumber(
   value: unknown,
-  defaultValue: number | null | undefined = 0
+  defaultValue: number = 0
 ): number {
   const num = Number(value);
-  if (isNaN(num) || defaultValue === null || defaultValue === undefined) {
-    return 0;
-  }
-  return num;
+  return isNaN(num) ? defaultValue : num;
 }
 
 /**

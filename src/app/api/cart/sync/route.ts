@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyToken, extractTokenFromHeader } from '@/lib/auth'
+import { verifyToken, extractTokenFromHeader } from '@/lib/jwt'
 import { getEnv } from '@/lib/cloudflare'
 import { CartRepository } from '@/db/cart.repository'
 import { UserRepository } from '@/db/user.repository'
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const payload = await verifyToken(token)
+    const payload = verifyToken(token)
     if (!payload || !payload.userId) {
       return NextResponse.json(
         { success: false, error: 'Invalid token' },
