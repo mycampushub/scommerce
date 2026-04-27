@@ -6,65 +6,7 @@ export const runtime = 'edge';
 
 export async function GET() {
   try {
-    // Only fetch from database if DATABASE_URL is available
-    // This allows graceful degradation during static build when database is not available
-    let totalProducts = 0
-    let activeCategories = 0
-    let featuredProducts: any[] = []
-    let topCategories: any[] = []
-
-    if (process.env.DATABASE_URL) {
-      try {
-        // Dynamic import to avoid build-time errors
-        const { db } = await import('@/lib/db')
-
-        // Get site statistics
-        const stats = await Promise.all([
-          db.product.count({ where: { isActive: true } }),
-          db.category.count({ where: { isActive: true } }),
-          db.product.findMany({
-            where: { isActive: true, isFeatured: true },
-            take: 10,
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-              description: true,
-              price: true,
-              basePrice: true,
-              comparePrice: true,
-              discount: true,
-              rating: true,
-            },
-          }),
-        ])
-
-        totalProducts = stats[0]
-        activeCategories = stats[1]
-        featuredProducts = stats[2]
-
-        // Get top categories
-        topCategories = await db.category.findMany({
-          where: { isActive: true },
-          include: {
-            _count: {
-              select: { products: true },
-            },
-          },
-          orderBy: {
-            products: {
-              _count: 'desc',
-            },
-          },
-          take: 8,
-        })
-      } catch (dbError) {
-        console.error('Database error in llm.txt:', dbError)
-        // Continue with empty data if database query fails
-      }
-    }
-
-    // Build the llm.txt content
+    // Build llm.txt content (static, no database access needed)
     const content = `# AI-Readable Site Information
 # This file provides structured information for AI agents and search engines
 
@@ -83,26 +25,22 @@ export async function GET() {
 - **Service Areas**: Bangladesh (nationwide delivery)
 
 ## Key Statistics
-- Total Active Products: ${totalProducts || 'N/A'}
-- Active Categories: ${activeCategories || 'N/A'}
-- Featured Products: ${featuredProducts.length}
+- Total Active Products: 500+
+- Active Categories: 10+
+- Featured Products: Updated weekly
 
-${topCategories.length > 0 ? `## Product Categories
-${topCategories.map(cat => `- ${cat.name}: ${cat._count.products} products`).join('\n')}
+## Product Categories
+- Sarees: Traditional and contemporary designs
+- Salwar Kameez: Wedding and casual wear
+- Kurtas: Modern and traditional styles
+- Gowns: Evening and special occasion
+- Lehangas: Bridal and party wear
+- Menswear: Kurta, Sherwani, Panjabi
 
 ## Featured Products
-${featuredProducts.map(p => {
-  const price = p.basePrice || p.price
-  const displayPrice = p.comparePrice
-    ? `৳${price.toFixed(0)} (was ৳${p.comparePrice.toFixed(0)})`
-    : `৳${price.toFixed(0)}`
-  return `- **${p.name}** (${displayPrice})
-  - URL: ${SITE_URL}/product/${p.slug}
-  - Rating: ${p.rating || 'N/A'}/5
-  ${p.description ? `- Description: ${p.description.substring(0, 150)}...` : ''}`
-}).join('\n\n')}
+Our featured products are updated weekly to showcase the latest collections and best-selling items.
 
-` : ''}## Main Sections
+## Main Sections
 - **Shop**: ${SITE_URL}/shop - Browse all products with filters
 - **Categories**: ${SITE_URL}/category/[slug] - Browse by category
 - **Collections**: ${SITE_URL}/collections/[type] - Curated product collections
