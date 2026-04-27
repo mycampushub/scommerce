@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { getEnv } from '@/lib/cloudflare'
 import { verifyAdmin } from '@/lib/auth-utils'
+import { UserRepository } from '@/db/user.repository'
 import bcrypt from 'bcryptjs'
+import { queryAll, count, numberToBool } from '@/db/db'
+
+export const runtime = 'edge';
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,28 +18,15 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    const env = getEnv(request)
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search') || ''
     const role = searchParams.get('role') || ''
 
-    let users = await db.user.findMany({
-      orderBy: {
-        createdAt: 'desc',
-      },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        createdAt: true,
-        updatedAt: true,
-        _count: {
-          select: {
-            orders: true,
-          },
-        },
-      },
-    })
+    let users = await queryAll<any>(
+      env,
+      'SELECT * FROM users ORDER BY createdAt DESC'
+    )
 
     // Filter by role (admin/staff)
     if (role) {
@@ -52,6 +43,13 @@ export async function GET(request: NextRequest) {
           user.name?.toLowerCase().includes(search.toLowerCase()) ||
           user.email.toLowerCase().includes(search.toLowerCase())
       )
+    }
+
+    // Add order counts for each user
+    for (const user of users) {
+      const orderCount = await count(env, 'orders', 'WHERE userId = ?', user.id)
+      user._count = { orders: orderCount }
+      user.emailVerified = numberToBool(user.emailVerified)
     }
 
     return NextResponse.json({
@@ -82,6 +80,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const env = getEnv(request)
     const body = await request.json()
     const { email, name, password, role } = body
 
@@ -108,9 +107,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if email already exists
-    const existingUser = await db.user.findUnique({
-      where: { email },
-    })
+    const existingUser = await UserRepository.findByEmail(env, email)
 
     if (existingUser) {
       return NextResponse.json(
@@ -126,26 +123,23 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await bcrypt.hash(password, 10)
 
     // Create user
-    const user = await db.user.create({
-      data: {
-        email,
-        name,
-        password: hashedPassword,
-        role,
-        emailVerified: true, // Auto-verify admin/staff accounts
-      },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        createdAt: true,
-      },
+    const user = await UserRepository.create(env, {
+      email,
+      name,
+      password: hashedPassword,
+      role: role as any,
+      emailVerified: true, // Auto-verify admin/staff accounts
     })
 
     return NextResponse.json({
       success: true,
-      data: user,
+      data: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        createdAt: user.createdAt,
+      },
       message: 'Staff member created successfully',
     })
   } catch (error) {

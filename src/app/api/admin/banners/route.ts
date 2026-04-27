@@ -1,18 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { getEnv } from '@/lib/cloudflare'
+import { BannerRepository } from '@/db/banner.repository'
+import { queryFirst } from '@/db/db'
+
+export const runtime = 'edge';
 
 export async function GET(request: NextRequest) {
   try {
+    const env = getEnv(request)
     const searchParams = request.nextUrl.searchParams
     const activeOnly = searchParams.get('activeOnly') === 'true'
 
-    const banners = await db.banner.findMany({
-      orderBy: [
-        { order: 'asc' },
-        { createdAt: 'desc' }
-      ],
-      where: activeOnly ? { isActive: true } : undefined
-    })
+    const banners = activeOnly
+      ? await BannerRepository.findAllActive(env)
+      : await BannerRepository.findAll(env)
 
     return NextResponse.json({
       success: true,
@@ -32,6 +33,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const env = getEnv(request)
     const body = await request.json()
     const { title, description, image, mobileImage, buttonText, buttonLink, isActive, order } = body
 
@@ -46,27 +48,25 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get the highest order value if not provided
+    // Get highest order value if not provided
     let bannerOrder = order
     if (bannerOrder === undefined) {
-      const maxOrder = await db.banner.findFirst({
-        orderBy: { order: 'desc' },
-        select: { order: true }
-      })
-      bannerOrder = maxOrder ? maxOrder.order + 1 : 0
+      const maxOrder = await queryFirst<{ orderNum: number }>(
+        env,
+        'SELECT orderNum FROM banners ORDER BY orderNum DESC LIMIT 1'
+      )
+      bannerOrder = maxOrder ? maxOrder.orderNum + 1 : 0
     }
 
-    const banner = await db.banner.create({
-      data: {
-        title,
-        description,
-        image,
-        mobileImage,
-        buttonText,
-        buttonLink,
-        isActive: isActive !== undefined ? isActive : true,
-        order: bannerOrder
-      }
+    const banner = await BannerRepository.create(env, {
+      title,
+      description,
+      image,
+      mobileImage,
+      buttonText,
+      buttonLink,
+      isActive: isActive !== undefined ? isActive : true,
+      orderNum: bannerOrder
     })
 
     return NextResponse.json({

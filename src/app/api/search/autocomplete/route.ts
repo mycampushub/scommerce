@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { getEnv } from '@/lib/cloudflare'
+import { queryAll } from '@/db/db'
+import { parseJSON } from '@/db/db'
 
 /**
  * GET /api/search/autocomplete - Get search suggestions
@@ -7,7 +9,10 @@ import { db } from '@/lib/db'
  * - q: search query (required)
  * - limit: number of suggestions (default: 10)
  */
+export const runtime = 'edge';
+
 export async function GET(request: NextRequest) {
+  const env = getEnv(request)
   try {
     const searchParams = request.nextUrl.searchParams
     const query = searchParams.get('q') || ''
@@ -23,68 +28,50 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Search for products matching the query
-    const products = await db.product.findMany({
-      where: {
-        isActive: true,
-        OR: [
-          { name: { contains: query, mode: 'insensitive' } },
-          { description: { contains: query, mode: 'insensitive' } },
-        ],
-      },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        images: true,
-        price: true,
-        basePrice: true,
-        comparePrice: true,
-        category: {
-          select: {
-            name: true,
-            slug: true,
-          },
-        },
-      },
-      take: limit,
-      orderBy: { createdAt: 'desc' },
-    })
+    // Search for products matching query
+    const products = await queryAll(
+      env,
+      `SELECT p.id, p.name, p.slug, p.images, p.price, p.basePrice, p.comparePrice, c.name as categoryName, c.slug as categorySlug
+       FROM products p
+       LEFT JOIN categories c ON p.categoryId = c.id
+       WHERE p.isActive = 1 AND (p.name LIKE ? OR p.description LIKE ?)
+       ORDER BY p.createdAt DESC
+       LIMIT ?`,
+      `%${query}%`,
+      `%${query}%`,
+      limit
+    )
 
-    // Search for categories matching the query
-    const categories = await db.category.findMany({
-      where: {
-        isActive: true,
-        OR: [
-          { name: { contains: query, mode: 'insensitive' } },
-          { description: { contains: query, mode: 'insensitive' } },
-        ],
-      },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        image: true,
-      },
-      take: 5,
-      orderBy: { name: 'asc' },
-    })
+    // Search for categories matching query
+    const categories = await queryAll(
+      env,
+      `SELECT id, name, slug, image
+       FROM categories
+       WHERE isActive = 1 AND (name LIKE ? OR description LIKE ?)
+       ORDER BY name ASC
+       LIMIT 5`,
+      `%${query}%`,
+      `%${query}%`
+    )
 
     // Format products
-    const formattedProducts = products.map((product) => ({
-      id: product.id,
-      name: product.name,
-      slug: product.slug,
-      image: product.images ? JSON.parse(product.images)[0] : null,
-      price: product.basePrice || product.price,
-      comparePrice: product.comparePrice,
-      category: product.category?.name || null,
-      categorySlug: product.category?.slug || null,
-      type: 'product',
-    }))
+    const formattedProducts = products.map((product: any) => {
+      const images = product.images ? parseJSON<string[]>(product.images) : []
+      return {
+        id: product.id,
+        name: product.name,
+        slug: product.slug,
+        image: images[0] || null,
+        price: product.basePrice || product.price,
+        comparePrice: product.comparePrice,
+        category: product.categoryName || null,
+        categorySlug: product.categorySlug || null,
+        type: 'product',
+      }
+    })
 
     // Format categories
-    const formattedCategories = categories.map((category) => ({
+    const formattedCategories = categories.map((category: any) => ({
       id: category.id,
       name: category.name,
       slug: category.slug,

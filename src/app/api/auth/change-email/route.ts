@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
 import bcrypt from 'bcryptjs'
 import { verifyToken } from '@/lib/jwt'
 import { changeEmailSchema } from '@/lib/validations'
 import { rateLimit, createRateLimitResponse, getClientIp } from '@/lib/rate-limit'
+import { UserRepository } from '@/db/user.repository'
+import { getEnv } from '@/lib/cloudflare'
+import { boolToNumber } from '@/db/db'
+
+export const runtime = 'edge';
 
 export async function POST(request: NextRequest) {
+  const env = getEnv(request)
   const clientIp = getClientIp(request)
-  const rateLimitResult = rateLimit('change-email:' + clientIp, {
+  const rateLimitResult = await rateLimit(env, 'change-email:' + clientIp, {
     maxRequests: 3,
     windowMs: 60 * 60 * 1000,
   })
@@ -33,10 +38,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const user = await db.user.findUnique({
-      where: { id: decoded.userId },
-      select: { id: true, email: true, password: true },
-    })
+    const user = await UserRepository.findById(env, decoded.userId)
 
     if (!user) {
       return NextResponse.json(
@@ -56,7 +58,7 @@ export async function POST(request: NextRequest) {
 
     if (!validation.success) {
       return NextResponse.json(
-        { success: false, error: validation.error.errors[0].message },
+        { success: false, error: validation.error.issues[0].message },
         { status: 400 }
       )
     }
@@ -76,9 +78,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const existingUser = await db.user.findUnique({
-      where: { email: newEmail },
-    })
+    const existingUser = await UserRepository.findByEmail(env, newEmail)
 
     if (existingUser) {
       return NextResponse.json(
@@ -89,14 +89,10 @@ export async function POST(request: NextRequest) {
 
     const emailToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
 
-    await db.user.update({
-      where: { id: user.id },
-      data: {
-        emailVerified: false,
-        newEmail: newEmail,
-        emailToken: emailToken,
-        updatedAt: new Date(),
-      },
+    await UserRepository.update(env, user.id, {
+      emailVerified: boolToNumber(false),
+      newEmail: newEmail,
+      emailToken: emailToken,
     })
 
     const verificationLink = (process.env.NEXT_PUBLIC_URL || 'http://localhost:3000') + '/api/auth/verify-email-change?token=' + emailToken

@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { getEnv } from '@/lib/cloudflare'
+import { ReelRepository } from '@/db/reel.repository'
+
+export const runtime = 'edge';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    const env = getEnv(request)
     const { id } = await params
-    const reel = await db.reel.findUnique({
-      where: { id }
-    })
+    const reel = await ReelRepository.findById(env, id)
 
     if (!reel) {
       return NextResponse.json(
@@ -21,15 +23,9 @@ export async function GET(
       )
     }
 
-    // Parse productIds JSON
-    const reelWithParsedProductIds = {
-      ...reel,
-      productIds: reel.productIds ? JSON.parse(reel.productIds) : []
-    }
-
     return NextResponse.json({
       success: true,
-      data: reelWithParsedProductIds
+      data: reel
     })
   } catch (error) {
     console.error('Error fetching reel:', error)
@@ -48,31 +44,23 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    const env = getEnv(request)
     const { id } = await params
     const body = await request.json()
     const { title, thumbnail, videoUrl, productIds, isActive, order } = body
 
-    const reel = await db.reel.update({
-      where: { id },
-      data: {
-        ...(title !== undefined && { title }),
-        ...(thumbnail !== undefined && { thumbnail }),
-        ...(videoUrl !== undefined && { videoUrl }),
-        ...(productIds !== undefined && { productIds: JSON.stringify(Array.isArray(productIds) ? productIds : []) }),
-        ...(isActive !== undefined && { isActive }),
-        ...(order !== undefined && { order })
-      }
+    const reel = await ReelRepository.update(env, id, {
+      title,
+      thumbnail,
+      videoUrl,
+      productIds,
+      isActive,
+      orderNum: order
     })
-
-    // Return with parsed productIds
-    const reelWithParsedProductIds = {
-      ...reel,
-      productIds: reel.productIds ? JSON.parse(reel.productIds) : []
-    }
 
     return NextResponse.json({
       success: true,
-      data: reelWithParsedProductIds
+      data: reel
     })
   } catch (error) {
     console.error('Error updating reel:', error)
@@ -91,10 +79,9 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const env = getEnv(request)
     const { id } = await params
-    await db.reel.delete({
-      where: { id }
-    })
+    await ReelRepository.delete(env, id)
 
     return NextResponse.json({
       success: true,

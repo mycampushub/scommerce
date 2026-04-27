@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { getEnv } from '@/lib/cloudflare'
+import { BannerRepository } from '@/db/banner.repository'
+
+export const runtime = 'edge';
 
 export async function GET(
   request: NextRequest,
@@ -7,9 +10,8 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const banner = await db.banner.findUnique({
-      where: { id },
-    })
+    const env = getEnv(request)
+    const banner = await BannerRepository.findById(env, id)
 
     if (!banner) {
       return NextResponse.json(
@@ -23,7 +25,7 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
-      data: banner,
+      data: banner
     })
   } catch (error) {
     console.error('Error fetching banner:', error)
@@ -42,26 +44,34 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    const env = getEnv(request)
     const body = await request.json()
     const { id } = await params
-    
-    const banner = await db.banner.update({
-      where: { id },
-      data: {
-        ...(body.title !== undefined && { title: body.title }),
-        ...(body.description !== undefined && { description: body.description }),
-        ...(body.image !== undefined && { image: body.image }),
-        ...(body.mobileImage !== undefined && { mobileImage: body.mobileImage }),
-        ...(body.buttonText !== undefined && { buttonText: body.buttonText }),
-        ...(body.buttonLink !== undefined && { buttonLink: body.buttonLink }),
-        ...(body.isActive !== undefined && { isActive: body.isActive }),
-        ...(body.order !== undefined && { order: body.order }),
-      },
+
+    const banner = await BannerRepository.update(env, id, {
+      ...(body.title !== undefined && { title: body.title }),
+      ...(body.description !== undefined && { description: body.description }),
+      ...(body.image !== undefined && { image: body.image }),
+      ...(body.mobileImage !== undefined && { mobileImage: body.mobileImage }),
+      ...(body.buttonText !== undefined && { buttonText: body.buttonText }),
+      ...(body.buttonLink !== undefined && { buttonLink: body.buttonLink }),
+      ...(body.isActive !== undefined && { isActive: body.isActive }),
+      ...(body.order !== undefined && { orderNum: body.order }),
     })
+
+    if (!banner) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Banner not found',
+        },
+        { status: 404 }
+      )
+    }
 
     return NextResponse.json({
       success: true,
-      data: banner,
+      data: banner
     })
   } catch (error) {
     console.error('Error updating banner:', error)
@@ -81,13 +91,12 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params
-    await db.banner.delete({
-      where: { id },
-    })
+    const env = getEnv(request)
+    await BannerRepository.delete(env, id)
 
     return NextResponse.json({
       success: true,
-      message: 'Banner deleted successfully',
+      message: 'Banner deleted successfully'
     })
   } catch (error) {
     console.error('Error deleting banner:', error)

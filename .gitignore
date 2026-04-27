@@ -69,3 +69,5 @@ prisma/*.db
 # Backup files
 *.bak
 open-next.config.ts.bak
+open-next.config.mjs
+open-next.config.js

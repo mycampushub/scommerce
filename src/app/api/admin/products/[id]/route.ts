@@ -1,20 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { getEnv } from '@/lib/cloudflare'
+import { ProductRepository } from '@/db/product.repository'
+import { CategoryRepository } from '@/db/category.repository'
+import { queryFirst, queryAll, execute, parseJSON, stringifyJSON, boolToNumber, numberToBool, now } from '@/db/db'
+
+export const runtime = 'edge';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const env = getEnv(request)
     const { id } = await params
-    const product = await db.product.findUnique({
-      where: {
-        id: id,
-      },
-      include: {
-        category: true,
-      },
-    })
+    const product = await ProductRepository.findById(env, id)
 
     if (!product) {
       return NextResponse.json(
@@ -26,9 +25,18 @@ export async function GET(
       )
     }
 
+    // Fetch category
+    let category: any = null
+    if (product.categoryId) {
+      category = await CategoryRepository.findById(env, product.categoryId)
+    }
+
     return NextResponse.json({
       success: true,
-      data: product,
+      data: {
+        ...product,
+        category,
+      },
     })
   } catch (error) {
     console.error('Error fetching product:', error)
@@ -44,9 +52,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const env = getEnv(request)
     const contentType = request.headers.get('content-type') || ''
     const action = request.headers.get('x-action') || 'update'
 
@@ -63,9 +72,7 @@ export async function PUT(
       }
 
       const { id } = await params
-      const product = await db.product.findUnique({
-        where: { id },
-      })
+      const product = await ProductRepository.findById(env, id)
 
       if (!product) {
         return NextResponse.json(
@@ -90,16 +97,26 @@ export async function PUT(
         )
       }
 
-      const currentImages = product.images ? JSON.parse(product.images) : []
+      const currentImages: string[] = Array.isArray(product.images) ? [...product.images] : []
       currentImages.push(uploadResult.data.url)
 
-      const updatedProduct = await db.product.update({
-        where: { id },
-        data: { images: JSON.stringify(currentImages) },
-        include: { category: true },
+      const updatedProduct = await ProductRepository.update(env, id, {
+        images: JSON.stringify(currentImages),
       })
 
-      return NextResponse.json({ success: true, data: updatedProduct })
+      // Fetch category for response
+      let category: any = null
+      if (updatedProduct?.categoryId) {
+        category = await CategoryRepository.findById(env, updatedProduct.categoryId)
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          ...updatedProduct,
+          category,
+        },
+      })
     }
 
     if (action === 'remove-image') {
@@ -114,9 +131,7 @@ export async function PUT(
       }
 
       const { id } = await params
-      const product = await db.product.findUnique({
-        where: { id },
-      })
+      const product = await ProductRepository.findById(env, id)
 
       if (!product) {
         return NextResponse.json(
@@ -125,13 +140,11 @@ export async function PUT(
         )
       }
 
-      const currentImages = product.images ? JSON.parse(product.images) : []
+      const currentImages: string[] = Array.isArray(product.images) ? [...product.images] : []
       const updatedImages = currentImages.filter((img: string) => img !== imageUrl)
 
-      const updatedProduct = await db.product.update({
-        where: { id },
-        data: { images: JSON.stringify(updatedImages) },
-        include: { category: true },
+      const updatedProduct = await ProductRepository.update(env, id, {
+        images: JSON.stringify(updatedImages),
       })
 
       // Delete file from server
@@ -139,7 +152,19 @@ export async function PUT(
         method: 'DELETE',
       })
 
-      return NextResponse.json({ success: true, data: updatedProduct })
+      // Fetch category for response
+      let category: any = null
+      if (updatedProduct?.categoryId) {
+        category = await CategoryRepository.findById(env, updatedProduct.categoryId)
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          ...updatedProduct,
+          category,
+        },
+      })
     }
 
     if (action === 'reorder-images') {
@@ -154,13 +179,23 @@ export async function PUT(
       }
 
       const { id } = await params
-      const updatedProduct = await db.product.update({
-        where: { id },
-        data: { images: JSON.stringify(images) },
-        include: { category: true },
+      const updatedProduct = await ProductRepository.update(env, id, {
+        images: JSON.stringify(images),
       })
 
-      return NextResponse.json({ success: true, data: updatedProduct })
+      // Fetch category for response
+      let category: any = null
+      if (updatedProduct?.categoryId) {
+        category = await CategoryRepository.findById(env, updatedProduct.categoryId)
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          ...updatedProduct,
+          category,
+        },
+      })
     }
 
     // Handle multipart/form-data for image uploads
@@ -170,7 +205,7 @@ export async function PUT(
       const name = formData.get('name') as string
       const slug = formData.get('slug') as string
       const description = formData.get('description') as string | null
-      const price = formData.get('price') as string
+      const basePrice = formData.get('price') as string
       const comparePrice = formData.get('comparePrice') as string | null
       const categoryId = formData.get('categoryId') as string | null
       const stock = formData.get('stock') as string
@@ -209,73 +244,68 @@ export async function PUT(
       }
 
       const { id } = await params
-      const product = await db.product.update({
-        where: {
-          id,
-        },
-        data: {
-          ...(name && { name }),
-          ...(slug && { slug }),
-          ...(description !== undefined && { description }),
-          ...(price !== undefined && { price: parseFloat(price) }),
-          ...(comparePrice !== undefined && {
-            comparePrice: comparePrice ? parseFloat(comparePrice) : null,
-          }),
-          ...(categoryId && { categoryId }),
-          ...(images.length > 0 && { images: JSON.stringify(images) }),
-          ...(stock !== undefined && { stock: parseInt(stock) }),
-          ...(lowStockAlert !== undefined && {
-            lowStockAlert: parseInt(lowStockAlert),
-          }),
-          ...(isActive !== undefined && { isActive }),
-          ...(isFeatured !== undefined && { isFeatured }),
-        },
-        include: {
-          category: true,
-        },
-      })
+      const updateData: any = {}
+      if (name) updateData.name = name
+      if (slug) updateData.slug = slug
+      if (description !== undefined) updateData.description = description
+      if (basePrice !== undefined) updateData.basePrice = parseFloat(basePrice)
+      if (comparePrice !== undefined) updateData.comparePrice = comparePrice ? parseFloat(comparePrice) : null
+      if (categoryId) updateData.categoryId = categoryId
+      if (images.length > 0) updateData.images = JSON.stringify(images)
+      if (stock !== undefined) updateData.stock = parseInt(stock)
+      if (lowStockAlert !== undefined && lowStockAlert !== null) updateData.lowStockAlert = parseInt(lowStockAlert)
+      if (isActive !== undefined) updateData.isActive = isActive
+      if (isFeatured !== undefined) updateData.isFeatured = isFeatured
+
+      const product = await ProductRepository.update(env, id, updateData)
+
+      // Fetch category for response
+      let category: any = null
+      if (product?.categoryId) {
+        category = await CategoryRepository.findById(env, product.categoryId)
+      }
 
       return NextResponse.json({
         success: true,
-        data: product,
+        data: {
+          ...product,
+          category,
+        },
       })
     }
 
     // Handle JSON payload
     const body = await request.json()
+    const { id } = await params
 
-    const product = await db.product.update({
-      where: {
-        id: params.id,
-      },
-      data: {
-        ...(body.name && { name: body.name }),
-        ...(body.slug && { slug: body.slug }),
-        ...(body.description !== undefined && { description: body.description }),
-        ...(body.price !== undefined && { price: parseFloat(body.price) }),
-        ...(body.comparePrice !== undefined && {
-          comparePrice: body.comparePrice ? parseFloat(body.comparePrice) : null,
-        }),
-        ...(body.categoryId && { categoryId: body.categoryId }),
-        ...(body.images !== undefined && {
-          images: typeof body.images === 'string' ? body.images : JSON.stringify(body.images)
-        }),
-        ...(body.stock !== undefined && { stock: parseInt(body.stock) }),
-        ...(body.lowStockAlert !== undefined && {
-          lowStockAlert: parseInt(body.lowStockAlert),
-        }),
-        ...(body.isActive !== undefined && { isActive: body.isActive }),
-        ...(body.isFeatured !== undefined && { isFeatured: body.isFeatured }),
-        ...(body.attributes !== undefined && { attributes: body.attributes }),
-      },
-      include: {
-        category: true,
-      },
-    })
+    const updateData: any = {}
+    if (body.name !== undefined) updateData.name = body.name
+    if (body.slug !== undefined) updateData.slug = body.slug
+    if (body.description !== undefined) updateData.description = body.description
+    if (body.price !== undefined) updateData.basePrice = parseFloat(body.price)
+    if (body.comparePrice !== undefined) updateData.comparePrice = body.comparePrice ? parseFloat(body.comparePrice) : null
+    if (body.categoryId !== undefined) updateData.categoryId = body.categoryId
+    if (body.images !== undefined) updateData.images = typeof body.images === 'string' ? body.images : JSON.stringify(body.images)
+    if (body.stock !== undefined) updateData.stock = parseInt(body.stock)
+    if (body.lowStockAlert !== undefined) updateData.lowStockAlert = parseInt(body.lowStockAlert)
+    if (body.isActive !== undefined) updateData.isActive = body.isActive
+    if (body.isFeatured !== undefined) updateData.isFeatured = body.isFeatured
+    if (body.hasVariants !== undefined) updateData.hasVariants = body.hasVariants
+
+    const product = await ProductRepository.update(env, id, updateData)
+
+    // Fetch category for response
+    let category: any = null
+    if (product?.categoryId) {
+      category = await CategoryRepository.findById(env, product.categoryId)
+    }
 
     return NextResponse.json({
       success: true,
-      data: product,
+      data: {
+        ...product,
+        category,
+      },
     })
   } catch (error) {
     console.error('Error updating product:', error)
@@ -291,15 +321,12 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const env = getEnv(request)
     const { id } = await params
-    await db.product.delete({
-      where: {
-        id,
-      },
-    })
+    await ProductRepository.delete(env, id)
 
     return NextResponse.json({
       success: true,

@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { getEnv } from '@/lib/cloudflare'
+import { queryFirst, queryAll } from '@/db/db'
+import { parseJSON } from '@/db/db'
+
+export const runtime = 'edge';
 
 export async function GET(request: NextRequest) {
+  const env = getEnv(request)
   try {
     const searchParams = request.nextUrl.searchParams
     const productId = searchParams.get('productId')
@@ -18,29 +23,28 @@ export async function GET(request: NextRequest) {
 
     let recommendedProducts: any[] = []
 
-    // Get the current product to determine category
-    const currentProduct = await db.product.findUnique({
-      where: { id: productId },
-      select: { categoryId: true, basePrice: true, price: true, hasVariants: true },
-    })
+    // Get current product to determine category
+    const currentProduct = await queryFirst(
+      env,
+      'SELECT categoryId, basePrice, price, hasVariants FROM products WHERE id = ? LIMIT 1',
+      productId
+    )
 
     const targetCategoryId = categoryId || currentProduct?.categoryId
 
     // Get product ratings and reviews count from ProductReview table
-    const allReviews = await db.productReview.groupBy({
-      by: ['productId'],
-      where: { isApproved: true },
-      _avg: { rating: true },
-      _count: { rating: true },
-    })
+    const allReviews = await queryAll(
+      env,
+      'SELECT productId, AVG(rating) as rating, COUNT(rating) as reviews FROM product_reviews WHERE isApproved = 1 GROUP BY productId'
+    )
 
     // Create a map for quick lookup
     const reviewsMap = new Map(
-      allReviews.map((review) => [
+      allReviews.map((review: any) => [
         review.productId,
         {
-          rating: review._avg.rating || 0,
-          reviews: review._count.rating || 0,
+          rating: review.rating || 0,
+          reviews: review.reviews || 0,
         },
       ])
     )
@@ -52,33 +56,19 @@ export async function GET(request: NextRequest) {
 
     // Strategy 1: Category-based recommendations
     if (type === 'category' || type === 'mixed') {
-      const categoryProducts = await db.product.findMany({
-        where: {
-          id: { not: productId },
-          categoryId: targetCategoryId || undefined,
-          isActive: true,
-          hasVariants: currentProduct?.hasVariants || false,
-        },
-        take: Math.ceil(limit / 2),
-        orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          price: true,
-          basePrice: true,
-          comparePrice: true,
-          images: true,
-          stock: true,
-          categoryId: true,
-          category: {
-            select: {
-              name: true,
-              slug: true,
-            },
-          },
-        },
-      })
+      const categoryProducts = await queryAll(
+        env,
+        `SELECT p.id, p.name, p.slug, p.price, p.basePrice, p.comparePrice, p.images, p.stock, p.categoryId, c.name as categoryName, c.slug as categorySlug
+         FROM products p
+         LEFT JOIN categories c ON p.categoryId = c.id
+         WHERE p.id != ? AND p.categoryId = ? AND p.isActive = 1 AND p.hasVariants = ?
+         ORDER BY p.createdAt DESC
+         LIMIT ?`,
+        productId,
+        targetCategoryId || '',
+        currentProduct?.hasVariants || 0,
+        Math.ceil(limit / 2)
+      )
       recommendedProducts.push(...categoryProducts)
     }
 
@@ -88,75 +78,37 @@ export async function GET(request: NextRequest) {
       const minPrice = priceRange * 0.5
       const maxPrice = priceRange * 1.5
 
-      const priceSimilarProducts = await db.product.findMany({
-        where: {
-          id: { not: productId },
-          isActive: true,
-          OR: [
-            {
-              basePrice: {
-                gte: minPrice,
-                lte: maxPrice,
-              },
-            },
-            {
-              price: {
-                gte: minPrice,
-                lte: maxPrice,
-              },
-            },
-          ],
-        },
-        take: Math.ceil(limit / 2),
-        orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          price: true,
-          basePrice: true,
-          comparePrice: true,
-          images: true,
-          stock: true,
-          categoryId: true,
-          category: {
-            select: {
-              name: true,
-              slug: true,
-            },
-          },
-        },
-      })
+      const priceSimilarProducts = await queryAll(
+        env,
+        `SELECT p.id, p.name, p.slug, p.price, p.basePrice, p.comparePrice, p.images, p.stock, p.categoryId, c.name as categoryName, c.slug as categorySlug
+         FROM products p
+         LEFT JOIN categories c ON p.categoryId = c.id
+         WHERE p.id != ? AND p.isActive = 1 AND (p.basePrice >= ? AND p.basePrice <= ? OR p.price >= ? AND p.price <= ?)
+         ORDER BY p.createdAt DESC
+         LIMIT ?`,
+        productId,
+        minPrice,
+        maxPrice,
+        minPrice,
+        maxPrice,
+        Math.ceil(limit / 2)
+      )
       recommendedProducts.push(...priceSimilarProducts)
     }
 
     // Strategy 3: Popular/Best-selling products (high rating + more reviews)
     if (type === 'popular' || type === 'mixed') {
-      const popularProducts = await db.product.findMany({
-        where: {
-          id: { not: productId },
-          isActive: true,
-        },
-        take: Math.ceil(limit / 2),
-        orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          price: true,
-          basePrice: true,
-          comparePrice: true,
-          images: true,
-          stock: true,
-          categoryId: true,
-          category: {
-            select: {
-              name: true,
-              slug: true,
-            },
-          },
-        },
-      })
+      const popularProducts = await queryAll(
+        env,
+        `SELECT p.id, p.name, p.slug, p.price, p.basePrice, p.comparePrice, p.images, p.stock, p.categoryId, c.name as categoryName, c.slug as categorySlug
+         FROM products p
+         LEFT JOIN categories c ON p.categoryId = c.id
+         WHERE p.id != ? AND p.isActive = 1
+         ORDER BY p.createdAt DESC
+         LIMIT ?`,
+        productId,
+        Math.ceil(limit / 2)
+      )
       recommendedProducts.push(...popularProducts)
     }
 
@@ -205,21 +157,24 @@ export async function GET(request: NextRequest) {
     const finalProducts = scoredProducts.slice(0, limit)
 
     // Format product data
-    const formattedProducts = finalProducts.map((product) => ({
-      id: product.id,
-      name: product.name,
-      slug: product.slug,
-      price: product.basePrice || product.price,
-      comparePrice: product.comparePrice,
-      image: product.images ? JSON.parse(product.images)[0] : '',
-      rating: product.rating || 0,
-      reviews: product.reviews || 0,
-      stock: product.stock || 0,
-      categoryId: product.categoryId,
-      category: product.category?.name || null,
-      categorySlug: product.category?.slug || null,
-      recommendationScore: product.recommendationScore,
-    }))
+    const formattedProducts = finalProducts.map((product: any) => {
+      const images = product.images ? parseJSON<string[]>(product.images) : []
+      return {
+        id: product.id,
+        name: product.name,
+        slug: product.slug,
+        price: product.basePrice || product.price,
+        comparePrice: product.comparePrice,
+        image: images[0] || '',
+        rating: product.rating || 0,
+        reviews: product.reviews || 0,
+        stock: product.stock || 0,
+        categoryId: product.categoryId,
+        category: product.categoryName || null,
+        categorySlug: product.categorySlug || null,
+        recommendationScore: product.recommendationScore,
+      }
+    })
 
     return NextResponse.json({
       success: true,

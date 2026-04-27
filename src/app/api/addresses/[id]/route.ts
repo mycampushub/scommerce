@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
 import { verifyToken, extractTokenFromHeader } from '@/lib/auth'
+import { getEnv } from '@/lib/cloudflare'
+import { queryAll, queryFirst, execute, boolToNumber, numberToBool, now } from '@/db/db'
+
+export const runtime = 'edge';
 
 /**
  * PUT /api/addresses/[id] - Update a saved address
@@ -10,6 +13,8 @@ export async function PUT(
   context: { params: Promise<{ id: string }> }
 ) {
   const params = await context.params
+  // Get D1 database from request context
+  const env = getEnv(request)
 
   try {
     const authHeader = request.headers.get('authorization')
@@ -22,7 +27,7 @@ export async function PUT(
       )
     }
 
-    const payload = verifyToken(token)
+    const payload = await verifyToken(token)
     if (!payload) {
       return NextResponse.json(
         { success: false, error: 'Invalid or expired token' },
@@ -31,12 +36,12 @@ export async function PUT(
     }
 
     // Verify address belongs to user
-    const existingAddress = await db.address.findFirst({
-      where: {
-        id: params.id,
-        userId: payload.userId,
-      },
-    })
+    const existingAddress = await queryFirst(
+      env,
+      'SELECT * FROM addresses WHERE id = ? AND userId = ? LIMIT 1',
+      params.id,
+      payload.userId
+    )
 
     if (!existingAddress) {
       return NextResponse.json(
@@ -48,35 +53,83 @@ export async function PUT(
     const body = await request.json()
 
     // If this is set as default, unset any existing default address
-    if (body.isDefault && !existingAddress.isDefault) {
-      await db.address.updateMany({
-        where: {
-          userId: payload.userId,
-          isDefault: true,
-          id: { not: params.id },
-        },
-        data: { isDefault: false },
+    if (body.isDefault && !numberToBool(existingAddress.isDefault as number)) {
+      await execute(
+        env,
+        'UPDATE addresses SET isDefault = 0 WHERE userId = ? AND isDefault = 1 AND id != ?',
+        payload.userId,
+        params.id
+      )
+    }
+
+    // Build update query dynamically
+    const updates: string[] = []
+    const values: unknown[] = []
+
+    if (body.fullName !== undefined) {
+      updates.push('fullName = ?')
+      values.push(body.fullName)
+    }
+    if (body.phone !== undefined) {
+      updates.push('phone = ?')
+      values.push(body.phone)
+    }
+    if (body.addressLine1 !== undefined) {
+      updates.push('addressLine1 = ?')
+      values.push(body.addressLine1)
+    }
+    if (body.addressLine2 !== undefined) {
+      updates.push('addressLine2 = ?')
+      values.push(body.addressLine2)
+    }
+    if (body.city !== undefined) {
+      updates.push('city = ?')
+      values.push(body.city)
+    }
+    if (body.district !== undefined) {
+      updates.push('district = ?')
+      values.push(body.district)
+    }
+    if (body.division !== undefined) {
+      updates.push('division = ?')
+      values.push(body.division)
+    }
+    if (body.postalCode !== undefined) {
+      updates.push('postalCode = ?')
+      values.push(body.postalCode)
+    }
+    if (body.isDefault !== undefined) {
+      updates.push('isDefault = ?')
+      values.push(boolToNumber(body.isDefault))
+    }
+
+    if (updates.length === 0) {
+      // No changes, return existing address
+      return NextResponse.json({
+        success: true,
+        data: { ...existingAddress, isDefault: numberToBool(existingAddress.isDefault as number) },
       })
     }
 
-    const address = await db.address.update({
-      where: { id: params.id },
-      data: {
-        fullName: body.fullName !== undefined ? body.fullName : existingAddress.fullName,
-        phone: body.phone !== undefined ? body.phone : existingAddress.phone,
-        addressLine1: body.addressLine1 !== undefined ? body.addressLine1 : existingAddress.addressLine1,
-        addressLine2: body.addressLine2 !== undefined ? body.addressLine2 : existingAddress.addressLine2,
-        city: body.city !== undefined ? body.city : existingAddress.city,
-        district: body.district !== undefined ? body.district : existingAddress.district,
-        division: body.division !== undefined ? body.division : existingAddress.division,
-        postalCode: body.postalCode !== undefined ? body.postalCode : existingAddress.postalCode,
-        isDefault: body.isDefault !== undefined ? body.isDefault : existingAddress.isDefault,
-      },
-    })
+    updates.push('updatedAt = ?')
+    values.push(now())
+    values.push(params.id)
+
+    await execute(
+      env,
+      `UPDATE addresses SET ${updates.join(', ')} WHERE id = ?`,
+      ...values
+    )
+
+    const address = await queryFirst(
+      env,
+      'SELECT * FROM addresses WHERE id = ? LIMIT 1',
+      params.id
+    )
 
     return NextResponse.json({
       success: true,
-      data: address,
+      data: address ? { ...address, isDefault: numberToBool(address.isDefault as number) } : null,
     })
   } catch (error) {
     console.error('Error updating address:', error)
@@ -95,6 +148,8 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> }
 ) {
   const params = await context.params
+  // Get D1 database from request context
+  const env = getEnv(request)
 
   try {
     const authHeader = request.headers.get('authorization')
@@ -107,7 +162,7 @@ export async function DELETE(
       )
     }
 
-    const payload = verifyToken(token)
+    const payload = await verifyToken(token)
     if (!payload) {
       return NextResponse.json(
         { success: false, error: 'Invalid or expired token' },
@@ -116,12 +171,12 @@ export async function DELETE(
     }
 
     // Verify address belongs to user
-    const existingAddress = await db.address.findFirst({
-      where: {
-        id: params.id,
-        userId: payload.userId,
-      },
-    })
+    const existingAddress = await queryFirst(
+      env,
+      'SELECT * FROM addresses WHERE id = ? AND userId = ? LIMIT 1',
+      params.id,
+      payload.userId
+    )
 
     if (!existingAddress) {
       return NextResponse.json(
@@ -131,26 +186,28 @@ export async function DELETE(
     }
 
     // If deleting default address, make another one default if available
-    if (existingAddress.isDefault) {
-      const otherAddresses = await db.address.findMany({
-        where: {
-          userId: payload.userId,
-          id: { not: params.id },
-        },
-        take: 1,
-      })
+    if (numberToBool(existingAddress.isDefault as number)) {
+      const otherAddresses = await queryAll(
+        env,
+        'SELECT * FROM addresses WHERE userId = ? AND id != ? LIMIT 1',
+        payload.userId,
+        params.id
+      )
 
       if (otherAddresses.length > 0) {
-        await db.address.update({
-          where: { id: otherAddresses[0].id },
-          data: { isDefault: true },
-        })
+        await execute(
+          env,
+          'UPDATE addresses SET isDefault = 1 WHERE id = ?',
+          otherAddresses[0].id
+        )
       }
     }
 
-    await db.address.delete({
-      where: { id: params.id },
-    })
+    await execute(
+      env,
+      'DELETE FROM addresses WHERE id = ?',
+      params.id
+    )
 
     return NextResponse.json({
       success: true,

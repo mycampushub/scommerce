@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { verifyResetTokenSchema } from '@/lib/validations';
+import { UserRepository } from '@/db/user.repository';
+import { getEnv } from '@/lib/cloudflare';
+
+export const runtime = 'edge';
 
 export async function POST(request: NextRequest) {
+  const env = getEnv(request)
   try {
     const body = await request.json();
 
@@ -22,14 +26,7 @@ export async function POST(request: NextRequest) {
     const { token } = validation.data;
 
     // Find user with valid reset token
-    const user = await db.user.findFirst({
-      where: {
-        resetToken: token,
-        resetTokenExpiry: {
-          gt: new Date(),
-        },
-      },
-    });
+    const user = await UserRepository.findByResetToken(env, token);
 
     if (!user) {
       logger.warn('Invalid or expired reset token used', { token });

@@ -82,6 +82,28 @@ interface Order {
   }[]
 }
 
+// Status Badge Component (defined outside component to avoid recreation on each render)
+function StatusBadge({ status }: { status: string }) {
+  const config = {
+    PENDING: { icon: Clock, color: 'bg-orange-100 text-orange-700', label: 'Pending' },
+    CONFIRMED: { icon: CheckCircle, color: 'bg-blue-100 text-blue-700', label: 'Confirmed' },
+    PROCESSING: { icon: Package, color: 'bg-purple-100 text-purple-700', label: 'Processing' },
+    SHIPPED: { icon: Truck, color: 'bg-indigo-100 text-indigo-700', label: 'Shipped' },
+    DELIVERED: { icon: CheckCircle, color: 'bg-green-100 text-green-700', label: 'Delivered' },
+    CANCELLED: { icon: XCircle, color: 'bg-red-100 text-red-700', label: 'Cancelled' },
+    REFUNDED: { icon: AlertCircle, color: 'bg-gray-100 text-gray-700', label: 'Refunded' },
+  }
+
+  const { icon: Icon, color, label } = config[status as keyof typeof config] || config.PENDING
+
+  return (
+    <Badge variant="secondary" className={color}>
+      <Icon className="h-3 w-3 mr-1" />
+      {label}
+    </Badge>
+  )
+}
+
 export default function OrdersPage() {
   const { toast } = useToast()
   const [loading, setLoading] = useState(true)
@@ -101,10 +123,6 @@ export default function OrdersPage() {
   const [trackingNumber, setTrackingNumber] = useState('')
   const [trackingStatus, setTrackingStatus] = useState('')
   const [estimatedDeliveryDate, setEstimatedDeliveryDate] = useState('')
-
-  useEffect(() => {
-    fetchOrders()
-  }, [statusFilter])
 
   const fetchOrders = async () => {
     try {
@@ -133,6 +151,10 @@ export default function OrdersPage() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    fetchOrders()
+  }, [statusFilter])
 
   const handleSearch = () => {
     fetchOrders()
@@ -221,27 +243,6 @@ export default function OrdersPage() {
       style: 'currency',
       currency: 'USD',
     }).format(value)
-  }
-
-  function StatusBadge({ status }: { status: string }) {
-    const config = {
-      PENDING: { icon: Clock, color: 'bg-orange-100 text-orange-700', label: 'Pending' },
-      CONFIRMED: { icon: CheckCircle, color: 'bg-blue-100 text-blue-700', label: 'Confirmed' },
-      PROCESSING: { icon: Package, color: 'bg-purple-100 text-purple-700', label: 'Processing' },
-      SHIPPED: { icon: Truck, color: 'bg-indigo-100 text-indigo-700', label: 'Shipped' },
-      DELIVERED: { icon: CheckCircle, color: 'bg-green-100 text-green-700', label: 'Delivered' },
-      CANCELLED: { icon: XCircle, color: 'bg-red-100 text-red-700', label: 'Cancelled' },
-      REFUNDED: { icon: AlertCircle, color: 'bg-gray-100 text-gray-700', label: 'Refunded' },
-    }
-
-    const { icon: Icon, color, label } = config[status as keyof typeof config] || config.PENDING
-
-    return (
-      <Badge variant="secondary" className={color}>
-        <Icon className="h-3 w-3 mr-1" />
-        {label}
-      </Badge>
-    )
   }
 
   const stats = orders.reduce(

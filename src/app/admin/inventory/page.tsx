@@ -75,25 +75,6 @@ export default function InventoryPage() {
   const [autoRefresh, setAutoRefresh] = useState(false)
   const [refreshInterval, setRefreshInterval] = useState(30000) // 30 seconds default
 
-  useEffect(() => {
-    fetchData()
-  }, [stockFilter, alertFilter])
-
-  // Auto-refresh polling for live stock updates
-  useEffect(() => {
-    if (!autoRefresh) return
-
-    const interval = setInterval(() => {
-      fetchData()
-      toast({
-        title: 'Data Updated',
-        description: 'Inventory data has been refreshed',
-      })
-    }, refreshInterval)
-
-    return () => clearInterval(interval)
-  }, [autoRefresh, refreshInterval])
-
   const fetchData = async () => {
     try {
       setLoading(true)
@@ -136,6 +117,25 @@ export default function InventoryPage() {
       console.error('Error fetching alerts:', err)
     }
   }
+
+  useEffect(() => {
+    fetchData()
+  }, [stockFilter, alertFilter])
+
+  // Auto-refresh polling for live stock updates
+  useEffect(() => {
+    if (!autoRefresh) return
+
+    const interval = setInterval(() => {
+      fetchData()
+      toast({
+        title: 'Data Updated',
+        description: 'Inventory data has been refreshed',
+      })
+    }, refreshInterval)
+
+    return () => clearInterval(interval)
+  }, [autoRefresh, refreshInterval])
 
   const handleMarkAsRead = async (alertId: string) => {
     try {

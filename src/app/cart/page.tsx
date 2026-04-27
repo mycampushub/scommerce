@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Trash2, ShoppingBag, Plus, Minus, ArrowRight, Check } from 'lucide-react'
 import Link from 'next/link'
 import { useCartStore } from '@/lib/store/cart-store'
@@ -12,12 +12,33 @@ import { MobileBottomNav } from '@/components/mobile-bottom-nav'
 export default function CartPage() {
   const { items, updateQuantity, removeItem, getSubtotal, getTotal } = useCartStore()
   const [promoCode, setPromoCode] = useState('')
+  const [freeShippingThreshold, setFreeShippingThreshold] = useState(5000)
+  const [baseShippingCost, setBaseShippingCost] = useState(150)
+
+  // Fetch site settings for shipping thresholds
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const response = await fetch('/api/settings')
+        const result = await response.json()
+        if (result.success && result.data) {
+          setFreeShippingThreshold(result.data.freeShippingThreshold || 5000)
+          setBaseShippingCost(result.data.baseShippingCost || 150)
+        }
+      } catch (error) {
+        console.error('Error fetching settings:', error)
+        // Keep default values on error
+      }
+    }
+
+    fetchSettings()
+  }, [])
 
   const subtotal = getSubtotal()
   const discount = items.reduce((sum, item) =>
     sum + ((item.originalPrice || item.price) - item.price) * item.quantity, 0
   )
-  const shipping = subtotal > 5000 ? 0 : 150 // BDT
+  const shipping = subtotal > freeShippingThreshold ? 0 : baseShippingCost
   const total = getTotal()
 
   return (
@@ -170,11 +191,11 @@ export default function CartPage() {
                     <div className="flex items-start gap-3">
                       <Check className="w-5 h-5 text-pink-600 flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-sm font-medium text-gray-900">Free Shipping on Orders Over ৳5,000</p>
+                        <p className="text-sm font-medium text-gray-900">Free Shipping on Orders Over {formatCurrency(freeShippingThreshold)}</p>
                         <p className="text-sm text-gray-600">
-                          {subtotal >= 100
+                          {subtotal >= freeShippingThreshold
                             ? "You've qualified for free shipping!"
-                            : `Add ${formatCurrency(5000 - subtotal)} more to qualify`
+                            : `Add ${formatCurrency(freeShippingThreshold - subtotal)} more to qualify`
                           }
                         </p>
                       </div>

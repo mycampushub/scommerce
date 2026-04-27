@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { X, Star, ShoppingCart, Heart, Plus, Minus, Check } from 'lucide-react'
 import {
   Dialog,
@@ -40,7 +40,26 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
   const [quantity, setQuantity] = useState(1)
   const [isWishlisted, setIsWishlisted] = useState(false)
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
+  const [freeShippingThreshold, setFreeShippingThreshold] = useState(5000)
   const { addItem } = useCartStore()
+
+  // Fetch site settings for free shipping threshold
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const response = await fetch('/api/settings')
+        const result = await response.json()
+        if (result.success && result.data) {
+          setFreeShippingThreshold(result.data.freeShippingThreshold || 5000)
+        }
+      } catch (error) {
+        console.error('Error fetching settings:', error)
+        // Keep default value on error
+      }
+    }
+
+    fetchSettings()
+  }, [])
 
   // Guard for null product
   if (!product) {
@@ -263,7 +282,7 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
             <div className="mt-6 space-y-2">
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <Check className="w-4 h-4 text-green-600" />
-                <span>Free shipping on orders over ৳5,000</span>
+                <span>Free shipping on orders over {formatCurrency(freeShippingThreshold)}</span>
               </div>
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <Check className="w-4 h-4 text-green-600" />

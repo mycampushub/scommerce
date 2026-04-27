@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { getEnv } from '@/lib/cloudflare'
+import { BannerRepository } from '@/db/banner.repository'
+
+export const runtime = 'edge';
 
 export async function PUT(
   request: NextRequest,
@@ -7,6 +10,7 @@ export async function PUT(
 ) {
   try {
     const { id } = await params
+    const env = getEnv(request)
     const body = await request.json()
     const { order } = body
 
@@ -20,10 +24,17 @@ export async function PUT(
       )
     }
 
-    const banner = await db.banner.update({
-      where: { id },
-      data: { order }
-    })
+    const banner = await BannerRepository.update(env, id, { orderNum: order })
+
+    if (!banner) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Banner not found',
+        },
+        { status: 404 }
+      )
+    }
 
     return NextResponse.json({
       success: true,

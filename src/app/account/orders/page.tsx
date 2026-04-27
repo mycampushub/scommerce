@@ -48,16 +48,23 @@ interface OrdersResponse {
   error?: string
 }
 
+// Simple JWT decoder - in production, use proper auth library
+const getUserIdFromToken = (token: string): string | null => {
+  try {
+    const payload = token.split('.')[1]
+    const decoded = JSON.parse(atob(payload))
+    return decoded.userId || decoded.sub || null
+  } catch {
+    return null
+  }
+}
+
 function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
-
-  useEffect(() => {
-    fetchOrders()
-  }, [])
 
   const fetchOrders = async () => {
     setLoading(true)
@@ -96,16 +103,9 @@ function OrdersPage() {
     }
   }
 
-  // Simple JWT decoder - in production, use proper auth library
-  const getUserIdFromToken = (token: string): string | null => {
-    try {
-      const payload = token.split('.')[1]
-      const decoded = JSON.parse(atob(payload))
-      return decoded.userId || decoded.sub || null
-    } catch {
-      return null
-    }
-  }
+  useEffect(() => {
+    fetchOrders()
+  }, [])
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-IN', {

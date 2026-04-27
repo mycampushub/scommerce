@@ -1,14 +1,15 @@
 /**
- * In-memory rate limiter for Next.js API routes
- * Prevents brute force attacks by limiting requests per IP address
+ * Distributed rate limiter for Next.js API routes
+ * Uses Cloudflare KV for production
+ * No in-memory fallback - requires KV to be configured
  */
+
+import { Env } from '@/db/types';
 
 interface RateLimitData {
   count: number;
   resetTime: number;
 }
-
-const rateLimitMap = new Map<string, RateLimitData>();
 
 export interface RateLimitOptions {
   maxRequests?: number;
@@ -23,81 +24,98 @@ export interface RateLimitResult {
 
 /**
  * Rate limit middleware for API routes
+ * Uses Cloudflare KV for distributed rate limiting
+ * @param env - Environment object containing KV binding (REQUIRED)
  * @param identifier - Unique identifier (e.g., IP address, user ID, email)
  * @param options - Rate limiting options
  * @returns Rate limit result
  */
-export function rateLimit(
+export async function rateLimit(
+  env: Env | null,
   identifier: string,
   options: RateLimitOptions = {}
-): RateLimitResult {
+): Promise<RateLimitResult> {
+  // KV is required for rate limiting
+  if (!env || !env.KV) {
+    console.error('Rate limiting requires KV namespace. Configure wrangler.toml with KV binding.');
+    // Fail open for security - allow requests but log warning
+    return {
+      success: true,
+      remainingRequests: Number.MAX_SAFE_INTEGER,
+    };
+  }
+
   const {
     maxRequests = 5, // Default: 5 requests per window
     windowMs = 60 * 1000, // Default: 1 minute window
   } = options;
 
   const now = Date.now();
-  const data = rateLimitMap.get(identifier);
+  const window = Math.floor(now / windowMs);
+  const rateLimitKey = `ratelimit:${identifier}:${window}`;
 
-  // Reset if window has expired
-  if (data && now > data.resetTime) {
-    rateLimitMap.delete(identifier);
-  }
+  const KV = env.KV;
 
-  // Get or create rate limit data
-  let limitData = rateLimitMap.get(identifier);
+  try {
+    // Get current count from KV
+    const currentValue = await KV.get(rateLimitKey);
+    const count = currentValue ? parseInt(currentValue) : 0;
 
-  if (!limitData) {
-    limitData = {
-      count: 0,
+    // Check if limit exceeded
+    if (count >= maxRequests) {
+      const nextWindow = Math.floor((now + windowMs) / windowMs) * windowMs;
+      return {
+        success: false,
+        remainingRequests: 0,
+        resetTime: nextWindow,
+      };
+    }
+
+    // Increment count in KV with TTL
+    const newCount = count + 1;
+    const ttl = Math.ceil(windowMs / 1000); // Convert to seconds
+    await KV.put(rateLimitKey, newCount.toString(), {
+      expirationTtl: ttl,
+    });
+
+    return {
+      success: true,
+      remainingRequests: maxRequests - newCount,
       resetTime: now + windowMs,
     };
-    rateLimitMap.set(identifier, limitData);
-  }
-
-  // Check if limit exceeded
-  if (limitData.count >= maxRequests) {
+  } catch (error) {
+    console.error('KV rate limit error:', error);
+    // Fail open for reliability - allow request on error
     return {
-      success: false,
-      remainingRequests: 0,
-      resetTime: limitData.resetTime,
+      success: true,
+      remainingRequests: Number.MAX_SAFE_INTEGER,
     };
   }
-
-  // Increment count
-  limitData.count++;
-  rateLimitMap.set(identifier, limitData);
-
-  return {
-    success: true,
-    remainingRequests: maxRequests - limitData.count,
-    resetTime: limitData.resetTime,
-  };
 }
 
 /**
  * Reset rate limit for a specific identifier
+ * @param env - Environment object containing KV binding
  * @param identifier - Unique identifier to reset
  */
-export function resetRateLimit(identifier: string): void {
-  rateLimitMap.delete(identifier);
-}
-
-/**
- * Clean up expired entries (call periodically)
- */
-export function cleanupRateLimit(): void {
-  const now = Date.now();
-  for (const [key, data] of rateLimitMap.entries()) {
-    if (now > data.resetTime) {
-      rateLimitMap.delete(key);
-    }
+export async function resetRateLimit(
+  env: Env | null,
+  identifier: string
+): Promise<void> {
+  if (!env || !env.KV) {
+    console.warn('KV namespace not available for rate limit reset');
+    return;
   }
-}
 
-// Auto cleanup every 5 minutes
-if (typeof setInterval !== 'undefined') {
-  setInterval(cleanupRateLimit, 5 * 60 * 1000);
+  const now = Date.now();
+  const window = Math.floor(now / 60000); // 1-minute window
+  const rateLimitKey = `ratelimit:${identifier}:${window}`;
+
+  try {
+    await env.KV.delete(rateLimitKey);
+  } catch (error) {
+    console.error('KV delete error:', error);
+  }
 }
 
 /**
@@ -121,7 +139,7 @@ export function getClientIp(request: Request): string {
     return cfConnectingIp;
   }
 
-  // Fallback to a hash of the request (not ideal but prevents tracking)
+  // Fallback to a hash of request (not ideal but prevents tracking)
   return 'anonymous-' + Date.now().toString(36);
 }
 

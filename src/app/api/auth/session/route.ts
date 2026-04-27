@@ -1,9 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { verifyToken } from '@/lib/jwt'
+import { NextRequest, NextResponse } from 'next/server';
+import { verifyToken } from '@/lib/jwt';
+
+// Edge Runtime export for Cloudflare
+export const runtime = 'edge';
 
 export async function GET(request: NextRequest) {
   try {
-    const sessionToken = request.cookies.get('session')?.value
+    const sessionToken = request.cookies.get('session')?.value;
 
     if (!sessionToken) {
       return NextResponse.json({
@@ -11,20 +14,20 @@ export async function GET(request: NextRequest) {
         data: {
           user: null,
         },
-      })
+      });
     }
 
     // Verify JWT token directly
-    const sessionData = verifyToken(sessionToken)
+    const sessionData = verifyToken(sessionToken);
 
     return NextResponse.json({
       success: true,
       data: {
         user: sessionData,
       },
-    })
+    });
   } catch (error) {
-    console.error('Session verification error:', error)
+    console.error('Session verification error:', error);
     return NextResponse.json(
       {
         success: true,
@@ -32,6 +35,6 @@ export async function GET(request: NextRequest) {
           user: null,
         },
       }
-    )
+    );
   }
 }

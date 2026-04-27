@@ -1,8 +1,12 @@
 import { SignJWT, jwtVerify } from 'jose'
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production-min-32-chars'
-)
+// Validate JWT_SECRET exists
+const JWT_SECRET_STRING = process.env.JWT_SECRET;
+if (!JWT_SECRET_STRING) {
+  throw new Error('JWT_SECRET environment variable is required');
+}
+
+const JWT_SECRET = new TextEncoder().encode(JWT_SECRET_STRING);
 
 export interface JWTPayload {
   userId: string

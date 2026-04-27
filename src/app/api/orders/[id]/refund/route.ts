@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { logger } from '@/lib/logger';
-import { OrderStatus, PaymentStatus } from '@prisma/client';
-import crypto from 'crypto';
+import { getEnv } from '@/lib/cloudflare';
+import { OrderRepository } from '@/db/order.repository';
+import { ProductRepository } from '@/db/product.repository';
 import { z } from 'zod';
 
-// Generate a unique request ID for tracking
-function generateRequestId(): string {
-  return crypto.randomUUID();
-}
+export const runtime = 'edge';
 
 // Validation schema for refund request
 const refundRequestSchema = z.object({
@@ -21,17 +17,17 @@ const refundRequestSchema = z.object({
 
 // Order statuses eligible for refund
 const REFUNDABLE_STATUSES = [
-  OrderStatus.DELIVERED,
-  OrderStatus.PROCESSING,
-  OrderStatus.SHIPPED,
+  'DELIVERED',
+  'PROCESSING',
+  'SHIPPED',
 ];
 
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const requestId = generateRequestId();
-  const startTime = Date.now();
+  // Get D1 database from request context
+  const env = getEnv(request);
 
   try {
     const body = await request.json();
@@ -39,7 +35,6 @@ export async function POST(
     // Validate input
     const validation = refundRequestSchema.safeParse(body);
     if (!validation.success) {
-      logger.warn('Invalid refund request', { requestId, errors: validation.error.errors });
       return NextResponse.json(
         {
           success: false,
@@ -52,20 +47,9 @@ export async function POST(
     const { userId, amount, reason, refundMethod, initiatedBy } = validation.data;
 
     // Fetch order
-    const order = await db.order.findUnique({
-      where: { id: params.id },
-      include: {
-        orderItems: {
-          include: {
-            product: true,
-          },
-        },
-        user: true,
-      },
-    });
+    const order = await OrderRepository.findById(env, params.id);
 
     if (!order) {
-      logger.warn('Refund requested for non-existent order', { orderId: params.id, requestId });
       return NextResponse.json(
         {
           success: false,
@@ -76,7 +60,7 @@ export async function POST(
     }
 
     // Check if order already refunded
-    if (order.status === OrderStatus.REFUNDED || order.refundedAt) {
+    if (order.status === 'REFUNDED' || order.refundedAt) {
       return NextResponse.json(
         {
           success: false,
@@ -87,14 +71,7 @@ export async function POST(
     }
 
     // Check if order status allows refund
-    if (!REFUNDABLE_STATUSES.includes(order.status) && order.status !== OrderStatus.CANCELLED) {
-      logger.warn('Refund attempted for non-eligible order status', {
-        orderId: order.id,
-        orderNumber: order.orderNumber,
-        status: order.status,
-        requestId,
-      });
-
+    if (!REFUNDABLE_STATUSES.includes(order.status) && order.status !== 'CANCELLED') {
       return NextResponse.json(
         {
           success: false,
@@ -108,7 +85,6 @@ export async function POST(
     // For user-initiated refunds, verify ownership
     if (initiatedBy === 'user') {
       if (!userId) {
-        logger.warn('User ID required for user-initiated refund', { requestId });
         return NextResponse.json(
           {
             success: false,
@@ -119,12 +95,6 @@ export async function POST(
       }
 
       if (order.userId !== userId) {
-        logger.logSecurityEvent('Unauthorized refund attempt', 'HIGH', {
-          orderId: order.id,
-          orderNumber: order.orderNumber,
-          userId,
-          requestId,
-        });
         return NextResponse.json(
           {
             success: false,
@@ -135,7 +105,7 @@ export async function POST(
       }
 
       // For user-initiated refunds, check if order is delivered
-      if (order.status !== OrderStatus.DELIVERED) {
+      if (order.status !== 'DELIVERED') {
         return NextResponse.json(
           {
             success: false,
@@ -163,81 +133,33 @@ export async function POST(
     }
 
     // Check if COD order (no actual payment to refund)
-    if (order.paymentMethod === 'CASH_ON_DELIVERY' && order.paymentStatus === PaymentStatus.PENDING) {
-      logger.info('Refund requested for COD order (no actual payment)', {
-        orderId: order.id,
-        orderNumber: order.orderNumber,
-        requestId,
-      });
-
+    if (order.paymentMethod === 'CASH_ON_DELIVERY' && order.paymentStatus === 'PENDING') {
       return NextResponse.json(
         {
           success: false,
           error: 'Cannot refund COD order as no payment has been made',
-          message: 'For COD orders that have not been delivered, please use the cancel option',
+          message: 'For COD orders that have not been delivered, please use cancel option',
         },
         { status: 400 }
       );
     }
 
     // Restore product stock if order is being refunded before delivery
-    if (order.status !== OrderStatus.DELIVERED && order.status !== OrderStatus.CANCELLED) {
-      for (const item of order.orderItems) {
-        await db.product.update({
-          where: { id: item.productId },
-          data: {
-            stock: {
-              increment: item.quantity,
-            },
-          },
-        });
-
-        logger.logDatabaseOperation('Update', 'Product', {
-          productId: item.productId,
-          productName: item.product.name,
-          quantityRestored: item.quantity,
-          orderId: order.id,
-          reason: 'refund',
-        });
+    if (order.status !== 'DELIVERED' && order.status !== 'CANCELLED') {
+      const orderItems = await OrderRepository.getItems(env, params.id);
+      for (const item of orderItems) {
+        if (item.variantId) {
+          // Restore variant stock
+          await ProductRepository.updateVariantStock(env, item.variantId, (item.variantStock || 0) + item.quantity);
+        } else {
+          // Restore product stock
+          await ProductRepository.updateProductStock(env, item.productId, (item.productStock || 0) + item.quantity);
+        }
       }
     }
 
     // Process refund
-    const updatedOrder = await db.order.update({
-      where: { id: params.id },
-      data: {
-        status: OrderStatus.REFUNDED,
-        paymentStatus: PaymentStatus.REFUNDED,
-        refundedAt: new Date(),
-        refundedAmount: amount,
-        refundMethod,
-        refundReason: reason,
-      },
-      include: {
-        orderItems: true,
-        user: true,
-      },
-    });
-
-    // Log business event
-    logger.logBusinessEvent('Order refund processed', {
-      orderId: updatedOrder.id,
-      orderNumber: updatedOrder.orderNumber,
-      initiatedBy,
-      amount,
-      reason,
-      requestId,
-    });
-
-    // Log security event for refunds
-    logger.logSecurityEvent('Order refund processed', 'MEDIUM', {
-      orderId: updatedOrder.id,
-      orderNumber: updatedOrder.orderNumber,
-      refundAmount: amount,
-      refundMethod,
-      initiatedBy,
-      requestId,
-    });
+    const updatedOrder = await OrderRepository.refund(env, params.id, amount, refundMethod, reason);
 
     // TODO: Send notification email to customer about refund
     // await sendRefundConfirmationEmail(updatedOrder);
@@ -249,17 +171,6 @@ export async function POST(
     //   amount: Math.round(amount * 100), // Convert to cents
     //   reason: 'requested_by_customer',
     // });
-
-    const duration = Date.now() - startTime;
-    logger.logApiResponse(
-      'POST',
-      `/api/orders/${params.id}/refund`,
-      200,
-      duration,
-      userId,
-      requestId,
-      { orderId: order.id, orderNumber: order.orderNumber, refundAmount: amount }
-    );
 
     return NextResponse.json({
       success: true,
@@ -273,17 +184,7 @@ export async function POST(
       },
     });
   } catch (error) {
-    const duration = Date.now() - startTime;
-    logger.logApiError(
-      'POST',
-      `/api/orders/${params.id}/refund`,
-      error as Error,
-      500,
-      undefined,
-      requestId,
-      { orderId: params.id }
-    );
-
+    console.error('Error processing refund:', error);
     return NextResponse.json(
       {
         success: false,

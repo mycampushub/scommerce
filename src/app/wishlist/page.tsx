@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Heart, Trash2, ShoppingCart, ShoppingBag, ArrowRight, Loader2, CheckSquare, Square } from 'lucide-react'
 import Link from 'next/link'
 import { useCartStore } from '@/lib/store/cart-store'
@@ -40,20 +40,12 @@ export default function WishlistPage() {
   const [movingAll, setMovingAll] = useState(false)
   const [bulkRemoving, setBulkRemoving] = useState(false)
 
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      fetchWishlist()
-    } else {
-      setLoading(false)
-    }
-  }, [isAuthenticated, user])
-
-  const fetchWishlist = async () => {
+  const fetchWishlist = useCallback(async () => {
     try {
       setLoading(true)
       const response = await fetch('/api/wishlist')
       const data = await response.json()
-      
+
       if (data.success) {
         setWishlistItems(data.data)
       }
@@ -63,7 +55,15 @@ export default function WishlistPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      fetchWishlist()
+    } else {
+      setLoading(false)
+    }
+  }, [isAuthenticated, user, fetchWishlist])
 
   const handleRemoveFromWishlist = async (productId: string) => {
     try {

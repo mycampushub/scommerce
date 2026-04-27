@@ -45,16 +45,30 @@ export default function CheckoutPage() {
     country: 'Bangladesh'
   })
 
-  const [paymentMethod, setPaymentMethod] = useState('card')
-  const [cardDetails, setCardDetails] = useState({
-    cardNumber: '',
-    expiryMonth: '',
-    expiryYear: '',
-    cvv: '',
-    nameOnCard: ''
-  })
+  const [paymentMethod, setPaymentMethod] = useState('cod')
+  const [taxRate, setTaxRate] = useState(0.18) // Default fallback
+  const [freeShippingThreshold, setFreeShippingThreshold] = useState(5000) // Default fallback
 
   const total = getTotal()
+
+  // Fetch site settings for tax rate and shipping threshold
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const response = await fetch('/api/settings')
+        const result = await response.json()
+        if (result.success && result.data) {
+          setTaxRate(result.data.taxRate || 0.18)
+          setFreeShippingThreshold(result.data.freeShippingThreshold || 5000)
+        }
+      } catch (error) {
+        console.error('Error fetching settings:', error)
+        // Keep default values on error
+      }
+    }
+
+    fetchSettings()
+  }, [])
 
   // Calculate shipping based on division
   const calculateShippingCost = async (division: string) => {
@@ -179,33 +193,6 @@ export default function CheckoutPage() {
     toast.success('Shipping information saved')
   }
 
-  const handlePaymentSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    // Validate card details if card payment selected
-    if (paymentMethod === 'card') {
-      if (!cardDetails.cardNumber || !cardDetails.cvv || !cardDetails.expiryMonth || !cardDetails.expiryYear) {
-        toast.error('Please fill in all card details')
-        return
-      }
-      
-      // Basic card number validation (16 digits)
-      const cardNumberDigits = cardDetails.cardNumber.replace(/\D/g, '')
-      if (cardNumberDigits.length < 13 || cardNumberDigits.length > 19) {
-        toast.error('Please enter a valid card number')
-        return
-      }
-      
-      // CVV validation
-      if (cardDetails.cvv.length < 3) {
-        toast.error('Please enter a valid CVV')
-        return
-      }
-    }
-    
-    await handlePlaceOrder()
-  }
-
   const handlePlaceOrder = async () => {
     // Double-check stock before placing order
     const stockOk = await checkStockStatus()
@@ -219,7 +206,7 @@ export default function CheckoutPage() {
       // Calculate order totals
       const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
       const shipping = shippingCost
-      const tax = subtotal * 0.18 // 18% tax rate
+      const tax = subtotal * taxRate // Dynamic tax rate from settings
       const discount = 0 // Can be extended to include promo codes
       const total = subtotal + shipping + tax - discount
       
@@ -524,19 +511,6 @@ export default function CheckoutPage() {
 
                   {/* Payment Options */}
                   <div className="space-y-4 mb-6">
-                    <label className={`flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-colors ${paymentMethod === 'card' ? 'border-pink-600 bg-pink-50' : 'border-gray-200'}`}>
-                      <input
-                        type="radio"
-                        name="payment"
-                        checked={paymentMethod === 'card'}
-                        onChange={() => setPaymentMethod('card')}
-                        className="w-5 h-5 text-pink-600"
-                      />
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold">Credit/Debit Card</span>
-                      </div>
-                    </label>
-
                     <label className={`flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-colors ${paymentMethod === 'cod' ? 'border-pink-600 bg-pink-50' : 'border-gray-200'}`}>
                       <input
                         type="radio"
@@ -549,119 +523,10 @@ export default function CheckoutPage() {
                         <span className="font-semibold">Cash on Delivery</span>
                       </div>
                     </label>
-
-                    <label className={`flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-colors ${paymentMethod === 'upi' ? 'border-pink-600 bg-pink-50' : 'border-gray-200'}`}>
-                      <input
-                        type="radio"
-                        name="payment"
-                        checked={paymentMethod === 'upi'}
-                        onChange={() => setPaymentMethod('upi')}
-                        className="w-5 h-5 text-pink-600"
-                      />
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold">UPI Payment</span>
-                      </div>
-                    </label>
                   </div>
 
-                  {/* Card Details */}
-                  {paymentMethod === 'card' && (
-                    <form onSubmit={handlePaymentSubmit}>
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Card Number <span className="text-red-500">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            value={cardDetails.cardNumber}
-                            onChange={(e) => setCardDetails({ ...cardDetails, cardNumber: e.target.value })}
-                            placeholder="1234 5678 9012 3456"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                            maxLength={19}
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Name on Card <span className="text-red-500">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            value={cardDetails.nameOnCard}
-                            onChange={(e) => setCardDetails({ ...cardDetails, nameOnCard: e.target.value })}
-                            placeholder="JOHN DOE"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Month</label>
-                            <select
-                              value={cardDetails.expiryMonth}
-                              onChange={(e) => setCardDetails({ ...cardDetails, expiryMonth: e.target.value })}
-                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                            >
-                              <option value="">MM</option>
-                              {[...Array(12)].map((_, i) => (
-                                <option key={i} value={String(i + 1).padStart(2, '0')}>
-                                  {String(i + 1).padStart(2, '0')}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Year</label>
-                            <select
-                              value={cardDetails.expiryYear}
-                              onChange={(e) => setCardDetails({ ...cardDetails, expiryYear: e.target.value })}
-                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                            >
-                              <option value="">YY</option>
-                              {[...Array(10)].map((_, i) => (
-                                <option key={i} value={String(new Date().getFullYear() + i)}>
-                                  {new Date().getFullYear() + i}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">CVV</label>
-                            <input
-                              type="text"
-                              value={cardDetails.cvv}
-                              onChange={(e) => setCardDetails({ ...cardDetails, cvv: e.target.value })}
-                              placeholder="123"
-                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                              maxLength={4}
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex gap-4 mt-6">
-                        <button
-                          type="button"
-                          onClick={() => setStep(1)}
-                          className="flex-1 py-4 border border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
-                        >
-                          Back
-                        </button>
-                        <button
-                          type="submit"
-                          disabled={isProcessing}
-                          className="flex-1 bg-pink-600 text-white py-4 rounded-xl font-semibold hover:bg-pink-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-                        >
-                          {isProcessing ? 'Processing...' : 'Place Order'}
-                          {!isProcessing && <ArrowRight className="w-5 h-5" />}
-                        </button>
-                      </div>
-                    </form>
-                  )}
-
-                  {/* COD/UPI Direct Submit */}
-                  {(paymentMethod === 'cod' || paymentMethod === 'upi') && (
+                  {/* COD Direct Submit */}
+                  {paymentMethod === 'cod' && (
                     <div className="flex gap-4 mt-6">
                       <button
                         onClick={() => setStep(1)}
@@ -764,34 +629,34 @@ export default function CheckoutPage() {
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Tax (18%)</span>
-                    <span className="font-semibold">{formatCurrency(total * 0.18)}</span>
+                    <span className="text-gray-600">Tax ({(taxRate * 100).toFixed(0)}%)</span>
+                    <span className="font-semibold">{formatCurrency(total * taxRate)}</span>
                   </div>
                   <div className="border-t border-gray-200 pt-3 flex justify-between">
                     <span className="text-lg font-bold text-gray-900">Total</span>
-                    <span className="text-lg font-bold text-pink-600">{formatCurrency(total + (total * 0.18) + shippingCost)}</span>
+                    <span className="text-lg font-bold text-pink-600">{formatCurrency(total + (total * taxRate) + shippingCost)}</span>
                   </div>
                 </div>
 
                 {/* Free Shipping Progress */}
-                {shippingCost > 0 && total < 5000 && (
+                {shippingCost > 0 && total < freeShippingThreshold && (
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium text-blue-800">
                         Free shipping progress
                       </span>
                       <span className="text-sm text-blue-600">
-                        {formatCurrency(total)} / ৳5,000
+                        {formatCurrency(total)} / {formatCurrency(freeShippingThreshold)}
                       </span>
                     </div>
                     <div className="w-full bg-blue-200 rounded-full h-2">
                       <div
                         className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${Math.min((total / 5000) * 100, 100)}%` }}
+                        style={{ width: `${Math.min((total / freeShippingThreshold) * 100, 100)}%` }}
                       ></div>
                     </div>
                     <p className="text-xs text-blue-600 mt-2">
-                      Add {formatCurrency(5000 - total)} more for free shipping!
+                      Add {formatCurrency(freeShippingThreshold - total)} more for free shipping!
                     </p>
                   </div>
                 )}

@@ -284,6 +284,40 @@ export default function ProductPage() {
   const [reviewFormOpen, setReviewFormOpen] = useState(false)
   const [hasPurchased, setHasPurchased] = useState(false)
 
+  // Fetch related products
+  async function fetchRelatedProducts(categoryId: string, currentProductId: string) {
+    try {
+      const response = await fetch(`/api/products?limit=8`)
+      if (response.ok) {
+        const products = await response.json()
+        // Filter products from same category, excluding current product
+        const related = products
+          .filter((p: Product) => p.categoryId === categoryId && p.id !== currentProductId)
+          .slice(0, 4)
+        setRelatedProducts(related)
+      }
+    } catch (err) {
+      console.error('Error fetching related products:', err)
+    }
+  }
+
+  // Fetch recommended products
+  async function fetchRecommendedProducts(currentProductId: string, categoryId?: string) {
+    try {
+      const response = await fetch(
+        `/api/products/recommendations?productId=${currentProductId}&categoryId=${categoryId || ''}&limit=8&type=mixed`
+      )
+      if (response.ok) {
+        const result = await response.json()
+        if (result.success && result.data.products) {
+          setRecommendedProducts(result.data.products.slice(0, 4))
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching recommended products:', err)
+    }
+  }
+
   // Fetch product data
   useEffect(() => {
     async function fetchProduct() {
@@ -353,40 +387,6 @@ export default function ProductPage() {
       })
     }
   }, [product, addProduct])
-
-  // Fetch related products
-  async function fetchRelatedProducts(categoryId: string, currentProductId: string) {
-    try {
-      const response = await fetch(`/api/products?limit=8`)
-      if (response.ok) {
-        const products = await response.json()
-        // Filter products from same category, excluding current product
-        const related = products
-          .filter((p: Product) => p.categoryId === categoryId && p.id !== currentProductId)
-          .slice(0, 4)
-        setRelatedProducts(related)
-      }
-    } catch (err) {
-      console.error('Error fetching related products:', err)
-    }
-  }
-
-  // Fetch recommended products
-  async function fetchRecommendedProducts(currentProductId: string, categoryId?: string) {
-    try {
-      const response = await fetch(
-        `/api/products/recommendations?productId=${currentProductId}&categoryId=${categoryId || ''}&limit=8&type=mixed`
-      )
-      if (response.ok) {
-        const result = await response.json()
-        if (result.success && result.data.products) {
-          setRecommendedProducts(result.data.products.slice(0, 4))
-        }
-      }
-    } catch (err) {
-      console.error('Error fetching recommended products:', err)
-    }
-  }
 
   // Handle variant selection
   const handleVariantSelection = (size: string, color: string, material: string) => {

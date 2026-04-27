@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
 import bcrypt from 'bcryptjs'
 import { verifyToken } from '@/lib/jwt'
 import { changePasswordSchema } from '@/lib/validations'
 import { rateLimit, createRateLimitResponse, getClientIp } from '@/lib/rate-limit'
+import { UserRepository } from '@/db/user.repository'
+import { getEnv } from '@/lib/cloudflare'
+
+export const runtime = 'edge';
 
 export async function POST(request: NextRequest) {
+  const env = getEnv(request)
   const clientIp = getClientIp(request)
   const rateLimitResult = rateLimit('change-password:' + clientIp, {
     maxRequests: 5,
@@ -33,10 +37,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const user = await db.user.findUnique({
-      where: { id: decoded.userId },
-      select: { id: true, email: true, password: true },
-    })
+    const user = await UserRepository.findById(env, decoded.userId)
 
     if (!user) {
       return NextResponse.json(
@@ -78,10 +79,7 @@ export async function POST(request: NextRequest) {
 
     const hashedNewPassword = await bcrypt.hash(newPassword, 10)
 
-    await db.user.update({
-      where: { id: user.id },
-      data: { password: hashedNewPassword, updatedAt: new Date() },
-    })
+    await UserRepository.update(env, user.id, { password: hashedNewPassword })
 
     return NextResponse.json({
       success: true,

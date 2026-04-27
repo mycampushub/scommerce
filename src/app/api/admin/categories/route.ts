@@ -1,23 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { getEnv } from '@/lib/cloudflare'
+import { CategoryRepository } from '@/db/category.repository'
+import { queryAll, count, numberToBool } from '@/db/db'
+
+export const runtime = 'edge';
 
 export async function GET(request: NextRequest) {
   try {
+    const env = getEnv(request)
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search') || ''
 
-    let categories = await db.category.findMany({
-      include: {
-        _count: {
-          select: {
-            products: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    })
+    let categories = await CategoryRepository.findAll(env)
 
     if (search) {
       categories = categories.filter(
@@ -27,10 +21,21 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Add product counts
+    const categoriesWithCounts: any[] = []
+    for (const category of categories) {
+      const productCount = await count(env, 'products', 'WHERE categoryId = ?', category.id)
+      categoriesWithCounts.push({
+        ...category,
+        _count: { products: productCount },
+        isActive: numberToBool(category.isActive as number)
+      })
+    }
+
     return NextResponse.json({
       success: true,
-      data: categories,
-      total: categories.length,
+      data: categoriesWithCounts,
+      total: categoriesWithCounts.length,
     })
   } catch (error) {
     console.error('Error fetching categories:', error)
@@ -46,21 +51,20 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const env = getEnv(request)
     const body = await request.json()
 
-    const category = await db.category.create({
-      data: {
-        name: body.name,
-        slug: body.slug,
-        description: body.description,
-        image: body.image,
-        isActive: body.isActive ?? true,
-      },
+    const category = await CategoryRepository.create(env, {
+      name: body.name,
+      slug: body.slug,
+      description: body.description,
+      image: body.image,
+      isActive: body.isActive ?? true,
     })
 
     return NextResponse.json({
       success: true,
-      data: category,
+      data: { ...category, isActive: numberToBool(category.isActive as number) },
     })
   } catch (error) {
     console.error('Error creating category:', error)

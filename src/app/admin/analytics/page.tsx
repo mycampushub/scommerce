@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -47,10 +48,6 @@ export default function AnalyticsPage() {
   const [analytics, setAnalytics] = useState<any>(null)
   const [period, setPeriod] = useState('30')
 
-  useEffect(() => {
-    fetchAnalytics()
-  }, [period])
-
   const fetchAnalytics = async () => {
     try {
       setLoading(true)
@@ -66,6 +63,10 @@ export default function AnalyticsPage() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    fetchAnalytics()
+  }, [period])
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-BD', {
@@ -114,10 +115,7 @@ export default function AnalyticsPage() {
       a.click()
       URL.revokeObjectURL(url)
 
-      toast({
-        title: 'Success',
-        description: 'Analytics exported to CSV',
-      })
+      toast.success('Analytics exported to CSV')
       return
     }
 

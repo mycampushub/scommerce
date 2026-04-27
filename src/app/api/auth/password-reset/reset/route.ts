@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { resetPasswordSchema } from '@/lib/validations';
 import bcrypt from 'bcryptjs';
+import { UserRepository } from '@/db/user.repository';
+import { getEnv } from '@/lib/cloudflare';
+
+export const runtime = 'edge';
 
 export async function POST(request: NextRequest) {
+  const env = getEnv(request)
   try {
     const body = await request.json();
 
@@ -23,14 +27,7 @@ export async function POST(request: NextRequest) {
     const { token, newPassword } = validation.data;
 
     // Find user with valid reset token
-    const user = await db.user.findFirst({
-      where: {
-        resetToken: token,
-        resetTokenExpiry: {
-          gt: new Date(),
-        },
-      },
-    });
+    const user = await UserRepository.findByResetToken(env, token);
 
     if (!user) {
       logger.warn('Password reset attempted with invalid or expired token', { token });
@@ -47,13 +44,10 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     // Update user password and clear reset token
-    await db.user.update({
-      where: { id: user.id },
-      data: {
-        password: hashedPassword,
-        resetToken: null,
-        resetTokenExpiry: null,
-      },
+    await UserRepository.update(env, user.id, {
+      password: hashedPassword,
+      resetToken: null,
+      resetTokenExpiry: null,
     });
 
     // Log the password reset

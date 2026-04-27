@@ -1,76 +1,92 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
-import { verifyAdmin } from '@/lib/auth-utils'
+import { getEnv } from '@/lib/cloudflare'
+import { queryAll, count, boolToNumber, numberToBool, parseJSON } from '@/db/db'
+
+export const runtime = 'edge';
 
 // GET /api/admin/reviews - List all reviews with filtering
 export async function GET(request: NextRequest) {
   try {
-    // Verify admin access
-    const authResult = await verifyAdmin(request)
-    if (!authResult.success) {
-      return NextResponse.json(
-        { error: authResult.error },
-        { status: authResult.error === 'Authentication required' ? 401 : 403 }
-      )
-    }
-
+    const env = getEnv(request)
     const { searchParams } = new URL(request.url)
-    const status = searchParams.get('status') // pending, approved, rejected, all
+    const status = searchParams.get('status') // pending, approved, all
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '10')
     const productId = searchParams.get('productId')
 
-    const skip = (page - 1) * limit
+    const offset = (page - 1) * limit
 
-    // Build where clause
-    const where: any = {}
-    
+    // Build WHERE clause dynamically
+    const conditions: string[] = []
+    const params: any[] = []
+
     if (status && status !== 'all') {
       if (status === 'pending') {
-        where.isApproved = false
+        conditions.push('pr.isApproved = 0')
       } else if (status === 'approved') {
-        where.isApproved = true
+        conditions.push('pr.isApproved = 1')
       }
-      // Note: We don't have a rejected status field, so we'll just show pending/approved
     }
-    
+
     if (productId) {
-      where.productId = productId
+      conditions.push('pr.productId = ?')
+      params.push(productId)
     }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
 
     // Get total count
-    const total = await db.productReview.count({ where })
+    const total = await count(
+      env,
+      'product_reviews pr',
+      whereClause,
+      ...params
+    )
 
-    // Get reviews
-    const reviews = await db.productReview.findMany({
-      where,
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        product: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            image: true,
-          },
-        },
+    // Get reviews with user and product data
+    const reviews = await queryAll<any>(
+      env,
+      `SELECT pr.*, u.id as userId, u.name as userName, u.email as userEmail,
+              p.id as productId, p.name as productName, p.slug as productSlug, p.images as productImages
+       FROM product_reviews pr
+       JOIN users u ON pr.userId = u.id
+       JOIN products p ON pr.productId = p.id
+       ${whereClause}
+       ORDER BY pr.createdAt DESC
+       LIMIT ? OFFSET ?`,
+      ...params,
+      limit,
+      offset
+    )
+
+    // Parse JSON fields and convert booleans
+    const reviewsWithParsedData = reviews.map((r: any) => ({
+      id: r.id,
+      userId: r.userId,
+      productId: r.productId,
+      rating: r.rating,
+      title: r.title,
+      comment: r.comment,
+      isApproved: typeof r.isApproved === 'boolean' ? r.isApproved : numberToBool(r.isApproved),
+      isVerified: typeof r.isVerified === 'boolean' ? r.isVerified : numberToBool(r.isVerified),
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+      user: {
+        id: r.userId,
+        name: r.userName,
+        email: r.userEmail,
       },
-      orderBy: {
-        createdAt: 'desc',
+      product: {
+        id: r.productId,
+        name: r.productName,
+        slug: r.productSlug,
+        images: parseJSON<string[]>(r.productImages) || [],
       },
-      skip,
-      take: limit,
-    })
+    }))
 
     return NextResponse.json({
       success: true,
-      data: reviews,
+      data: reviewsWithParsedData,
       pagination: {
         page,
         limit,

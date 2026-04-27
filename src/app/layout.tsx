@@ -1,18 +1,19 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "sonner";
 import { OrganizationStructuredData } from "@/components/product-structured-data";
 import { AnalyticsScripts, SearchConsoleVerification } from "@/components/analytics-scripts";
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
+import { CacheProvider } from "@/components/providers/CacheProvider";
 
-const geistSans = Geist({
+const inter = Inter({
   variable: "--font-geist-sans",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
+const jetbrainsMono = JetBrains_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
@@ -71,6 +72,14 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const securityHeaders = {
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'X-XSS-Protection': '1; mode=block',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+  };
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -81,15 +90,20 @@ export default function RootLayout({
           logo="/logo.svg"
           description="Modern e-commerce platform for fashion and lifestyle products"
         />
+        {Object.entries(securityHeaders).map(([key, value]) => (
+          <meta key={key} httpEquiv={key} content={value} />
+        ))}
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
+        className={`${inter.variable} ${jetbrainsMono.variable} antialiased bg-background text-foreground`}
       >
-        <AnalyticsScripts />
-        <ServiceWorkerRegistration />
-        {children}
-        <Toaster />
-        <SonnerToaster position="bottom-right" />
+        <CacheProvider>
+          <AnalyticsScripts />
+          <ServiceWorkerRegistration />
+          {children}
+          <Toaster />
+          <SonnerToaster position="bottom-right" />
+        </CacheProvider>
       </body>
     </html>
   );

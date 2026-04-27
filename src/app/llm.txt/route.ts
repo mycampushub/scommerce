@@ -1,46 +1,68 @@
 import { NextResponse } from 'next/server'
-import { db } from '@/lib/db'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://yourdomain.com'
 
+export const runtime = 'nodejs';
+
 export async function GET() {
   try {
-    // Get site statistics
-    const [totalProducts, activeCategories, featuredProducts] = await Promise.all([
-      db.product.count({ where: { isActive: true } }),
-      db.category.count({ where: { isActive: true } }),
-      db.product.findMany({
-        where: { isActive: true, isFeatured: true },
-        take: 10,
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          description: true,
-          price: true,
-          basePrice: true,
-          comparePrice: true,
-          discount: true,
-          rating: true,
-        },
-      }),
-    ])
+    // Only fetch from database if DATABASE_URL is available
+    // This allows graceful degradation during static build when database is not available
+    let totalProducts = 0
+    let activeCategories = 0
+    let featuredProducts: any[] = []
+    let topCategories: any[] = []
 
-    // Get top categories
-    const topCategories = await db.category.findMany({
-      where: { isActive: true },
-      include: {
-        _count: {
-          select: { products: true },
-        },
-      },
-      orderBy: {
-        products: {
-          _count: 'desc',
-        },
-      },
-      take: 8,
-    })
+    if (process.env.DATABASE_URL) {
+      try {
+        // Dynamic import to avoid build-time errors
+        const { db } = await import('@/db/db')
+
+        // Get site statistics
+        const stats = await Promise.all([
+          db.product.count({ where: { isActive: true } }),
+          db.category.count({ where: { isActive: true } }),
+          db.product.findMany({
+            where: { isActive: true, isFeatured: true },
+            take: 10,
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              description: true,
+              price: true,
+              basePrice: true,
+              comparePrice: true,
+              discount: true,
+              rating: true,
+            },
+          }),
+        ])
+
+        totalProducts = stats[0]
+        activeCategories = stats[1]
+        featuredProducts = stats[2]
+
+        // Get top categories
+        topCategories = await db.category.findMany({
+          where: { isActive: true },
+          include: {
+            _count: {
+              select: { products: true },
+            },
+          },
+          orderBy: {
+            products: {
+              _count: 'desc',
+            },
+          },
+          take: 8,
+        })
+      } catch (dbError) {
+        console.error('Database error in llm.txt:', dbError)
+        // Continue with empty data if database query fails
+      }
+    }
 
     // Build the llm.txt content
     const content = `# AI-Readable Site Information
@@ -61,17 +83,17 @@ export async function GET() {
 - **Service Areas**: Bangladesh (nationwide delivery)
 
 ## Key Statistics
-- Total Active Products: ${totalProducts}
-- Active Categories: ${activeCategories}
+- Total Active Products: ${totalProducts || 'N/A'}
+- Active Categories: ${activeCategories || 'N/A'}
 - Featured Products: ${featuredProducts.length}
 
-## Product Categories
+${topCategories.length > 0 ? `## Product Categories
 ${topCategories.map(cat => `- ${cat.name}: ${cat._count.products} products`).join('\n')}
 
 ## Featured Products
 ${featuredProducts.map(p => {
   const price = p.basePrice || p.price
-  const displayPrice = p.comparePrice 
+  const displayPrice = p.comparePrice
     ? `৳${price.toFixed(0)} (was ৳${p.comparePrice.toFixed(0)})`
     : `৳${price.toFixed(0)}`
   return `- **${p.name}** (${displayPrice})
@@ -80,7 +102,7 @@ ${featuredProducts.map(p => {
   ${p.description ? `- Description: ${p.description.substring(0, 150)}...` : ''}`
 }).join('\n\n')}
 
-## Main Sections
+` : ''}## Main Sections
 - **Shop**: ${SITE_URL}/shop - Browse all products with filters
 - **Categories**: ${SITE_URL}/category/[slug] - Browse by category
 - **Collections**: ${SITE_URL}/collections/[type] - Curated product collections

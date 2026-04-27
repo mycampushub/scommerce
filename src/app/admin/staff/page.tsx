@@ -97,10 +97,6 @@ export default function StaffPage() {
     address: '',
   })
 
-  useEffect(() => {
-    fetchStaff()
-  }, [roleFilter])
-
   const fetchStaff = async () => {
     try {
       setLoading(true)
@@ -127,6 +123,10 @@ export default function StaffPage() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    fetchStaff()
+  }, [roleFilter])
 
   const openAddModal = () => {
     setAddFormData({

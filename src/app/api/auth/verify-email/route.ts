@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { getEnv } from '@/lib/cloudflare'
+import { UserRepository } from '@/db/user.repository'
+import { queryFirst } from '@/db/db'
+import { numberToBool } from '@/db/db'
+
+export const runtime = 'edge';
 
 export async function GET(request: NextRequest) {
+  const env = getEnv(request)
   try {
     const searchParams = request.nextUrl.searchParams
     const token = searchParams.get('token')
@@ -15,9 +21,11 @@ export async function GET(request: NextRequest) {
     }
 
     // Find user by email token
-    const user = await db.user.findFirst({
-      where: { emailToken: token },
-    })
+    const user = await queryFirst(
+      env,
+      'SELECT * FROM users WHERE emailToken = ? LIMIT 1',
+      token
+    )
 
     if (!user) {
       return NextResponse.json(
@@ -27,7 +35,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Check if already verified
-    if (user.emailVerified) {
+    if (numberToBool(user.emailVerified)) {
       return NextResponse.json(
         { success: false, error: 'Email is already verified' },
         { status: 400 }
@@ -35,12 +43,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Update user: mark as verified and clear token
-    await db.user.update({
-      where: { id: user.id },
-      data: {
-        emailVerified: true,
-        emailToken: null,
-      },
+    await UserRepository.update(env, user.id, {
+      emailVerified: true,
+      emailToken: null,
     })
 
     return NextResponse.json({

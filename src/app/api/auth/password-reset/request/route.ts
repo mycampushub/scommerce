@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { requestPasswordResetSchema } from '@/lib/validations';
-import crypto from 'crypto';
+import { UserRepository } from '@/db/user.repository';
+import { getEnv } from '@/lib/cloudflare';
+import { generateId } from '@/db/db';
 
 // Token expiry time (1 hour)
 const TOKEN_EXPIRY_HOURS = 1;
 
+export const runtime = 'edge';
+
 export async function POST(request: NextRequest) {
+  const env = getEnv(request)
   try {
     const body = await request.json();
 
@@ -26,9 +30,7 @@ export async function POST(request: NextRequest) {
     const { email } = validation.data;
 
     // Find user by email
-    const user = await db.user.findUnique({
-      where: { email },
-    });
+    const user = await UserRepository.findByEmail(env, email);
 
     // Always return success to prevent email enumeration
     // But only actually send email if user exists
@@ -48,17 +50,14 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Generate secure random token
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    const resetTokenExpiry = new Date(Date.now() + TOKEN_EXPIRY_HOURS * 60 * 60 * 1000);
+    // Generate secure random token (Edge Runtime compatible)
+    const resetToken = generateId();
+    const resetTokenExpiry = new Date(Date.now() + TOKEN_EXPIRY_HOURS * 60 * 60 * 1000).toISOString();
 
     // Update user with reset token
-    await db.user.update({
-      where: { id: user.id },
-      data: {
-        resetToken,
-        resetTokenExpiry,
-      },
+    await UserRepository.update(env, user.id, {
+      resetToken,
+      resetTokenExpiry,
     });
 
     // Log the reset request

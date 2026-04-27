@@ -1,11 +1,14 @@
 /**
- * JWT Authentication Utilities
+ * JWT Authentication Utilities (Edge Runtime compatible)
  */
 
-import jwt from 'jsonwebtoken';
+import { SignJWT, jwtVerify } from 'jose';
 import bcrypt from 'bcryptjs';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.JWT_SECRET || 'your-secret-key-change-in-production-min-32-chars'
+);
+
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
 export interface JWTPayload {
@@ -14,22 +17,11 @@ export interface JWTPayload {
   role?: string;
 }
 
-/**
- * Hash a password using bcrypt
- * @param password - Plain text password
- * @returns Hashed password
- */
 export async function hashPassword(password: string): Promise<string> {
   const salt = await bcrypt.genSalt(10);
   return bcrypt.hash(password, salt);
 }
 
-/**
- * Compare a plain text password with a hashed password
- * @param password - Plain text password
- * @param hashedPassword - Hashed password
- * @returns True if passwords match
- */
 export async function verifyPassword(
   password: string,
   hashedPassword: string
@@ -37,62 +29,48 @@ export async function verifyPassword(
   return bcrypt.compare(password, hashedPassword);
 }
 
-/**
- * Generate a JWT token
- * @param payload - Token payload
- * @returns JWT token
- */
-export function generateToken(payload: JWTPayload): string {
-  return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: JWT_EXPIRES_IN,
-  });
+export async function generateToken(payload: JWTPayload): Promise<string> {
+  const token = await new SignJWT(payload)
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime(JWT_EXPIRES_IN)
+    .sign(JWT_SECRET);
+
+  return token;
 }
 
-/**
- * Verify and decode a JWT token
- * @param token - JWT token
- * @returns Decoded payload or null if invalid
- */
-export function verifyToken(token: string): JWTPayload | null {
+export async function verifyToken(token: string): Promise<JWTPayload | null> {
   try {
-    return jwt.verify(token, JWT_SECRET) as JWTPayload;
+    const { payload } = await jwtVerify(token, JWT_SECRET);
+    return payload as JWTPayload;
   } catch (error) {
+    console.error('Token verification failed:', error);
     return null;
   }
 }
 
-/**
- * Extract token from Authorization header
- * @param authHeader - Authorization header value
- * @returns Token or null if not found
- */
+export async function decodeToken(token: string): JWTPayload | null {
+  try {
+    // Split token and decode payload (base64url)
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+
+    const payload = parts[1];
+    // Replace base64url characters with base64
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+    // Add padding if needed
+    const paddedBase64 = base64 + '='.repeat((4 - base64.length % 4) % 4);
+
+    return JSON.parse(Buffer.from(paddedBase64, 'base64').toString());
+  } catch (error) {
+    console.error('Token decode failed:', error);
+    return null;
+  }
+}
+
 export function extractTokenFromHeader(authHeader: string | null): string | null {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return null;
   }
   return authHeader.substring(7);
-}
-
-/**
- * Generate a refresh token (longer expiration)
- * @param payload - Token payload
- * @returns Refresh token
- */
-export function generateRefreshToken(payload: JWTPayload): string {
-  return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: '30d',
-  });
-}
-
-/**
- * Decode token without verification (for getting data only)
- * @param token - JWT token
- * @returns Decoded payload or null
- */
-export function decodeToken(token: string): JWTPayload | null {
-  try {
-    return jwt.decode(token) as JWTPayload;
-  } catch (error) {
-    return null;
-  }
 }

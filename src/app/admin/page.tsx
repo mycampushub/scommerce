@@ -55,14 +55,6 @@ export default function AdminDashboard() {
   const [analytics, setAnalytics] = useState<any>(null)
   const [period, setPeriod] = useState('30')
 
-  useEffect(() => {
-    fetchDashboardData()
-  }, [])
-
-  useEffect(() => {
-    fetchAnalyticsData()
-  }, [period])
-
   const fetchDashboardData = async () => {
     try {
       setLoading(true)
@@ -96,6 +88,14 @@ export default function AdminDashboard() {
       console.error('Error fetching analytics:', err)
     }
   }
+
+  useEffect(() => {
+    fetchDashboardData()
+  }, [])
+
+  useEffect(() => {
+    fetchAnalyticsData()
+  }, [period])
 
   const handleExport = async (type: 'sales' | 'orders' | 'products') => {
     let data: any[] = []
