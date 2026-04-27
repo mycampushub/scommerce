@@ -3,7 +3,7 @@
  * Protects against XSS attacks by sanitizing user input
  */
 
-import * as DOMPurify from 'dompurify';
+import DOMPurify from 'dompurify';
 
 /**
  * Sanitize HTML content to prevent XSS attacks
