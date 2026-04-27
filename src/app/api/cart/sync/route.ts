@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyToken, extractTokenFromHeader } from '@/lib/jwt'
+import { verifyToken, extractTokenFromHeader } from '@/lib/auth'
 import { getEnv } from '@/lib/cloudflare'
 import { CartRepository } from '@/db/cart.repository'
 import { UserRepository } from '@/db/user.repository'

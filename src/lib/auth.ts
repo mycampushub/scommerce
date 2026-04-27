@@ -5,11 +5,14 @@
 import { SignJWT, jwtVerify } from 'jose';
 import bcrypt from 'bcryptjs';
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'your-secret-key-change-in-production-min-32-chars'
-);
+function getJWTSecret(): Uint8Array {
+  const secret = process.env.JWT_SECRET || 'your-secret-key-change-in-production-min-32-chars';
+  return new TextEncoder().encode(secret);
+}
 
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+function getJWTExpiresIn(): string {
+  return process.env.JWT_EXPIRES_IN || '7d';
+}
 
 export interface JWTPayload {
   userId: string;
@@ -31,17 +34,22 @@ export async function verifyPassword(
 }
 
 export async function generateToken(payload: JWTPayload): Promise<string> {
+  const JWT_SECRET = getJWTSecret();
   const token = await new SignJWT(payload)
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
-    .setExpirationTime(JWT_EXPIRES_IN)
+    .setExpirationTime(getJWTExpiresIn())
     .sign(JWT_SECRET);
 
   return token;
 }
 
+// Alias for backward compatibility
+export const createToken = generateToken;
+
 export async function verifyToken(token: string): Promise<JWTPayload | null> {
   try {
+    const JWT_SECRET = getJWTSecret();
     const { payload } = await jwtVerify(token, JWT_SECRET);
     return payload as JWTPayload;
   } catch (error) {

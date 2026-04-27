@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { createToken } from '@/lib/jwt';
+import { createToken } from '@/lib/auth';
 import { rateLimit, createRateLimitResponse, getClientIp } from '@/lib/rate-limit';
 import { loginSchema } from '@/lib/validations';
 import { UserRepository } from '@/db/user.repository';
