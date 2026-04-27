@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
         id: product.id,
         name: product.name,
         slug: product.slug,
-        image: images[0] || null,
+        image: images && images.length > 0 ? images[0] : null,
         price: product.basePrice || product.price,
         comparePrice: product.comparePrice,
         category: product.categoryName || null,

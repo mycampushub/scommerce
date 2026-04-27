@@ -33,17 +33,21 @@ export async function GET(request: NextRequest) {
 
     const customers = users.filter((user) => user.role !== 'admin')
 
-    // Add order counts and convert booleans
+    // Transform customers with order counts and convert booleans
+    const transformedCustomers: any[] = []
     for (const customer of customers) {
       const orderCount = await count(env, 'orders', 'WHERE userId = ?', customer.id)
-      customer._count = { orders: orderCount }
-      customer.emailVerified = numberToBool(customer.emailVerified)
+      transformedCustomers.push({
+        ...customer,
+        _count: { orders: orderCount },
+        emailVerified: numberToBool(customer.emailVerified as number | null | undefined),
+      })
     }
 
     return NextResponse.json({
       success: true,
-      data: customers,
-      total: customers.length,
+      data: transformedCustomers,
+      total: transformedCustomers.length,
     })
   } catch (error) {
     console.error('Error fetching customers:', error)
@@ -62,17 +66,22 @@ export async function POST(request: NextRequest) {
     const env = getEnv(request)
     const body = await request.json()
 
+    // Generate a random password for the customer
+    const generatedPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8)
+
     const customer = await UserRepository.create(env, {
       email: body.email,
       name: body.name,
+      password: generatedPassword,
       role: 'user' as any,
     })
 
-    customer.emailVerified = numberToBool(customer.emailVerified)
-
     return NextResponse.json({
       success: true,
-      data: customer,
+      data: {
+        ...customer,
+        emailVerified: numberToBool(customer.emailVerified as number | null | undefined),
+      },
     })
   } catch (error) {
     console.error('Error creating customer:', error)

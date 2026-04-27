@@ -1,5 +1,7 @@
 import { Env } from './types';
 
+export type { Env };
+
 /**
  * Generate a unique ID (replaces Prisma's @default(cuid()))
  */

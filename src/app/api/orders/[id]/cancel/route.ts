@@ -84,11 +84,21 @@ export async function POST(
     const orderItems = await OrderRepository.getItems(env, params.id);
     for (const item of orderItems) {
       if (item.variantId) {
-        // Restore variant stock
-        await ProductRepository.updateVariantStock(env, item.variantId, (item.variantStock || 0) + item.quantity);
+        // Get current variant stock
+        const variant = await execute(
+          env,
+          'UPDATE product_variants SET stock = stock + ? WHERE id = ?',
+          item.quantity,
+          item.variantId
+        );
       } else {
-        // Restore product stock
-        await ProductRepository.updateProductStock(env, item.productId, (item.productStock || 0) + item.quantity);
+        // Get current product stock
+        await execute(
+          env,
+          'UPDATE products SET stock = stock + ? WHERE id = ?',
+          item.quantity,
+          item.productId
+        );
       }
     }
 

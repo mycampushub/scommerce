@@ -165,7 +165,21 @@ export async function POST(request: NextRequest) {
     )
 
     // Fetch the created review with user details
-    const review = await queryFirst(
+    const review = await queryFirst<{
+      id: string;
+      productId: string;
+      userId: string;
+      userName: string | null;
+      userEmail: string | null;
+      rating: number;
+      title: string | null;
+      comment: string | null;
+      isVerified: number;
+      isApproved: number;
+      createdAt: string;
+      updatedAt: string;
+      [key: string]: any;
+    }>(
       env,
       `SELECT pr.*, u.id as userId, u.name as userName, u.email as userEmail
        FROM product_reviews pr

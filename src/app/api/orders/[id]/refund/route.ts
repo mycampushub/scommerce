@@ -3,6 +3,7 @@ import { getEnv } from '@/lib/cloudflare';
 import { OrderRepository } from '@/db/order.repository';
 import { ProductRepository } from '@/db/product.repository';
 import { z } from 'zod';
+import { execute } from '@/db/db';
 
 export const runtime = 'edge';
 
@@ -38,7 +39,7 @@ export async function POST(
       return NextResponse.json(
         {
           success: false,
-          error: validation.error.errors[0].message,
+          error: validation.error.issues[0].message,
         },
         { status: 400 }
       );
@@ -150,16 +151,36 @@ export async function POST(
       for (const item of orderItems) {
         if (item.variantId) {
           // Restore variant stock
-          await ProductRepository.updateVariantStock(env, item.variantId, (item.variantStock || 0) + item.quantity);
+          await execute(
+            env,
+            'UPDATE product_variants SET stock = stock + ? WHERE id = ?',
+            item.quantity,
+            item.variantId
+          );
         } else {
           // Restore product stock
-          await ProductRepository.updateProductStock(env, item.productId, (item.productStock || 0) + item.quantity);
+          await execute(
+            env,
+            'UPDATE products SET stock = stock + ? WHERE id = ?',
+            item.quantity,
+            item.productId
+          );
         }
       }
     }
 
     // Process refund
     const updatedOrder = await OrderRepository.refund(env, params.id, amount, refundMethod, reason);
+
+    if (!updatedOrder) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Failed to update order after refund',
+        },
+        { status: 500 }
+      );
+    }
 
     // TODO: Send notification email to customer about refund
     // await sendRefundConfirmationEmail(updatedOrder);

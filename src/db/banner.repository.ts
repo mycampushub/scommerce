@@ -90,7 +90,7 @@ export class BannerRepository {
     }
     if (data.isActive !== undefined) {
       updates.push('isActive = ?');
-      values.push(boolToNumber(data.isActive));
+      values.push(data.isActive);
     }
     if (data.orderNum !== undefined) {
       updates.push('orderNum = ?');
@@ -123,28 +123,20 @@ export class BannerRepository {
    * Get all active banners
    */
   static async findAllActive(env: Env): Promise<Banner[]> {
-    const banners = await queryAll<Banner>(
+    return queryAll<Banner>(
       env,
       'SELECT * FROM banners WHERE isActive = 1 ORDER BY orderNum ASC, createdAt DESC'
     );
-    return banners.map(b => ({
-      ...b,
-      isActive: numberToBool(b.isActive),
-    }));
   }
 
   /**
    * Get all banners (with pagination)
    */
   static async findAll(env: Env): Promise<Banner[]> {
-    const banners = await queryAll<Banner>(
+    return queryAll<Banner>(
       env,
       'SELECT * FROM banners ORDER BY orderNum ASC, createdAt DESC'
     );
-    return banners.map(b => ({
-      ...b,
-      isActive: numberToBool(b.isActive),
-    }));
   }
 
   /**

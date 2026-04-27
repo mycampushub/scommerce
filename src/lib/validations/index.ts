@@ -25,7 +25,7 @@ export const productSchema = z.object({
   lowStockAlert: z.number().int().min(0).optional(),
   isActive: z.boolean().optional(),
   isFeatured: z.boolean().optional(),
-  attributes: z.record(z.unknown()).optional(),
+  attributes: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const updateProductSchema = productSchema.partial();
@@ -59,9 +59,15 @@ export const orderItemSchema = z.object({
   price: z.number().positive('Price must be positive'),
   productName: z.string().min(1, 'Product name is required'),
   productImage: z.string().url('Invalid image URL'),
+  variantId: z.string().uuid().optional(),
+  variantSku: z.string().optional(),
+  variantSize: z.string().optional(),
+  variantColor: z.string().optional(),
+  variantMaterial: z.string().optional(),
 });
 
 export const createOrderSchema = z.object({
+  userId: z.string().uuid().optional(),
   customerName: z.string().min(1, 'Customer name is required'),
   customerEmail: z.string().email('Invalid email address'),
   customerPhone: z.string().min(10, 'Phone number must be at least 10 digits'),
@@ -111,7 +117,7 @@ export const adminLogSchema = z.object({
   action: z.string().min(1, 'Action is required'),
   entity: z.string().min(1, 'Entity is required'),
   entityId: z.string().optional(),
-  details: z.record(z.unknown()).optional(),
+  details: z.record(z.string(), z.unknown()).optional(),
 });
 
 // Homepage Schemas
@@ -155,7 +161,7 @@ export const settingsSchema = z.object({
   currency: z.string().min(1).optional(),
   freeShippingThreshold: z.number().min(0).optional(),
   taxRate: z.number().min(0).optional(),
-  socialMedia: z.record(z.string().url()).optional(),
+  socialMedia: z.record(z.string(), z.string().url()).optional(),
 });
 
 // Review Schemas

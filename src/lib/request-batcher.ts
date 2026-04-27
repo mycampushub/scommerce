@@ -68,7 +68,7 @@ export class RequestBatcher {
       if (!this.queue.has(resourceType)) {
         this.queue.set(resourceType, []);
       }
-      this.queue.get(resourceType)!.push(request);
+      this.queue.get(resourceType)!.push(request as BatchRequest<unknown>);
 
       // Check if we should flush immediately
       const currentQueue = this.queue.get(resourceType)!;

@@ -52,7 +52,7 @@ interface Product {
   rating: number
   reviews: number
   badge?: string
-  category?: string
+  category: string
   description?: string
   sizes?: string[]
   colors?: string[]
@@ -1287,14 +1287,14 @@ function StickyImageCards() {
 }
 
 // 11. Floating Category Carousel - Full width, always visible, overlaps content while scrolling
-function FloatingCategoryCarousel({ onQuickView, onAddToCart }: { onQuickView: (product: Product) => void; onAddToCart: (product: Product) => void }) {
+function FloatingCategoryCarousel({ onQuickView, onAddToCart, newProducts, trendingProducts }: { onQuickView: (product: Product) => void; onAddToCart: (product: Product) => void; newProducts: Product[]; trendingProducts: Product[] }) {
   const [currentIndex, setCurrentIndex] = useState(0)
   
   const categories = [
-    { id: 'new', name: 'NEW', href: '/shop?filter=new', products: newCategoryProducts },
-    { id: 'tops', name: 'Tops', href: '/collections/tops', products: topsCategoryProducts },
-    { id: 'dresses', name: 'Dresses', href: '/collections/gowns', products: dressesCategoryProducts },
-    { id: 'preloved', name: 'PRE-LOVED', href: '/search?filter=vintage', products: preLovedCategoryProducts }
+    { id: 'new', name: 'NEW', href: '/shop?filter=new', products: newProducts || [] },
+    { id: 'tops', name: 'Tops', href: '/shop?filter=tops', products: [] }, // Will be populated by API
+    { id: 'dresses', name: 'Dresses', href: '/shop?filter=dresses', products: [] }, // Will be populated by API
+    { id: 'preloved', name: 'PRE-LOVED', href: '/shop?filter=vintage', products: [] } // Will be populated by API
   ]
 
   const handlePrev = () => {
@@ -1822,8 +1822,7 @@ export default function Home() {
             {homepageSettings.stories?.isEnabled !== false && stories.length > 0 && (
               <Stories stories={stories} autoPlay={homepageSettings.stories?.autoPlay} />
             )}
-            {/* Floating Category Carousel - Temporarily disabled due to undefined product variables */}
-            {/* <FloatingCategoryCarousel onQuickView={openQuickView} onAddToCart={addToCart} /> */}
+            {/* <FloatingCategoryCarousel onQuickView={openQuickView} onAddToCart={addToCart} newProducts={newProducts} trendingProducts={trendingProducts} /> */}
             <FullscreenVideo />
             <Categories categories={categories} />
             {/* Reels - only show if enabled and has data */}

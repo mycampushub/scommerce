@@ -58,7 +58,7 @@ export async function rateLimit(
 
   try {
     // Get current count from KV
-    const currentValue = await KV.get(rateLimitKey);
+    const currentValue = await KV.get(rateLimitKey, 'text') as string | null;
     const count = currentValue ? parseInt(currentValue) : 0;
 
     // Check if limit exceeded

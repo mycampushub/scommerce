@@ -39,6 +39,7 @@ interface OrderItem {
 
 interface Order {
   id: string
+  userId: string | null
   orderNumber: string
   customerName: string
   customerEmail: string
@@ -261,7 +262,7 @@ function OrderConfirmationContent() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          userId: order.userId, // Will be checked by backend
+          userId: order.userId || undefined, // Will be checked by backend
           cancelledBy: 'user',
           reason: cancelReason || 'Customer requested cancellation',
         }),
@@ -321,7 +322,7 @@ function OrderConfirmationContent() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          userId: order.userId,
+          userId: order.userId || undefined,
           amount,
           reason: refundReason,
           refundMethod,
@@ -501,7 +502,7 @@ function OrderConfirmationContent() {
                             <p className="font-semibold">{order.cancellationReason}</p>
                           </div>
                         )}
-                        {order.refundedAmount > 0 && (
+                        {order.refundedAmount !== null && order.refundedAmount > 0 && (
                           <div className="pt-2 border-t border-red-200">
                             <p className="text-sm text-green-700 font-semibold">
                               Refund of ৳{order.refundedAmount.toFixed(2)} has been processed

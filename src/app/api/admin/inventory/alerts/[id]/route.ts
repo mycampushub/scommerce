@@ -7,10 +7,10 @@ export const runtime = 'edge';
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params
+    const { id } = await context.params
     const env = getEnv(request)
     const body = await request.json()
     const alertId = id
@@ -72,13 +72,16 @@ export async function PUT(
 
     // Enrich with product data
     const product = await ProductRepository.findById(env, alert.productId)
-    ;(alert as any).product = product
-    alert.isRead = numberToBool(alert.isRead)
-    alert.isResolved = numberToBool(alert.isResolved)
+    const enrichedAlert = {
+      ...alert,
+      product,
+      isRead: numberToBool(alert.isRead as number | null | undefined),
+      isResolved: numberToBool(alert.isResolved as number | null | undefined),
+    }
 
     return NextResponse.json({
       success: true,
-      data: alert,
+      data: enrichedAlert,
       message: 'Alert updated successfully',
     })
   } catch (error) {
@@ -95,10 +98,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params
+    const { id } = await context.params
     const env = getEnv(request)
     const alertId = id
 

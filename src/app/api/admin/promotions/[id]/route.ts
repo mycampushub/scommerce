@@ -6,7 +6,7 @@ export const runtime = 'edge';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const env = getEnv(request)
@@ -51,7 +51,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const env = getEnv(request)
@@ -75,63 +75,63 @@ export async function PUT(
     } = body
 
     const updates: string[] = []
-    const params: any[] = []
+    const queryParams: any[] = []
 
     if (title !== undefined) {
       updates.push('title = ?')
-      params.push(title)
+      queryParams.push(title)
     }
     if (description !== undefined) {
       updates.push('description = ?')
-      params.push(description)
+      queryParams.push(description)
     }
     if (image !== undefined) {
       updates.push('image = ?')
-      params.push(image)
+      queryParams.push(image)
     }
     if (discountType !== undefined) {
       updates.push('discountType = ?')
-      params.push(discountType)
+      queryParams.push(discountType)
     }
     if (discountValue !== undefined) {
       updates.push('discountValue = ?')
-      params.push(discountValue)
+      queryParams.push(discountValue)
     }
     if (discountRules !== undefined) {
       updates.push('discountRules = ?')
-      params.push(stringifyJSON(discountRules))
+      queryParams.push(stringifyJSON(discountRules))
     }
     if (applicableProducts !== undefined) {
       updates.push('applicableProducts = ?')
-      params.push(stringifyJSON(applicableProducts))
+      queryParams.push(stringifyJSON(applicableProducts))
     }
     if (applicableCategories !== undefined) {
       updates.push('applicableCategories = ?')
-      params.push(stringifyJSON(applicableCategories))
+      queryParams.push(stringifyJSON(applicableCategories))
     }
     if (startDate !== undefined) {
       updates.push('startDate = ?')
-      params.push(startDate)
+      queryParams.push(startDate)
     }
     if (endDate !== undefined) {
       updates.push('endDate = ?')
-      params.push(endDate)
+      queryParams.push(endDate)
     }
     if (ctaText !== undefined) {
       updates.push('ctaText = ?')
-      params.push(ctaText)
+      queryParams.push(ctaText)
     }
     if (ctaLink !== undefined) {
       updates.push('ctaLink = ?')
-      params.push(ctaLink)
+      queryParams.push(ctaLink)
     }
     if (isActive !== undefined) {
       updates.push('isActive = ?')
-      params.push(boolToNumber(isActive))
+      queryParams.push(boolToNumber(isActive))
     }
     if (order !== undefined) {
       updates.push('`order` = ?')
-      params.push(order)
+      queryParams.push(order)
     }
 
     if (updates.length === 0) {
@@ -153,13 +153,13 @@ export async function PUT(
     }
 
     updates.push('updatedAt = ?')
-    params.push(now())
-    params.push(id)
+    queryParams.push(now())
+    queryParams.push(id)
 
     await execute(
       env,
       `UPDATE promotions SET ${updates.join(', ')} WHERE id = ?`,
-      ...params
+      ...queryParams
     )
 
     const promotion = await queryFirst<any>(
@@ -192,7 +192,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const env = getEnv(request)

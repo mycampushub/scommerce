@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: validation.error.errors[0].message,
+          error: validation.error.issues[0].message,
         },
         { status: 400 }
       );
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     for (const item of validatedData.orderItems) {
       if (item.variantId) {
         // Check variant-level stock
-        const variant = await queryFirst(
+        const variant = await queryFirst<{ id: string; sku: string | null; stock: number; isActive: number; lowStockAlert: number; reorderLevel: number; reorderQty: number }>(
           env,
           'SELECT id, sku, stock, isActive, lowStockAlert, reorderLevel, reorderQty FROM product_variants WHERE id = ? LIMIT 1',
           item.variantId
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
         }
       } else {
         // Check product-level stock (backward compatibility)
-        const product = await queryFirst(
+        const product = await queryFirst<{ id: string; name: string; stock: number; isActive: number; lowStockAlert: number; reorderLevel: number; reorderQty: number }>(
           env,
           'SELECT id, name, stock, isActive, lowStockAlert, reorderLevel, reorderQty FROM products WHERE id = ? LIMIT 1',
           item.productId
@@ -201,7 +201,7 @@ export async function POST(request: NextRequest) {
 
       if (item.variantId) {
         // Update variant-level inventory
-        const variant = await queryFirst(
+        const variant = await queryFirst<{ id: string; stock: number; lowStockAlert: number; reorderLevel: number; reorderQty: number }>(
           env,
           'SELECT id, stock, lowStockAlert, reorderLevel, reorderQty FROM product_variants WHERE id = ? LIMIT 1',
           item.variantId
@@ -272,7 +272,7 @@ export async function POST(request: NextRequest) {
         }
       } else {
         // Update product-level inventory (backward compatibility)
-        const product = await queryFirst(
+        const product = await queryFirst<{ id: string; stock: number; lowStockAlert: number; reorderLevel: number; reorderQty: number }>(
           env,
           'SELECT id, stock, lowStockAlert, reorderLevel, reorderQty FROM products WHERE id = ? LIMIT 1',
           item.productId

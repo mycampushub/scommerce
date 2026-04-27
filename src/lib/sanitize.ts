@@ -266,7 +266,7 @@ export function sanitizeProductData(productData: Record<string, unknown>) {
     name: sanitizeForDB(String(productData.name || '')),
     description: sanitizeHTML(String(productData.description || '')),
     price: sanitizeNumber(productData.price),
-    originalPrice: sanitizeNumber(productData.originalPrice, null),
+    originalPrice: sanitizeNumber(productData.originalPrice, undefined),
     stock: sanitizeInt(productData.stock, 0),
     sku: sanitizeForDB(String(productData.sku || '')),
     images: sanitizeArray<string>(productData.images, 'string'),

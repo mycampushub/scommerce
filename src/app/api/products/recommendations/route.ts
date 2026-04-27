@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     let recommendedProducts: any[] = []
 
     // Get current product to determine category
-    const currentProduct = await queryFirst(
+    const currentProduct = await queryFirst<{ categoryId: string; basePrice: number; price: number | null; hasVariants: number }>(
       env,
       'SELECT categoryId, basePrice, price, hasVariants FROM products WHERE id = ? LIMIT 1',
       productId
@@ -165,7 +165,7 @@ export async function GET(request: NextRequest) {
         slug: product.slug,
         price: product.basePrice || product.price,
         comparePrice: product.comparePrice,
-        image: images[0] || '',
+        image: images && images.length > 0 ? images[0] : '',
         rating: product.rating || 0,
         reviews: product.reviews || 0,
         stock: product.stock || 0,

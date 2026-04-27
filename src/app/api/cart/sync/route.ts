@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const payload = verifyToken(token)
+    const payload = await verifyToken(token)
     if (!payload || !payload.userId) {
       return NextResponse.json(
         { success: false, error: 'Invalid token' },

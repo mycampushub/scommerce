@@ -54,7 +54,7 @@ export class CategoryRepository {
       data.slug,
       data.description || null,
       data.image || null,
-      boolToNumber(data.isActive !== undefined ? true : data.isActive),
+      boolToNumber(data.isActive ?? true),
       currentTime,
       currentTime
     );
@@ -87,7 +87,7 @@ export class CategoryRepository {
     }
     if (data.isActive !== undefined) {
       updates.push('isActive = ?');
-      values.push(boolToNumber(data.isActive));
+      values.push(data.isActive);
     }
 
     if (updates.length === 0) return this.findById(env, id);

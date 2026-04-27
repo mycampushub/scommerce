@@ -28,7 +28,7 @@ export default function CheckoutPage() {
   const { items, getTotal, clearCart } = useCartStore()
   const [step, setStep] = useState(1)
   const [isProcessing, setIsProcessing] = useState(false)
-  const [stockIssues, setStockIssues] = useState<{[key: string]: { inStock: boolean, availableStock: number }}>({})
+  const [stockIssues, setStockIssues] = useState<Record<string, { inStock: boolean, availableStock: number }>>({})
   const [shippingCost, setShippingCost] = useState(150)
   const [calculatingShipping, setCalculatingShipping] = useState(false)
 
@@ -108,7 +108,7 @@ export default function CheckoutPage() {
   // Check stock status for all cart items
   const checkStockStatus = async () => {
     try {
-      const itemKeys: {[key: string]: string} = {}
+      const itemKeys: Record<string, { inStock: boolean, availableStock: number }> = {}
       
       for (const item of items) {
         const itemKey = `${item.id}-${item.variantId || 'no-variant'}`

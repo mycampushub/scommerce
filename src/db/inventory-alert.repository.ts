@@ -16,16 +16,11 @@ export class InventoryAlertRepository {
    * Find inventory alert by ID
    */
   static async findById(env: Env, id: string): Promise<InventoryAlert | null> {
-    const alert = await queryFirst<InventoryAlert>(
+    return queryFirst<InventoryAlert>(
       env,
       'SELECT * FROM inventory_alerts WHERE id = ? LIMIT 1',
       id
     );
-    if (alert) {
-      alert.isRead = boolToNumber(alert.isRead) as unknown as number;
-      alert.isResolved = boolToNumber(alert.isResolved) as unknown as number;
-    }
-    return alert;
   }
 
   /**
@@ -66,13 +61,13 @@ export class InventoryAlertRepository {
 
     if (data.isRead !== undefined) {
       updates.push('isRead = ?');
-      values.push(boolToNumber(data.isRead));
+      values.push(data.isRead);
     }
     if (data.isResolved !== undefined) {
       updates.push('isResolved = ?');
-      values.push(boolToNumber(data.isResolved));
+      values.push(data.isResolved);
     }
-    if (data.isResolved !== undefined && data.isResolved) {
+    if (data.isResolved !== undefined && data.isResolved === 1) {
       updates.push('resolvedAt = ?');
       values.push(now());
     }
@@ -124,30 +119,20 @@ export class InventoryAlertRepository {
    * Get all unread alerts
    */
   static async findUnread(env: Env): Promise<InventoryAlert[]> {
-    const alerts = await queryAll<InventoryAlert>(
+    return queryAll<InventoryAlert>(
       env,
       'SELECT * FROM inventory_alerts WHERE isRead = 0 ORDER BY createdAt DESC'
     );
-    return alerts.map(a => ({
-      ...a,
-      isRead: numberToBool(a.isRead),
-      isResolved: numberToBool(a.isResolved)
-    }));
   }
 
   /**
    * Get all unresolved alerts
    */
   static async findUnresolved(env: Env): Promise<InventoryAlert[]> {
-    const alerts = await queryAll<InventoryAlert>(
+    return queryAll<InventoryAlert>(
       env,
       'SELECT * FROM inventory_alerts WHERE isResolved = 0 ORDER BY createdAt DESC'
     );
-    return alerts.map(a => ({
-      ...a,
-      isRead: numberToBool(a.isRead),
-      isResolved: numberToBool(a.isResolved)
-    }));
   }
 
   /**
@@ -200,11 +185,7 @@ export class InventoryAlertRepository {
       offset
     );
 
-    return alerts.map(a => ({
-      ...a,
-      isRead: numberToBool(a.isRead),
-      isResolved: numberToBool(a.isResolved)
-    }));
+    return alerts;
   }
 
   /**

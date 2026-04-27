@@ -31,7 +31,7 @@ export async function GET(
       success: true,
       data: {
         ...category,
-        isActive: numberToBool(category.isActive),
+        isActive: numberToBool(category.isActive as number | null | undefined),
         products,
       },
     })
@@ -73,11 +73,12 @@ export async function PUT(
       )
     }
 
-    category.isActive = numberToBool(category.isActive)
-
     return NextResponse.json({
       success: true,
-      data: category,
+      data: {
+        ...category,
+        isActive: numberToBool(category.isActive as number | null | undefined),
+      },
     })
   } catch (error) {
     console.error('Error updating category:', error)

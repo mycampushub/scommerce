@@ -73,6 +73,7 @@ interface RelatedProduct {
 function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const isHeaderVisible = useScrollDirection()
+  const { getItemCount } = useCartStore()
 
   return (
     <header className={`bg-white shadow-sm z-40 transition-transform duration-300 ${
@@ -97,12 +98,12 @@ function Navbar() {
           </nav>
 
           <div className="flex items-center gap-4">
-            <button className="hidden md:flex items-center gap-2 text-gray-700 hover:text-pink-600 transition-colors relative">
+            <Link href="/cart" className="hidden md:flex items-center gap-2 text-gray-700 hover:text-pink-600 transition-colors relative">
               <ShoppingCart className="w-5 h-5" />
               <span className="absolute -top-1 -right-1 w-5 h-5 bg-pink-600 text-white text-xs rounded-full flex items-center justify-center">
-                {items.reduce((sum, item) => sum + item.quantity, 0)}
+                {getItemCount()}
               </span>
-            </button>
+            </Link>
             <button 
               className="lg:hidden p-2"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -199,6 +200,7 @@ function Footer() {
 function MobileBottomNav() {
   const pathname = usePathname()
   const isVisible = useScrollDirection()
+  const { getItemCount } = useCartStore()
 
   return (
     <>
@@ -241,7 +243,8 @@ function MobileBottomNav() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                 </button>
-                <button
+                <Link
+                  href="/cart"
                   className={`flex flex-col items-center justify-center w-14 h-14 rounded-full transition-colors active:scale-95 relative ${
                     pathname === '/cart'
                       ? 'bg-pink-600 text-white hover:bg-pink-700'
@@ -250,8 +253,8 @@ function MobileBottomNav() {
                   aria-label="View cart"
                 >
                   <ShoppingCart className="w-6 h-6" strokeWidth={2} />
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-pink-600 text-white text-xs rounded-full flex items-center justify-center">{itemCount}</span>
-                </button>
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-pink-600 text-white text-xs rounded-full flex items-center justify-center">{getItemCount()}</span>
+                </Link>
               </div>
             </div>
           </div>
@@ -383,16 +386,16 @@ export default function ProductPage() {
         rating: product.rating,
         reviews: product.reviews,
         categoryId: product.categoryId,
-        category: product.category,
+        category: product.category || undefined,
       })
     }
   }, [product, addProduct])
 
   // Handle variant selection
-  const handleVariantSelection = (size: string, color: string, material: string) => {
-    setSelectedSize(size)
-    setSelectedColor(color)
-    setSelectedMaterial(material)
+  const handleVariantSelection = (size?: string, color?: string, material?: string) => {
+    setSelectedSize(size || '')
+    setSelectedColor(color || '')
+    setSelectedMaterial(material || '')
 
     // Find matching variant
     const matchingVariant = variants.find(v =>

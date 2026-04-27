@@ -26,14 +26,14 @@ export async function GET(request: NextRequest) {
 
     // If user is authenticated, fetch from database
     if (token) {
-      const payload = verifyToken(token);
+      const payload = await verifyToken(token);
       if (payload && payload.userId) {
         const cartItems = await CartRepository.findByUserId(env, payload.userId);
 
         // Transform to match cart store format
         const formattedItems = await Promise.all(cartItems.map(async (item) => {
           // Fetch product details
-          const product = await queryFirst(
+          const product = await queryFirst<{ id: string; name: string; basePrice: number; comparePrice: number | null; images: string | null; stock: number; isActive: number }>(
             env,
             'SELECT id, name, basePrice, comparePrice, images, stock, isActive FROM products WHERE id = ? LIMIT 1',
             item.productId
@@ -42,9 +42,9 @@ export async function GET(request: NextRequest) {
           if (!product) return null;
 
           // Fetch variant details if variantId exists
-          let variant = null;
+          let variant: { id: string; sku: string; size: string | null; color: string | null; material: string | null } | null = null;
           if (item.variantId) {
-            variant = await queryFirst(
+            variant = await queryFirst<{ id: string; sku: string; size: string | null; color: string | null; material: string | null }>(
               env,
               'SELECT id, sku, size, color, material FROM product_variants WHERE id = ? LIMIT 1',
               item.variantId
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const payload = verifyToken(token);
+    const payload = await verifyToken(token);
     if (!payload || !payload.userId) {
       return NextResponse.json(
         { success: false, error: 'Invalid token' },
@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
         const validation = cartItemSchema.safeParse(item);
         if (!validation.success) {
           return NextResponse.json(
-            { success: false, error: validation.error.errors[0].message },
+            { success: false, error: validation.error.issues[0].message },
             { status: 400 }
           );
         }
@@ -162,13 +162,13 @@ export async function POST(request: NextRequest) {
         const validation = updateCartItemSchema.safeParse(item);
         if (!validation.success) {
           return NextResponse.json(
-            { success: false, error: validation.error.errors[0].message },
+            { success: false, error: validation.error.issues[0].message },
             { status: 400 }
           );
         }
 
         // Find the cart item
-        const existingItem = await queryFirst(
+        const existingItem = await queryFirst<{ id: string }>(
           env,
           'SELECT * FROM cart_items WHERE userId = ? AND productId = ? AND (variantId IS NULL OR variantId = ?) LIMIT 1',
           userId,
@@ -190,7 +190,7 @@ export async function POST(request: NextRequest) {
 
       case 'remove': {
         // Find the cart item
-        const existingItem = await queryFirst(
+        const existingItem = await queryFirst<{ id: string }>(
           env,
           'SELECT * FROM cart_items WHERE userId = ? AND productId = ? AND (variantId IS NULL OR variantId = ?) LIMIT 1',
           userId,

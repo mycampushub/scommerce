@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
-import { Link } from 'next/link'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -11,10 +11,16 @@ import { Loader2, ArrowLeft, Lock, Eye, EyeOff, CheckCircle2, AlertCircle } from
 import { useToast } from '@/hooks/use-toast'
 import ResetPasswordTokenHandler from '@/components/reset-password-token-handler'
 
-function ResetPasswordContent({ onToken }: { onToken: (token: string) => void }) {
+declare global {
+  interface Window {
+    __RESET_PASSWORD_TOKEN__?: string
+  }
+}
+
+function ResetPasswordContent({ initialToken }: { initialToken: string }) {
   const router = useRouter()
   const { toast } = useToast()
-  const [token, setToken] = useState('')
+  const [token, setToken] = useState(initialToken)
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -291,13 +297,7 @@ export default function ResetPasswordPage() {
       <ResetPasswordTokenHandler onToken={(token) => {
         window.__RESET_PASSWORD_TOKEN__ = token
       }} />
-      <ResetPasswordContent onToken={(token) => {
-        const savedToken = typeof window !== 'undefined' ? window.__RESET_PASSWORD_TOKEN__ : null
-        if (savedToken) {
-          onToken(savedToken)
-          delete window.__RESET_PASSWORD_TOKEN__
-        }
-      }} />
+      <ResetPasswordContent initialToken={typeof window !== 'undefined' ? window.__RESET_PASSWORD_TOKEN__ || '' : ''} />
     </Suspense>
   )
 }

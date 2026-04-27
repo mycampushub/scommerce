@@ -22,7 +22,10 @@ export class ReelRepository {
       id
     );
     if (reel && reel.productIds) {
-      reel.productIds = parseJSON<string[]>(reel.productIds) || [];
+      return {
+        ...reel,
+        productIds: parseJSON<string[]>(reel.productIds) || [] as any
+      };
     }
     return reel;
   }
@@ -50,7 +53,7 @@ export class ReelRepository {
       data.thumbnail,
       data.videoUrl,
       data.productIds ? stringifyJSON(data.productIds) : null,
-      boolToNumber(data.isActive !== undefined ? data.isActive : true),
+      data.isActive ?? true,
       data.orderNum || 0,
       currentTime,
       currentTime
@@ -84,7 +87,7 @@ export class ReelRepository {
     }
     if (data.isActive !== undefined) {
       updates.push('isActive = ?');
-      values.push(boolToNumber(data.isActive));
+      values.push(data.isActive);
     }
     if (data.orderNum !== undefined) {
       updates.push('orderNum = ?');
@@ -123,8 +126,7 @@ export class ReelRepository {
     );
     return reels.map(r => ({
       ...r,
-      isActive: numberToBool(r.isActive),
-      productIds: parseJSON<string[]>(r.productIds) || [],
+      productIds: parseJSON<string[]>(r.productIds) || [] as any,
     }));
   }
 
@@ -138,8 +140,7 @@ export class ReelRepository {
     );
     return reels.map(r => ({
       ...r,
-      isActive: numberToBool(r.isActive),
-      productIds: parseJSON<string[]>(r.productIds) || [],
+      productIds: parseJSON<string[]>(r.productIds) || [] as any,
     }));
   }
 

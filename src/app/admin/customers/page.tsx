@@ -278,11 +278,12 @@ export default function CustomersPage() {
           variant: 'destructive',
         })
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Error toggling VIP status:', err)
+      const errorMessage = err instanceof Error ? err.message : 'Failed to toggle VIP status'
       toast({
         title: 'Error',
-        description: err.message || 'Failed to toggle VIP status',
+        description: errorMessage,
         variant: 'destructive',
       })
     }
@@ -319,11 +320,12 @@ export default function CustomersPage() {
           variant: 'destructive',
         })
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Error banning customer:', err)
+      const errorMessage = err instanceof Error ? err.message : 'Failed to ban customer'
       toast({
         title: 'Error',
-        description: err.message || 'Failed to ban customer',
+        description: errorMessage,
         variant: 'destructive',
       })
     }
@@ -356,11 +358,12 @@ export default function CustomersPage() {
           variant: 'destructive',
         })
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Error unbanning customer:', err)
+      const errorMessage = err instanceof Error ? err.message : 'Failed to unban customer'
       toast({
         title: 'Error',
-        description: err.message || 'Failed to unban customer',
+        description: errorMessage,
         variant: 'destructive',
       })
     }
@@ -391,11 +394,12 @@ export default function CustomersPage() {
           variant: 'destructive',
         })
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Error deleting customer:', err)
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete customer'
       toast({
         title: 'Error',
-        description: err.message || 'Failed to delete customer',
+        description: errorMessage,
         variant: 'destructive',
       })
     }
@@ -557,7 +561,6 @@ export default function CustomersPage() {
                 placeholder="Search customers..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 className="pl-10"
               />
             </div>

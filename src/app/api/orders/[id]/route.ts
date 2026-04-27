@@ -3,6 +3,7 @@ import { getEnv } from '@/lib/cloudflare'
 import { OrderRepository } from '@/db/order.repository'
 import { UserRepository } from '@/db/user.repository'
 import { parseJSON } from '@/db/db'
+import { User } from '@/db/types'
 
 export const runtime = 'edge';
 
@@ -33,7 +34,7 @@ export async function GET(
     const orderItems = await OrderRepository.getItems(env, id)
 
     // Fetch user if exists
-    let user = null
+    let user: User | null = null
     if (order.userId) {
       user = await UserRepository.findById(env, order.userId)
     }

@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const user = await queryFirst(
+    const user = await queryFirst<{ id: string; email: string; newEmail: string; name: string | null }>(
       env,
       'SELECT id, email, newEmail, name FROM users WHERE emailToken = ? AND newEmail IS NOT NULL LIMIT 1',
       token
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
 
     await UserRepository.update(env, user.id, {
       email: user.newEmail,
-      emailVerified: true,
+      emailVerified: 1,
       newEmail: null,
       emailToken: null,
     })

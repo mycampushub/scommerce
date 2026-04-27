@@ -22,7 +22,7 @@ export interface Product {
   rating: number
   reviews: number
   badge?: string
-  category: string
+  category?: string
   description?: string
   sizes?: string[]
   colors?: string[]

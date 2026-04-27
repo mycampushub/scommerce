@@ -30,7 +30,7 @@ class RedisCache {
   private async initRedis() {
     try {
       // Dynamically import ioredis to avoid dependency issues
-      const Redis = (await import('ioredis')).default
+      const Redis = (await import('ioredis')).default as any
       this.redisClient = new Redis(this.redisUrl, {
         password: process.env.REDIS_PASSWORD,
         retryStrategy: (times: number) => {

@@ -11,7 +11,7 @@ export const runtime = 'edge';
 export async function POST(request: NextRequest) {
   const env = getEnv(request)
   const clientIp = getClientIp(request)
-  const rateLimitResult = rateLimit('change-email:' + clientIp, {
+  const rateLimitResult = await rateLimit(env, 'change-email:' + clientIp, {
     maxRequests: 3,
     windowMs: 60 * 60 * 1000,
   })
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
 
     if (!validation.success) {
       return NextResponse.json(
-        { success: false, error: validation.error.errors[0].message },
+        { success: false, error: validation.error.issues[0].message },
         { status: 400 }
       )
     }
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
     const emailToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
 
     await UserRepository.update(env, user.id, {
-      emailVerified: false,
+      emailVerified: 0,
       newEmail: newEmail,
       emailToken: emailToken,
     })

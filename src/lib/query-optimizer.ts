@@ -3,7 +3,7 @@
  * Helpers to optimize D1 queries for better performance
  */
 
-import { D1PreparedStatement } from '@/db/types';
+import { D1PreparedStatement, D1Database } from '@/db/types';
 
 export interface QueryOptions {
   /** Limit number of results */
@@ -241,10 +241,12 @@ export function buildSearchQuery(
 
   const params = terms.map(term => `%${term}%`);
 
-  return buildSelectQuery(table, {
-    ...options,
-    where,
-  }).sql.split(' WHERE ')[0] + ` WHERE ${where}`;
+  const baseQuery = buildSelectQuery(table, options);
+  const sqlParts = baseQuery.sql.split(' WHERE ');
+  return {
+    sql: sqlParts[0] + ` WHERE ${where}` + (sqlParts.length > 1 ? ' AND ' + sqlParts.slice(1).join(' WHERE ') : ''),
+    params: [...params, ...baseQuery.params],
+  };
 }
 
 /**

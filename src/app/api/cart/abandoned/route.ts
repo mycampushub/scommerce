@@ -3,6 +3,7 @@ import { verifyAdminAuth } from '@/lib/admin-auth'
 import { getEnv } from '@/lib/cloudflare'
 import { UserRepository } from '@/db/user.repository'
 import { queryAll, queryFirst, parseJSON, numberToBool } from '@/db/db'
+import { User } from '@/db/types'
 
 export const runtime = 'edge';
 
@@ -186,7 +187,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user emails
-    const users = []
+    const users: User[] = []
     for (const userId of userIds) {
       const user = await UserRepository.findById(env, userId)
       if (user) {

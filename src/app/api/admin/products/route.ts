@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
       params.push(`%${search.toLowerCase()}%`, `%${search.toLowerCase()}%`)
     }
 
-    let categoryObj = null
+    let categoryObj: any = null
     if (categorySlug) {
       categoryObj = await CategoryRepository.findBySlug(env, categorySlug)
       if (categoryObj) {
@@ -187,7 +187,7 @@ export async function POST(request: NextRequest) {
       })
 
       // Fetch category for response
-      let category = null
+      let category: any = null
       if (product.categoryId) {
         category = await CategoryRepository.findById(env, product.categoryId)
       }
@@ -220,7 +220,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Fetch category for response
-    let category = null
+    let category: any = null
     if (product.categoryId) {
       category = await CategoryRepository.findById(env, product.categoryId)
     }

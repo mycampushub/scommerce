@@ -25,7 +25,7 @@ export function ProductStructuredData({ product, siteUrl = 'https://yourdomain.c
   const lowPrice = product.comparePrice ? Math.min(product.price, product.comparePrice) : product.price
   const highPrice = product.comparePrice ? Math.max(product.price, product.comparePrice) : product.price
 
-  const structuredData = {
+  const structuredData: any = {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: product.name,
@@ -60,22 +60,13 @@ export function ProductStructuredData({ product, siteUrl = 'https://yourdomain.c
   if (product.comparePrice && product.comparePrice > product.price) {
     structuredData.offers = {
       '@type': 'AggregateOffer',
-      lowPrice: {
-        '@type': 'Offer',
-        priceCurrency: 'BDT',
-        price: lowPrice.toFixed(2),
-        availability: (product.stock || 0) > 0
-          ? 'https://schema.org/InStock'
-          : 'https://schema.org/OutOfStock',
-      },
-      highPrice: {
-        '@type': 'Offer',
-        priceCurrency: 'BDT',
-        price: highPrice.toFixed(2),
-        availability: (product.stock || 0) > 0
-          ? 'https://schema.org/InStock'
-          : 'https://schema.org/OutOfStock',
-      },
+      priceCurrency: 'BDT',
+      lowPrice: lowPrice.toFixed(2),
+      highPrice: highPrice.toFixed(2),
+      offerCount: 1,
+      availability: (product.stock || 0) > 0
+        ? 'https://schema.org/InStock'
+        : 'https://schema.org/OutOfStock',
     }
   }
 

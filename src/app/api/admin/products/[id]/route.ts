@@ -8,11 +8,11 @@ export const runtime = 'edge';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const env = getEnv(request)
-    const { id } = await params
+    const { id } = await context.params
     const product = await ProductRepository.findById(env, id)
 
     if (!product) {
@@ -26,7 +26,7 @@ export async function GET(
     }
 
     // Fetch category
-    let category = null
+    let category: any = null
     if (product.categoryId) {
       category = await CategoryRepository.findById(env, product.categoryId)
     }
@@ -52,7 +52,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const env = getEnv(request)
@@ -71,7 +71,7 @@ export async function PUT(
         )
       }
 
-      const { id } = await params
+      const { id } = await context.params
       const product = await ProductRepository.findById(env, id)
 
       if (!product) {
@@ -97,15 +97,15 @@ export async function PUT(
         )
       }
 
-      const currentImages = Array.isArray(product.images) ? product.images : []
+      const currentImages: any = Array.isArray(product.images) ? product.images : []
       currentImages.push(uploadResult.data.url)
 
       const updatedProduct = await ProductRepository.update(env, id, {
-        images: currentImages,
+        images: JSON.stringify(currentImages),
       })
 
       // Fetch category for response
-      let category = null
+      let category: any = null
       if (updatedProduct?.categoryId) {
         category = await CategoryRepository.findById(env, updatedProduct.categoryId)
       }
@@ -130,7 +130,7 @@ export async function PUT(
         )
       }
 
-      const { id } = await params
+      const { id } = await context.params
       const product = await ProductRepository.findById(env, id)
 
       if (!product) {
@@ -141,10 +141,10 @@ export async function PUT(
       }
 
       const currentImages = Array.isArray(product.images) ? product.images : []
-      const updatedImages = currentImages.filter((img: string) => img !== imageUrl)
+      const updatedImages: any[] = currentImages.filter((img: string) => img !== imageUrl)
 
       const updatedProduct = await ProductRepository.update(env, id, {
-        images: updatedImages,
+        images: JSON.stringify(updatedImages),
       })
 
       // Delete file from server
@@ -153,7 +153,7 @@ export async function PUT(
       })
 
       // Fetch category for response
-      let category = null
+      let category: any = null
       if (updatedProduct?.categoryId) {
         category = await CategoryRepository.findById(env, updatedProduct.categoryId)
       }
@@ -178,13 +178,13 @@ export async function PUT(
         )
       }
 
-      const { id } = await params
+      const { id } = await context.params
       const updatedProduct = await ProductRepository.update(env, id, {
-        images,
+        images: JSON.stringify(images),
       })
 
       // Fetch category for response
-      let category = null
+      let category: any = null
       if (updatedProduct?.categoryId) {
         category = await CategoryRepository.findById(env, updatedProduct.categoryId)
       }
@@ -243,7 +243,7 @@ export async function PUT(
         }
       }
 
-      const { id } = await params
+      const { id } = await context.params
       const updateData: any = {}
       if (name) updateData.name = name
       if (slug) updateData.slug = slug
@@ -253,14 +253,14 @@ export async function PUT(
       if (categoryId) updateData.categoryId = categoryId
       if (images.length > 0) updateData.images = images
       if (stock !== undefined) updateData.stock = parseInt(stock)
-      if (lowStockAlert !== undefined) updateData.lowStockAlert = parseInt(lowStockAlert)
+      if (lowStockAlert !== undefined) updateData.lowStockAlert = lowStockAlert ? parseInt(lowStockAlert) : null
       if (isActive !== undefined) updateData.isActive = isActive
       if (isFeatured !== undefined) updateData.isFeatured = isFeatured
 
       const product = await ProductRepository.update(env, id, updateData)
 
       // Fetch category for response
-      let category = null
+      let category: any = null
       if (product?.categoryId) {
         category = await CategoryRepository.findById(env, product.categoryId)
       }
@@ -276,7 +276,7 @@ export async function PUT(
 
     // Handle JSON payload
     const body = await request.json()
-    const { id } = await params
+    const { id } = await context.params
 
     const updateData: any = {}
     if (body.name !== undefined) updateData.name = body.name
@@ -285,7 +285,7 @@ export async function PUT(
     if (body.price !== undefined) updateData.basePrice = parseFloat(body.price)
     if (body.comparePrice !== undefined) updateData.comparePrice = body.comparePrice ? parseFloat(body.comparePrice) : null
     if (body.categoryId !== undefined) updateData.categoryId = body.categoryId
-    if (body.images !== undefined) updateData.images = typeof body.images === 'string' ? JSON.parse(body.images) : body.images
+    if (body.images !== undefined) updateData.images = typeof body.images === 'string' ? body.images : JSON.stringify(body.images)
     if (body.stock !== undefined) updateData.stock = parseInt(body.stock)
     if (body.lowStockAlert !== undefined) updateData.lowStockAlert = parseInt(body.lowStockAlert)
     if (body.isActive !== undefined) updateData.isActive = body.isActive
@@ -295,7 +295,7 @@ export async function PUT(
     const product = await ProductRepository.update(env, id, updateData)
 
     // Fetch category for response
-    let category = null
+    let category: any = null
     if (product?.categoryId) {
       category = await CategoryRepository.findById(env, product.categoryId)
     }
@@ -321,11 +321,11 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const env = getEnv(request)
-    const { id } = await params
+    const { id } = await context.params
     await ProductRepository.delete(env, id)
 
     return NextResponse.json({

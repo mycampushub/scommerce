@@ -96,8 +96,9 @@ export class D1Client {
    */
   async query<T = any>(sql: string, params: any[] = []): Promise<T[]> {
     const stmt = this.db.prepare(sql);
-    const results = await stmt.all(...params);
-    return results.results as T[];
+    const bound = params.length > 0 ? stmt.bind(params) : stmt;
+    const results = await bound.all();
+    return results as T[];
   }
 
   /**
@@ -105,7 +106,8 @@ export class D1Client {
    */
   async first<T = any>(sql: string, params: any[] = []): Promise<T | null> {
     const stmt = this.db.prepare(sql);
-    const result = await stmt.first(...params);
+    const bound = params.length > 0 ? stmt.bind(params) : stmt;
+    const result = await bound.first();
     return result as T | null;
   }
 
@@ -114,7 +116,8 @@ export class D1Client {
    */
   async run(sql: string, params: any[] = []): Promise<D1Result> {
     const stmt = this.db.prepare(sql);
-    return await stmt.run(...params);
+    const bound = params.length > 0 ? stmt.bind(params) : stmt;
+    return await bound.run();
   }
 
   /**
@@ -150,7 +153,10 @@ export class D1Client {
     const setClause = keys.map((k) => `${k} = ?`).join(', ');
 
     const sql = `UPDATE ${table} SET ${setClause} WHERE ${where}`;
-    const result = await this.run(sql, values);
+
+    const stmt = this.db.prepare(sql);
+    const bound = stmt.bind(values);
+    const result = await bound.run();
 
     return result.meta?.changes || 0;
   }
@@ -164,7 +170,10 @@ export class D1Client {
     params: any[] = []
   ): Promise<number> {
     const sql = `DELETE FROM ${table} WHERE ${where}`;
-    const result = await this.run(sql, params);
+
+    const stmt = this.db.prepare(sql);
+    const bound = stmt.bind(params);
+    const result = await bound.run();
 
     return result.meta?.changes || 0;
   }
@@ -178,7 +187,10 @@ export class D1Client {
     params: any[] = []
   ): Promise<boolean> {
     const sql = `SELECT COUNT(*) as count FROM ${table} WHERE ${where}`;
-    const result = await this.first<{ count: number }>(sql, params);
+
+    const stmt = this.db.prepare(sql);
+    const bound = params.length > 0 ? stmt.bind(params) : stmt;
+    const result = await bound.first();
 
     return (result?.count || 0) > 0;
   }

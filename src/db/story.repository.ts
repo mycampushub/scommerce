@@ -21,8 +21,11 @@ export class StoryRepository {
       'SELECT * FROM stories WHERE id = ? LIMIT 1',
       id
     );
-    if (story) {
-      story.images = parseJSON<string[]>(story.images) || [];
+    if (story && story.images) {
+      return {
+        ...story,
+        images: parseJSON<string[]>(story.images) || [] as any
+      };
     }
     return story;
   }
@@ -48,7 +51,7 @@ export class StoryRepository {
       data.title,
       data.thumbnail,
       stringifyJSON(data.images),
-      boolToNumber(data.isActive !== undefined ? data.isActive : true),
+      data.isActive ?? true,
       data.orderNum || 0,
       currentTime,
       currentTime
@@ -74,11 +77,12 @@ export class StoryRepository {
     }
     if (data.images !== undefined) {
       updates.push('images = ?');
-      values.push(stringifyJSON(data.images));
+      // Handle both string (already JSON stringified) and string[] (needs to be stringified)
+      values.push(typeof data.images === 'string' ? data.images : stringifyJSON(data.images));
     }
     if (data.isActive !== undefined) {
       updates.push('isActive = ?');
-      values.push(boolToNumber(data.isActive));
+      values.push(data.isActive);
     }
     if (data.orderNum !== undefined) {
       updates.push('orderNum = ?');
@@ -117,8 +121,7 @@ export class StoryRepository {
     );
     return stories.map(s => ({
       ...s,
-      isActive: numberToBool(s.isActive),
-      images: parseJSON<string[]>(s.images) || [],
+      images: parseJSON<string[]>(s.images) || [] as any,
     }));
   }
 
@@ -132,8 +135,7 @@ export class StoryRepository {
     );
     return stories.map(s => ({
       ...s,
-      isActive: numberToBool(s.isActive),
-      images: parseJSON<string[]>(s.images) || [],
+      images: parseJSON<string[]>(s.images) || [] as any,
     }));
   }
 

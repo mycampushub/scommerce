@@ -1,24 +1,27 @@
 import { SignJWT, jwtVerify } from 'jose'
 
-// Validate JWT_SECRET exists
-const JWT_SECRET_STRING = process.env.JWT_SECRET;
-if (!JWT_SECRET_STRING) {
-  throw new Error('JWT_SECRET environment variable is required');
+// Get JWT secret with lazy initialization
+function getJWTSecret(): Uint8Array {
+  const JWT_SECRET_STRING = process.env.JWT_SECRET;
+  if (!JWT_SECRET_STRING) {
+    throw new Error('JWT_SECRET environment variable is required');
+  }
+  return new TextEncoder().encode(JWT_SECRET_STRING);
 }
-
-const JWT_SECRET = new TextEncoder().encode(JWT_SECRET_STRING);
 
 export interface JWTPayload {
   userId: string
   email: string
   name: string | null
   role: string
+  [key: string]: unknown // Index signature for jose compatibility
 }
 
 /**
  * Create a JWT token
  */
 export async function createToken(payload: JWTPayload): Promise<string> {
+  const JWT_SECRET = getJWTSecret();
   const token = await new SignJWT(payload)
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
@@ -33,6 +36,7 @@ export async function createToken(payload: JWTPayload): Promise<string> {
  */
 export async function verifyToken(token: string): Promise<JWTPayload | null> {
   try {
+    const JWT_SECRET = getJWTSecret();
     const { payload } = await jwtVerify(token, JWT_SECRET)
     return payload as JWTPayload
   } catch (error) {

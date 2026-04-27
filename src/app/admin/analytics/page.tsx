@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { toast } from 'sonner'
 import {
   Select,
   SelectContent,
@@ -114,10 +115,7 @@ export default function AnalyticsPage() {
       a.click()
       URL.revokeObjectURL(url)
 
-      toast({
-        title: 'Success',
-        description: 'Analytics exported to CSV',
-      })
+      toast.success('Analytics exported to CSV')
       return
     }
 

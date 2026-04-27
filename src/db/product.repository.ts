@@ -22,7 +22,10 @@ export class ProductRepository {
       slug
     );
     if (product && product.images) {
-      product.images = parseJSON<string[]>(product.images) || [];
+      return {
+        ...product,
+        images: parseJSON<string[]>(product.images) || [] as any
+      };
     }
     return product;
   }
@@ -37,7 +40,10 @@ export class ProductRepository {
       id
     );
     if (product && product.images) {
-      product.images = parseJSON<string[]>(product.images) || [];
+      return {
+        ...product,
+        images: parseJSON<string[]>(product.images) || [] as any
+      };
     }
     return product;
   }
@@ -86,9 +92,9 @@ export class ProductRepository {
       data.lowStockAlert || 10,
       data.reorderLevel || 5,
       data.reorderQty || 20,
-      boolToNumber(data.isActive !== undefined ? true : data.isActive),
-      boolToNumber(data.isFeatured || false),
-      boolToNumber(data.hasVariants || false),
+      data.isActive ?? true,
+      data.isFeatured || false,
+      data.hasVariants || false,
       currentTime,
       currentTime
     );
@@ -157,15 +163,15 @@ export class ProductRepository {
     }
     if (data.isActive !== undefined) {
       updates.push('isActive = ?');
-      values.push(boolToNumber(data.isActive));
+      values.push(data.isActive);
     }
     if (data.isFeatured !== undefined) {
       updates.push('isFeatured = ?');
-      values.push(boolToNumber(data.isFeatured));
+      values.push(data.isFeatured);
     }
     if (data.hasVariants !== undefined) {
       updates.push('hasVariants = ?');
-      values.push(boolToNumber(data.hasVariants));
+      values.push(data.hasVariants);
     }
 
     if (updates.length === 0) return this.findById(env, id);
@@ -203,7 +209,7 @@ export class ProductRepository {
     );
     return products.map(p => ({
       ...p,
-      images: p.images ? parseJSON<string[]>(p.images) || [] : []
+      images: p.images ? parseJSON<string[]>(p.images) || [] as any : null
     }));
   }
 
@@ -218,7 +224,7 @@ export class ProductRepository {
     );
     return products.map(p => ({
       ...p,
-      images: p.images ? parseJSON<string[]>(p.images) || [] : []
+      images: p.images ? parseJSON<string[]>(p.images) || [] as any : null
     }));
   }
 
@@ -240,7 +246,7 @@ export class ProductRepository {
     );
     return products.map(p => ({
       ...p,
-      images: p.images ? parseJSON<string[]>(p.images) || [] : []
+      images: p.images ? parseJSON<string[]>(p.images) || [] as any : null
     }));
   }
 
@@ -258,7 +264,7 @@ export class ProductRepository {
     );
     return products.map(p => ({
       ...p,
-      images: p.images ? parseJSON<string[]>(p.images) || [] : []
+      images: p.images ? parseJSON<string[]>(p.images) || [] as any : null
     }));
   }
 
@@ -276,7 +282,7 @@ export class ProductRepository {
     );
     return products.map(p => ({
       ...p,
-      images: p.images ? parseJSON<string[]>(p.images) || [] : []
+      images: p.images ? parseJSON<string[]>(p.images) || [] as any : null
     }));
   }
 
@@ -303,7 +309,7 @@ export class ProductRepository {
     );
     return variants.map(v => ({
       ...v,
-      images: v.images ? parseJSON<string[]>(v.images) || [] : []
+      images: v.images ? parseJSON<string[]>(v.images) || [] as any : null
     }));
   }
 
@@ -317,7 +323,10 @@ export class ProductRepository {
       sku
     );
     if (variant && variant.images) {
-      variant.images = parseJSON<string[]>(variant.images) || [];
+      return {
+        ...variant,
+        images: parseJSON<string[]>(variant.images) || [] as any
+      };
     }
     return variant;
   }
@@ -358,8 +367,8 @@ export class ProductRepository {
       data.size || null,
       data.color || null,
       data.material || null,
-      boolToNumber(data.isActive !== undefined ? true : data.isActive),
-      boolToNumber(data.isDefault || false),
+      data.isActive ?? true,
+      data.isDefault || false,
       currentTime,
       currentTime
     );
@@ -377,7 +386,10 @@ export class ProductRepository {
       id
     );
     if (variant && variant.images) {
-      variant.images = parseJSON<string[]>(variant.images) || [];
+      return {
+        ...variant,
+        images: parseJSON<string[]>(variant.images) || [] as any
+      };
     }
     return variant;
   }
@@ -427,11 +439,11 @@ export class ProductRepository {
     }
     if (data.isActive !== undefined) {
       updates.push('isActive = ?');
-      values.push(boolToNumber(data.isActive));
+      values.push(data.isActive);
     }
     if (data.isDefault !== undefined) {
       updates.push('isDefault = ?');
-      values.push(boolToNumber(data.isDefault));
+      values.push(data.isDefault);
     }
 
     if (updates.length === 0) return this.findVariantById(env, id);

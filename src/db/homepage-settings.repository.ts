@@ -30,7 +30,10 @@ export class HomepageSettingsRepository {
       sectionName
     );
     if (setting && setting.settings) {
-      setting.settings = parseJSON<Record<string, unknown>>(setting.settings);
+      return {
+        ...setting,
+        settings: parseJSON<Record<string, unknown>>(setting.settings) as any
+      };
     }
     return setting;
   }
@@ -45,7 +48,10 @@ export class HomepageSettingsRepository {
       id
     );
     if (setting && setting.settings) {
-      setting.settings = parseJSON<Record<string, unknown>>(setting.settings);
+      return {
+        ...setting,
+        settings: parseJSON<Record<string, unknown>>(setting.settings) as any
+      };
     }
     return setting;
   }
@@ -64,7 +70,7 @@ export class HomepageSettingsRepository {
 
       if (data.isEnabled !== undefined) {
         updates.push('isEnabled = ?');
-        values.push(boolToNumber(data.isEnabled));
+        values.push(data.isEnabled);
       }
       if (data.autoPlay !== undefined) {
         updates.push('autoPlay = ?');
@@ -102,7 +108,7 @@ export class HomepageSettingsRepository {
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         id,
         data.sectionName,
-        boolToNumber(data.isEnabled !== undefined ? data.isEnabled : true),
+        boolToNumber(data.isEnabled ?? true),
         data.autoPlay ?? 5000,
         data.displayLimit ?? null,
         data.settings ? stringifyJSON(data.settings) : null,
@@ -122,7 +128,7 @@ export class HomepageSettingsRepository {
 
     if (data.isEnabled !== undefined) {
       updates.push('isEnabled = ?');
-      values.push(boolToNumber(data.isEnabled));
+      values.push(data.isEnabled);
     }
     if (data.autoPlay !== undefined) {
       updates.push('autoPlay = ?');
@@ -169,7 +175,7 @@ export class HomepageSettingsRepository {
     );
     return settings.map(s => ({
       ...s,
-      settings: s.settings ? parseJSON<Record<string, unknown>>(s.settings) : null
+      settings: s.settings ? parseJSON<Record<string, unknown>>(s.settings) as any : null
     }));
   }
 
@@ -183,7 +189,7 @@ export class HomepageSettingsRepository {
     );
     return settings.map(s => ({
       ...s,
-      settings: s.settings ? parseJSON<Record<string, unknown>>(s.settings) : null
+      settings: s.settings ? parseJSON<Record<string, unknown>>(s.settings) as any : null
     }));
   }
 

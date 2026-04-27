@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
 
   // Rate limit by IP + email combination for better protection
   const rateLimitKey = `login:${clientIp}:${email || 'unknown'}`;
-  const rateLimitResult = rateLimit(rateLimitKey, {
+  const rateLimitResult = await rateLimit(env, rateLimitKey, {
     maxRequests: 5, // 5 attempts
     windowMs: 15 * 60 * 1000, // 15 minutes
   });
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: validation.error.errors[0].message,
+          error: validation.error.issues[0].message,
         },
         { status: 400 }
       );

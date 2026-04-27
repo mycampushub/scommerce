@@ -78,7 +78,7 @@ export async function validateCSRFToken(
   const csrfKey = `csrf:${sessionId}:${token}`;
 
   try {
-    const tokenData = await env.KV.get(csrfKey, 'text');
+    const tokenData = await env.KV.get(csrfKey, 'text') as string | null;
     if (!tokenData) {
       return false;
     }
