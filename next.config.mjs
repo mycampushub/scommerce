@@ -8,10 +8,8 @@ const nextConfig = {
   // Configure for Cloudflare Pages
   output: 'export',
   trailingSlash: true,
-  // Skip static generation for API routes
-  experimental: {
-    serverComponentsExternalPackages: ['sharp'],
-  },
+  // Next.js 15: moved serverExternalPackages out of experimental
+  serverExternalPackages: ['sharp'],
 };
 
 export default nextConfig;
