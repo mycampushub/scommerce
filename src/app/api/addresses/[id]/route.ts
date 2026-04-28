@@ -12,7 +12,7 @@ export async function PUT(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  const params = await context.params
+  const { id } = await context.params
   // Get D1 database from request context
   const env = getEnv(request)
 
@@ -39,7 +39,7 @@ export async function PUT(
     const existingAddress = await queryFirst(
       env,
       'SELECT * FROM addresses WHERE id = ? AND userId = ? LIMIT 1',
-      params.id,
+      id,
       payload.userId
     )
 
@@ -58,7 +58,7 @@ export async function PUT(
         env,
         'UPDATE addresses SET isDefault = 0 WHERE userId = ? AND isDefault = 1 AND id != ?',
         payload.userId,
-        params.id
+        id
       )
     }
 
@@ -113,7 +113,7 @@ export async function PUT(
 
     updates.push('updatedAt = ?')
     values.push(now())
-    values.push(params.id)
+    values.push(id)
 
     await execute(
       env,
@@ -124,7 +124,7 @@ export async function PUT(
     const address = await queryFirst(
       env,
       'SELECT * FROM addresses WHERE id = ? LIMIT 1',
-      params.id
+      id
     )
 
     return NextResponse.json({
@@ -147,7 +147,7 @@ export async function DELETE(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  const params = await context.params
+  const { id } = await context.params
   // Get D1 database from request context
   const env = getEnv(request)
 
@@ -174,7 +174,7 @@ export async function DELETE(
     const existingAddress = await queryFirst(
       env,
       'SELECT * FROM addresses WHERE id = ? AND userId = ? LIMIT 1',
-      params.id,
+      id,
       payload.userId
     )
 
@@ -191,7 +191,7 @@ export async function DELETE(
         env,
         'SELECT * FROM addresses WHERE userId = ? AND id != ? LIMIT 1',
         payload.userId,
-        params.id
+        id
       )
 
       if (otherAddresses.length > 0) {
@@ -206,7 +206,7 @@ export async function DELETE(
     await execute(
       env,
       'DELETE FROM addresses WHERE id = ?',
-      params.id
+      id
     )
 
     return NextResponse.json({

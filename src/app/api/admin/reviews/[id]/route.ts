@@ -7,7 +7,7 @@ export const runtime = 'edge';
 // PUT /api/admin/reviews/[id] - Approve/Reject review
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const env = getEnv(request)
@@ -92,7 +92,7 @@ export async function PUT(
 // DELETE /api/admin/reviews/[id] - Delete review
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const env = getEnv(request)
