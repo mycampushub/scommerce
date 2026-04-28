@@ -5,8 +5,7 @@
   "scripts": {
     "dev": "next dev -p 3000 2>&1 | tee dev.log",
     "build": "next build",
-    "build:cloudflare": "npx next-on-pages",
-    "preview": "wrangler pages dev .vercel/output/static",
+    "build:cloudflare": "npx @cloudflare/next-on-pages",
     "start": "NODE_ENV=production node .next/standalone/server.js 2>&1 | tee server.log",
     "lint": "eslint .",
     "db:push": "prisma db push",
@@ -87,7 +86,7 @@
     "zustand": "^5.0.6"
   },
   "devDependencies": {
-    "@cloudflare/next-on-pages": "1.6.0",
+    "@cloudflare/next-on-pages": "^1.13.7",
     "@tailwindcss/postcss": "^4",
     "@types/dompurify": "^3.2.0",
     "@types/react": "^18",
@@ -97,7 +96,6 @@
     "tailwindcss": "^4",
     "tsx": "^4.19.2",
     "tw-animate-css": "^1.3.5",
-    "typescript": "^5",
-    "wrangler": "^4.85.0"
+    "typescript": "^5"
   }
 }
