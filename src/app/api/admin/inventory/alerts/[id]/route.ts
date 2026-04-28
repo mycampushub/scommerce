@@ -7,10 +7,10 @@ export const runtime = 'edge';
 
 export async function PUT(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await context.params
+    const { id } = await params
     const env = getEnv(request)
     const body = await request.json()
     const alertId = id
@@ -34,19 +34,19 @@ export async function PUT(
 
     // Update alert
     const updates: string[] = []
-    const params: any[] = []
+    const values: any[] = []
 
     if (body.isRead !== undefined) {
       updates.push('isRead = ?')
-      params.push(boolToNumber(body.isRead))
+      values.push(boolToNumber(body.isRead))
     }
 
     if (body.isResolved !== undefined) {
       updates.push('isResolved = ?')
-      params.push(boolToNumber(body.isResolved))
+      values.push(boolToNumber(body.isResolved))
       if (body.isResolved === true) {
         updates.push('resolvedAt = ?')
-        params.push(now())
+        values.push(now())
       } else {
         updates.push('resolvedAt = NULL')
       }
@@ -54,13 +54,13 @@ export async function PUT(
 
     if (updates.length > 0) {
       updates.push('updatedAt = ?')
-      params.push(now())
-      params.push(alertId)
+      values.push(now())
+      values.push(alertId)
 
       await execute(
         env,
         `UPDATE inventory_alerts SET ${updates.join(', ')} WHERE id = ?`,
-        ...params
+        ...values
       )
     }
 
@@ -72,16 +72,15 @@ export async function PUT(
 
     // Enrich with product data
     const product = await ProductRepository.findById(env, alert.productId)
-    const enrichedAlert = {
-      ...alert,
-      product,
-      isRead: numberToBool(alert.isRead as number | null | undefined),
-      isResolved: numberToBool(alert.isResolved as number | null | undefined),
-    }
 
     return NextResponse.json({
       success: true,
-      data: enrichedAlert,
+      data: {
+        ...alert,
+        product,
+        isRead: numberToBool(alert.isRead as number),
+        isResolved: numberToBool(alert.isResolved as number),
+      },
       message: 'Alert updated successfully',
     })
   } catch (error) {
@@ -98,10 +97,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await context.params
+    const { id } = await params
     const env = getEnv(request)
     const alertId = id
 

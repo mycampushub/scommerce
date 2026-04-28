@@ -51,8 +51,8 @@ export async function withCache<T>(
 
   try {
     // Try to get from cache
-    const cached = await env.KV.get(cacheKey, 'text') as string | null;
-    if (cached) {
+    const cached = await env.KV.get(cacheKey, 'text');
+    if (cached && typeof cached === 'string') {
       try {
         const data = JSON.parse(cached) as T;
         return { data, fromCache: true };
@@ -103,8 +103,8 @@ export async function getCache<T>(
   const cacheKey = `${prefix}:${key}`;
 
   try {
-    const cached = await env.KV.get(cacheKey, 'text') as string | null;
-    if (cached) {
+    const cached = await env.KV.get(cacheKey, 'text');
+    if (cached && typeof cached === 'string') {
       try {
         return JSON.parse(cached) as T;
       } catch (parseError) {

@@ -2,12 +2,10 @@ import { Env, Story } from '@/db/types';
 import {
   generateId,
   boolToNumber,
-  numberToBool,
   now,
   queryFirst,
   queryAll,
   execute,
-  parseJSON,
   stringifyJSON,
 } from '@/db/db';
 
@@ -21,12 +19,6 @@ export class StoryRepository {
       'SELECT * FROM stories WHERE id = ? LIMIT 1',
       id
     );
-    if (story && story.images) {
-      return {
-        ...story,
-        images: parseJSON<string[]>(story.images) || [] as any
-      };
-    }
     return story;
   }
 
@@ -51,7 +43,7 @@ export class StoryRepository {
       data.title,
       data.thumbnail,
       stringifyJSON(data.images),
-      data.isActive ?? true,
+      boolToNumber(data.isActive !== undefined ? data.isActive : true),
       data.orderNum || 0,
       currentTime,
       currentTime
@@ -77,12 +69,11 @@ export class StoryRepository {
     }
     if (data.images !== undefined) {
       updates.push('images = ?');
-      // Handle both string (already JSON stringified) and string[] (needs to be stringified)
-      values.push(typeof data.images === 'string' ? data.images : stringifyJSON(data.images));
+      values.push(stringifyJSON(data.images));
     }
     if (data.isActive !== undefined) {
       updates.push('isActive = ?');
-      values.push(data.isActive);
+      values.push(typeof data.isActive === 'boolean' ? boolToNumber(data.isActive) : data.isActive);
     }
     if (data.orderNum !== undefined) {
       updates.push('orderNum = ?');
@@ -119,10 +110,7 @@ export class StoryRepository {
       env,
       'SELECT * FROM stories WHERE isActive = 1 ORDER BY orderNum ASC, createdAt DESC'
     );
-    return stories.map(s => ({
-      ...s,
-      images: parseJSON<string[]>(s.images) || [] as any,
-    }));
+    return stories;
   }
 
   /**
@@ -133,10 +121,7 @@ export class StoryRepository {
       env,
       'SELECT * FROM stories ORDER BY orderNum ASC, createdAt DESC'
     );
-    return stories.map(s => ({
-      ...s,
-      images: parseJSON<string[]>(s.images) || [] as any,
-    }));
+    return stories;
   }
 
   /**

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getEnv } from '@/lib/cloudflare';
 import { OrderRepository } from '@/db/order.repository';
 import { ProductRepository } from '@/db/product.repository';
-import { execute, parseJSON } from '@/db/db';
+import { execute, parseJSON, queryFirst } from '@/db/db';
 
 export const runtime = 'edge';
 
@@ -11,7 +11,7 @@ const CANCELLABLE_STATUSES = ['PENDING', 'CONFIRMED'];
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   // Get D1 database from request context
   const env = getEnv(request);
@@ -31,10 +31,8 @@ export async function POST(
       );
     }
 
-    const { id } = await params
-
     // Fetch order with items and products
-    const order = await OrderRepository.findById(env, id);
+    const order = await OrderRepository.findById(env, params.id);
     
     if (!order) {
       return NextResponse.json(
@@ -83,29 +81,33 @@ export async function POST(
     }
 
     // Restore product stock
-    const orderItems = await OrderRepository.getItems(env, id);
+    const orderItems = await OrderRepository.getItems(env, params.id);
     for (const item of orderItems) {
       if (item.variantId) {
         // Get current variant stock
-        const variant = await execute(
+        const variant = await queryFirst<{ stock: number }>(
           env,
-          'UPDATE product_variants SET stock = stock + ? WHERE id = ?',
-          item.quantity,
+          'SELECT stock FROM product_variants WHERE id = ?',
           item.variantId
         );
+        const currentStock = variant?.stock || 0;
+        // Restore variant stock
+        await ProductRepository.updateVariantStock(env, item.variantId, currentStock + item.quantity);
       } else {
         // Get current product stock
-        await execute(
+        const product = await queryFirst<{ stock: number }>(
           env,
-          'UPDATE products SET stock = stock + ? WHERE id = ?',
-          item.quantity,
+          'SELECT stock FROM products WHERE id = ?',
           item.productId
         );
+        const currentStock = product?.stock || 0;
+        // Restore product stock
+        await ProductRepository.updateProductStock(env, item.productId, currentStock + item.quantity);
       }
     }
 
     // Cancel order
-    const updatedOrder = await OrderRepository.cancel(env, id, cancelledBy, reason);
+    const updatedOrder = await OrderRepository.cancel(env, params.id, cancelledBy, reason);
 
     // TODO: Send notification email to customer about cancellation
     // await sendOrderCancellationEmail(updatedOrder);

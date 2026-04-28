@@ -77,10 +77,10 @@ export async function POST(request: NextRequest) {
 
     // Check stock availability for all products/variants
     const outOfStockItems: string[] = [];
-    for (const item of validatedData.orderItems) {
+    for (const item of validatedData.orderItems as any[]) {
       if (item.variantId) {
         // Check variant-level stock
-        const variant = await queryFirst<{ id: string; sku: string | null; stock: number; isActive: number; lowStockAlert: number; reorderLevel: number; reorderQty: number }>(
+        const variant = await queryFirst<{ stock: number; isActive: number; lowStockAlert: number; reorderLevel: number; reorderQty: number }>(
           env,
           'SELECT id, sku, stock, isActive, lowStockAlert, reorderLevel, reorderQty FROM product_variants WHERE id = ? LIMIT 1',
           item.variantId
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
         }
       } else {
         // Check product-level stock (backward compatibility)
-        const product = await queryFirst<{ id: string; name: string; stock: number; isActive: number; lowStockAlert: number; reorderLevel: number; reorderQty: number }>(
+        const product = await queryFirst<{ stock: number; isActive: number; lowStockAlert: number; reorderLevel: number; reorderQty: number; name: string }>(
           env,
           'SELECT id, name, stock, isActive, lowStockAlert, reorderLevel, reorderQty FROM products WHERE id = ? LIMIT 1',
           item.productId
@@ -179,7 +179,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Create order items
-    for (const item of validatedData.orderItems) {
+    for (const item of validatedData.orderItems as any[]) {
       await OrderRepository.addItem(env, {
         orderId: order.id,
         productId: item.productId,
@@ -196,12 +196,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Update product/variant stock and generate alerts
-    for (const item of validatedData.orderItems) {
+    for (const item of validatedData.orderItems as any[]) {
       const quantity = item.quantity;
 
       if (item.variantId) {
         // Update variant-level inventory
-        const variant = await queryFirst<{ id: string; stock: number; lowStockAlert: number; reorderLevel: number; reorderQty: number }>(
+        const variant = await queryFirst<{ stock: number; lowStockAlert: number; reorderLevel: number; reorderQty: number }>(
           env,
           'SELECT id, stock, lowStockAlert, reorderLevel, reorderQty FROM product_variants WHERE id = ? LIMIT 1',
           item.variantId
@@ -272,7 +272,7 @@ export async function POST(request: NextRequest) {
         }
       } else {
         // Update product-level inventory (backward compatibility)
-        const product = await queryFirst<{ id: string; stock: number; lowStockAlert: number; reorderLevel: number; reorderQty: number }>(
+        const product = await queryFirst<{ stock: number; lowStockAlert: number; reorderLevel: number; reorderQty: number }>(
           env,
           'SELECT id, stock, lowStockAlert, reorderLevel, reorderQty FROM products WHERE id = ? LIMIT 1',
           item.productId

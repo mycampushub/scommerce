@@ -52,7 +52,7 @@ interface Product {
   rating: number
   reviews: number
   badge?: string
-  category: string
+  category?: string
   description?: string
   sizes?: string[]
   colors?: string[]
@@ -1286,161 +1286,6 @@ function StickyImageCards() {
   )
 }
 
-// 11. Floating Category Carousel - Full width, always visible, overlaps content while scrolling
-function FloatingCategoryCarousel({ onQuickView, onAddToCart, newProducts, trendingProducts }: { onQuickView: (product: Product) => void; onAddToCart: (product: Product) => void; newProducts: Product[]; trendingProducts: Product[] }) {
-  const [currentIndex, setCurrentIndex] = useState(0)
-  
-  const categories = [
-    { id: 'new', name: 'NEW', href: '/shop?filter=new', products: newProducts || [] },
-    { id: 'tops', name: 'Tops', href: '/shop?filter=tops', products: [] }, // Will be populated by API
-    { id: 'dresses', name: 'Dresses', href: '/shop?filter=dresses', products: [] }, // Will be populated by API
-    { id: 'preloved', name: 'PRE-LOVED', href: '/shop?filter=vintage', products: [] } // Will be populated by API
-  ]
-
-  const handlePrev = () => {
-    setCurrentIndex((prev) => (prev - 1 + categories.length) % categories.length)
-  }
-
-  const handleNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % categories.length)
-  }
-
-  const currentCategory = categories[currentIndex]
-
-  return (
-    <section className="relative z-50 w-full bg-gradient-to-b from-white to-gray-50 shadow-xl">
-      <div className="container mx-auto px-4 py-8">
-        {/* Category Navigation - Full Width */}
-        <div className="flex items-center justify-between mb-8">
-          <button 
-            onClick={handlePrev} 
-            className="w-12 h-12 rounded-full border border-gray-300 flex items-center justify-center hover:bg-pink-600 hover:border-pink-600 hover:text-white transition-colors"
-            aria-label="Previous category"
-          >
-            <ChevronLeft className="w-6 h-6" />
-          </button>
-          
-          <div className="flex gap-4 md:gap-8">
-            {categories.map((cat, index) => (
-              <button
-                key={cat.id}
-                onClick={() => setCurrentIndex(index)}
-                className={`text-sm md:text-base font-semibold transition-colors ${
-                  index === currentIndex 
-                    ? 'text-pink-600 underline decoration-2 underline-offset-4' 
-                    : 'text-gray-500 hover:text-pink-600'
-                }`}
-              >
-                {cat.name}
-              </button>
-            ))}
-          </div>
-          
-          <button 
-            onClick={handleNext} 
-            className="w-12 h-12 rounded-full border border-gray-300 flex items-center justify-center hover:bg-pink-600 hover:border-pink-600 hover:text-white transition-colors"
-            aria-label="Next category"
-          >
-            <ChevronRight className="w-6 h-6" />
-          </button>
-        </div>
-
-        {/* Category Products - Display One by One */}
-        <div className="overflow-hidden">
-          <div 
-            className="flex transition-transform duration-500 ease-in-out"
-            style={{ transform: `translateX(-${currentIndex * 100}%)` }}
-          >
-            {categories.map((category) => (
-              <div key={category.id} className="flex-shrink-0 w-full">
-                <div className="text-center mb-6">
-                  <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-                    {category.name}
-                  </h2>
-                  <a 
-                    href={category.href}
-                    className="text-pink-600 hover:text-pink-700 font-medium inline-flex items-center gap-2"
-                  >
-                    View All
-                    <ChevronRight className="w-4 h-4" />
-                  </a>
-                </div>
-                
-                {/* Products Grid */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-                  {category.products.map((product) => (
-                    <div key={product.id} className="group">
-                      <div className="relative aspect-[3/4] overflow-hidden rounded-xl mb-3 bg-gray-100">
-                        {product.badge && (
-                          <span className="absolute top-2 left-2 z-10 bg-pink-600 text-white text-xs px-2 py-1 rounded-full font-medium">
-                            {product.badge}
-                          </span>
-                        )}
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          loading="lazy"
-                        />
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all" />
-                        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                          <button
-                            onClick={() => onQuickView(product)}
-                            className="bg-white text-gray-900 px-4 py-2 rounded-full text-sm font-medium hover:bg-pink-600 hover:text-white"
-                          >
-                            Quick View
-                          </button>
-                        </div>
-                      </div>
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <a href={`/product/${product.id}`} className="block">
-                            <h3 className="font-medium text-gray-900 mb-1 line-clamp-2 text-sm md:text-base group-hover:text-pink-600 transition-colors">
-                              {product.name}
-                            </h3>
-                          </a>
-                          <div className="flex items-center gap-1 mb-1">
-                            <div className="flex">
-                              {[...Array(5)].map((_, i) => (
-                                <Star
-                                  key={i}
-                                  className={`w-3 h-3 md:w-4 md:h-4 ${
-                                    i < Math.floor(product.rating)
-                                      ? 'fill-yellow-400 text-yellow-400'
-                                      : 'text-gray-300'
-                                  }`}
-                                />
-                              ))}
-                            </div>
-                            <span className="text-xs md:text-sm text-gray-500">({product.reviews})</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm md:text-lg font-bold text-gray-900">৳{product.price}</span>
-                            {product.originalPrice && (
-                              <span className="text-xs md:text-sm text-gray-400 line-through">৳{product.originalPrice}</span>
-                            )}
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => onAddToCart(product)}
-                          className="flex-shrink-0 bg-pink-600 text-white p-2 rounded-lg hover:bg-pink-700 transition-colors"
-                          aria-label="Add to cart"
-                        >
-                          <ShoppingCart className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
-
 // 12. Footer Component
 function Footer() {
   return (
@@ -1822,7 +1667,8 @@ export default function Home() {
             {homepageSettings.stories?.isEnabled !== false && stories.length > 0 && (
               <Stories stories={stories} autoPlay={homepageSettings.stories?.autoPlay} />
             )}
-            {/* <FloatingCategoryCarousel onQuickView={openQuickView} onAddToCart={addToCart} newProducts={newProducts} trendingProducts={trendingProducts} /> */}
+            {/* Floating Category Carousel - Temporarily disabled due to undefined product variables */}
+            {/* <FloatingCategoryCarousel onQuickView={openQuickView} onAddToCart={addToCart} /> */}
             <FullscreenVideo />
             <Categories categories={categories} />
             {/* Reels - only show if enabled and has data */}

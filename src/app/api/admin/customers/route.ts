@@ -33,21 +33,22 @@ export async function GET(request: NextRequest) {
 
     const customers = users.filter((user) => user.role !== 'admin')
 
-    // Transform customers with order counts and convert booleans
-    const transformedCustomers: any[] = []
-    for (const customer of customers) {
-      const orderCount = await count(env, 'orders', 'WHERE userId = ?', customer.id)
-      transformedCustomers.push({
-        ...customer,
-        _count: { orders: orderCount },
-        emailVerified: numberToBool(customer.emailVerified as number | null | undefined),
+    // Add order counts and convert booleans
+    const customersWithCounts = await Promise.all(
+      customers.map(async (customer) => {
+        const orderCount = await count(env, 'orders', 'WHERE userId = ?', customer.id)
+        return {
+          ...customer,
+          _count: { orders: orderCount },
+          emailVerified: numberToBool(customer.emailVerified as number)
+        }
       })
-    }
+    )
 
     return NextResponse.json({
       success: true,
-      data: transformedCustomers,
-      total: transformedCustomers.length,
+      data: customersWithCounts,
+      total: customersWithCounts.length,
     })
   } catch (error) {
     console.error('Error fetching customers:', error)
@@ -66,22 +67,16 @@ export async function POST(request: NextRequest) {
     const env = getEnv(request)
     const body = await request.json()
 
-    // Generate a random password for the customer
-    const generatedPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8)
-
     const customer = await UserRepository.create(env, {
       email: body.email,
       name: body.name,
-      password: generatedPassword,
+      password: 'tempPassword123', // TODO: Send password reset email to customer
       role: 'user' as any,
     })
 
     return NextResponse.json({
       success: true,
-      data: {
-        ...customer,
-        emailVerified: numberToBool(customer.emailVerified as number | null | undefined),
-      },
+      data: { ...customer, emailVerified: numberToBool(customer.emailVerified as number) },
     })
   } catch (error) {
     console.error('Error creating customer:', error)

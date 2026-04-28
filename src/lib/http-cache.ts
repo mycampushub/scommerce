@@ -148,27 +148,27 @@ export function createNotModifiedResponse(lastModified?: Date): NextResponse {
  */
 export function handleConditionalRequest(
   request: NextRequest,
-  data: Record<string, unknown>,
-  etag?: string,
+  etag: string,
+  data: string | unknown,
   lastModified?: Date
 ): NextResponse | null {
   const ifNoneMatch = request.headers.get('If-None-Match');
   const ifModifiedSince = request.headers.get('If-Modified-Since');
 
   // Check ETag
-  if (etag && ifNoneMatch && ifNoneMatch === etag) {
+  if (ifNoneMatch && ifNoneMatch === etag) {
     return createNotModifiedResponse(lastModified);
   }
 
   // Check Last-Modified
-  if (lastModified && ifModifiedSince) {
+  if (ifModifiedSince && lastModified) {
     const modifiedSince = new Date(ifModifiedSince);
     if (modifiedSince >= lastModified) {
       return createNotModifiedResponse(lastModified);
     }
   }
 
-  return NextResponse.json(data);
+  return null;
 }
 
 /**

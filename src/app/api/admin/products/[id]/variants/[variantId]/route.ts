@@ -167,12 +167,12 @@ export async function PUT(
     }
 
     // Update variant
-    const variant: any = await ProductRepository.updateVariant(env, variantId, {
+    const variant = await ProductRepository.updateVariant(env, variantId, {
       name: validatedData.name,
       price: validatedData.price,
       comparePrice: validatedData.comparePrice,
       stock: validatedData.stock,
-      images: validatedData.images ? JSON.stringify(validatedData.images) : null,
+      images: validatedData.images ? JSON.stringify(validatedData.images) : undefined,
       size: validatedData.size,
       color: validatedData.color,
       material: validatedData.material,
@@ -182,6 +182,13 @@ export async function PUT(
       reorderLevel: validatedData.reorderLevel,
       reorderQty: validatedData.reorderQty,
     })
+
+    if (!variant) {
+      return NextResponse.json(
+        { success: false, error: 'Failed to update variant' },
+        { status: 500 }
+      )
+    }
 
     return NextResponse.json({
       success: true,

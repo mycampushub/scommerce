@@ -6,11 +6,11 @@ export const runtime = 'edge';
 
 export async function PUT(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const env = getEnv(request)
-    const { id } = await context.params
+    const { id } = await params
     const body = await request.json()
     const { order } = body
 

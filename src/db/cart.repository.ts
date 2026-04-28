@@ -39,11 +39,14 @@ export class CartRepository {
 
     if (existing) {
       // Update quantity
-      return this.updateQuantity(
+      const result = await this.updateQuantity(
         env,
         existing.id,
         existing.quantity + (data.quantity || 1)
       );
+      if (result) {
+        return result;
+      }
     }
 
     // Create new cart item
@@ -73,7 +76,7 @@ export class CartRepository {
   /**
    * Update cart item quantity
    */
-  static async updateQuantity(env: Env, id: string, quantity: number): Promise<CartItem> {
+  static async updateQuantity(env: Env, id: string, quantity: number): Promise<CartItem | null> {
     await execute(
       env,
       'UPDATE cart_items SET quantity = ?, updatedAt = ? WHERE id = ?',
@@ -81,11 +84,11 @@ export class CartRepository {
       now(),
       id
     );
-    return (await queryFirst<CartItem>(
+    return queryFirst<CartItem>(
       env,
       'SELECT * FROM cart_items WHERE id = ? LIMIT 1',
       id
-    ))!;
+    );
   }
 
   /**

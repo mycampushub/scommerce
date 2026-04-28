@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
       categoriesWithCounts.push({
         ...category,
         _count: { products: productCount },
-        isActive: numberToBool(category.isActive as number | null | undefined)
+        isActive: numberToBool(category.isActive as number)
       })
     }
 
@@ -64,10 +64,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: {
-        ...category,
-        isActive: numberToBool(category.isActive as number | null | undefined),
-      },
+      data: { ...category, isActive: numberToBool(category.isActive as number) },
     })
   } catch (error) {
     console.error('Error creating category:', error)

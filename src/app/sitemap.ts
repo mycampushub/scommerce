@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://yourdomain.com'
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Static pages with their priorities and change frequencies
@@ -78,7 +78,56 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }))
 
-  // Return static pages and collection pages
-  // Products and categories added dynamically when database is available
-  return [...staticPages, ...collectionUrls]
+  // Only fetch from database if DATABASE_URL is available
+  // This allows graceful degradation during static build when database is not available
+  let productUrls: MetadataRoute.Sitemap = []
+  let categoryUrls: MetadataRoute.Sitemap = []
+
+  if (process.env.DATABASE_URL) {
+    try {
+      // Dynamic import to avoid build-time errors
+      const { db } = await import('@/db/db') as any
+
+      // Get all active products
+      const products = await db.product.findMany({
+        where: { isActive: true },
+        select: {
+          id: true,
+          slug: true,
+          updatedAt: true,
+        },
+      })
+
+      // Get all active categories
+      const categories = await db.category.findMany({
+        where: { isActive: true },
+        select: {
+          id: true,
+          slug: true,
+          updatedAt: true,
+        },
+      })
+
+      // Product URLs
+      productUrls = products.map((product) => ({
+        url: `${SITE_URL}/product/${product.slug}`,
+        lastModified: product.updatedAt,
+        changeFrequency: 'weekly' as const,
+        priority: 0.8,
+      }))
+
+      // Category URLs
+      categoryUrls = categories.map((category) => ({
+        url: `${SITE_URL}/category/${category.slug}`,
+        lastModified: category.updatedAt,
+        changeFrequency: 'weekly' as const,
+        priority: 0.9,
+      }))
+    } catch (error) {
+      console.error('Error fetching data for sitemap:', error)
+      // If database fails, continue with static pages only
+    }
+  }
+
+  return [...staticPages, ...categoryUrls, ...productUrls, ...collectionUrls]
 }

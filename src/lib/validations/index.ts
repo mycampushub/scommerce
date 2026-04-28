@@ -59,11 +59,6 @@ export const orderItemSchema = z.object({
   price: z.number().positive('Price must be positive'),
   productName: z.string().min(1, 'Product name is required'),
   productImage: z.string().url('Invalid image URL'),
-  variantId: z.string().uuid().optional(),
-  variantSku: z.string().optional(),
-  variantSize: z.string().optional(),
-  variantColor: z.string().optional(),
-  variantMaterial: z.string().optional(),
 });
 
 export const createOrderSchema = z.object({

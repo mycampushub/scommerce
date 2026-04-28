@@ -3,43 +3,33 @@
  * Protects against XSS attacks by sanitizing user input
  */
 
-import DOMPurify from 'dompurify';
-
 /**
  * Sanitize HTML content to prevent XSS attacks
+ * Simple implementation without external dependencies
  * @param dirty - Untrusted HTML string
- * @param options - DOMPurify configuration options
  * @returns Sanitized HTML string
  */
-export function sanitizeHTML(
-  dirty: string,
-  options?: DOMPurify.Config
-): string {
-  // Default configuration for stricter sanitization
-  const defaultOptions: DOMPurify.Config = {
-    ALLOWED_TAGS: [
-      'p', 'br', 'b', 'strong', 'i', 'em', 'u', 'a', 'ul', 'ol', 'li',
-      'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'code', 'pre',
-      'span', 'div', 'table', 'thead', 'tbody', 'tr', 'td', 'th'
-    ],
-    ALLOWED_ATTR: [
-      'href', 'target', 'rel', 'class', 'id', 'style',
-      'data-*', 'aria-*'
-    ],
-    FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed'],
-    FORBID_ATTR: ['onerror', 'onclick', 'onload', 'onmouseover'],
-    FORCE_BODY: false,
-    SANITIZE_DOM: true,
-    KEEP_CONTENT: true,
-    ...options,
-  };
-
+export function sanitizeHTML(dirty: string): string {
   // Handle empty or non-string input
   if (typeof dirty !== 'string') {
     return '';
   }
 
-  return DOMPurify.sanitize(dirty, defaultOptions);
+  // Remove script tags and their content
+  let clean = dirty
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*<\/script>)/gi, '')
+    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*<\/iframe>)/gi, '')
+    .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*<\/object>)/gi, '')
+    .replace(/<embed\b[^<]*(?:(?!<\/embed>)<[^<]*<\/embed>)/gi, '');
+
+  // Remove dangerous event handlers
+  const dangerousEvents = ['onerror', 'onload', 'onmouseover', 'onfocus', 'onblur'];
+  dangerousEvents.forEach(event => {
+    const regex = new RegExp(`on${event}\\s*=`, 'gi');
+    clean = clean.replace(regex, '');
+  });
+
+  return clean;
 }
 
 /**
@@ -52,10 +42,8 @@ export function stripHTML(dirty: string): string {
     return '';
   }
 
-  return DOMPurify.sanitize(dirty, {
-    ALLOWED_TAGS: [], // No tags allowed
-    KEEP_CONTENT: true, // Keep text content
-  });
+  // Remove all HTML tags
+  return dirty.replace(/<[^>]+>/g, '');
 }
 
 /**
@@ -137,10 +125,13 @@ export function sanitizePhone(phone: string): string {
  */
 export function sanitizeNumber(
   value: unknown,
-  defaultValue: number = 0
+  defaultValue: number | null | undefined = 0
 ): number {
   const num = Number(value);
-  return isNaN(num) ? defaultValue : num;
+  if (isNaN(num) || defaultValue === null || defaultValue === undefined) {
+    return 0;
+  }
+  return num;
 }
 
 /**
@@ -266,7 +257,7 @@ export function sanitizeProductData(productData: Record<string, unknown>) {
     name: sanitizeForDB(String(productData.name || '')),
     description: sanitizeHTML(String(productData.description || '')),
     price: sanitizeNumber(productData.price),
-    originalPrice: sanitizeNumber(productData.originalPrice, undefined),
+    originalPrice: sanitizeNumber(productData.originalPrice, null),
     stock: sanitizeInt(productData.stock, 0),
     sku: sanitizeForDB(String(productData.sku || '')),
     images: sanitizeArray<string>(productData.images, 'string'),

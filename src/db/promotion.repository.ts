@@ -50,7 +50,7 @@ export class PromotionRepository {
       data.ctaText || null,
       data.ctaLink || null,
       data.type || 'banner',
-      data.isActive ?? true,
+      boolToNumber(data.isActive !== undefined ? data.isActive : true),
       data.orderNum || 0,
       currentTime,
       currentTime
@@ -92,7 +92,7 @@ export class PromotionRepository {
     }
     if (data.isActive !== undefined) {
       updates.push('isActive = ?');
-      values.push(data.isActive);
+      values.push(typeof data.isActive === 'boolean' ? boolToNumber(data.isActive) : data.isActive);
     }
     if (data.orderNum !== undefined) {
       updates.push('orderNum = ?');

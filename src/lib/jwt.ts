@@ -1,20 +1,22 @@
 import { SignJWT, jwtVerify } from 'jose'
 
-// Get JWT secret with lazy initialization
+export interface JWTPayload {
+  userId: string
+  email: string
+  name: string | null
+  role: string
+  [key: string]: unknown
+}
+
+/**
+ * Get JWT_SECRET (only when needed at runtime)
+ */
 function getJWTSecret(): Uint8Array {
   const JWT_SECRET_STRING = process.env.JWT_SECRET;
   if (!JWT_SECRET_STRING) {
     throw new Error('JWT_SECRET environment variable is required');
   }
   return new TextEncoder().encode(JWT_SECRET_STRING);
-}
-
-export interface JWTPayload {
-  userId: string
-  email: string
-  name: string | null
-  role: string
-  [key: string]: unknown // Index signature for jose compatibility
 }
 
 /**

@@ -1,10 +1,16 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-
-  // Image optimization - required for Cloudflare Pages
   images: {
+    // For static export compatibility
     unoptimized: true,
+  },
+  // Configure for Cloudflare Pages
+  output: 'export',
+  trailingSlash: true,
+  // Skip static generation for API routes
+  experimental: {
+    serverComponentsExternalPackages: ['sharp'],
   },
 };
 

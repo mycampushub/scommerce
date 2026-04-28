@@ -53,11 +53,11 @@ export async function PUT(
     const body = await request.json()
 
     // If this is set as default, unset any existing default address
-    if (body.isDefault && !numberToBool(existingAddress.isDefault as number | null | undefined)) {
+    if (body.isDefault && !numberToBool(existingAddress.isDefault as number)) {
       await execute(
         env,
         'UPDATE addresses SET isDefault = 0 WHERE userId = ? AND isDefault = 1 AND id != ?',
-        payload.userId!,
+        payload.userId,
         params.id
       )
     }
@@ -107,7 +107,7 @@ export async function PUT(
       // No changes, return existing address
       return NextResponse.json({
         success: true,
-        data: { ...existingAddress, isDefault: numberToBool(existingAddress.isDefault as number | null | undefined) },
+        data: { ...existingAddress, isDefault: numberToBool(existingAddress.isDefault as number) },
       })
     }
 
@@ -129,7 +129,7 @@ export async function PUT(
 
     return NextResponse.json({
       success: true,
-      data: address ? { ...address, isDefault: numberToBool(address.isDefault as number | null | undefined) } : null,
+      data: address ? { ...address, isDefault: numberToBool(address.isDefault as number) } : null,
     })
   } catch (error) {
     console.error('Error updating address:', error)
@@ -186,11 +186,11 @@ export async function DELETE(
     }
 
     // If deleting default address, make another one default if available
-    if (numberToBool(existingAddress.isDefault as number | null | undefined)) {
+    if (numberToBool(existingAddress.isDefault as number)) {
       const otherAddresses = await queryAll(
         env,
         'SELECT * FROM addresses WHERE userId = ? AND id != ? LIMIT 1',
-        payload.userId!,
+        payload.userId,
         params.id
       )
 

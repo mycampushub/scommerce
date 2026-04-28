@@ -1,5 +1,0 @@
-# Cloudflare Pages redirects configuration
-# @cloudflare/next-on-pages will handle all routing
-
-# All routes are handled by the Cloudflare Pages Functions worker
-# No manual redirects needed

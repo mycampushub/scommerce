@@ -287,20 +287,20 @@ export interface HomepageSettings {
 // Database context type
 export interface Env {
   DB: D1Database;
-  BUCKET?: R2Bucket; // Cloudflare R2 for file storage
-  KV?: KVNamespace; // Cloudflare KV for rate limiting and caching
+  BUCKET?: R2Bucket;
+  KV?: KVNamespace;
 }
 
 export interface D1Database {
   prepare: (sql: string) => D1PreparedStatement;
   batch: (statements: D1PreparedStatement[]) => D1Result[];
-  exec: (sql: string) => void;
+  exec: (sql: string) => D1Result;
 }
 
 export interface D1PreparedStatement {
-  bind: (...values: unknown[]) => D1PreparedStatement;
-  first: () => Record<string, unknown> | null;
-  all: () => Record<string, unknown>[];
+  bind: (...params: unknown[]) => D1PreparedStatement;
+  first: () => Promise<Record<string, unknown> | null>;
+  all: () => Promise<{ results: Record<string, unknown>[] }>;
   run: () => D1Result;
 }
 

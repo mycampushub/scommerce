@@ -11,16 +11,10 @@ import { Loader2, ArrowLeft, Lock, Eye, EyeOff, CheckCircle2, AlertCircle } from
 import { useToast } from '@/hooks/use-toast'
 import ResetPasswordTokenHandler from '@/components/reset-password-token-handler'
 
-declare global {
-  interface Window {
-    __RESET_PASSWORD_TOKEN__?: string
-  }
-}
-
-function ResetPasswordContent({ initialToken }: { initialToken: string }) {
+function ResetPasswordContent() {
   const router = useRouter()
   const { toast } = useToast()
-  const [token, setToken] = useState(initialToken)
+  const [token, setToken] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -295,9 +289,9 @@ export default function ResetPasswordPage() {
       </div>
     }>
       <ResetPasswordTokenHandler onToken={(token) => {
-        window.__RESET_PASSWORD_TOKEN__ = token
+        (window as any).__RESET_PASSWORD_TOKEN__ = token
       }} />
-      <ResetPasswordContent initialToken={typeof window !== 'undefined' ? window.__RESET_PASSWORD_TOKEN__ || '' : ''} />
+      <ResetPasswordContent />
     </Suspense>
   )
 }

@@ -8,11 +8,11 @@ export const runtime = 'edge';
 
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const env = getEnv(request)
-    const { id } = await context.params
+    const { id } = await params
     const product = await ProductRepository.findById(env, id)
 
     if (!product) {
@@ -52,7 +52,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const env = getEnv(request)
@@ -71,7 +71,7 @@ export async function PUT(
         )
       }
 
-      const { id } = await context.params
+      const { id } = await params
       const product = await ProductRepository.findById(env, id)
 
       if (!product) {
@@ -97,7 +97,7 @@ export async function PUT(
         )
       }
 
-      const currentImages: any = Array.isArray(product.images) ? product.images : []
+      const currentImages: string[] = Array.isArray(product.images) ? [...product.images] : []
       currentImages.push(uploadResult.data.url)
 
       const updatedProduct = await ProductRepository.update(env, id, {
@@ -130,7 +130,7 @@ export async function PUT(
         )
       }
 
-      const { id } = await context.params
+      const { id } = await params
       const product = await ProductRepository.findById(env, id)
 
       if (!product) {
@@ -140,8 +140,8 @@ export async function PUT(
         )
       }
 
-      const currentImages = Array.isArray(product.images) ? product.images : []
-      const updatedImages: any[] = currentImages.filter((img: string) => img !== imageUrl)
+      const currentImages: string[] = Array.isArray(product.images) ? [...product.images] : []
+      const updatedImages = currentImages.filter((img: string) => img !== imageUrl)
 
       const updatedProduct = await ProductRepository.update(env, id, {
         images: JSON.stringify(updatedImages),
@@ -178,7 +178,7 @@ export async function PUT(
         )
       }
 
-      const { id } = await context.params
+      const { id } = await params
       const updatedProduct = await ProductRepository.update(env, id, {
         images: JSON.stringify(images),
       })
@@ -243,7 +243,7 @@ export async function PUT(
         }
       }
 
-      const { id } = await context.params
+      const { id } = await params
       const updateData: any = {}
       if (name) updateData.name = name
       if (slug) updateData.slug = slug
@@ -251,9 +251,9 @@ export async function PUT(
       if (basePrice !== undefined) updateData.basePrice = parseFloat(basePrice)
       if (comparePrice !== undefined) updateData.comparePrice = comparePrice ? parseFloat(comparePrice) : null
       if (categoryId) updateData.categoryId = categoryId
-      if (images.length > 0) updateData.images = images
+      if (images.length > 0) updateData.images = JSON.stringify(images)
       if (stock !== undefined) updateData.stock = parseInt(stock)
-      if (lowStockAlert !== undefined) updateData.lowStockAlert = lowStockAlert ? parseInt(lowStockAlert) : null
+      if (lowStockAlert !== undefined && lowStockAlert !== null) updateData.lowStockAlert = parseInt(lowStockAlert)
       if (isActive !== undefined) updateData.isActive = isActive
       if (isFeatured !== undefined) updateData.isFeatured = isFeatured
 
@@ -276,7 +276,7 @@ export async function PUT(
 
     // Handle JSON payload
     const body = await request.json()
-    const { id } = await context.params
+    const { id } = await params
 
     const updateData: any = {}
     if (body.name !== undefined) updateData.name = body.name
@@ -321,11 +321,11 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const env = getEnv(request)
-    const { id } = await context.params
+    const { id } = await params
     await ProductRepository.delete(env, id)
 
     return NextResponse.json({

@@ -106,8 +106,10 @@ export async function POST(request: NextRequest) {
       role: isAdmin ? 'admin' : 'user',
     });
 
-    // Update user with email token
-    await UserRepository.update(env, user.id, { emailToken });
+    // Update user with email verification token
+    await UserRepository.update(env, user.id, {
+      emailToken,
+    });
 
     // Return user data (converting emailVerified from number to boolean for frontend)
     const transformedUser = {

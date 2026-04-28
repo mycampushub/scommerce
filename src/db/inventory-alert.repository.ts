@@ -16,11 +16,12 @@ export class InventoryAlertRepository {
    * Find inventory alert by ID
    */
   static async findById(env: Env, id: string): Promise<InventoryAlert | null> {
-    return queryFirst<InventoryAlert>(
+    const alert = await queryFirst<InventoryAlert>(
       env,
       'SELECT * FROM inventory_alerts WHERE id = ? LIMIT 1',
       id
     );
+    return alert;
   }
 
   /**
@@ -61,13 +62,13 @@ export class InventoryAlertRepository {
 
     if (data.isRead !== undefined) {
       updates.push('isRead = ?');
-      values.push(data.isRead);
+      values.push(typeof data.isRead === 'boolean' ? boolToNumber(data.isRead) : data.isRead);
     }
     if (data.isResolved !== undefined) {
       updates.push('isResolved = ?');
-      values.push(data.isResolved);
+      values.push(typeof data.isResolved === 'boolean' ? boolToNumber(data.isResolved) : data.isResolved);
     }
-    if (data.isResolved !== undefined && data.isResolved === 1) {
+    if (data.isResolved !== undefined && (typeof data.isResolved === 'boolean' ? data.isResolved : data.isResolved !== 0)) {
       updates.push('resolvedAt = ?');
       values.push(now());
     }
@@ -119,20 +120,22 @@ export class InventoryAlertRepository {
    * Get all unread alerts
    */
   static async findUnread(env: Env): Promise<InventoryAlert[]> {
-    return queryAll<InventoryAlert>(
+    const alerts = await queryAll<InventoryAlert>(
       env,
       'SELECT * FROM inventory_alerts WHERE isRead = 0 ORDER BY createdAt DESC'
     );
+    return alerts;
   }
 
   /**
    * Get all unresolved alerts
    */
   static async findUnresolved(env: Env): Promise<InventoryAlert[]> {
-    return queryAll<InventoryAlert>(
+    const alerts = await queryAll<InventoryAlert>(
       env,
       'SELECT * FROM inventory_alerts WHERE isResolved = 0 ORDER BY createdAt DESC'
     );
+    return alerts;
   }
 
   /**

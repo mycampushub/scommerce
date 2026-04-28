@@ -75,63 +75,63 @@ export async function PUT(
     } = body
 
     const updates: string[] = []
-    const queryParams: any[] = []
+    const values: any[] = []
 
     if (title !== undefined) {
       updates.push('title = ?')
-      queryParams.push(title)
+      values.push(title)
     }
     if (description !== undefined) {
       updates.push('description = ?')
-      queryParams.push(description)
+      values.push(description)
     }
     if (image !== undefined) {
       updates.push('image = ?')
-      queryParams.push(image)
+      values.push(image)
     }
     if (discountType !== undefined) {
       updates.push('discountType = ?')
-      queryParams.push(discountType)
+      values.push(discountType)
     }
     if (discountValue !== undefined) {
       updates.push('discountValue = ?')
-      queryParams.push(discountValue)
+      values.push(discountValue)
     }
     if (discountRules !== undefined) {
       updates.push('discountRules = ?')
-      queryParams.push(stringifyJSON(discountRules))
+      values.push(stringifyJSON(discountRules))
     }
     if (applicableProducts !== undefined) {
       updates.push('applicableProducts = ?')
-      queryParams.push(stringifyJSON(applicableProducts))
+      values.push(stringifyJSON(applicableProducts))
     }
     if (applicableCategories !== undefined) {
       updates.push('applicableCategories = ?')
-      queryParams.push(stringifyJSON(applicableCategories))
+      values.push(stringifyJSON(applicableCategories))
     }
     if (startDate !== undefined) {
       updates.push('startDate = ?')
-      queryParams.push(startDate)
+      values.push(startDate)
     }
     if (endDate !== undefined) {
       updates.push('endDate = ?')
-      queryParams.push(endDate)
+      values.push(endDate)
     }
     if (ctaText !== undefined) {
       updates.push('ctaText = ?')
-      queryParams.push(ctaText)
+      values.push(ctaText)
     }
     if (ctaLink !== undefined) {
       updates.push('ctaLink = ?')
-      queryParams.push(ctaLink)
+      values.push(ctaLink)
     }
     if (isActive !== undefined) {
       updates.push('isActive = ?')
-      queryParams.push(boolToNumber(isActive))
+      values.push(boolToNumber(isActive))
     }
     if (order !== undefined) {
       updates.push('`order` = ?')
-      queryParams.push(order)
+      values.push(order)
     }
 
     if (updates.length === 0) {
@@ -153,13 +153,13 @@ export async function PUT(
     }
 
     updates.push('updatedAt = ?')
-    queryParams.push(now())
-    queryParams.push(id)
+    values.push(now())
+    values.push(id)
 
     await execute(
       env,
       `UPDATE promotions SET ${updates.join(', ')} WHERE id = ?`,
-      ...queryParams
+      ...values
     )
 
     const promotion = await queryFirst<any>(

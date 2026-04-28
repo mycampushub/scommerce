@@ -6,6 +6,7 @@ import { Toaster as SonnerToaster } from "sonner";
 import { OrganizationStructuredData } from "@/components/product-structured-data";
 import { AnalyticsScripts, SearchConsoleVerification } from "@/components/analytics-scripts";
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
+import { CacheProvider } from "@/components/providers/CacheProvider";
 
 const inter = Inter({
   variable: "--font-geist-sans",
@@ -96,11 +97,13 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} antialiased bg-background text-foreground`}
       >
-        <AnalyticsScripts />
-        <ServiceWorkerRegistration />
-        {children}
-        <Toaster />
-        <SonnerToaster position="bottom-right" />
+        <CacheProvider>
+          <AnalyticsScripts />
+          <ServiceWorkerRegistration />
+          {children}
+          <Toaster />
+          <SonnerToaster position="bottom-right" />
+        </CacheProvider>
       </body>
     </html>
   );

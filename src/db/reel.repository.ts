@@ -2,12 +2,10 @@ import { Env, Reel } from '@/db/types';
 import {
   generateId,
   boolToNumber,
-  numberToBool,
   now,
   queryFirst,
   queryAll,
   execute,
-  parseJSON,
   stringifyJSON,
 } from '@/db/db';
 
@@ -21,12 +19,6 @@ export class ReelRepository {
       'SELECT * FROM reels WHERE id = ? LIMIT 1',
       id
     );
-    if (reel && reel.productIds) {
-      return {
-        ...reel,
-        productIds: parseJSON<string[]>(reel.productIds) || [] as any
-      };
-    }
     return reel;
   }
 
@@ -53,7 +45,7 @@ export class ReelRepository {
       data.thumbnail,
       data.videoUrl,
       data.productIds ? stringifyJSON(data.productIds) : null,
-      data.isActive ?? true,
+      boolToNumber(data.isActive !== undefined ? data.isActive : true),
       data.orderNum || 0,
       currentTime,
       currentTime
@@ -87,7 +79,7 @@ export class ReelRepository {
     }
     if (data.isActive !== undefined) {
       updates.push('isActive = ?');
-      values.push(data.isActive);
+      values.push(typeof data.isActive === 'boolean' ? boolToNumber(data.isActive) : data.isActive);
     }
     if (data.orderNum !== undefined) {
       updates.push('orderNum = ?');
@@ -124,10 +116,7 @@ export class ReelRepository {
       env,
       'SELECT * FROM reels WHERE isActive = 1 ORDER BY orderNum ASC, createdAt DESC'
     );
-    return reels.map(r => ({
-      ...r,
-      productIds: parseJSON<string[]>(r.productIds) || [] as any,
-    }));
+    return reels;
   }
 
   /**
@@ -138,10 +127,7 @@ export class ReelRepository {
       env,
       'SELECT * FROM reels ORDER BY orderNum ASC, createdAt DESC'
     );
-    return reels.map(r => ({
-      ...r,
-      productIds: parseJSON<string[]>(r.productIds) || [] as any,
-    }));
+    return reels;
   }
 
   /**

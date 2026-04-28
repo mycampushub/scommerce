@@ -7,15 +7,16 @@ export const runtime = 'edge';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
+  // Get D1 database from request context
+  const env = getEnv(request)
+
   try {
-    const { id } = await params
-    // Get D1 database from request context
-    const env = getEnv(request)
+    const orderId = params.id
 
     // Fetch order with order items
-    const order = await OrderRepository.findById(env, id)
+    const order = await OrderRepository.findById(env, orderId)
 
     if (!order) {
       return NextResponse.json(
@@ -28,7 +29,7 @@ export async function GET(
     }
 
     // Fetch order items
-    const orderItems = await OrderRepository.getItems(env, id)
+    const orderItems = await OrderRepository.getItems(env, orderId)
 
     // Parse shipping address
     const shippingAddress = order.shippingAddress ? parseJSON(order.shippingAddress) : null

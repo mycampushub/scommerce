@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
-import { verifyToken } from '@/lib/jwt'
+import { verifyToken } from '@/lib/auth'
 import { changeEmailSchema } from '@/lib/validations'
 import { rateLimit, createRateLimitResponse, getClientIp } from '@/lib/rate-limit'
 import { UserRepository } from '@/db/user.repository'
 import { getEnv } from '@/lib/cloudflare'
+import { boolToNumber } from '@/db/db'
 
 export const runtime = 'edge';
 
@@ -89,7 +90,7 @@ export async function POST(request: NextRequest) {
     const emailToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
 
     await UserRepository.update(env, user.id, {
-      emailVerified: 0,
+      emailVerified: boolToNumber(false),
       newEmail: newEmail,
       emailToken: emailToken,
     })

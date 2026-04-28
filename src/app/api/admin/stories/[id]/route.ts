@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
 import { StoryRepository } from '@/db/story.repository'
-import { stringifyJSON } from '@/db/db'
 
 export const runtime = 'edge';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const { id } = await params
@@ -42,7 +41,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const { id } = await params
@@ -53,8 +52,8 @@ export async function PUT(
     const story = await StoryRepository.update(env, id, {
       ...(title !== undefined && { title }),
       ...(thumbnail !== undefined && { thumbnail }),
-      ...(images !== undefined && { images: Array.isArray(images) ? images as any : images }),
-      ...(isActive !== undefined && { isActive: isActive ? 1 : 0 }),
+      ...(images !== undefined && { images: Array.isArray(images) ? JSON.stringify(images) : '[]' }),
+      ...(isActive !== undefined && { isActive }),
       ...(order !== undefined && { orderNum: order })
     })
 
@@ -86,7 +85,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const { id } = await params

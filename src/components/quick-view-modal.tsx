@@ -157,7 +157,9 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
           {/* Product Details */}
           <div className="flex flex-col">
             <div className="mb-4">
-              <span className="text-sm text-gray-500">{product.category}</span>
+              {product.category && (
+                <span className="text-sm text-gray-500">{product.category}</span>
+              )}
               <h2 className="text-xl font-bold text-gray-900 mt-1">{product.name}</h2>
             </div>
 

@@ -98,12 +98,12 @@ function Navbar() {
           </nav>
 
           <div className="flex items-center gap-4">
-            <Link href="/cart" className="hidden md:flex items-center gap-2 text-gray-700 hover:text-pink-600 transition-colors relative">
+            <button className="hidden md:flex items-center gap-2 text-gray-700 hover:text-pink-600 transition-colors relative">
               <ShoppingCart className="w-5 h-5" />
               <span className="absolute -top-1 -right-1 w-5 h-5 bg-pink-600 text-white text-xs rounded-full flex items-center justify-center">
                 {getItemCount()}
               </span>
-            </Link>
+            </button>
             <button 
               className="lg:hidden p-2"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -243,8 +243,7 @@ function MobileBottomNav() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                 </button>
-                <Link
-                  href="/cart"
+                <button
                   className={`flex flex-col items-center justify-center w-14 h-14 rounded-full transition-colors active:scale-95 relative ${
                     pathname === '/cart'
                       ? 'bg-pink-600 text-white hover:bg-pink-700'
@@ -254,7 +253,7 @@ function MobileBottomNav() {
                 >
                   <ShoppingCart className="w-6 h-6" strokeWidth={2} />
                   <span className="absolute -top-1 -right-1 w-5 h-5 bg-pink-600 text-white text-xs rounded-full flex items-center justify-center">{getItemCount()}</span>
-                </Link>
+                </button>
               </div>
             </div>
           </div>
@@ -267,7 +266,7 @@ function MobileBottomNav() {
 export default function ProductPage() {
   const pathname = usePathname()
   const productId = pathname.split('/').pop() || ''
-  const { addItem } = useCartStore()
+  const { addItem, getItemCount } = useCartStore()
   const { addProduct } = useRecentlyViewedStore()
   const { user } = useAuth()
   
@@ -386,13 +385,13 @@ export default function ProductPage() {
         rating: product.rating,
         reviews: product.reviews,
         categoryId: product.categoryId,
-        category: product.category || undefined,
+        category: product.category,
       })
     }
   }, [product, addProduct])
 
   // Handle variant selection
-  const handleVariantSelection = (size?: string, color?: string, material?: string) => {
+  const handleVariantSelection = (size: string | undefined, color?: string, material?: string) => {
     setSelectedSize(size || '')
     setSelectedColor(color || '')
     setSelectedMaterial(material || '')
@@ -683,7 +682,7 @@ export default function ProductPage() {
                         {availableSizes.map((size) => (
                           <button
                             key={size}
-                            onClick={() => handleVariantSelection(size, selectedColor, selectedMaterial)}
+                            onClick={() => handleVariantSelection(size, selectedColor as string, selectedMaterial as string)}
                             className={`w-20 py-3 rounded-lg border-2 font-medium transition-all ${
                               selectedSize === size
                                 ? 'border-pink-600 bg-pink-50 text-pink-600'
@@ -705,7 +704,7 @@ export default function ProductPage() {
                         {availableColors.map((color) => (
                           <button
                             key={color}
-                            onClick={() => handleVariantSelection(selectedSize, color, selectedMaterial)}
+                            onClick={() => handleVariantSelection(selectedSize as string, color, selectedMaterial as string)}
                             className={`px-4 py-2 rounded-lg border-2 transition-all ${
                               selectedColor === color
                                 ? 'border-pink-600 bg-pink-50 text-pink-600'
@@ -727,7 +726,7 @@ export default function ProductPage() {
                         {availableMaterials.map((material) => (
                           <button
                             key={material}
-                            onClick={() => handleVariantSelection(selectedSize, selectedColor, material)}
+                            onClick={() => handleVariantSelection(selectedSize as string, selectedColor as string, material)}
                             className={`px-4 py-2 rounded-lg border-2 transition-all ${
                               selectedMaterial === material
                                 ? 'border-pink-600 bg-pink-50 text-pink-600'

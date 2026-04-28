@@ -95,9 +95,8 @@ export class D1Client {
    * Execute a raw SQL query and return all results
    */
   async query<T = any>(sql: string, params: any[] = []): Promise<T[]> {
-    const stmt = this.db.prepare(sql);
-    const bound = params.length > 0 ? stmt.bind(params) : stmt;
-    const results = await bound.all();
+    const stmt = this.db.prepare(sql).bind(params);
+    const results = await stmt.all();
     return results as T[];
   }
 
@@ -105,9 +104,8 @@ export class D1Client {
    * Execute a query and return the first result
    */
   async first<T = any>(sql: string, params: any[] = []): Promise<T | null> {
-    const stmt = this.db.prepare(sql);
-    const bound = params.length > 0 ? stmt.bind(params) : stmt;
-    const result = await bound.first();
+    const stmt = this.db.prepare(sql).bind(params);
+    const result = await stmt.first();
     return result as T | null;
   }
 
@@ -115,9 +113,8 @@ export class D1Client {
    * Execute a query and return the run result
    */
   async run(sql: string, params: any[] = []): Promise<D1Result> {
-    const stmt = this.db.prepare(sql);
-    const bound = params.length > 0 ? stmt.bind(params) : stmt;
-    return await bound.run();
+    const stmt = this.db.prepare(sql).bind(params);
+    return await stmt.run();
   }
 
   /**
@@ -153,10 +150,7 @@ export class D1Client {
     const setClause = keys.map((k) => `${k} = ?`).join(', ');
 
     const sql = `UPDATE ${table} SET ${setClause} WHERE ${where}`;
-
-    const stmt = this.db.prepare(sql);
-    const bound = stmt.bind(values);
-    const result = await bound.run();
+    const result = await this.run(sql, values);
 
     return result.meta?.changes || 0;
   }
@@ -170,10 +164,7 @@ export class D1Client {
     params: any[] = []
   ): Promise<number> {
     const sql = `DELETE FROM ${table} WHERE ${where}`;
-
-    const stmt = this.db.prepare(sql);
-    const bound = stmt.bind(params);
-    const result = await bound.run();
+    const result = await this.run(sql, params);
 
     return result.meta?.changes || 0;
   }
@@ -187,10 +178,7 @@ export class D1Client {
     params: any[] = []
   ): Promise<boolean> {
     const sql = `SELECT COUNT(*) as count FROM ${table} WHERE ${where}`;
-
-    const stmt = this.db.prepare(sql);
-    const bound = params.length > 0 ? stmt.bind(params) : stmt;
-    const result = await bound.first();
+    const result = await this.first<{ count: number }>(sql, params);
 
     return (result?.count || 0) > 0;
   }

@@ -170,7 +170,7 @@ export default function CustomersPage() {
       if (result.success) {
         setCustomerOrders(result.data || [])
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching customer orders:', err)
     } finally {
       setLoadingOrders(false)
@@ -278,12 +278,11 @@ export default function CustomersPage() {
           variant: 'destructive',
         })
       }
-    } catch (err: unknown) {
+    } catch (err: any) {
       console.error('Error toggling VIP status:', err)
-      const errorMessage = err instanceof Error ? err.message : 'Failed to toggle VIP status'
       toast({
         title: 'Error',
-        description: errorMessage,
+        description: err.message || 'Failed to toggle VIP status',
         variant: 'destructive',
       })
     }
@@ -320,12 +319,11 @@ export default function CustomersPage() {
           variant: 'destructive',
         })
       }
-    } catch (err: unknown) {
+    } catch (err: any) {
       console.error('Error banning customer:', err)
-      const errorMessage = err instanceof Error ? err.message : 'Failed to ban customer'
       toast({
         title: 'Error',
-        description: errorMessage,
+        description: err.message || 'Failed to ban customer',
         variant: 'destructive',
       })
     }
@@ -358,12 +356,11 @@ export default function CustomersPage() {
           variant: 'destructive',
         })
       }
-    } catch (err: unknown) {
+    } catch (err: any) {
       console.error('Error unbanning customer:', err)
-      const errorMessage = err instanceof Error ? err.message : 'Failed to unban customer'
       toast({
         title: 'Error',
-        description: errorMessage,
+        description: err.message || 'Failed to unban customer',
         variant: 'destructive',
       })
     }
@@ -394,12 +391,11 @@ export default function CustomersPage() {
           variant: 'destructive',
         })
       }
-    } catch (err: unknown) {
+    } catch (err: any) {
       console.error('Error deleting customer:', err)
-      const errorMessage = err instanceof Error ? err.message : 'Failed to delete customer'
       toast({
         title: 'Error',
-        description: errorMessage,
+        description: err.message || 'Failed to delete customer',
         variant: 'destructive',
       })
     }

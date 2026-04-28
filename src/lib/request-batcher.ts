@@ -22,7 +22,7 @@ export interface BatchConfig {
 
 export class RequestBatcher {
   private static instances: Map<string, RequestBatcher> = new Map();
-  private queue: Map<string, BatchRequest<unknown>[]> = new Map();
+  private queue: Map<string, BatchRequest<any>[]> = new Map();
   private timeouts: Map<string, NodeJS.Timeout> = new Map();
   private config: BatchConfig;
 
@@ -68,7 +68,7 @@ export class RequestBatcher {
       if (!this.queue.has(resourceType)) {
         this.queue.set(resourceType, []);
       }
-      this.queue.get(resourceType)!.push(request as BatchRequest<unknown>);
+      this.queue.get(resourceType)!.push(request);
 
       // Check if we should flush immediately
       const currentQueue = this.queue.get(resourceType)!;

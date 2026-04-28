@@ -1,4 +1,4 @@
-import { SiteSettings, calculateTax, calculateShipping, calculateTotal, formatCurrency as formatCurrencyUtil } from '@/db/settings.repository';
+import { SiteSettings, SettingsRepository, calculateTax, calculateShipping, calculateTotal, formatCurrency as formatCurrencyUtil } from '@/db/settings.repository';
 
 /**
  * Format currency with settings
@@ -45,4 +45,5 @@ export {
   calculateTax,
   calculateShipping,
   calculateTotal,
+  SettingsRepository,
 };

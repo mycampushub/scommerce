@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     let recommendedProducts: any[] = []
 
     // Get current product to determine category
-    const currentProduct = await queryFirst<{ categoryId: string; basePrice: number; price: number | null; hasVariants: number }>(
+    const currentProduct = await queryFirst(
       env,
       'SELECT categoryId, basePrice, price, hasVariants FROM products WHERE id = ? LIMIT 1',
       productId
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
 
     // Strategy 2: Price-based recommendations (similar price range)
     if (type === 'popular' || type === 'mixed') {
-      const priceRange = currentProduct?.price || currentProduct?.basePrice || 0
+      const priceRange = (currentProduct?.price as number || 0) || (currentProduct?.basePrice as number || 0)
       const minPrice = priceRange * 0.5
       const maxPrice = priceRange * 1.5
 
@@ -137,7 +137,7 @@ export async function GET(request: NextRequest) {
 
       // Price similarity bonus
       const productPrice = product.basePrice || product.price
-      const currentPrice = currentProduct?.price || currentProduct?.basePrice || 0
+      const currentPrice = (currentProduct?.price as number || 0) || (currentProduct?.basePrice as number || 0)
       const priceDiff = Math.abs(productPrice - currentPrice)
       const priceRatio = currentPrice > 0 ? priceDiff / currentPrice : 1
       if (priceRatio < 0.3) {
@@ -158,14 +158,15 @@ export async function GET(request: NextRequest) {
 
     // Format product data
     const formattedProducts = finalProducts.map((product: any) => {
-      const images = product.images ? parseJSON<string[]>(product.images) : []
+      const parsedImages = parseJSON<string[]>(product.images)
+      const images = parsedImages || []
       return {
         id: product.id,
         name: product.name,
         slug: product.slug,
         price: product.basePrice || product.price,
         comparePrice: product.comparePrice,
-        image: images && images.length > 0 ? images[0] : '',
+        image: images[0] || '',
         rating: product.rating || 0,
         reviews: product.reviews || 0,
         stock: product.stock || 0,

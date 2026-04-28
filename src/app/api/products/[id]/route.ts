@@ -9,14 +9,13 @@ export const runtime = 'edge';
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   // Get D1 database from request context (Cloudflare Pages/Workers)
   const env = getEnv(request);
 
   try {
-    const { id } = await params
-    const productId = id;
+    const productId = params.id;
 
     // Try to find by ID first
     let product = await ProductRepository.findById(env, productId);

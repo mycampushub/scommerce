@@ -183,7 +183,7 @@ export async function POST(
       price: validatedData.price,
       comparePrice: validatedData.comparePrice,
       stock: validatedData.stock,
-      images: validatedData.images || [],
+      images: validatedData.images,
       size: validatedData.size,
       color: validatedData.color,
       material: validatedData.material,

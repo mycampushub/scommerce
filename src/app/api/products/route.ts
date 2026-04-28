@@ -5,7 +5,6 @@ import { ProductRepository } from '@/db/product.repository';
 import { CategoryRepository } from '@/db/category.repository';
 import { numberToBool, parseJSON, count } from '@/db/db';
 import { addCacheHeaders, CachePresets } from '@/lib/http-cache';
-import { Category } from '@/db/types';
 
 // Edge Runtime export for Cloudflare
 export const runtime = 'edge';
@@ -60,7 +59,7 @@ export async function GET(request: Request) {
     // 'new' doesn't need a condition - we'll sort by createdAt desc
 
     // Filter by category
-    let category: Category | null = null;
+    let category: any = null;
     if (categorySlug) {
       category = await CategoryRepository.findBySlug(env, categorySlug);
       if (category) {

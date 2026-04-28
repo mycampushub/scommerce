@@ -3,7 +3,7 @@ import { getEnv } from '@/lib/cloudflare';
 import { OrderRepository } from '@/db/order.repository';
 import { ProductRepository } from '@/db/product.repository';
 import { z } from 'zod';
-import { execute } from '@/db/db';
+import { queryFirst } from '@/db/db';
 
 export const runtime = 'edge';
 
@@ -25,7 +25,7 @@ const REFUNDABLE_STATUSES = [
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   // Get D1 database from request context
   const env = getEnv(request);
@@ -47,10 +47,8 @@ export async function POST(
 
     const { userId, amount, reason, refundMethod, initiatedBy } = validation.data;
 
-    const { id } = await params
-
     // Fetch order
-    const order = await OrderRepository.findById(env, id);
+    const order = await OrderRepository.findById(env, params.id);
 
     if (!order) {
       return NextResponse.json(
@@ -149,39 +147,40 @@ export async function POST(
 
     // Restore product stock if order is being refunded before delivery
     if (order.status !== 'DELIVERED' && order.status !== 'CANCELLED') {
-      const orderItems = await OrderRepository.getItems(env, id);
+      const orderItems = await OrderRepository.getItems(env, params.id);
       for (const item of orderItems) {
         if (item.variantId) {
-          // Restore variant stock
-          await execute(
+          // Get current variant stock
+          const variant = await queryFirst<{ stock: number }>(
             env,
-            'UPDATE product_variants SET stock = stock + ? WHERE id = ?',
-            item.quantity,
+            'SELECT stock FROM product_variants WHERE id = ?',
             item.variantId
           );
+          const currentStock = variant?.stock || 0;
+          // Restore variant stock
+          await ProductRepository.updateVariantStock(env, item.variantId, currentStock + item.quantity);
         } else {
-          // Restore product stock
-          await execute(
+          // Get current product stock
+          const product = await queryFirst<{ stock: number }>(
             env,
-            'UPDATE products SET stock = stock + ? WHERE id = ?',
-            item.quantity,
+            'SELECT stock FROM products WHERE id = ?',
             item.productId
           );
+          const currentStock = product?.stock || 0;
+          // Restore product stock
+          await ProductRepository.updateProductStock(env, item.productId, currentStock + item.quantity);
         }
       }
     }
 
     // Process refund
-    const updatedOrder = await OrderRepository.refund(env, id, amount, refundMethod, reason);
+    const updatedOrder = await OrderRepository.refund(env, params.id, amount, refundMethod, reason);
 
     if (!updatedOrder) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Failed to update order after refund',
-        },
-        { status: 500 }
-      );
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to process refund',
+      }, { status: 500 });
     }
 
     // TODO: Send notification email to customer about refund
