@@ -5,5 +5,21 @@ compatibility_flags = ["nodejs_compat"]
 # For Cloudflare Pages deployment with next-on-pages
 pages_build_output_dir = ".vercel/output/static"
 
+# D1 Database bindings
+[[d1_databases]]
+binding = "DB"
+database_name = "scommerce-db"
+database_id = "fccab55b-37e3-4544-aacd-9095df3e9ab3"
+
+# R2 Storage for file uploads
+[[r2_buckets]]
+binding = "scommerce_uploads"
+bucket_name = "scommerce-uploads"
+
+# KV Namespace for rate limiting and caching
+[[kv_namespaces]]
+binding = "KV"
+id = "88d9b0d91f674eeab798ba907b15c716"
+
 [observability]
 enabled = true
