@@ -1,6 +1,9 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+
+// Configure for Cloudflare Pages Edge Runtime
+export const runtime = 'edge'
 import { ChevronLeft, ChevronRight, Heart, Share2, Truck, Shield, RotateCcw, Star, ShoppingCart, Check, Minus, Plus, Home as HomeIcon, ShoppingBag, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
