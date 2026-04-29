@@ -7,13 +7,13 @@ export const runtime = 'edge';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   // Get D1 database from request context
   const env = getEnv(request)
 
   try {
-    const orderId = params.id
+    const orderId = (await params).id
 
     // Fetch order with order items
     const order = await OrderRepository.findById(env, orderId)

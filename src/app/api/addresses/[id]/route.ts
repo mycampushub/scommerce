@@ -39,7 +39,7 @@ export async function PUT(
     const existingAddress = await queryFirst(
       env,
       'SELECT * FROM addresses WHERE id = ? AND userId = ? LIMIT 1',
-      params.id,
+      (await params).id,
       payload.userId
     )
 
@@ -58,7 +58,7 @@ export async function PUT(
         env,
         'UPDATE addresses SET isDefault = 0 WHERE userId = ? AND isDefault = 1 AND id != ?',
         payload.userId,
-        params.id
+        (await params).id
       )
     }
 
@@ -113,7 +113,7 @@ export async function PUT(
 
     updates.push('updatedAt = ?')
     values.push(now())
-    values.push(params.id)
+    values.push((await params).id)
 
     await execute(
       env,
@@ -124,7 +124,7 @@ export async function PUT(
     const address = await queryFirst(
       env,
       'SELECT * FROM addresses WHERE id = ? LIMIT 1',
-      params.id
+      (await params).id
     )
 
     return NextResponse.json({
@@ -174,7 +174,7 @@ export async function DELETE(
     const existingAddress = await queryFirst(
       env,
       'SELECT * FROM addresses WHERE id = ? AND userId = ? LIMIT 1',
-      params.id,
+      (await params).id,
       payload.userId
     )
 
@@ -191,7 +191,7 @@ export async function DELETE(
         env,
         'SELECT * FROM addresses WHERE userId = ? AND id != ? LIMIT 1',
         payload.userId,
-        params.id
+        (await params).id
       )
 
       if (otherAddresses.length > 0) {
@@ -206,7 +206,7 @@ export async function DELETE(
     await execute(
       env,
       'DELETE FROM addresses WHERE id = ?',
-      params.id
+      (await params).id
     )
 
     return NextResponse.json({

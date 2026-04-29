@@ -9,7 +9,7 @@ export const runtime = 'edge';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verify admin access
@@ -22,7 +22,7 @@ export async function GET(
     }
 
     const env = getEnv(request)
-    const user = await UserRepository.findById(env, params.id)
+    const user = await UserRepository.findById(env, (await params).id)
 
     if (!user) {
       return NextResponse.json(
@@ -59,7 +59,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verify admin access
@@ -76,7 +76,7 @@ export async function PUT(
     const { email, name, password, role, phone, address } = body
 
     // Check if user exists
-    const existingUser = await UserRepository.findById(env, params.id)
+    const existingUser = await UserRepository.findById(env, (await params).id)
 
     if (!existingUser) {
       return NextResponse.json(
@@ -131,7 +131,7 @@ export async function PUT(
     }
 
     // Update user
-    const user = await UserRepository.update(env, params.id, updateData)
+    const user = await UserRepository.update(env, (await params).id, updateData)
 
     if (!user) {
       return NextResponse.json(
@@ -170,7 +170,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verify admin access
@@ -185,7 +185,7 @@ export async function DELETE(
     const env = getEnv(request)
 
     // Check if user exists
-    const existingUser = await UserRepository.findById(env, params.id)
+    const existingUser = await UserRepository.findById(env, (await params).id)
 
     if (!existingUser) {
       return NextResponse.json(
@@ -209,7 +209,7 @@ export async function DELETE(
     }
 
     // Delete user
-    await UserRepository.delete(env, params.id)
+    await UserRepository.delete(env, (await params).id)
 
     return NextResponse.json({
       success: true,
