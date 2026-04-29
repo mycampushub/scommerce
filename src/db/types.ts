@@ -284,6 +284,23 @@ export interface HomepageSettings {
   updatedAt: string;
 }
 
+export interface SiteSettings {
+  id: string;
+  siteName: string;
+  siteLogo: string | null;
+  currency: string;
+  currencySymbol: string;
+  taxRate: number;
+  freeShippingThreshold: number;
+  baseShippingCost: number;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  socialMedia: string | null;
+  seo: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // Database context type
 export interface Env {
   DB?: D1Database;

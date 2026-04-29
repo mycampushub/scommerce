@@ -1,4 +1,5 @@
-import { SiteSettings, SettingsRepository, calculateTax, calculateShipping, calculateTotal, formatCurrency as formatCurrencyUtil } from '@/db/settings.repository';
+import { SiteSettings } from '@/db/types';
+import { SettingsRepository, calculateTax, calculateShipping, calculateTotal, formatCurrency as formatCurrencyUtil } from '@/db/settings.repository';
 
 /**
  * Format currency with settings

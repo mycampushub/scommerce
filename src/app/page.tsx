@@ -36,7 +36,17 @@ interface VideoReel {
   thumbnail: string
   videoUrl: string
   title: string
-  product: {
+  products?: Array<{
+    id: string
+    name: string
+    slug: string
+    price: number
+    comparePrice?: number
+    image: string
+    stock?: number
+  }>
+  // Fallback to single product for compatibility
+  product?: {
     name: string
     price: number
     image: string
@@ -780,58 +790,76 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
               </div>
             </div>
             <div className="hidden md:flex w-64 bg-white flex-col">
-              <div className="p-4 border-b">
-                <div className="relative aspect-square mb-4 rounded-lg overflow-hidden">
-                  <img src={selectedReel.product.image} alt={selectedReel.product.name} className="w-full h-full object-cover" />
+              {selectedReel.product ? (
+                <>
+                  <div className="p-4 border-b">
+                    <div className="relative aspect-square mb-4 rounded-lg overflow-hidden">
+                      <img src={selectedReel.product.image} alt={selectedReel.product.name} className="w-full h-full object-cover" />
+                    </div>
+                    <h4 className="font-bold text-lg">{selectedReel.product.name}</h4>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="text-xl font-bold text-pink-600">৳{selectedReel.product.price}</span>
+                      <button className="w-full mt-2 bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-full transition-colors">
+                        Add to Cart
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex-1 p-4">
+                    <div className="flex flex-col gap-4">
+                      <button className="w-full justify-start gap-2 flex items-center px-4 py-2 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors">
+                        <Heart className="w-4 h-4" /> Wishlist
+                      </button>
+                      <button className="w-full justify-start gap-2 flex items-center px-4 py-2 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors">
+                        <Share2 className="w-4 h-4" /> Share
+                      </button>
+                      <button className="w-full justify-start gap-2 flex items-center px-4 py-2 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors">
+                        <MessageCircle className="w-4 h-4" /> Comment
+                      </button>
+                    </div>
+                  </div>
+                </>
+              ) : selectedReel.products && selectedReel.products.length > 0 ? (
+                <div className="p-4 border-b">
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">No product selected</p>
+                  </div>
                 </div>
-                <h4 className="font-bold text-lg">{selectedReel.product.name}</h4>
-                <div className="flex items-center gap-2 mt-2">
-                  <span className="text-xl font-bold text-pink-600">৳{selectedReel.product.price}</span>
-                  <button className="w-full mt-2 bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-full transition-colors">
-                    Add to Cart
-                  </button>
-                </div>
-              </div>
-              <div className="flex-1 p-4">
-                <div className="flex flex-col gap-4">
-                  <button className="w-full justify-start gap-2 flex items-center px-4 py-2 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors">
-                    <Heart className="w-4 h-4" /> Wishlist
-                  </button>
-                  <button className="w-full justify-start gap-2 flex items-center px-4 py-2 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors">
-                    <Share2 className="w-4 h-4" /> Share
-                  </button>
-                  <button className="w-full justify-start gap-2 flex items-center px-4 py-2 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors">
-                    <MessageCircle className="w-4 h-4" /> Comment
-                  </button>
-                </div>
-              </div>
+              ) : null}
             </div>
-            <div className="md:hidden absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl p-4">
-              <div className="flex items-center gap-3 mb-3">
-                <img src={selectedReel.product.image} alt={selectedReel.product.name} className="w-16 h-16 rounded-lg object-cover" />
-                <div className="flex-1">
-                  <p className="font-semibold text-sm">{selectedReel.product.name}</p>
-                  <p className="text-pink-600 font-bold">৳{selectedReel.product.price}</p>
+          </div>
+          <div className="md:hidden absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl p-4">
+              {selectedReel.product ? (
+                <>
+                  <div className="flex items-center gap-3 mb-3">
+                    <img src={selectedReel.product.image} alt={selectedReel.product.name} className="w-16 h-16 rounded-lg object-cover" />
+                    <div className="flex-1">
+                      <p className="font-semibold text-sm">{selectedReel.product.name}</p>
+                      <p className="text-pink-600 font-bold">৳{selectedReel.product.price}</p>
+                    </div>
+                    <button className="bg-pink-600 hover:bg-pink-700 text-white p-2 rounded-full transition-colors">
+                      <ShoppingCart className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="flex justify-around border-t pt-3">
+                    <button className="flex flex-col gap-1 items-center text-gray-600">
+                      <Heart className="w-5 h-5" />
+                      <span className="text-xs">Like</span>
+                    </button>
+                    <button className="flex flex-col gap-1 items-center text-gray-600">
+                      <MessageCircle className="w-5 h-5" />
+                      <span className="text-xs">Comment</span>
+                    </button>
+                    <button className="flex flex-col gap-1 items-center text-gray-600">
+                      <Share2 className="w-5 h-5" />
+                      <span className="text-xs">Share</span>
+                    </button>
+                  </div>
+                </>
+              ) : selectedReel.products && selectedReel.products.length > 0 ? (
+                <div className="text-center py-4">
+                  <p className="text-gray-500">Multiple products available</p>
                 </div>
-                <button className="bg-pink-600 hover:bg-pink-700 text-white p-2 rounded-full transition-colors">
-                  <ShoppingCart className="w-4 h-4" />
-                </button>
-              </div>
-              <div className="flex justify-around border-t pt-3">
-                <button className="flex flex-col gap-1 items-center text-gray-600">
-                  <Heart className="w-5 h-5" />
-                  <span className="text-xs">Like</span>
-                </button>
-                <button className="flex flex-col gap-1 items-center text-gray-600">
-                  <MessageCircle className="w-5 h-5" />
-                  <span className="text-xs">Comment</span>
-                </button>
-                <button className="flex flex-col gap-1 items-center text-gray-600">
-                  <Share2 className="w-5 h-5" />
-                  <span className="text-xs">Share</span>
-                </button>
-              </div>
-            </div>
+              ) : null}
           </div>
         </div>
       )}
@@ -1027,7 +1055,92 @@ function MosaicGrid({ products, onQuickView, onAddToCart }: { products: Product[
   )
 }
 
-// 9. Promotion Row Component
+// 9. Trending Products Component
+function TrendingProducts({ products, onQuickView, onAddToCart }: { products: Product[]; onQuickView: (product: Product) => void; onAddToCart: (product: Product) => void }) {
+  const productsArray = Array.isArray(products) ? products : []
+
+  if (productsArray.length === 0) {
+    return null
+  }
+
+  return (
+    <section className="trending-products container mx-auto px-4 py-12">
+      <div className="flex items-center justify-between mb-8">
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Trending Now</h2>
+        <a
+          href="/products?type=trending"
+          className="text-pink-600 hover:text-pink-700 font-medium text-sm flex items-center gap-1 transition-colors"
+        >
+          View All
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </a>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+        {productsArray.map((product) => (
+          <div
+            key={product.id}
+            className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 group"
+          >
+            <div className="relative aspect-[3/4] overflow-hidden">
+              {product.badge && (
+                <span className="absolute top-3 left-3 z-10 bg-pink-600 text-white px-3 py-1 text-xs font-medium rounded-full">
+                  {product.badge}
+                </span>
+              )}
+              <img
+                src={product.image}
+                alt={product.name}
+                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-y-4 group-hover:translate-y-0">
+                <button
+                  onClick={() => onQuickView(product)}
+                  className="bg-white text-gray-900 px-4 py-2 rounded-full text-sm font-medium hover:bg-pink-600 hover:text-white transition-colors"
+                >
+                  Quick View
+                </button>
+              </div>
+            </div>
+            <div className="p-4">
+              <div className="flex items-center gap-1 mb-2">
+                <div className="flex">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className={`w-4 h-4 ${i < Math.floor(product.rating) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
+                  ))}
+                </div>
+                <span className="text-sm text-gray-500">({product.reviews})</span>
+              </div>
+              <h3 className="font-medium text-gray-900 mb-2 line-clamp-2 hover:text-pink-600 transition-colors">
+                {product.name}
+              </h3>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-bold text-pink-600">৳{product.price}</span>
+                  {product.originalPrice && (
+                    <span className="text-sm text-gray-400 line-through">৳{product.originalPrice}</span>
+                  )}
+                </div>
+                <button
+                  onClick={() => onAddToCart(product)}
+                  className="bg-pink-600 text-white p-2 rounded-lg hover:bg-pink-700 transition-colors"
+                  aria-label="Add to cart"
+                >
+                  <ShoppingCart className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+// 10. Promotion Row Component
 function PromotionRow({ promotions }: { promotions: Promotion[] }) {
   // Fallback to showroom image if no promotions
   if (!promotions || promotions.length === 0) {
@@ -1584,13 +1697,25 @@ export default function Home() {
         })))
 
         const reelList = reelsData.data || []
-        setReels(reelList.map((r: any) => ({
-          id: r.id,
-          thumbnail: r.thumbnail,
-          videoUrl: r.videoUrl,
-          title: r.title,
-          product: { name: 'Featured Product', price: 99.99, image: r.thumbnail }
-        })))
+        setReels(reelList.map((r: any) => {
+          // Use actual product data from API
+          const products = r.products || [];
+          const firstProduct = products.length > 0 ? products[0] : null;
+
+          return {
+            id: r.id,
+            thumbnail: r.thumbnail,
+            videoUrl: r.videoUrl,
+            title: r.title,
+            products,
+            // Fallback for compatibility with existing component
+            product: firstProduct ? {
+              name: firstProduct.name,
+              price: firstProduct.price,
+              image: firstProduct.image
+            } : { name: 'Featured Product', price: 99.99, image: r.thumbnail }
+          };
+        }))
 
         const promotionList = promotionsData.data || []
         setPromotions(promotionList.map((p: any) => ({
@@ -1674,6 +1799,10 @@ export default function Home() {
             {/* Reels - only show if enabled and has data */}
             {homepageSettings.reels?.isEnabled !== false && reels.length > 0 && (
               <VideoReels reels={reels} />
+            )}
+            {/* Trending Products */}
+            {trendingProducts.length > 0 && (
+              <TrendingProducts products={trendingProducts} onQuickView={openQuickView} onAddToCart={addToCart} />
             )}
             <FeaturedCollection products={featuredProducts} onQuickView={openQuickView} onAddToCart={addToCart} />
             <MosaicGrid products={newProducts} onQuickView={openQuickView} onAddToCart={addToCart} />

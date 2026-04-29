@@ -128,6 +128,33 @@ export async function GET(request: Request) {
       offset
     );
 
+    // Fetch aggregated ratings from ProductReview table
+    const productIds = products.map((p: any) => p.id);
+    let reviewsMap: Record<string, { rating: number; reviews: number }> = {};
+
+    if (productIds.length > 0) {
+      const placeholders = productIds.map(() => '?').join(',');
+      const reviews = await queryAll(
+        env,
+        `SELECT 
+          productId,
+          AVG(rating) as avgRating,
+          COUNT(rating) as reviewCount
+        FROM product_reviews 
+        WHERE productId IN (${placeholders}) AND isApproved = 1
+        GROUP BY productId`,
+        ...productIds
+      );
+
+      reviewsMap = reviews.reduce((acc: Record<string, { rating: number; reviews: number }>, review: any) => {
+        acc[review.productId] = {
+          rating: Math.round(review.avgRating * 10) / 10, // Round to 1 decimal
+          reviews: review.reviewCount
+        };
+        return acc;
+      }, {});
+    }
+
     // Transform products to match expected frontend format
     const transformedProducts = products.map((product: any) => {
       const images = parseJSON<string[]>(product.images) || [];
@@ -146,6 +173,9 @@ export async function GET(request: Request) {
         badge = 'New';
       }
 
+      // Get rating and review count from aggregated reviews
+      const reviewData = reviewsMap[product.id] || { rating: 0, reviews: 0 };
+
       return {
         id: product.id,
         name: product.name,
@@ -155,8 +185,8 @@ export async function GET(request: Request) {
         originalPrice: product.comparePrice || undefined,
         image: images[0] || category?.image || '',
         images: images,
-        rating: 4.5, // Default rating - in production, this would come from reviews
-        reviews: Math.floor(Math.random() * 500) + 10, // Random review count - in production, this would be real
+        rating: reviewData.rating || 0, // Actual rating from reviews
+        reviews: reviewData.reviews || 0, // Actual review count
         badge,
         category: category?.name,
         categorySlug: category?.slug,
