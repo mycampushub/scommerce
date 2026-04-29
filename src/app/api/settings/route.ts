@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { verifyToken } = await import('@/lib/jwt');
+    const { verifyToken } = await import('@/lib/jwt-edge');
     const payload = await verifyToken(token);
 
     if (!payload || payload.role !== 'admin') {
