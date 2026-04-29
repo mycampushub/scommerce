@@ -11,13 +11,12 @@ const CANCELLABLE_STATUSES = ['PENDING', 'CONFIRMED'];
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   // Get D1 database from request context
   const env = getEnv(request);
 
   try {
-    const { id } = await params;
     const body = await request.json();
     const { userId, cancelledBy = 'user', reason } = body;
 
@@ -33,7 +32,7 @@ export async function POST(
     }
 
     // Fetch order with items and products
-    const order = await OrderRepository.findById(env, id);
+    const order = await OrderRepository.findById(env, params.id);
     
     if (!order) {
       return NextResponse.json(
@@ -82,7 +81,7 @@ export async function POST(
     }
 
     // Restore product stock
-    const orderItems = await OrderRepository.getItems(env, id);
+    const orderItems = await OrderRepository.getItems(env, params.id);
     for (const item of orderItems) {
       if (item.variantId) {
         // Get current variant stock
@@ -108,7 +107,7 @@ export async function POST(
     }
 
     // Cancel order
-    const updatedOrder = await OrderRepository.cancel(env, id, cancelledBy, reason);
+    const updatedOrder = await OrderRepository.cancel(env, params.id, cancelledBy, reason);
 
     // TODO: Send notification email to customer about cancellation
     // await sendOrderCancellationEmail(updatedOrder);

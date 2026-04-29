@@ -25,13 +25,12 @@ const REFUNDABLE_STATUSES = [
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   // Get D1 database from request context
   const env = getEnv(request);
 
   try {
-    const { id } = await params;
     const body = await request.json();
 
     // Validate input
@@ -49,7 +48,7 @@ export async function POST(
     const { userId, amount, reason, refundMethod, initiatedBy } = validation.data;
 
     // Fetch order
-    const order = await OrderRepository.findById(env, id);
+    const order = await OrderRepository.findById(env, params.id);
 
     if (!order) {
       return NextResponse.json(
@@ -148,7 +147,7 @@ export async function POST(
 
     // Restore product stock if order is being refunded before delivery
     if (order.status !== 'DELIVERED' && order.status !== 'CANCELLED') {
-      const orderItems = await OrderRepository.getItems(env, id);
+      const orderItems = await OrderRepository.getItems(env, params.id);
       for (const item of orderItems) {
         if (item.variantId) {
           // Get current variant stock
@@ -175,7 +174,7 @@ export async function POST(
     }
 
     // Process refund
-    const updatedOrder = await OrderRepository.refund(env, id, amount, refundMethod, reason);
+    const updatedOrder = await OrderRepository.refund(env, params.id, amount, refundMethod, reason);
 
     if (!updatedOrder) {
       return NextResponse.json({

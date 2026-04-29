@@ -8,12 +8,11 @@ export const runtime = 'edge';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const env = getEnv(request)
-    const { id } = await params
-    const category = await CategoryRepository.findById(env, id)
+    const category = await CategoryRepository.findById(env, params.id)
 
     if (!category) {
       return NextResponse.json(
@@ -26,7 +25,7 @@ export async function GET(
     }
 
     // Get products for this category
-    const products = await ProductRepository.findByCategory(env, id)
+    const products = await ProductRepository.findByCategory(env, params.id)
 
     return NextResponse.json({
       success: true,
@@ -50,14 +49,13 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const env = getEnv(request)
     const body = await request.json()
-    const { id } = await params
 
-    const category = await CategoryRepository.update(env, id, {
+    const category = await CategoryRepository.update(env, params.id, {
       ...(body.name && { name: body.name }),
       ...(body.slug && { slug: body.slug }),
       ...(body.description !== undefined && { description: body.description }),
@@ -93,12 +91,11 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const env = getEnv(request)
-    const { id } = await params
-    await CategoryRepository.delete(env, id)
+    await CategoryRepository.delete(env, params.id)
 
     return NextResponse.json({
       success: true,

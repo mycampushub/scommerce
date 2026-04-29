@@ -289,13 +289,13 @@ CREATE TABLE IF NOT EXISTS banners (
   buttonText TEXT,
   buttonLink TEXT,
   isActive INTEGER DEFAULT 1,
-  "order" INTEGER DEFAULT 0,
+  order INTEGER DEFAULT 0,
   createdAt TEXT DEFAULT (datetime('now')),
   updatedAt TEXT DEFAULT (datetime('now'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_banners_isActive ON banners(isActive);
-CREATE INDEX IF NOT EXISTS idx_banners_order ON banners("order");
+CREATE INDEX IF NOT EXISTS idx_banners_order ON banners(order);
 
 -- Stories table
 CREATE TABLE IF NOT EXISTS stories (
@@ -304,13 +304,13 @@ CREATE TABLE IF NOT EXISTS stories (
   thumbnail TEXT NOT NULL,
   images TEXT NOT NULL,
   isActive INTEGER DEFAULT 1,
-  "order" INTEGER DEFAULT 0,
+  order INTEGER DEFAULT 0,
   createdAt TEXT DEFAULT (datetime('now')),
   updatedAt TEXT DEFAULT (datetime('now'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_stories_isActive ON stories(isActive);
-CREATE INDEX IF NOT EXISTS idx_stories_order ON stories("order");
+CREATE INDEX IF NOT EXISTS idx_stories_order ON stories(order);
 
 -- Reels table
 CREATE TABLE IF NOT EXISTS reels (
@@ -320,13 +320,13 @@ CREATE TABLE IF NOT EXISTS reels (
   videoUrl TEXT NOT NULL,
   productIds TEXT,
   isActive INTEGER DEFAULT 1,
-  "order" INTEGER DEFAULT 0,
+  order INTEGER DEFAULT 0,
   createdAt TEXT DEFAULT (datetime('now')),
   updatedAt TEXT DEFAULT (datetime('now'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_reels_isActive ON reels(isActive);
-CREATE INDEX IF NOT EXISTS idx_reels_order ON reels("order");
+CREATE INDEX IF NOT EXISTS idx_reels_order ON reels(order);
 
 -- Promotions table
 CREATE TABLE IF NOT EXISTS promotions (
@@ -338,7 +338,7 @@ CREATE TABLE IF NOT EXISTS promotions (
   ctaLink TEXT,
   type TEXT DEFAULT 'banner',
   isActive INTEGER DEFAULT 1,
-  "order" INTEGER DEFAULT 0,
+  order INTEGER DEFAULT 0,
   createdAt TEXT DEFAULT (datetime('now')),
   updatedAt TEXT DEFAULT (datetime('now'))
 );

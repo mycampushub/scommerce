@@ -9,7 +9,7 @@ export const runtime = 'edge';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     // Verify admin access
@@ -22,8 +22,7 @@ export async function GET(
     }
 
     const env = getEnv(request)
-    const { id } = await params
-    const user = await UserRepository.findById(env, id)
+    const user = await UserRepository.findById(env, params.id)
 
     if (!user) {
       return NextResponse.json(
@@ -60,7 +59,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     // Verify admin access
@@ -73,12 +72,11 @@ export async function PUT(
     }
 
     const env = getEnv(request)
-    const { id } = await params
     const body = await request.json()
     const { email, name, password, role, phone, address } = body
 
     // Check if user exists
-    const existingUser = await UserRepository.findById(env, id)
+    const existingUser = await UserRepository.findById(env, params.id)
 
     if (!existingUser) {
       return NextResponse.json(
@@ -133,7 +131,7 @@ export async function PUT(
     }
 
     // Update user
-    const user = await UserRepository.update(env, id, updateData)
+    const user = await UserRepository.update(env, params.id, updateData)
 
     if (!user) {
       return NextResponse.json(
@@ -172,7 +170,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     // Verify admin access
@@ -185,10 +183,9 @@ export async function DELETE(
     }
 
     const env = getEnv(request)
-    const { id } = await params
 
     // Check if user exists
-    const existingUser = await UserRepository.findById(env, id)
+    const existingUser = await UserRepository.findById(env, params.id)
 
     if (!existingUser) {
       return NextResponse.json(
@@ -212,7 +209,7 @@ export async function DELETE(
     }
 
     // Delete user
-    await UserRepository.delete(env, id)
+    await UserRepository.delete(env, params.id)
 
     return NextResponse.json({
       success: true,

@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     apple: "/favicon.ico",
   },
   other: {
-    "mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-capable": "yes",
     "apple-mobile-web-app-status-bar-style": "default",
     "apple-mobile-web-app-title": "SCommerce",
   },
@@ -72,6 +72,14 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const securityHeaders = {
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'X-XSS-Protection': '1; mode=block',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+  };
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -82,6 +90,9 @@ export default function RootLayout({
           logo="/logo.svg"
           description="Modern e-commerce platform for fashion and lifestyle products"
         />
+        {Object.entries(securityHeaders).map(([key, value]) => (
+          <meta key={key} httpEquiv={key} content={value} />
+        ))}
       </head>
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} antialiased bg-background text-foreground`}

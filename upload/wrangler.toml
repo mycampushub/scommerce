@@ -1,6 +1,13 @@
+# Cloudflare Pages deployment configuration
+# This config is for local development with wrangler
+# Cloudflare Pages uses its own configuration
+
 name = "scommerce"
 compatibility_date = "2026-04-26"
 compatibility_flags = ["nodejs_compat"]
+
+# Main entry point for the worker created by @cloudflare/next-on-pages
+main = ".vercel/output/static/_worker.js/index.js"
 
 # D1 Database bindings
 [[d1_databases]]
@@ -17,9 +24,6 @@ bucket_name = "scommerce-uploads"
 [[kv_namespaces]]
 binding = "KV"
 id = "88d9b0d91f674eeab798ba907b15c716"
-
-# For Cloudflare Pages deployment with next-on-pages
-pages_build_output_dir = ".vercel/output/static"
 
 [observability]
 enabled = true
