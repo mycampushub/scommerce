@@ -14,7 +14,6 @@ import {
   stringifyJSON
 } from '@/db/db'
 
-export const runtime = 'edge';
 
 export async function GET(request: NextRequest) {
   // Verify admin authentication

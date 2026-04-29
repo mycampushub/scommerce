@@ -5,7 +5,6 @@ import { ProductRepository } from '@/db/product.repository';
 import { z } from 'zod';
 import { queryFirst } from '@/db/db';
 
-export const runtime = 'edge';
 
 // Validation schema for refund request
 const refundRequestSchema = z.object({

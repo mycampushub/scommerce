@@ -5,7 +5,6 @@ import { queryAll, queryFirst, execute, boolToNumber, numberToBool, generateId, 
 import { csrfMiddleware } from '@/lib/csrf'
 import { sanitizeAddressData, sanitizeForDB, sanitizePhone } from '@/lib/sanitize'
 
-export const runtime = 'edge';
 
 /**
  * GET /api/addresses - Get all saved addresses for authenticated user

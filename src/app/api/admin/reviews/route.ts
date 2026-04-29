@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
 import { queryAll, count, boolToNumber, numberToBool, parseJSON } from '@/db/db'
 
-export const runtime = 'edge';
 
 // GET /api/admin/reviews - List all reviews with filtering
 export async function GET(request: NextRequest) {

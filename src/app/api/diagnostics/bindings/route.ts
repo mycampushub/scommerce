@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 
 // Edge Runtime export for Cloudflare
-export const runtime = 'edge';
 
 export async function GET(request: Request) {
   const diagnostics: any = {

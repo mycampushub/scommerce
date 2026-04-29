@@ -3,7 +3,6 @@ import { getEnv } from '@/lib/cloudflare'
 import { queryFirst, queryAll } from '@/db/db'
 import { parseJSON } from '@/db/db'
 
-export const runtime = 'edge';
 
 export async function GET(request: NextRequest) {
   const env = getEnv(request)

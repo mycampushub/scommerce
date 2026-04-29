@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
 import { StoryRepository } from '@/db/story.repository'
 
-export const runtime = 'edge';
 
 export async function PUT(
   request: NextRequest,

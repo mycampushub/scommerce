@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
 import { ReelRepository } from '@/db/reel.repository'
 
-export const runtime = 'edge';
 
 export async function PUT(
   request: NextRequest,

@@ -2,8 +2,6 @@ import { MetadataRoute } from 'next'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://yourdomain.com'
 
-export const runtime = 'edge';
-
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Static pages with their priorities and change frequencies
   const staticPages = [

@@ -4,7 +4,6 @@ import { SettingsRepository } from '@/db/settings.repository';
 import { addCacheHeaders, CachePresets } from '@/lib/http-cache';
 
 // Edge Runtime export for Cloudflare
-export const runtime = 'edge';
 
 /**
  * GET /api/settings

@@ -26,12 +26,23 @@ function findBinding(envObj: any, bindingName: string): any {
 
 /**
  * Get D1 database from request context
- * This works with Cloudflare Pages and Workers
+ * This works with Cloudflare Pages, Workers, and OpenNext
  */
 export function getDB(request: Request): D1Database | null {
   const checked: string[] = [];
 
-  // 1. Try globalThis.cloudflare.ctx.env (next-on-pages request context)
+  // 1. Try request.env (OpenNext and traditional Workers way)
+  const requestEnv = (request as any).env;
+  if (requestEnv) {
+    checked.push('request.env');
+    const db = findBinding(requestEnv, 'DB');
+    if (db) {
+      console.log('[cloudflare.ts] D1 found in request.env');
+      return db as D1Database;
+    }
+  }
+
+  // 2. Try globalThis.cloudflare.ctx.env (next-on-pages request context)
   const ctxEnv = globalThis.cloudflare?.ctx?.env;
   if (ctxEnv) {
     checked.push('globalThis.cloudflare.ctx.env');
@@ -42,24 +53,13 @@ export function getDB(request: Request): D1Database | null {
     }
   }
 
-  // 2. Try globalThis.cloudflare.env (next-on-pages global)
+  // 3. Try globalThis.cloudflare.env (next-on-pages global)
   const cloudflareEnv = globalThis.cloudflare?.env;
   if (cloudflareEnv) {
     checked.push('globalThis.cloudflare.env');
     const db = findBinding(cloudflareEnv, 'DB');
     if (db) {
       console.log('[cloudflare.ts] D1 found in globalThis.cloudflare.env');
-      return db as D1Database;
-    }
-  }
-
-  // 3. Try request.env (traditional Workers way)
-  const requestEnv = (request as any).env;
-  if (requestEnv) {
-    checked.push('request.env');
-    const db = findBinding(requestEnv, 'DB');
-    if (db) {
-      console.log('[cloudflare.ts] D1 found in request.env');
       return db as D1Database;
     }
   }
@@ -86,11 +86,22 @@ export function getDB(request: Request): D1Database | null {
 
 /**
  * Helper to get env from request context
+ * Works with OpenNext, next-on-pages, and traditional Workers
  */
 export function getEnv(request: Request): Env | null {
   const checked: string[] = [];
 
-  // 1. Try globalThis.cloudflare.ctx.env (next-on-pages request context)
+  // 1. Try request.env (OpenNext and traditional Workers way)
+  const requestEnv = (request as any).env;
+  if (requestEnv) {
+    checked.push('request.env');
+    if (requestEnv.DB || requestEnv.BUCKET || requestEnv.KV) {
+      console.log('[cloudflare.ts] Env found in request.env');
+      return requestEnv as Env;
+    }
+  }
+
+  // 2. Try globalThis.cloudflare.ctx.env (next-on-pages request context)
   const ctxEnv = globalThis.cloudflare?.ctx?.env;
   if (ctxEnv) {
     checked.push('globalThis.cloudflare.ctx.env');
@@ -101,23 +112,13 @@ export function getEnv(request: Request): Env | null {
     }
   }
 
-  // 2. Try globalThis.cloudflare.env (next-on-pages global)
+  // 3. Try globalThis.cloudflare.env (next-on-pages global)
   const cloudflareEnv = globalThis.cloudflare?.env;
   if (cloudflareEnv) {
     checked.push('globalThis.cloudflare.env');
     if (cloudflareEnv.DB || cloudflareEnv.BUCKET || cloudflareEnv.KV) {
       console.log('[cloudflare.ts] Env found in globalThis.cloudflare.env');
       return cloudflareEnv as Env;
-    }
-  }
-
-  // 3. Try request.env (traditional Workers way)
-  const requestEnv = (request as any).env;
-  if (requestEnv) {
-    checked.push('request.env');
-    if (requestEnv.DB || requestEnv.BUCKET || requestEnv.KV) {
-      console.log('[cloudflare.ts] Env found in request.env');
-      return requestEnv as Env;
     }
   }
 

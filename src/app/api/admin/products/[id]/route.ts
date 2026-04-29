@@ -4,7 +4,6 @@ import { ProductRepository } from '@/db/product.repository'
 import { CategoryRepository } from '@/db/category.repository'
 import { queryFirst, queryAll, execute, parseJSON, stringifyJSON, boolToNumber, numberToBool, now } from '@/db/db'
 
-export const runtime = 'edge';
 
 export async function GET(
   request: NextRequest,

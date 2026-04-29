@@ -5,7 +5,6 @@ import { ProductRepository } from '@/db/product.repository';
 import { parseJSON } from '@/db/db';
 
 // Edge Runtime export for Cloudflare
-export const runtime = 'edge';
 
 export async function GET(request: Request) {
   // Get D1 database from request context (Cloudflare Pages/Workers)

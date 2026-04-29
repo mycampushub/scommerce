@@ -3,7 +3,6 @@ import { getEnv } from '@/lib/cloudflare';
 import { StoryRepository } from '@/db/story.repository';
 
 // Edge Runtime export for Cloudflare
-export const runtime = 'edge';
 
 export async function GET(request: Request) {
   // Get D1 database from request context (Cloudflare Pages/Workers)

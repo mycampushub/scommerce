@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 
 // Edge Runtime export for Cloudflare
-export const runtime = 'edge';
 
 export async function GET(request: NextRequest) {
   try {
