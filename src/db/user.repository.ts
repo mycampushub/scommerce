@@ -15,7 +15,7 @@ export class UserRepository {
   /**
    * Find user by email
    */
-  static async findByEmail(env: Env, email: string): Promise<User | null> {
+  static async findByEmail(env: Env | null, email: string): Promise<User | null> {
     return queryFirst<User>(
       env,
       'SELECT * FROM users WHERE email = ? LIMIT 1',
@@ -26,7 +26,7 @@ export class UserRepository {
   /**
    * Find user by ID
    */
-  static async findById(env: Env, id: string): Promise<User | null> {
+  static async findById(env: Env | null, id: string): Promise<User | null> {
     return queryFirst<User>(
       env,
       'SELECT * FROM users WHERE id = ? LIMIT 1',
@@ -37,7 +37,7 @@ export class UserRepository {
   /**
    * Find user by password reset token
    */
-  static async findByResetToken(env: Env, token: string): Promise<User | null> {
+  static async findByResetToken(env: Env | null, token: string): Promise<User | null> {
     const currentTime = now();
     return queryFirst<User>(
       env,
@@ -50,7 +50,7 @@ export class UserRepository {
   /**
    * Create new user
    */
-  static async create(env: Env, data: {
+  static async create(env: Env | null, data: {
     email: string;
     name?: string;
     phone?: string;
@@ -82,7 +82,7 @@ export class UserRepository {
   /**
    * Update user
    */
-  static async update(env: Env, id: string, data: Partial<User>): Promise<User | null> {
+  static async update(env: Env | null, id: string, data: Partial<User>): Promise<User | null> {
     const updates: string[] = [];
     const values: unknown[] = [];
 
@@ -141,7 +141,7 @@ export class UserRepository {
   /**
    * Delete user
    */
-  static async delete(env: Env, id: string): Promise<void> {
+  static async delete(env: Env | null, id: string): Promise<void> {
     await execute(env, 'DELETE FROM users WHERE id = ?', id);
   }
 
@@ -166,7 +166,7 @@ export class UserRepository {
   /**
    * Count users
    */
-  static async count(env: Env, role?: UserRole): Promise<number> {
+  static async count(env: Env | null, role?: UserRole): Promise<number> {
     return count(env, 'users', role ? 'WHERE role = ?' : '', ...(role ? [role] : []));
   }
 }

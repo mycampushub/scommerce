@@ -15,7 +15,7 @@ export class InventoryAlertRepository {
   /**
    * Find inventory alert by ID
    */
-  static async findById(env: Env, id: string): Promise<InventoryAlert | null> {
+  static async findById(env: Env | null, id: string): Promise<InventoryAlert | null> {
     const alert = await queryFirst<InventoryAlert>(
       env,
       'SELECT * FROM inventory_alerts WHERE id = ? LIMIT 1',
@@ -27,7 +27,7 @@ export class InventoryAlertRepository {
   /**
    * Create new inventory alert
    */
-  static async create(env: Env, data: {
+  static async create(env: Env | null, data: {
     variantId?: string;
     productId?: string;
     alertType: AlertType;
@@ -56,7 +56,7 @@ export class InventoryAlertRepository {
   /**
    * Update inventory alert
    */
-  static async update(env: Env, id: string, data: Partial<InventoryAlert>): Promise<InventoryAlert | null> {
+  static async update(env: Env | null, id: string, data: Partial<InventoryAlert>): Promise<InventoryAlert | null> {
     const updates: string[] = [];
     const values: unknown[] = [];
 
@@ -89,7 +89,7 @@ export class InventoryAlertRepository {
   /**
    * Mark alert as read
    */
-  static async markAsRead(env: Env, id: string): Promise<void> {
+  static async markAsRead(env: Env | null, id: string): Promise<void> {
     await execute(
       env,
       'UPDATE inventory_alerts SET isRead = 1 WHERE id = ?',
@@ -100,7 +100,7 @@ export class InventoryAlertRepository {
   /**
    * Mark alert as resolved
    */
-  static async markAsResolved(env: Env, id: string): Promise<void> {
+  static async markAsResolved(env: Env | null, id: string): Promise<void> {
     await execute(
       env,
       'UPDATE inventory_alerts SET isResolved = 1, resolvedAt = ? WHERE id = ?',
@@ -112,14 +112,14 @@ export class InventoryAlertRepository {
   /**
    * Delete inventory alert
    */
-  static async delete(env: Env, id: string): Promise<void> {
+  static async delete(env: Env | null, id: string): Promise<void> {
     await execute(env, 'DELETE FROM inventory_alerts WHERE id = ?', id);
   }
 
   /**
    * Get all unread alerts
    */
-  static async findUnread(env: Env): Promise<InventoryAlert[]> {
+  static async findUnread(env : Env | null): Promise<InventoryAlert[]> {
     const alerts = await queryAll<InventoryAlert>(
       env,
       'SELECT * FROM inventory_alerts WHERE isRead = 0 ORDER BY createdAt DESC'
@@ -130,7 +130,7 @@ export class InventoryAlertRepository {
   /**
    * Get all unresolved alerts
    */
-  static async findUnresolved(env: Env): Promise<InventoryAlert[]> {
+  static async findUnresolved(env : Env | null): Promise<InventoryAlert[]> {
     const alerts = await queryAll<InventoryAlert>(
       env,
       'SELECT * FROM inventory_alerts WHERE isResolved = 0 ORDER BY createdAt DESC'
@@ -194,7 +194,7 @@ export class InventoryAlertRepository {
   /**
    * Count alerts
    */
-  static async count(env: Env, options: {
+  static async count(env: Env | null, options: {
     alertType?: AlertType;
     isRead?: boolean;
     isResolved?: boolean;
@@ -224,14 +224,14 @@ export class InventoryAlertRepository {
   /**
    * Mark all alerts as read
    */
-  static async markAllAsRead(env: Env): Promise<void> {
+  static async markAllAsRead(env : Env | null): Promise<void> {
     await execute(env, 'UPDATE inventory_alerts SET isRead = 1 WHERE isRead = 0');
   }
 
   /**
    * Resolve multiple alerts
    */
-  static async resolveMany(env: Env, ids: string[]): Promise<void> {
+  static async resolveMany(env: Env | null, ids: string[]): Promise<void> {
     if (ids.length === 0) return;
 
     const placeholders = ids.map(() => '?').join(',');
@@ -246,7 +246,7 @@ export class InventoryAlertRepository {
   /**
    * Delete multiple alerts
    */
-  static async deleteMany(env: Env, ids: string[]): Promise<void> {
+  static async deleteMany(env: Env | null, ids: string[]): Promise<void> {
     if (ids.length === 0) return;
 
     const placeholders = ids.map(() => '?').join(',');
@@ -260,7 +260,7 @@ export class InventoryAlertRepository {
   /**
    * Delete resolved alerts older than specified days
    */
-  static async deleteOldResolved(env: Env, daysOld: number = 30): Promise<number> {
+  static async deleteOldResolved(env: Env | null, daysOld: number = 30): Promise<number> {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysOld);
     const cutoffISO = cutoffDate.toISOString();

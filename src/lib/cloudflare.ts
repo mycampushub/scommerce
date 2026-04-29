@@ -4,28 +4,72 @@ import { Env } from '@/db/types';
  * Get D1 database from request context
  * This works with Cloudflare Pages and Workers
  */
-export function getDB(request: Request): D1Database {
-  return (request as any).env?.DB as D1Database;
+export function getDB(request: Request): D1Database | null {
+  // Check all possible locations where D1 binding could be available
+  // 1. request.env.DB (traditional Workers way)
+  const requestEnv = (request as any).env;
+  if (requestEnv?.DB) {
+    return requestEnv.DB as D1Database;
+  }
+
+  // 2. global.cloudflare.ctx.env.DB (next-on-pages request context)
+  if (globalThis.cloudflare?.ctx?.env?.DB) {
+    return globalThis.cloudflare.ctx.env.DB as D1Database;
+  }
+
+  // 3. global.cloudflare.env.DB (next-on-pages global)
+  if (globalThis.cloudflare?.env?.DB) {
+    return globalThis.cloudflare.env.DB as D1Database;
+  }
+
+  // 4. Check if there's a global binding directly
+  const globalAny = global as any;
+  if (globalAny.DB) {
+    return globalAny.DB as D1Database;
+  }
+
+  console.error('[cloudflare.ts] D1 binding not found in any location');
+  return null;
 }
 
 /**
  * Helper to get env from request context
  */
-export function getEnv(request: Request): Env {
-  return (request as any).env as Env;
+export function getEnv(request: Request): Env | null {
+  // Check all possible locations where env could be available
+  const requestEnv = (request as any).env;
+  if (requestEnv?.DB) {
+    return requestEnv as Env;
+  }
+
+  if (globalThis.cloudflare?.ctx?.env?.DB) {
+    return globalThis.cloudflare.ctx.env as Env;
+  }
+
+  if (globalThis.cloudflare?.env?.DB) {
+    return globalThis.cloudflare.env as Env;
+  }
+
+  const globalAny = global as any;
+  if (globalAny.DB) {
+    return globalAny as Env;
+  }
+
+  console.error('[cloudflare.ts] Env not found in any location');
+  return null;
 }
 
 export interface D1Database {
   prepare: (sql: string) => D1PreparedStatement;
   batch: (statements: D1PreparedStatement[]) => D1Result[];
-  exec: (sql: string) => void;
+  exec: (sql: string) => D1Result;
 }
 
 export interface D1PreparedStatement {
   bind: (...values: unknown[]) => D1PreparedStatement;
-  first: () => Record<string, unknown> | null;
-  all: () => Record<string, unknown>[];
-  run: () => D1Result;
+  first: () => Promise<Record<string, unknown> | null>;
+  all: () => Promise<{ results: Record<string, unknown>[] }>;
+  run: () => Promise<D1Result>;
 }
 
 export interface D1Result {

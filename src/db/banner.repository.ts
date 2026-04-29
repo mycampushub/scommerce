@@ -13,7 +13,7 @@ export class BannerRepository {
   /**
    * Find banner by ID
    */
-  static async findById(env: Env, id: string): Promise<Banner | null> {
+  static async findById(env: Env | null, id: string): Promise<Banner | null> {
     return queryFirst<Banner>(
       env,
       'SELECT * FROM banners WHERE id = ? LIMIT 1',
@@ -24,7 +24,7 @@ export class BannerRepository {
   /**
    * Create new banner
    */
-  static async create(env: Env, data: {
+  static async create(env: Env | null, data: {
     title: string;
     description?: string;
     image: string;
@@ -60,7 +60,7 @@ export class BannerRepository {
   /**
    * Update banner
    */
-  static async update(env: Env, id: string, data: Partial<Banner>): Promise<Banner | null> {
+  static async update(env: Env | null, id: string, data: Partial<Banner>): Promise<Banner | null> {
     const updates: string[] = [];
     const values: unknown[] = [];
 
@@ -115,14 +115,14 @@ export class BannerRepository {
   /**
    * Delete banner
    */
-  static async delete(env: Env, id: string): Promise<void> {
+  static async delete(env: Env | null, id: string): Promise<void> {
     await execute(env, 'DELETE FROM banners WHERE id = ?', id);
   }
 
   /**
    * Get all active banners
    */
-  static async findAllActive(env: Env): Promise<Banner[]> {
+  static async findAllActive(env: Env | null): Promise<Banner[]> {
     const banners = await queryAll<Banner>(
       env,
       'SELECT * FROM banners WHERE isActive = 1 ORDER BY orderNum ASC, createdAt DESC'
@@ -133,7 +133,7 @@ export class BannerRepository {
   /**
    * Get all banners (with pagination)
    */
-  static async findAll(env: Env): Promise<Banner[]> {
+  static async findAll(env: Env | null): Promise<Banner[]> {
     const banners = await queryAll<Banner>(
       env,
       'SELECT * FROM banners ORDER BY orderNum ASC, createdAt DESC'
@@ -146,7 +146,7 @@ export class BannerRepository {
   /**
    * Reorder banners
    */
-  static async reorder(env: Env, bannerIds: string[]): Promise<void> {
+  static async reorder(env: Env | null, bannerIds: string[]): Promise<void> {
     for (let i = 0; i < bannerIds.length; i++) {
       await execute(
         env,

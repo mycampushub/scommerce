@@ -13,7 +13,7 @@ export class CategoryRepository {
   /**
    * Find category by slug
    */
-  static async findBySlug(env: Env, slug: string): Promise<Category | null> {
+  static async findBySlug(env: Env | null, slug: string): Promise<Category | null> {
     return queryFirst<Category>(
       env,
       'SELECT * FROM categories WHERE slug = ? LIMIT 1',
@@ -24,7 +24,7 @@ export class CategoryRepository {
   /**
    * Find category by ID
    */
-  static async findById(env: Env, id: string): Promise<Category | null> {
+  static async findById(env: Env | null, id: string): Promise<Category | null> {
     return queryFirst<Category>(
       env,
       'SELECT * FROM categories WHERE id = ? LIMIT 1',
@@ -35,7 +35,7 @@ export class CategoryRepository {
   /**
    * Create new category
    */
-  static async create(env: Env, data: {
+  static async create(env: Env | null, data: {
     name: string;
     slug: string;
     description?: string;
@@ -65,7 +65,7 @@ export class CategoryRepository {
   /**
    * Update category
    */
-  static async update(env: Env, id: string, data: Partial<Category>): Promise<Category | null> {
+  static async update(env: Env | null, id: string, data: Partial<Category>): Promise<Category | null> {
     const updates: string[] = [];
     const values: unknown[] = [];
 
@@ -108,14 +108,14 @@ export class CategoryRepository {
   /**
    * Delete category
    */
-  static async delete(env: Env, id: string): Promise<void> {
+  static async delete(env: Env | null, id: string): Promise<void> {
     await execute(env, 'DELETE FROM categories WHERE id = ?', id);
   }
 
   /**
    * Get all active categories
    */
-  static async findAllActive(env: Env): Promise<Category[]> {
+  static async findAllActive(env : Env | null): Promise<Category[]> {
     return queryAll<Category>(
       env,
       'SELECT * FROM categories WHERE isActive = 1 ORDER BY name ASC'
@@ -126,7 +126,7 @@ export class CategoryRepository {
    * Get all categories (with pagination)
    */
   static async findAll(
-    env: Env,
+    env: Env | null,
     options: { limit?: number; offset?: number } = {}
   ): Promise<Category[]> {
     const pagination = buildPaginationClause(options);
@@ -139,7 +139,7 @@ export class CategoryRepository {
   /**
    * Count categories
    */
-  static async count(env: Env): Promise<number> {
+  static async count(env : Env | null): Promise<number> {
     const result = await queryFirst<{ count: number }>(
       env,
       'SELECT COUNT(*) as count FROM categories'

@@ -5,7 +5,7 @@ export class CartRepository {
   /**
    * Get cart items for a user
    */
-  static async findByUserId(env: Env, userId: string): Promise<CartItem[]> {
+  static async findByUserId(env: Env | null, userId: string): Promise<CartItem[]> {
     return queryAll<CartItem>(
       env,
       'SELECT * FROM cart_items WHERE userId = ? ORDER BY createdAt DESC',
@@ -16,7 +16,7 @@ export class CartRepository {
   /**
    * Find specific cart item
    */
-  static async findItem(env: Env, userId: string, productId: string): Promise<CartItem | null> {
+  static async findItem(env: Env | null, userId: string, productId: string): Promise<CartItem | null> {
     return queryFirst<CartItem>(
       env,
       'SELECT * FROM cart_items WHERE userId = ? AND productId = ? LIMIT 1',
@@ -28,7 +28,7 @@ export class CartRepository {
   /**
    * Add item to cart
    */
-  static async addItem(env: Env, data: {
+  static async addItem(env: Env | null, data: {
     userId: string;
     productId: string;
     variantId?: string;
@@ -76,7 +76,7 @@ export class CartRepository {
   /**
    * Update cart item quantity
    */
-  static async updateQuantity(env: Env, id: string, quantity: number): Promise<CartItem | null> {
+  static async updateQuantity(env: Env | null, id: string, quantity: number): Promise<CartItem | null> {
     await execute(
       env,
       'UPDATE cart_items SET quantity = ?, updatedAt = ? WHERE id = ?',
@@ -94,21 +94,21 @@ export class CartRepository {
   /**
    * Remove item from cart
    */
-  static async removeItem(env: Env, id: string): Promise<void> {
+  static async removeItem(env: Env | null, id: string): Promise<void> {
     await execute(env, 'DELETE FROM cart_items WHERE id = ?', id);
   }
 
   /**
    * Clear cart for a user
    */
-  static async clearCart(env: Env, userId: string): Promise<void> {
+  static async clearCart(env: Env | null, userId: string): Promise<void> {
     await execute(env, 'DELETE FROM cart_items WHERE userId = ?', userId);
   }
 
   /**
    * Delete cart item by product
    */
-  static async removeByProduct(env: Env, userId: string, productId: string): Promise<void> {
+  static async removeByProduct(env: Env | null, userId: string, productId: string): Promise<void> {
     await execute(
       env,
       'DELETE FROM cart_items WHERE userId = ? AND productId = ?',
@@ -120,7 +120,7 @@ export class CartRepository {
   /**
    * Get cart item count for a user
    */
-  static async countItems(env: Env, userId: string): Promise<number> {
+  static async countItems(env: Env | null, userId: string): Promise<number> {
     const result = await queryFirst<{ count: number }>(
       env,
       'SELECT COUNT(*) as count FROM cart_items WHERE userId = ?',

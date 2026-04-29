@@ -13,7 +13,7 @@ export class ReelRepository {
   /**
    * Find reel by ID
    */
-  static async findById(env: Env, id: string): Promise<Reel | null> {
+  static async findById(env: Env | null, id: string): Promise<Reel | null> {
     const reel = await queryFirst<Reel>(
       env,
       'SELECT * FROM reels WHERE id = ? LIMIT 1',
@@ -25,7 +25,7 @@ export class ReelRepository {
   /**
    * Create new reel
    */
-  static async create(env: Env, data: {
+  static async create(env: Env | null, data: {
     title: string;
     thumbnail: string;
     videoUrl: string;
@@ -57,7 +57,7 @@ export class ReelRepository {
   /**
    * Update reel
    */
-  static async update(env: Env, id: string, data: Partial<Reel>): Promise<Reel | null> {
+  static async update(env: Env | null, id: string, data: Partial<Reel>): Promise<Reel | null> {
     const updates: string[] = [];
     const values: unknown[] = [];
 
@@ -104,14 +104,14 @@ export class ReelRepository {
   /**
    * Delete reel
    */
-  static async delete(env: Env, id: string): Promise<void> {
+  static async delete(env: Env | null, id: string): Promise<void> {
     await execute(env, 'DELETE FROM reels WHERE id = ?', id);
   }
 
   /**
    * Get all active reels
    */
-  static async findAllActive(env: Env): Promise<Reel[]> {
+  static async findAllActive(env : Env | null): Promise<Reel[]> {
     const reels = await queryAll<Reel>(
       env,
       'SELECT * FROM reels WHERE isActive = 1 ORDER BY orderNum ASC, createdAt DESC'
@@ -122,7 +122,7 @@ export class ReelRepository {
   /**
    * Get all reels (with pagination)
    */
-  static async findAll(env: Env): Promise<Reel[]> {
+  static async findAll(env : Env | null): Promise<Reel[]> {
     const reels = await queryAll<Reel>(
       env,
       'SELECT * FROM reels ORDER BY orderNum ASC, createdAt DESC'
@@ -133,7 +133,7 @@ export class ReelRepository {
   /**
    * Reorder reels
    */
-  static async reorder(env: Env, reelIds: string[]): Promise<void> {
+  static async reorder(env: Env | null, reelIds: string[]): Promise<void> {
     for (let i = 0; i < reelIds.length; i++) {
       await execute(
         env,

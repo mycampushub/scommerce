@@ -15,7 +15,7 @@ export class ProductRepository {
   /**
    * Find product by slug
    */
-  static async findBySlug(env: Env, slug: string): Promise<Product | null> {
+  static async findBySlug(env: Env | null, slug: string): Promise<Product | null> {
     const product = await queryFirst<Product>(
       env,
       'SELECT * FROM products WHERE slug = ? AND isActive = 1 LIMIT 1',
@@ -27,7 +27,7 @@ export class ProductRepository {
   /**
    * Find product by ID
    */
-  static async findById(env: Env, id: string): Promise<Product | null> {
+  static async findById(env: Env | null, id: string): Promise<Product | null> {
     const product = await queryFirst<Product>(
       env,
       'SELECT * FROM products WHERE id = ? LIMIT 1',
@@ -39,7 +39,7 @@ export class ProductRepository {
   /**
    * Create new product
    */
-  static async create(env: Env, data: {
+  static async create(env: Env | null, data: {
     name: string;
     slug: string;
     description?: string;
@@ -93,7 +93,7 @@ export class ProductRepository {
   /**
    * Update product
    */
-  static async update(env: Env, id: string, data: Partial<Product>): Promise<Product | null> {
+  static async update(env: Env | null, id: string, data: Partial<Product>): Promise<Product | null> {
     const updates: string[] = [];
     const values: unknown[] = [];
 
@@ -180,14 +180,14 @@ export class ProductRepository {
   /**
    * Delete product
    */
-  static async delete(env: Env, id: string): Promise<void> {
+  static async delete(env: Env | null, id: string): Promise<void> {
     await execute(env, 'DELETE FROM products WHERE id = ?', id);
   }
 
   /**
    * Get all active products
    */
-  static async findAllActive(env: Env, options: { limit?: number; offset?: number } = {}): Promise<Product[]> {
+  static async findAllActive(env: Env | null, options: { limit?: number; offset?: number } = {}): Promise<Product[]> {
     const { limit = 50, offset = 0 } = options;
     const products = await queryAll<Product>(
       env,
@@ -201,7 +201,7 @@ export class ProductRepository {
   /**
    * Get featured products
    */
-  static async findFeatured(env: Env, limit: number = 10): Promise<Product[]> {
+  static async findFeatured(env: Env | null, limit: number = 10): Promise<Product[]> {
     const products = await queryAll<Product>(
       env,
       `SELECT * FROM products WHERE isActive = 1 AND isFeatured = 1 ORDER BY createdAt DESC LIMIT ?`,
@@ -214,7 +214,7 @@ export class ProductRepository {
    * Get products by category
    */
   static async findByCategory(
-    env: Env,
+    env: Env | null,
     categoryId: string,
     options: { limit?: number; offset?: number } = {}
   ): Promise<Product[]> {
@@ -232,7 +232,7 @@ export class ProductRepository {
   /**
    * Search products
    */
-  static async search(env: Env, query: string, limit: number = 20): Promise<Product[]> {
+  static async search(env: Env | null, query: string, limit: number = 20): Promise<Product[]> {
     const products = await queryAll<Product>(
       env,
       `SELECT * FROM products WHERE isActive = 1 AND (name LIKE ? OR description LIKE ?)
@@ -248,7 +248,7 @@ export class ProductRepository {
    * Get all products (with pagination)
    */
   static async findAll(
-    env: Env,
+    env: Env | null,
     options: { limit?: number; offset?: number } = {}
   ): Promise<Product[]> {
     const pagination = buildPaginationClause(options);
@@ -262,7 +262,7 @@ export class ProductRepository {
   /**
    * Count active products
    */
-  static async countActive(env: Env): Promise<number> {
+  static async countActive(env : Env | null): Promise<number> {
     const result = await queryFirst<{ count: number }>(
       env,
       'SELECT COUNT(*) as count FROM products WHERE isActive = 1'
@@ -274,7 +274,7 @@ export class ProductRepository {
   /**
    * Get variants for a product
    */
-  static async getVariants(env: Env, productId: string): Promise<ProductVariant[]> {
+  static async getVariants(env: Env | null, productId: string): Promise<ProductVariant[]> {
     const variants = await queryAll<ProductVariant>(
       env,
       'SELECT * FROM product_variants WHERE productId = ? AND isActive = 1 ORDER BY createdAt ASC',
@@ -286,7 +286,7 @@ export class ProductRepository {
   /**
    * Find variant by SKU
    */
-  static async findVariantBySKU(env: Env, sku: string): Promise<ProductVariant | null> {
+  static async findVariantBySKU(env: Env | null, sku: string): Promise<ProductVariant | null> {
     const variant = await queryFirst<ProductVariant>(
       env,
       'SELECT * FROM product_variants WHERE sku = ? LIMIT 1',
@@ -298,7 +298,7 @@ export class ProductRepository {
   /**
    * Create product variant
    */
-  static async createVariant(env: Env, data: {
+  static async createVariant(env: Env | null, data: {
     productId: string;
     sku: string;
     name: string;
@@ -343,7 +343,7 @@ export class ProductRepository {
   /**
    * Find variant by ID
    */
-  static async findVariantById(env: Env, id: string): Promise<ProductVariant | null> {
+  static async findVariantById(env: Env | null, id: string): Promise<ProductVariant | null> {
     const variant = await queryFirst<ProductVariant>(
       env,
       'SELECT * FROM product_variants WHERE id = ? LIMIT 1',
@@ -355,7 +355,7 @@ export class ProductRepository {
   /**
    * Update product variant
    */
-  static async updateVariant(env: Env, id: string, data: Partial<ProductVariant>): Promise<ProductVariant | null> {
+  static async updateVariant(env: Env | null, id: string, data: Partial<ProductVariant>): Promise<ProductVariant | null> {
     const updates: string[] = [];
     const values: unknown[] = [];
 
@@ -422,14 +422,14 @@ export class ProductRepository {
   /**
    * Delete product variant
    */
-  static async deleteVariant(env: Env, id: string): Promise<void> {
+  static async deleteVariant(env: Env | null, id: string): Promise<void> {
     await execute(env, 'DELETE FROM product_variants WHERE id = ?', id);
   }
 
   /**
    * Update variant stock
    */
-  static async updateVariantStock(env: Env, id: string, quantity: number): Promise<void> {
+  static async updateVariantStock(env: Env | null, id: string, quantity: number): Promise<void> {
     await execute(
       env,
       'UPDATE product_variants SET stock = ?, updatedAt = ? WHERE id = ?',
@@ -442,7 +442,7 @@ export class ProductRepository {
   /**
    * Update product stock
    */
-  static async updateProductStock(env: Env, id: string, quantity: number): Promise<void> {
+  static async updateProductStock(env: Env | null, id: string, quantity: number): Promise<void> {
     await execute(
       env,
       'UPDATE products SET stock = ?, updatedAt = ? WHERE id = ?',

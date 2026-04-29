@@ -23,7 +23,7 @@ export class HomepageSettingsRepository {
   /**
    * Find homepage setting by section name
    */
-  static async findBySection(env: Env, sectionName: string): Promise<HomepageSettings | null> {
+  static async findBySection(env: Env | null, sectionName: string): Promise<HomepageSettings | null> {
     const setting = await queryFirst<HomepageSettings>(
       env,
       'SELECT * FROM homepage_settings WHERE sectionName = ? LIMIT 1',
@@ -44,7 +44,7 @@ export class HomepageSettingsRepository {
   /**
    * Find homepage setting by ID
    */
-  static async findById(env: Env, id: string): Promise<HomepageSettings | null> {
+  static async findById(env: Env | null, id: string): Promise<HomepageSettings | null> {
     const setting = await queryFirst<HomepageSettings>(
       env,
       'SELECT * FROM homepage_settings WHERE id = ? LIMIT 1',
@@ -65,7 +65,7 @@ export class HomepageSettingsRepository {
   /**
    * Create or update homepage setting
    */
-  static async upsert(env: Env, data: HomepageSettingsData): Promise<HomepageSettings> {
+  static async upsert(env: Env | null, data: HomepageSettingsData): Promise<HomepageSettings> {
     const currentTime = now();
     const existing = await this.findBySection(env, data.sectionName);
 
@@ -128,7 +128,7 @@ export class HomepageSettingsRepository {
   /**
    * Update homepage setting
    */
-  static async update(env: Env, id: string, data: Partial<HomepageSettings>): Promise<HomepageSettings | null> {
+  static async update(env: Env | null, id: string, data: Partial<HomepageSettings>): Promise<HomepageSettings | null> {
     const updates: string[] = [];
     const values: unknown[] = [];
 
@@ -167,14 +167,14 @@ export class HomepageSettingsRepository {
   /**
    * Delete homepage setting
    */
-  static async delete(env: Env, id: string): Promise<void> {
+  static async delete(env: Env | null, id: string): Promise<void> {
     await execute(env, 'DELETE FROM homepage_settings WHERE id = ?', id);
   }
 
   /**
    * Get all homepage settings
    */
-  static async findAll(env: Env): Promise<HomepageSettings[]> {
+  static async findAll(env : Env | null): Promise<HomepageSettings[]> {
     const settings = await queryAll<HomepageSettings>(
       env,
       'SELECT * FROM homepage_settings ORDER BY sectionName ASC'
@@ -191,7 +191,7 @@ export class HomepageSettingsRepository {
   /**
    * Get all enabled homepage settings
    */
-  static async findAllEnabled(env: Env): Promise<HomepageSettings[]> {
+  static async findAllEnabled(env : Env | null): Promise<HomepageSettings[]> {
     const settings = await queryAll<HomepageSettings>(
       env,
       'SELECT * FROM homepage_settings WHERE isEnabled = 1 ORDER BY sectionName ASC'

@@ -4,10 +4,14 @@ import { Env } from './types';
  * Execute a SQL query and return the first result
  */
 export async function queryFirst<T = Record<string, unknown>>(
-  env: Env,
+  env: Env | null,
   sql: string,
   ...params: unknown[]
 ): Promise<T | null> {
+  if (!env || !env.DB) {
+    console.error('[db.ts] Database not available');
+    return null;
+  }
   const stmt = env.DB.prepare(sql);
   const result = await stmt.bind(...params).first() as T | null;
 
@@ -18,10 +22,14 @@ export async function queryFirst<T = Record<string, unknown>>(
  * Execute a SQL query and return all results
  */
 export async function queryAll<T = Record<string, unknown>>(
-  env: Env,
+  env: Env | null,
   sql: string,
   ...params: unknown[]
 ): Promise<T[]> {
+  if (!env || !env.DB) {
+    console.error('[db.ts] Database not available');
+    return [];
+  }
   const stmt = env.DB.prepare(sql);
   const result = await stmt.bind(...params).all() as { results: T[] };
 
@@ -32,10 +40,14 @@ export async function queryAll<T = Record<string, unknown>>(
  * Execute a SQL statement (no return value)
  */
 export async function execute(
-  env: Env,
+  env: Env | null,
   sql: string,
   ...params: unknown[]
 ): Promise<void> {
+  if (!env || !env.DB) {
+    console.error('[db.ts] Database not available');
+    return;
+  }
   const stmt = env.DB.prepare(sql);
   await stmt.bind(...params).run();
 }
@@ -43,7 +55,11 @@ export async function execute(
 /**
  * Count rows in a table
  */
-export async function count(env: Env, sql: string, ...params: unknown[]): Promise<number> {
+export async function count(env: Env | null, sql: string, ...params: unknown[]): Promise<number> {
+  if (!env || !env.DB) {
+    console.error('[db.ts] Database not available');
+    return 0;
+  }
   const result = await queryFirst<{ count: number }>(env, sql, ...params);
   return result?.count || 0;
 }

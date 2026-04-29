@@ -5,7 +5,7 @@ export class OrderRepository {
   /**
    * Find order by order number
    */
-  static async findByOrderNumber(env: Env, orderNumber: string): Promise<Order | null> {
+  static async findByOrderNumber(env: Env | null, orderNumber: string): Promise<Order | null> {
     return queryFirst<Order>(
       env,
       'SELECT * FROM orders WHERE orderNumber = ? LIMIT 1',
@@ -16,7 +16,7 @@ export class OrderRepository {
   /**
    * Find order by ID
    */
-  static async findById(env: Env, id: string): Promise<Order | null> {
+  static async findById(env: Env | null, id: string): Promise<Order | null> {
     return queryFirst<Order>(
       env,
       'SELECT * FROM orders WHERE id = ? LIMIT 1',
@@ -45,7 +45,7 @@ export class OrderRepository {
   /**
    * Create new order
    */
-  static async create(env: Env, data: {
+  static async create(env: Env | null, data: {
     userId?: string;
     customerName: string;
     customerEmail: string;
@@ -103,7 +103,7 @@ export class OrderRepository {
   /**
    * Update order status
    */
-  static async updateStatus(env: Env, id: string, status: OrderStatus): Promise<Order | null> {
+  static async updateStatus(env: Env | null, id: string, status: OrderStatus): Promise<Order | null> {
     await execute(
       env,
       'UPDATE orders SET status = ?, updatedAt = ? WHERE id = ?',
@@ -117,7 +117,7 @@ export class OrderRepository {
   /**
    * Update payment status
    */
-  static async updatePaymentStatus(env: Env, id: string, paymentStatus: PaymentStatus): Promise<Order | null> {
+  static async updatePaymentStatus(env: Env | null, id: string, paymentStatus: PaymentStatus): Promise<Order | null> {
     await execute(
       env,
       'UPDATE orders SET paymentStatus = ?, updatedAt = ? WHERE id = ?',
@@ -132,7 +132,7 @@ export class OrderRepository {
    * Update tracking
    */
   static async updateTracking(
-    env: Env,
+    env: Env | null,
     id: string,
     trackingNumber: string,
     trackingStatus: TrackingStatus
@@ -151,7 +151,7 @@ export class OrderRepository {
   /**
    * Cancel order
    */
-  static async cancel(env: Env, id: string, cancelledBy: string, reason?: string): Promise<Order | null> {
+  static async cancel(env: Env | null, id: string, cancelledBy: string, reason?: string): Promise<Order | null> {
     await execute(
       env,
       `UPDATE orders SET status = 'CANCELLED', cancelledAt = ?, cancelledBy = ?,
@@ -169,7 +169,7 @@ export class OrderRepository {
    * Refund order
    */
   static async refund(
-    env: Env,
+    env: Env | null,
     id: string,
     amount: number,
     method: string,
@@ -194,7 +194,7 @@ export class OrderRepository {
    * Get all orders (admin view)
    */
   static async findAll(
-    env: Env,
+    env: Env | null,
     options: {
       limit?: number;
       offset?: number;
@@ -229,7 +229,7 @@ export class OrderRepository {
   /**
    * Count orders
    */
-  static async count(env: Env, status?: OrderStatus): Promise<number> {
+  static async count(env: Env | null, status?: OrderStatus): Promise<number> {
     const whereClause = status ? 'WHERE status = ?' : '';
     const result = await queryFirst<{ count: number }>(
       env,
@@ -243,7 +243,7 @@ export class OrderRepository {
   /**
    * Get items for an order
    */
-  static async getItems(env: Env, orderId: string): Promise<OrderItem[]> {
+  static async getItems(env: Env | null, orderId: string): Promise<OrderItem[]> {
     return queryAll<OrderItem>(
       env,
       'SELECT * FROM order_items WHERE orderId = ? ORDER BY createdAt ASC',
@@ -254,7 +254,7 @@ export class OrderRepository {
   /**
    * Add item to order
    */
-  static async addItem(env: Env, data: {
+  static async addItem(env: Env | null, data: {
     orderId: string;
     productId: string;
     variantId?: string;

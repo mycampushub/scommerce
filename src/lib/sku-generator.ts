@@ -94,7 +94,7 @@ export function validateSKU(sku: string): boolean {
  * This should be called from backend only with env parameter
  */
 export async function checkSKUConflict(
-  env: Env,
+  env: Env | null,
   sku: string,
   excludeId?: string
 ): Promise<boolean> {

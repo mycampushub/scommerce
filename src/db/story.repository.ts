@@ -13,7 +13,7 @@ export class StoryRepository {
   /**
    * Find story by ID
    */
-  static async findById(env: Env, id: string): Promise<Story | null> {
+  static async findById(env: Env | null, id: string): Promise<Story | null> {
     const story = await queryFirst<Story>(
       env,
       'SELECT * FROM stories WHERE id = ? LIMIT 1',
@@ -25,7 +25,7 @@ export class StoryRepository {
   /**
    * Create new story
    */
-  static async create(env: Env, data: {
+  static async create(env: Env | null, data: {
     title: string;
     thumbnail: string;
     images: string[];
@@ -55,7 +55,7 @@ export class StoryRepository {
   /**
    * Update story
    */
-  static async update(env: Env, id: string, data: Partial<Story>): Promise<Story | null> {
+  static async update(env: Env | null, id: string, data: Partial<Story>): Promise<Story | null> {
     const updates: string[] = [];
     const values: unknown[] = [];
 
@@ -98,14 +98,14 @@ export class StoryRepository {
   /**
    * Delete story
    */
-  static async delete(env: Env, id: string): Promise<void> {
+  static async delete(env: Env | null, id: string): Promise<void> {
     await execute(env, 'DELETE FROM stories WHERE id = ?', id);
   }
 
   /**
    * Get all active stories
    */
-  static async findAllActive(env: Env): Promise<Story[]> {
+  static async findAllActive(env : Env | null): Promise<Story[]> {
     const stories = await queryAll<Story>(
       env,
       'SELECT * FROM stories WHERE isActive = 1 ORDER BY orderNum ASC, createdAt DESC'
@@ -116,7 +116,7 @@ export class StoryRepository {
   /**
    * Get all stories (with pagination)
    */
-  static async findAll(env: Env): Promise<Story[]> {
+  static async findAll(env : Env | null): Promise<Story[]> {
     const stories = await queryAll<Story>(
       env,
       'SELECT * FROM stories ORDER BY orderNum ASC, createdAt DESC'
@@ -127,7 +127,7 @@ export class StoryRepository {
   /**
    * Reorder stories
    */
-  static async reorder(env: Env, storyIds: string[]): Promise<void> {
+  static async reorder(env: Env | null, storyIds: string[]): Promise<void> {
     for (let i = 0; i < storyIds.length; i++) {
       await execute(
         env,

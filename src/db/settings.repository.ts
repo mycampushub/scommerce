@@ -33,7 +33,7 @@ export class SettingsRepository {
   /**
    * Get site settings
    */
-  static async getSettings(env: Env): Promise<SiteSettings> {
+  static async getSettings(env : Env | null): Promise<SiteSettings> {
     const settings = await queryFirst<SiteSettings>(
       env,
       'SELECT * FROM site_settings LIMIT 1'
@@ -78,7 +78,7 @@ export class SettingsRepository {
   /**
    * Update settings
    */
-  static async updateSettings(env: Env, data: Partial<SiteSettings>): Promise<SiteSettings> {
+  static async updateSettings(env: Env | null, data: Partial<SiteSettings>): Promise<SiteSettings> {
     // Check if settings exist
     const existing = await queryFirst<SiteSettings>(
       env,

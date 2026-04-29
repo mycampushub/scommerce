@@ -14,7 +14,7 @@ export class PromotionRepository {
   /**
    * Find promotion by ID
    */
-  static async findById(env: Env, id: string): Promise<Promotion | null> {
+  static async findById(env: Env | null, id: string): Promise<Promotion | null> {
     return queryFirst<Promotion>(
       env,
       'SELECT * FROM promotions WHERE id = ? LIMIT 1',
@@ -25,7 +25,7 @@ export class PromotionRepository {
   /**
    * Create new promotion
    */
-  static async create(env: Env, data: {
+  static async create(env: Env | null, data: {
     title: string;
     description?: string;
     image: string;
@@ -62,7 +62,7 @@ export class PromotionRepository {
   /**
    * Update promotion
    */
-  static async update(env: Env, id: string, data: Partial<Promotion>): Promise<Promotion | null> {
+  static async update(env: Env | null, id: string, data: Partial<Promotion>): Promise<Promotion | null> {
     const updates: string[] = [];
     const values: unknown[] = [];
 
@@ -117,14 +117,14 @@ export class PromotionRepository {
   /**
    * Delete promotion
    */
-  static async delete(env: Env, id: string): Promise<void> {
+  static async delete(env: Env | null, id: string): Promise<void> {
     await execute(env, 'DELETE FROM promotions WHERE id = ?', id);
   }
 
   /**
    * Get all active promotions
    */
-  static async findAllActive(env: Env, type?: string): Promise<Promotion[]> {
+  static async findAllActive(env: Env | null, type?: string): Promise<Promotion[]> {
     let sql = 'SELECT * FROM promotions WHERE isActive = 1';
     const params: unknown[] = [];
 
@@ -173,7 +173,7 @@ export class PromotionRepository {
   /**
    * Count promotions
    */
-  static async count(env: Env, options: { type?: string; isActive?: boolean } = {}): Promise<number> {
+  static async count(env: Env | null, options: { type?: string; isActive?: boolean } = {}): Promise<number> {
     const { type, isActive } = options;
     const whereClause: string[] = [];
     const params: unknown[] = [];
@@ -196,7 +196,7 @@ export class PromotionRepository {
   /**
    * Reorder promotions
    */
-  static async reorder(env: Env, orders: Array<{ id: string; orderNum: number }>): Promise<void> {
+  static async reorder(env: Env | null, orders: Array<{ id: string; orderNum: number }>): Promise<void> {
     for (const item of orders) {
       await execute(
         env,
