@@ -287,7 +287,7 @@ export interface HomepageSettings {
 // Database context type
 export interface Env {
   DB?: D1Database;
-  BUCKET?: R2Bucket;
+  scommerce_uploads?: R2Bucket;
   KV?: KVNamespace;
 }
 
