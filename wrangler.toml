@@ -1,26 +1,19 @@
-# Cloudflare Pages configuration for scommerce
 name = "scommerce"
 compatibility_date = "2026-04-26"
 
-# Build configuration - REQUIRED for Cloudflare Pages
-[build]
+compatibility_flags = ["nodejs_compat"]
+
 pages_build_output_dir = ".vercel/output/static"
 
-# D1 Database bindings
-# binding name used in code: env.DB
 [[d1_databases]]
 binding = "DB"
 database_name = "scommerce-db"
 database_id = "fccab55b-37e3-4544-aacd-9095df3e9ab3"
 
-# R2 Storage for file uploads
-# binding name used in code: env.BUCKET
 [[r2_buckets]]
 binding = "BUCKET"
 bucket_name = "scommerce-uploads"
 
-# KV Namespace for rate limiting and caching
-# binding name used in code: env.KV
 [[kv_namespaces]]
 binding = "KV"
 id = "88d9b0d91f674eeab798ba907b15c716"
