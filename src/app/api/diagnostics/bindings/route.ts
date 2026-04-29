@@ -26,10 +26,10 @@ export async function GET(request: Request) {
         type: requestEnv?.DB ? typeof requestEnv.DB : 'undefined',
         hasPrepare: requestEnv?.DB && typeof requestEnv.DB.prepare === 'function',
       },
-      scommerce_uploads: {
-        exists: !!requestEnv?.scommerce_uploads,
-        type: requestEnv?.scommerce_uploads ? typeof requestEnv.scommerce_uploads : 'undefined',
-        hasPut: requestEnv?.scommerce_uploads && typeof requestEnv.scommerce_uploads.put === 'function',
+      BUCKET: {
+        exists: !!requestEnv?.BUCKET,
+        type: requestEnv?.BUCKET ? typeof requestEnv.BUCKET : 'undefined',
+        hasPut: requestEnv?.BUCKET && typeof requestEnv.BUCKET.put === 'function',
       },
       KV: {
         exists: !!requestEnv?.KV,
@@ -54,10 +54,10 @@ export async function GET(request: Request) {
         type: ctxEnv.DB ? typeof ctxEnv.DB : 'undefined',
         hasPrepare: ctxEnv.DB && typeof ctxEnv.DB.prepare === 'function',
       },
-      scommerce_uploads: {
-        exists: !!ctxEnv.scommerce_uploads,
-        type: ctxEnv.scommerce_uploads ? typeof ctxEnv.scommerce_uploads : 'undefined',
-        hasPut: ctxEnv.scommerce_uploads && typeof ctxEnv.scommerce_uploads.put === 'function',
+      BUCKET: {
+        exists: !!ctxEnv.BUCKET,
+        type: ctxEnv.BUCKET ? typeof ctxEnv.BUCKET : 'undefined',
+        hasPut: ctxEnv.BUCKET && typeof ctxEnv.BUCKET.put === 'function',
       },
       KV: {
         exists: !!ctxEnv.KV,
@@ -82,10 +82,10 @@ export async function GET(request: Request) {
         type: cloudflareEnv.DB ? typeof cloudflareEnv.DB : 'undefined',
         hasPrepare: cloudflareEnv.DB && typeof cloudflareEnv.DB.prepare === 'function',
       },
-      scommerce_uploads: {
-        exists: !!cloudflareEnv.scommerce_uploads,
-        type: cloudflareEnv.scommerce_uploads ? typeof cloudflareEnv.scommerce_uploads : 'undefined',
-        hasPut: cloudflareEnv.scommerce_uploads && typeof cloudflareEnv.scommerce_uploads.put === 'function',
+      BUCKET: {
+        exists: !!cloudflareEnv.BUCKET,
+        type: cloudflareEnv.BUCKET ? typeof cloudflareEnv.BUCKET : 'undefined',
+        hasPut: cloudflareEnv.BUCKET && typeof cloudflareEnv.BUCKET.put === 'function',
       },
       KV: {
         exists: !!cloudflareEnv.KV,
@@ -103,9 +103,9 @@ export async function GET(request: Request) {
       exists: !!globalAny.DB,
       type: globalAny.DB ? typeof globalAny.DB : 'undefined',
     },
-    scommerce_uploads: {
-      exists: !!globalAny.scommerce_uploads,
-      type: globalAny.scommerce_uploads ? typeof globalAny.scommerce_uploads : 'undefined',
+    BUCKET: {
+      exists: !!globalAny.BUCKET,
+      type: globalAny.BUCKET ? typeof globalAny.BUCKET : 'undefined',
     },
     KV: {
       exists: !!globalAny.KV,

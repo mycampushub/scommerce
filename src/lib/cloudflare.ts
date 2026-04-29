@@ -78,7 +78,7 @@ export function getDB(request: Request): D1Database | null {
       ctxEnv: ctxEnv ? Object.keys(ctxEnv).filter(k => !k.startsWith('__')) : [],
       cloudflareEnv: cloudflareEnv ? Object.keys(cloudflareEnv).filter(k => !k.startsWith('__')) : [],
       requestEnv: requestEnv ? Object.keys(requestEnv).filter(k => !k.startsWith('__')) : [],
-      global: Object.keys(globalAny).filter(k => ['DB', 'scommerce_uploads', 'KV'].includes(k)),
+      global: Object.keys(globalAny).filter(k => ['DB', 'BUCKET', 'KV'].includes(k)),
     },
   });
   return null;
@@ -95,7 +95,7 @@ export function getEnv(request: Request): Env | null {
   if (ctxEnv) {
     checked.push('globalThis.cloudflare.ctx.env');
     // Check if at least one binding exists
-    if (ctxEnv.DB || ctxEnv.scommerce_uploads || ctxEnv.KV) {
+    if (ctxEnv.DB || ctxEnv.BUCKET || ctxEnv.KV) {
       console.log('[cloudflare.ts] Env found in globalThis.cloudflare.ctx.env');
       return ctxEnv as Env;
     }
@@ -105,7 +105,7 @@ export function getEnv(request: Request): Env | null {
   const cloudflareEnv = globalThis.cloudflare?.env;
   if (cloudflareEnv) {
     checked.push('globalThis.cloudflare.env');
-    if (cloudflareEnv.DB || cloudflareEnv.scommerce_uploads || cloudflareEnv.KV) {
+    if (cloudflareEnv.DB || cloudflareEnv.BUCKET || cloudflareEnv.KV) {
       console.log('[cloudflare.ts] Env found in globalThis.cloudflare.env');
       return cloudflareEnv as Env;
     }
@@ -115,7 +115,7 @@ export function getEnv(request: Request): Env | null {
   const requestEnv = (request as any).env;
   if (requestEnv) {
     checked.push('request.env');
-    if (requestEnv.DB || requestEnv.scommerce_uploads || requestEnv.KV) {
+    if (requestEnv.DB || requestEnv.BUCKET || requestEnv.KV) {
       console.log('[cloudflare.ts] Env found in request.env');
       return requestEnv as Env;
     }
@@ -123,7 +123,7 @@ export function getEnv(request: Request): Env | null {
 
   // 4. Check global scope
   const globalAny = global as any;
-  if (globalAny.DB || globalAny.scommerce_uploads || globalAny.KV) {
+  if (globalAny.DB || globalAny.BUCKET || globalAny.KV) {
     checked.push('global');
     console.log('[cloudflare.ts] Env found in global scope');
     return globalAny as Env;
@@ -135,7 +135,7 @@ export function getEnv(request: Request): Env | null {
       ctxEnv: ctxEnv ? Object.keys(ctxEnv).filter(k => !k.startsWith('__')) : [],
       cloudflareEnv: cloudflareEnv ? Object.keys(cloudflareEnv).filter(k => !k.startsWith('__')) : [],
       requestEnv: requestEnv ? Object.keys(requestEnv).filter(k => !k.startsWith('__')) : [],
-      global: Object.keys(globalAny).filter(k => ['DB', 'scommerce_uploads', 'KV'].includes(k)),
+      global: Object.keys(globalAny).filter(k => ['DB', 'BUCKET', 'KV'].includes(k)),
     },
   });
   return null;

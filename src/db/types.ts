@@ -304,7 +304,7 @@ export interface SiteSettings {
 // Database context type
 export interface Env {
   DB?: D1Database;
-  scommerce_uploads?: R2Bucket;
+  BUCKET?: R2Bucket;
   KV?: KVNamespace;
 }
 

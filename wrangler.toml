@@ -1,30 +1,29 @@
-# Cloudflare Workers/Pages configuration for scommerce
+# Cloudflare Pages configuration for scommerce
 name = "scommerce"
 compatibility_date = "2026-04-26"
 
-# D1 Database bindings for Cloudflare Pages
-# IMPORTANT: database_id must be your REAL database ID from wrangler
-# Get it with: npx wrangler d1 list
+# Build configuration - REQUIRED for Cloudflare Pages
+[build]
+pages_build_output_dir = ".vercel/output/static"
+
+# D1 Database bindings
+# binding name used in code: env.DB
 [[d1_databases]]
 binding = "DB"
 database_name = "scommerce-db"
-# REPLACE THIS with your real database_id from wrangler d1 list output
-database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+database_id = "fccab55b-37e3-4544-aacd-9095df3e9ab3"
 
 # R2 Storage for file uploads
-# IMPORTANT: bucket_name must match your actual bucket
-# Get it with: npx wrangler r2 bucket list
+# binding name used in code: env.BUCKET
 [[r2_buckets]]
-binding = "scommerce_uploads"
+binding = "BUCKET"
 bucket_name = "scommerce-uploads"
 
 # KV Namespace for rate limiting and caching
-# IMPORTANT: id must be your REAL KV namespace ID from wrangler
-# Get it with: npx wrangler kv:namespace list
+# binding name used in code: env.KV
 [[kv_namespaces]]
 binding = "KV"
-# REPLACE THIS with your real KV id from wrangler kv:namespace list output
-id = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+id = "88d9b0d91f674eeab798ba907b15c716"
 
 [observability]
 enabled = true
