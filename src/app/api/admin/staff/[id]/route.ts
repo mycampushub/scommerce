@@ -5,7 +5,6 @@ import { UserRepository } from '@/db/user.repository'
 import bcrypt from 'bcryptjs'
 import { count, numberToBool } from '@/db/db'
 
-export const runtime = 'edge';
 
 export async function GET(
   request: NextRequest,

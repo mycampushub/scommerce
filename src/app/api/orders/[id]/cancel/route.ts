@@ -4,7 +4,6 @@ import { OrderRepository } from '@/db/order.repository';
 import { ProductRepository } from '@/db/product.repository';
 import { execute, parseJSON, queryFirst } from '@/db/db';
 
-export const runtime = 'edge';
 
 // Order statuses that can be cancelled
 const CANCELLABLE_STATUSES = ['PENDING', 'CONFIRMED'];

@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
 import { queryAll, numberToBool, parseJSON } from '@/db/db'
 
-export const runtime = 'edge';
 
 export async function GET() {
   // Get D1 database from request context

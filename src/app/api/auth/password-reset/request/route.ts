@@ -8,7 +8,6 @@ import { generateId } from '@/db/db';
 // Token expiry time (1 hour)
 const TOKEN_EXPIRY_HOURS = 1;
 
-export const runtime = 'edge';
 
 export async function POST(request: NextRequest) {
   const env = getEnv(request)

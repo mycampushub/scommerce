@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
 import { queryFirst, queryAll, execute, boolToNumber, numberToBool, parseJSON } from '@/db/db'
 
-export const runtime = 'edge';
 
 // PUT /api/admin/reviews/[id] - Approve/Reject review
 export async function PUT(

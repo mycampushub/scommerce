@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
 import { queryAll, execute, queryFirst, generateId, now, parseJSON, stringifyJSON, boolToNumber, numberToBool } from '@/db/db'
 
-export const runtime = 'edge';
 
 // Default homepage settings
 const DEFAULT_SETTINGS = {

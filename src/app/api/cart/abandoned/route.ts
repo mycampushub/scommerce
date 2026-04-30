@@ -4,7 +4,6 @@ import { getEnv } from '@/lib/cloudflare'
 import { UserRepository } from '@/db/user.repository'
 import { queryAll, queryFirst, parseJSON, numberToBool } from '@/db/db'
 
-export const runtime = 'edge';
 
 const ABANDONED_CART_HOURS = 24 // Consider cart abandoned after 24 hours of inactivity
 

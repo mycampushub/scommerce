@@ -5,7 +5,6 @@ import { CartRepository } from '@/db/cart.repository'
 import { UserRepository } from '@/db/user.repository'
 import { queryAll, queryFirst, parseJSON, numberToBool } from '@/db/db'
 
-export const runtime = 'edge';
 
 /**
  * POST /api/cart/sync

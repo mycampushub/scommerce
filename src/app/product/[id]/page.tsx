@@ -1,6 +1,5 @@
 'use client'
 
-export const runtime = 'edge';
 
 import React, { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, Heart, Share2, Truck, Shield, RotateCcw, Star, ShoppingCart, Check, Minus, Plus, Home as HomeIcon, ShoppingBag, Loader2 } from 'lucide-react'

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-export const runtime = 'edge';
 
 // Bangladesh division-based shipping rates
 const SHIPPING_RATES: Record<string, { base: number; perKg: number; freeThreshold: number }> = {

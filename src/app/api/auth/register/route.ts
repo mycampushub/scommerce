@@ -6,7 +6,6 @@ import { UserRepository } from '@/db/user.repository';
 import { getEnv } from '@/lib/cloudflare';
 
 // Edge Runtime export for Cloudflare
-export const runtime = 'edge';
 
 export async function POST(request: NextRequest) {
   // Get D1 database from request context (Cloudflare Pages/Workers)

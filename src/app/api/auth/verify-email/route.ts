@@ -3,7 +3,6 @@ import { getEnv } from '@/lib/cloudflare'
 import { UserRepository } from '@/db/user.repository'
 import { queryFirst, numberToBool, boolToNumber } from '@/db/db'
 
-export const runtime = 'edge';
 
 export async function GET(request: NextRequest) {
   const env = getEnv(request)
