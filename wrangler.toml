@@ -4,7 +4,7 @@ compatibility_flags = ["nodejs_compat"]
 
 pages_build_output_dir = ".open-next/assets"
 
-[d1_databases]
+[[d1_databases]]
 binding = "DB"
 database_name = "scommerce-db"
 database_id = "fccab55b-37e3-4544-aacd-9095df3e9ab3"
@@ -16,7 +16,3 @@ bucket_name = "scommerce-uploads"
 [[kv_namespaces]]
 binding = "KV"
 id = "88d9b0d91f674eeab798ba907b15c716"
-
-[assets]
-directory = ".open-next/assets"
-binding = "ASSETS"
