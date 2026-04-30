@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
 import { queryFirst, execute, boolToNumber, numberToBool, parseJSON, stringifyJSON, now } from '@/db/db'
 
+export const runtime = 'edge';
 
 export async function GET(
   request: NextRequest,

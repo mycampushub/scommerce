@@ -3,6 +3,7 @@ import { getEnv } from '@/lib/cloudflare'
 import { queryFirst, execute, numberToBool, boolToNumber, now } from '@/db/db'
 import { ProductRepository } from '@/db/product.repository'
 
+export const runtime = 'edge';
 
 export async function PUT(
   request: NextRequest,

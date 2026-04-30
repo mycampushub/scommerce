@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
 import { queryAll, count, parseJSON, numberToBool } from '@/db/db'
 
+export const runtime = 'edge';
 
 // Bangladesh divisions
 const BANGLADESH_DIVISIONS = [

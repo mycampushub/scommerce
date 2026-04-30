@@ -4,6 +4,7 @@ import { SettingsRepository } from '@/db/settings.repository';
 import { addCacheHeaders, CachePresets } from '@/lib/http-cache';
 
 // Edge Runtime export for Cloudflare
+export const runtime = 'edge';
 
 /**
  * GET /api/settings
@@ -53,7 +54,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { verifyToken } = await import('@/lib/jwt-edge');
+    const { verifyToken } = await import('@/lib/jwt');
     const payload = await verifyToken(token);
 
     if (!payload || payload.role !== 'admin') {

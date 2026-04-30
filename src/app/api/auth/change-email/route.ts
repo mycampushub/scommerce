@@ -7,6 +7,7 @@ import { UserRepository } from '@/db/user.repository'
 import { getEnv } from '@/lib/cloudflare'
 import { boolToNumber } from '@/db/db'
 
+export const runtime = 'edge';
 
 export async function POST(request: NextRequest) {
   const env = getEnv(request)

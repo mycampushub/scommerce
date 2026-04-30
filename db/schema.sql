@@ -356,23 +356,3 @@ CREATE TABLE IF NOT EXISTS homepage_settings (
   settings TEXT,
   updatedAt TEXT DEFAULT (datetime('now'))
 );
-
--- Site Settings table (for global site configuration)
-CREATE TABLE IF NOT EXISTS site_settings (
-  id TEXT PRIMARY KEY,
-  siteName TEXT NOT NULL DEFAULT 'SCommerce',
-  siteLogo TEXT,
-  currency TEXT NOT NULL DEFAULT 'BDT',
-  currencySymbol TEXT NOT NULL DEFAULT '৳',
-  taxRate REAL DEFAULT 0.18,
-  freeShippingThreshold INTEGER DEFAULT 5000,
-  baseShippingCost INTEGER DEFAULT 150,
-  contactEmail TEXT,
-  contactPhone TEXT,
-  socialMedia TEXT,
-  seo TEXT,
-  createdAt TEXT DEFAULT (datetime('now')),
-  updatedAt TEXT DEFAULT (datetime('now'))
-);
-
-CREATE INDEX IF NOT EXISTS idx_site_settings_id ON site_settings(id);

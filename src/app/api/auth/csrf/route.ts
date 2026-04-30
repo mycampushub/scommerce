@@ -8,6 +8,7 @@ import { createCSRFToken, getCSRFSessionId } from '@/lib/csrf';
 import { getEnv } from '@/lib/cloudflare';
 
 // Edge Runtime export for Cloudflare
+export const runtime = 'edge';
 
 /**
  * GET /api/auth/csrf

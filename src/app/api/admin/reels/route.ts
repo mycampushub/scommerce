@@ -3,6 +3,7 @@ import { getEnv } from '@/lib/cloudflare'
 import { ReelRepository } from '@/db/reel.repository'
 import { queryFirst, generateId, now } from '@/db/db'
 
+export const runtime = 'edge';
 
 export async function GET(request: NextRequest) {
   try {

@@ -3,6 +3,7 @@ import { getEnv } from '@/lib/cloudflare'
 import { OrderRepository } from '@/db/order.repository'
 import { parseJSON } from '@/db/db'
 
+export const runtime = 'edge';
 
 export async function GET(
   request: NextRequest,

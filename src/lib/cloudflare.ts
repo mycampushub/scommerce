@@ -1,144 +1,61 @@
 import { Env } from '@/db/types';
 
 /**
- * Enhanced Cloudflare binding detection for Cloudflare Pages and Workers
- * This function tries multiple locations and name variations to find bindings
- */
-function findBinding(envObj: any, bindingName: string): any {
-  if (!envObj) return null;
-
-  // Try exact match first
-  if (envObj[bindingName] !== undefined) {
-    return envObj[bindingName];
-  }
-
-  // Try case-insensitive match
-  const keys = Object.keys(envObj);
-  for (const key of keys) {
-    if (key.toLowerCase() === bindingName.toLowerCase()) {
-      console.log(`[cloudflare.ts] Found binding "${bindingName}" as "${key}"`);
-      return envObj[key];
-    }
-  }
-
-  return null;
-}
-
-/**
  * Get D1 database from request context
- * This works with Cloudflare Pages, Workers, and OpenNext
+ * This works with Cloudflare Pages and Workers
  */
 export function getDB(request: Request): D1Database | null {
-  const checked: string[] = [];
-
-  // 1. Try request.env (OpenNext and traditional Workers way)
+  // Check all possible locations where D1 binding could be available
+  // 1. request.env.DB (traditional Workers way)
   const requestEnv = (request as any).env;
-  if (requestEnv) {
-    checked.push('request.env');
-    const db = findBinding(requestEnv, 'DB');
-    if (db) {
-      console.log('[cloudflare.ts] D1 found in request.env');
-      return db as D1Database;
-    }
+  if (requestEnv?.DB) {
+    return requestEnv.DB as D1Database;
   }
 
-  // 2. Try globalThis.cloudflare.ctx.env (next-on-pages request context)
-  const ctxEnv = globalThis.cloudflare?.ctx?.env;
-  if (ctxEnv) {
-    checked.push('globalThis.cloudflare.ctx.env');
-    const db = findBinding(ctxEnv, 'DB');
-    if (db) {
-      console.log('[cloudflare.ts] D1 found in globalThis.cloudflare.ctx.env');
-      return db as D1Database;
-    }
+  // 2. global.cloudflare.ctx.env.DB (next-on-pages request context)
+  if (globalThis.cloudflare?.ctx?.env?.DB) {
+    return globalThis.cloudflare.ctx.env.DB as D1Database;
   }
 
-  // 3. Try globalThis.cloudflare.env (next-on-pages global)
-  const cloudflareEnv = globalThis.cloudflare?.env;
-  if (cloudflareEnv) {
-    checked.push('globalThis.cloudflare.env');
-    const db = findBinding(cloudflareEnv, 'DB');
-    if (db) {
-      console.log('[cloudflare.ts] D1 found in globalThis.cloudflare.env');
-      return db as D1Database;
-    }
+  // 3. global.cloudflare.env.DB (next-on-pages global)
+  if (globalThis.cloudflare?.env?.DB) {
+    return globalThis.cloudflare.env.DB as D1Database;
   }
 
-  // 4. Check global scope
+  // 4. Check if there's a global binding directly
   const globalAny = global as any;
   if (globalAny.DB) {
-    checked.push('global');
-    console.log('[cloudflare.ts] D1 found in global scope');
     return globalAny.DB as D1Database;
   }
 
-  console.error('[cloudflare.ts] D1 binding not found in any location', {
-    checked,
-    availableKeys: {
-      ctxEnv: ctxEnv ? Object.keys(ctxEnv).filter(k => !k.startsWith('__')) : [],
-      cloudflareEnv: cloudflareEnv ? Object.keys(cloudflareEnv).filter(k => !k.startsWith('__')) : [],
-      requestEnv: requestEnv ? Object.keys(requestEnv).filter(k => !k.startsWith('__')) : [],
-      global: Object.keys(globalAny).filter(k => ['DB', 'BUCKET', 'KV'].includes(k)),
-    },
-  });
+  console.error('[cloudflare.ts] D1 binding not found in any location');
   return null;
 }
 
 /**
  * Helper to get env from request context
- * Works with OpenNext, next-on-pages, and traditional Workers
  */
 export function getEnv(request: Request): Env | null {
-  const checked: string[] = [];
-
-  // 1. Try request.env (OpenNext and traditional Workers way)
+  // Check all possible locations where env could be available
   const requestEnv = (request as any).env;
-  if (requestEnv) {
-    checked.push('request.env');
-    if (requestEnv.DB || requestEnv.BUCKET || requestEnv.KV) {
-      console.log('[cloudflare.ts] Env found in request.env');
-      return requestEnv as Env;
-    }
+  if (requestEnv?.DB) {
+    return requestEnv as Env;
   }
 
-  // 2. Try globalThis.cloudflare.ctx.env (next-on-pages request context)
-  const ctxEnv = globalThis.cloudflare?.ctx?.env;
-  if (ctxEnv) {
-    checked.push('globalThis.cloudflare.ctx.env');
-    // Check if at least one binding exists
-    if (ctxEnv.DB || ctxEnv.BUCKET || ctxEnv.KV) {
-      console.log('[cloudflare.ts] Env found in globalThis.cloudflare.ctx.env');
-      return ctxEnv as Env;
-    }
+  if (globalThis.cloudflare?.ctx?.env?.DB) {
+    return globalThis.cloudflare.ctx.env as Env;
   }
 
-  // 3. Try globalThis.cloudflare.env (next-on-pages global)
-  const cloudflareEnv = globalThis.cloudflare?.env;
-  if (cloudflareEnv) {
-    checked.push('globalThis.cloudflare.env');
-    if (cloudflareEnv.DB || cloudflareEnv.BUCKET || cloudflareEnv.KV) {
-      console.log('[cloudflare.ts] Env found in globalThis.cloudflare.env');
-      return cloudflareEnv as Env;
-    }
+  if (globalThis.cloudflare?.env?.DB) {
+    return globalThis.cloudflare.env as Env;
   }
 
-  // 4. Check global scope
   const globalAny = global as any;
-  if (globalAny.DB || globalAny.BUCKET || globalAny.KV) {
-    checked.push('global');
-    console.log('[cloudflare.ts] Env found in global scope');
+  if (globalAny.DB) {
     return globalAny as Env;
   }
 
-  console.error('[cloudflare.ts] Env not found in any location', {
-    checked,
-    availableKeys: {
-      ctxEnv: ctxEnv ? Object.keys(ctxEnv).filter(k => !k.startsWith('__')) : [],
-      cloudflareEnv: cloudflareEnv ? Object.keys(cloudflareEnv).filter(k => !k.startsWith('__')) : [],
-      requestEnv: requestEnv ? Object.keys(requestEnv).filter(k => !k.startsWith('__')) : [],
-      global: Object.keys(globalAny).filter(k => ['DB', 'BUCKET', 'KV'].includes(k)),
-    },
-  });
+  console.error('[cloudflare.ts] Env not found in any location');
   return null;
 }
 

@@ -3,6 +3,7 @@ import { getEnv } from '@/lib/cloudflare'
 import { StoryRepository } from '@/db/story.repository'
 import { queryFirst } from '@/db/db'
 
+export const runtime = 'edge';
 
 export async function GET(request: NextRequest) {
   try {

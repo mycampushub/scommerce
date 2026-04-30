@@ -4,6 +4,7 @@ import { OrderRepository } from '@/db/order.repository'
 import { UserRepository } from '@/db/user.repository'
 import { queryAll, execute, parseJSON, generateId, generateOrderNumber, now } from '@/db/db'
 
+export const runtime = 'edge';
 
 export async function GET(request: NextRequest) {
   try {

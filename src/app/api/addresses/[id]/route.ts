@@ -3,6 +3,7 @@ import { verifyToken, extractTokenFromHeader } from '@/lib/auth'
 import { getEnv } from '@/lib/cloudflare'
 import { queryAll, queryFirst, execute, boolToNumber, numberToBool, now } from '@/db/db'
 
+export const runtime = 'edge';
 
 /**
  * PUT /api/addresses/[id] - Update a saved address

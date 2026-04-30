@@ -6,6 +6,7 @@ import { generateSKU, checkSKUConflict } from '@/lib/sku-generator'
 import { z } from 'zod'
 import { queryFirst, queryAll, execute, boolToNumber, parseJSON, stringifyJSON, now } from '@/db/db'
 
+export const runtime = 'edge';
 
 /**
  * Schema for variant creation

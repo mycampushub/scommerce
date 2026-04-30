@@ -71,5 +71,3 @@ prisma/*.db
 open-next.config.ts.bak
 open-next.config.mjs
 open-next.config.js
-# Upload temporary directory
-upload/

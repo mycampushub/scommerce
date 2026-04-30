@@ -1,10 +1,25 @@
 {
   "version": 1,
-  "include": ["/*"],
+  "include": [
+    "/*"
+  ],
   "exclude": [
     "/_next/static/*",
     "/favicon.ico",
     "/images/*",
-    "/public/*"
+    "/public/*",
+    "*.svg",
+    "*.png",
+    "*.jpg",
+    "*.jpeg",
+    "*.gif",
+    "*.webp",
+    "*.ico",
+    "*.woff",
+    "*.woff2",
+    "*.ttf",
+    "*.eot",
+    "*.css",
+    "*.js"
   ]
 }

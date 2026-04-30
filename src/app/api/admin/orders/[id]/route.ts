@@ -4,6 +4,7 @@ import { OrderRepository } from '@/db/order.repository'
 import { UserRepository } from '@/db/user.repository'
 import { execute, parseJSON } from '@/db/db'
 
+export const runtime = 'edge';
 
 export async function GET(
   request: NextRequest,

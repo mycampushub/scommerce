@@ -9,6 +9,7 @@ import { parseJSON } from '@/db/db'
  * - q: search query (required)
  * - limit: number of suggestions (default: 10)
  */
+export const runtime = 'edge';
 
 export async function GET(request: NextRequest) {
   const env = getEnv(request)

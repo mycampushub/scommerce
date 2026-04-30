@@ -5,6 +5,7 @@ import { queryAll, queryFirst, execute, numberToBool, generateId, now } from '@/
 import { csrfMiddleware } from '@/lib/csrf'
 import { sanitizeHTML, sanitizeForDB } from '@/lib/sanitize'
 
+export const runtime = 'edge';
 
 // GET /api/reviews?productId={id} - Get reviews for a product
 export async function GET(request: NextRequest) {

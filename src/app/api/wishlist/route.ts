@@ -7,6 +7,7 @@ import { queryAll, queryFirst, execute, parseJSON, numberToBool } from '@/db/db'
 import { csrfMiddleware } from '@/lib/csrf'
 import { sanitizeForDB } from '@/lib/sanitize'
 
+export const runtime = 'edge';
 
 // GET /api/wishlist - Get user's wishlist
 export async function GET(request: NextRequest) {

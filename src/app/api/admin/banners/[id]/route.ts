@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
 import { BannerRepository } from '@/db/banner.repository'
 
+export const runtime = 'edge';
 
 export async function GET(
   request: NextRequest,

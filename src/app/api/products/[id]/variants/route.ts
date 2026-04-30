@@ -3,6 +3,7 @@ import { getEnv } from '@/lib/cloudflare'
 import { ProductRepository } from '@/db/product.repository'
 import { queryFirst } from '@/db/db'
 
+export const runtime = 'edge';
 
 /**
  * GET /api/products/[id]/variants

@@ -12,6 +12,7 @@ import { invalidateCache } from '@/lib/cache';
 const ALLOWED_PAYMENT_METHODS = ['CASH_ON_DELIVERY'] as const;
 
 // Edge Runtime export for Cloudflare
+export const runtime = 'edge';
 
 export async function POST(request: NextRequest) {
   // Get D1 database from request context (Cloudflare Pages/Workers)

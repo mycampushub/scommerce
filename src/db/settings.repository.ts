@@ -1,5 +1,29 @@
-import { queryFirst, execute, now, parseJSON, stringifyJSON } from '@/db/db';
-import { Env, SiteSettings } from '@/db/types';
+import { queryFirst, execute, generateId, now } from '@/db/db';
+import { Env } from '@/db/types';
+
+export interface SiteSettings {
+  id: string;
+  siteName: string;
+  siteLogo?: string;
+  currency: string;
+  currencySymbol: string;
+  taxRate: number;
+  freeShippingThreshold: number;
+  baseShippingCost: number;
+  contactEmail?: string;
+  contactPhone?: string;
+  socialMedia?: {
+    facebook?: string;
+    instagram?: string;
+    twitter?: string;
+    youtube?: string;
+  };
+  seo?: {
+    metaTitle?: string;
+    metaDescription?: string;
+    keywords?: string;
+  };
+}
 
 /**
  * Site Settings Repository
@@ -9,7 +33,7 @@ export class SettingsRepository {
   /**
    * Get site settings
    */
-  static async getSettings(env: Env | null): Promise<SiteSettings> {
+  static async getSettings(env : Env | null): Promise<SiteSettings> {
     const settings = await queryFirst<SiteSettings>(
       env,
       'SELECT * FROM site_settings LIMIT 1'
@@ -20,12 +44,7 @@ export class SettingsRepository {
       return this.getDefaultSettings();
     }
 
-    // Parse JSON fields
-    return {
-      ...settings,
-      socialMedia: settings.socialMedia ? parseJSON(settings.socialMedia) : null,
-      seo: settings.seo ? parseJSON(settings.seo) : null,
-    };
+    return settings;
   }
 
   /**
@@ -35,27 +54,24 @@ export class SettingsRepository {
     return {
       id: 'default',
       siteName: 'SCommerce',
-      siteLogo: null,
       currency: 'BDT',
       currencySymbol: '৳',
-      taxRate: 0.18,
+      taxRate: 0.18, // 18%
       freeShippingThreshold: 5000,
       baseShippingCost: 150,
       contactEmail: 'contact@scommerce.com',
       contactPhone: '+8801XXXXXXXXX',
-      socialMedia: JSON.stringify({
+      socialMedia: {
         facebook: '',
         instagram: '',
         twitter: '',
         youtube: '',
-      }),
-      seo: JSON.stringify({
+      },
+      seo: {
         metaTitle: 'SCommerce - Your Online Fashion Store',
         metaDescription: 'Discover the latest fashion trends at SCommerce. Shop sarees, salwar suits, lehengas, and more.',
         keywords: 'fashion, saree, salwar, lehenga, online shopping',
-      }),
-      createdAt: now(),
-      updatedAt: now(),
+      },
     };
   }
 
@@ -73,16 +89,8 @@ export class SettingsRepository {
     const updates: Partial<SiteSettings> = { ...settings, ...data };
 
     // Convert objects to JSON for storage
-    const socialMediaJson = updates.socialMedia
-      ? typeof updates.socialMedia === 'string'
-        ? updates.socialMedia
-        : stringifyJSON(updates.socialMedia)
-      : null;
-    const seoJson = updates.seo
-      ? typeof updates.seo === 'string'
-        ? updates.seo
-        : stringifyJSON(updates.seo)
-      : null;
+    const socialMediaJson = updates.socialMedia ? JSON.stringify(updates.socialMedia) : null;
+    const seoJson = updates.seo ? JSON.stringify(updates.seo) : null;
 
     if (existing) {
       // Update existing settings
@@ -114,7 +122,7 @@ export class SettingsRepository {
         `INSERT INTO site_settings (id, siteName, siteLogo, currency, currencySymbol, taxRate,
              freeShippingThreshold, baseShippingCost, contactEmail, contactPhone,
              socialMedia, seo, createdAt, updatedAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         updates.id,
         updates.siteName,
         updates.siteLogo || null,
