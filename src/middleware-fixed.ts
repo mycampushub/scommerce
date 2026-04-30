@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server'
 import { verifyToken } from '@/lib/jwt'
 
 // Paths that require authentication
-const protectedPaths = ['/admin', '/admin/']
+const protectedPaths = ['/admin']
 const publicPaths = ['/login', '/register', '/api/auth']
 
 // Sensitive API routes that need extra protection
@@ -28,8 +28,6 @@ const cacheablePaths = [
   '/privacy',
   '/terms',
   '/returns',
-  '/login',
-  '/register',
 ]
 
 // Static assets cache duration (1 year)
@@ -43,16 +41,15 @@ export async function middleware(request: NextRequest) {
   const sessionToken = request.cookies.get('session')?.value
 
   // Check if the path is protected
-  const isProtectedPath = protectedPaths.some(path => pathname.startsWith(path))
-  const isPublicPath = publicPaths.some(path => pathname.startsWith(path))
+  const isProtectedPath = protectedPaths.some(path => pathname === path || pathname.startsWith(path + '/'))
+  const isPublicPath = publicPaths.some(path => pathname === path || pathname.startsWith(path + '/'))
   const isApiRoute = pathname.startsWith('/api/')
-  const isSensitiveRoute = sensitiveApiRoutes.some(route => pathname.startsWith(route))
-  const isCacheable = cacheablePaths.some(path => pathname.startsWith(path)) ||
+  const isSensitiveRoute = sensitiveApiRoutes.some(route => pathname === route || pathname.startsWith(route + '/'))
+  const isCacheable = cacheablePaths.some(path => pathname === path || pathname.startsWith(path + '/')) ||
                        pathname.match(/\.(jpg|jpeg|png|gif|svg|webp|ico|css|js|woff|woff2|ttf|eot)$/)
 
-  // Handle sensitive API routes
+  // Handle sensitive API routes - require authentication
   if (isApiRoute && isSensitiveRoute) {
-    // Check authentication for sensitive routes
     if (!sessionToken) {
       return new Response(
         JSON.stringify({ error: 'Authentication required' }),
@@ -78,22 +75,8 @@ export async function middleware(request: NextRequest) {
 
   // If path is protected and no session, redirect to login
   if (isProtectedPath && !sessionToken) {
-    // Don't redirect if already on login page (prevent loop)
-    if (pathname === '/login' || pathname === '/login/') {
-      return NextResponse.next()
-    }
-    // Don't redirect if we're already coming from login (prevent loop)
-    const from = request.nextUrl.searchParams.get('from')
-    if (from === 'login') {
-      return NextResponse.next()
-    }
     const loginUrl = new URL('/login', request.url)
-    // Only set redirect if not already coming from a redirect
-    const existingRedirect = request.nextUrl.searchParams.get('redirect')
-    if (!existingRedirect) {
-      loginUrl.searchParams.set('redirect', pathname)
-      loginUrl.searchParams.set('from', 'middleware')
-    }
+    loginUrl.searchParams.set('redirect', pathname)
     return NextResponse.redirect(loginUrl)
   }
 
@@ -103,14 +86,9 @@ export async function middleware(request: NextRequest) {
 
     // If token is invalid or expired, redirect to login
     if (!payload) {
-      // Don't redirect if already on login page
-      if (pathname === '/login' || pathname === '/login/') {
-        return NextResponse.next()
-      }
       const loginUrl = new URL('/login', request.url)
       loginUrl.searchParams.set('redirect', pathname)
       loginUrl.searchParams.set('session', 'expired')
-      loginUrl.searchParams.set('from', 'middleware')
       return NextResponse.redirect(loginUrl)
     }
 
@@ -122,44 +100,24 @@ export async function middleware(request: NextRequest) {
   }
 
   // If user is on login page and has a valid session, redirect appropriately
-  // BUT prevent redirect loops by checking if we're already redirected from login
+  // BUT prevent redirect loops by checking if we're already coming from a redirect
   if (pathname === '/login' && sessionToken) {
     const payload = await verifyToken(sessionToken)
 
     if (payload) {
-      // Check if we have a valid redirect parameter and not already coming from login
+      // Check if we're in a redirect loop (already have redirect param pointing to login)
       const redirectTo = request.nextUrl.searchParams.get('redirect')
-      const from = request.nextUrl.searchParams.get('from')
-      
-      // If we're already coming from a redirect (from=login), don't redirect again
-      if (from === 'login') {
-        return NextResponse.next()
-      }
       
       // If no redirect or redirect is to login page itself, redirect to appropriate page
-      if (!redirectTo || redirectTo === '/login' || redirectTo === '/login/' || redirectTo.includes('login')) {
+      if (!redirectTo || redirectTo === '/login' || redirectTo === '/login/') {
         if (payload.role === 'admin') {
           return NextResponse.redirect(new URL('/admin', request.url))
         } else {
           return NextResponse.redirect(new URL('/', request.url))
         }
       } else {
-        // Validate redirect URL to prevent open redirects
-        try {
-          const redirectUrl = new URL(redirectTo, request.url)
-          // Only allow relative URLs or same-origin URLs
-          if (redirectUrl.origin === new URL(request.url).origin || redirectTo.startsWith('/')) {
-            return NextResponse.redirect(redirectUrl)
-          }
-        } catch {
-          // Invalid URL, redirect to home
-        }
-        // Fallback: redirect based on role
-        if (payload.role === 'admin') {
-          return NextResponse.redirect(new URL('/admin', request.url))
-        } else {
-          return NextResponse.redirect(new URL('/', request.url))
-        }
+        // Redirect to the originally requested page
+        return NextResponse.redirect(new URL(redirectTo, request.url))
       }
     }
   }
