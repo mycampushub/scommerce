@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const env = getEnv(request)
+    const env = getEnv()
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search') || ''
     const categorySlug = searchParams.get('category') || ''
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const env = getEnv(request)
+    const env = getEnv()
     const contentType = request.headers.get('content-type') || ''
 
     // Handle multipart/form-data for image uploads
@@ -164,7 +164,7 @@ export async function POST(request: NextRequest) {
             body: uploadFormData,
           })
 
-          const uploadResult = await uploadResponse.json()
+          const uploadResult = await uploadResponse.json() as any
           if (uploadResult.success) {
             images.push(uploadResult.data.url)
           }
@@ -201,7 +201,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Handle JSON payload
-    const body = await request.json()
+    const body = await request.json() as any
 
     const product = await ProductRepository.create(env, {
       name: body.name,

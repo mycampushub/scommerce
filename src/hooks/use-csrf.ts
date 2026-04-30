@@ -31,11 +31,11 @@ export function useCSRF(): CSRFState {
       const response = await fetch('/api/auth/csrf');
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json() as any;
         throw new Error(errorData.message || 'Failed to fetch CSRF token');
       }
 
-      const data = await response.json();
+      const data = await response.json() as any as any;
       setToken(data.token);
 
       // Store in localStorage for persistence across page loads
@@ -114,7 +114,7 @@ export async function fetchWithCSRF(
       try {
         const tokenResponse = await fetch('/api/auth/csrf');
         if (tokenResponse.ok) {
-          const data = await tokenResponse.json();
+          const data = await tokenResponse.json() as any as any;
           csrfToken = data.token;
           if (typeof window !== 'undefined' && csrfToken) {
             localStorage.setItem('csrf_token', csrfToken);

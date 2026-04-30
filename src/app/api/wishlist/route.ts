@@ -11,7 +11,7 @@ import { sanitizeForDB } from '@/lib/sanitize'
 // GET /api/wishlist - Get user's wishlist
 export async function GET(request: NextRequest) {
   // Get D1 database from request context
-  const env = getEnv(request)
+  const env = getEnv()
 
   try {
     // Verify authentication
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
 // POST /api/wishlist - Add product to wishlist
 export async function POST(request: NextRequest) {
   // Get D1 database from request context
-  const env = getEnv(request)
+  const env = getEnv()
 
   // Check CSRF protection
   const csrfError = await csrfMiddleware(request, env)
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const body = await request.json()
+    const body = await request.json() as any
     const { productId } = body
 
     if (!productId) {
@@ -175,7 +175,7 @@ export async function POST(request: NextRequest) {
 // DELETE /api/wishlist?productId={id} - Remove from wishlist
 export async function DELETE(request: NextRequest) {
   // Get D1 database from request context
-  const env = getEnv(request)
+  const env = getEnv()
 
   // Check CSRF protection
   const csrfError = await csrfMiddleware(request, env)

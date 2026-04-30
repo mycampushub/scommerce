@@ -18,7 +18,7 @@ const DEFAULT_RATE = { base: 120, perKg: 25, freeThreshold: 5000 }
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    const body = await request.json() as any
     const { subtotal, division, weight = 1 } = body
 
     // Validate required fields

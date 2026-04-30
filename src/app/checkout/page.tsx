@@ -56,7 +56,7 @@ export default function CheckoutPage() {
     const fetchSettings = async () => {
       try {
         const response = await fetch('/api/settings')
-        const result = await response.json()
+        const result = await response.json() as any as any
         if (result.success && result.data) {
           setTaxRate(result.data.taxRate || 0.18)
           setFreeShippingThreshold(result.data.freeShippingThreshold || 5000)
@@ -86,7 +86,7 @@ export default function CheckoutPage() {
           weight: 1, // Default weight 1kg
         }),
       })
-      const result = await response.json()
+      const result = await response.json() as any as any
       if (result.success) {
         setShippingCost(result.data.shippingCost)
       }
@@ -116,7 +116,7 @@ export default function CheckoutPage() {
       for (const item of items) {
         const itemKey = `${item.id}-${item.variantId || 'no-variant'}`
         const response = await fetch(`/api/products/${item.id}`)
-        const data = await response.json()
+        const data = await response.json() as any as any
         
         if (data.success && data.data) {
           const product = data.data
@@ -258,7 +258,7 @@ export default function CheckoutPage() {
         body: JSON.stringify(orderData),
       })
       
-      const result: OrderResponse = await response.json()
+      const result: OrderResponse = await response.json() as any
       
       if (!response.ok || !result.success) {
         throw new Error(result.error || 'Failed to create order')

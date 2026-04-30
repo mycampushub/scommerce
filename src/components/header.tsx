@@ -27,7 +27,7 @@ export function Header() {
   const fetchWishlistCount = async () => {
     try {
       const response = await fetch('/api/wishlist')
-      const data = await response.json()
+      const data = await response.json() as any
       if (data.success) {
         setWishlistCount(data.data.length)
       }

@@ -3,7 +3,7 @@
  * Helpers to optimize D1 queries for better performance
  */
 
-import { D1Database, D1PreparedStatement } from '@/db/types';
+// Using Cloudflare types from worker-configuration.d.ts
 
 export interface QueryOptions {
   /** Limit number of results */

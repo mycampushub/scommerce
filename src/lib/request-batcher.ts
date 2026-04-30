@@ -215,7 +215,7 @@ export async function optimizedFetch<T>(
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        return await response.json();
+        return await response.json() as any;
       } catch (error) {
         lastError = error as Error;
 
@@ -275,7 +275,7 @@ export async function batchRequests(
       throw new Error(`Batch request failed: ${response.status}`);
     }
 
-    return await response.json();
+    return await response.json() as any;
   } catch (error) {
     console.error('Batch request error:', error);
     throw error;

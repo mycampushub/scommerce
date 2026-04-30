@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Get D1 database from request context
-  const env = getEnv(request)
+  const env = getEnv()
 
   try {
     const searchParams = request.nextUrl.searchParams
@@ -171,10 +171,10 @@ export async function POST(request: NextRequest) {
   }
 
   // Get D1 database from request context
-  const env = getEnv(request)
+  const env = getEnv()
 
   try {
-    const body = await request.json()
+    const body = await request.json() as any
     const { userIds, subject, message } = body
 
     if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {

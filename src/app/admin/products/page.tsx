@@ -200,7 +200,7 @@ export default function ProductsPage() {
       if (searchTerm) params.append('search', searchTerm)
 
       const response = await fetch(`/api/admin/products?${params.toString()}`)
-      const result = await response.json()
+      const result = await response.json() as any
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to fetch products')
@@ -223,7 +223,7 @@ export default function ProductsPage() {
   const fetchCategories = async () => {
     try {
       const response = await fetch('/api/admin/categories')
-      const result = await response.json()
+      const result = await response.json() as any
 
       if (result.success) {
         setCategories(result.data || [])
@@ -288,7 +288,7 @@ export default function ProductsPage() {
         }),
       })
 
-      const result = await response.json()
+      const result = await response.json() as any
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to update product')
@@ -336,7 +336,7 @@ export default function ProductsPage() {
         }),
       })
 
-      const result = await response.json()
+      const result = await response.json() as any
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to create product')
@@ -379,7 +379,7 @@ export default function ProductsPage() {
         method: 'DELETE',
       })
 
-      const result = await response.json()
+      const result = await response.json() as any
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to delete product')
@@ -414,7 +414,7 @@ export default function ProductsPage() {
         }),
       })
 
-      const result = await response.json()
+      const result = await response.json() as any
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to reorder product')
@@ -447,7 +447,7 @@ export default function ProductsPage() {
     try {
       setVariantsLoading(true)
       const response = await fetch(`/api/admin/products/${productId}/variants`)
-      const result = await response.json()
+      const result = await response.json() as any
 
       if (result.success) {
         setVariants(result.data.variants || [])
@@ -532,7 +532,7 @@ export default function ProductsPage() {
         })
       }
 
-      const result = await response.json()
+      const result = await response.json() as any
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to save variant')
@@ -575,7 +575,7 @@ export default function ProductsPage() {
         method: 'DELETE',
       })
 
-      const result = await response.json()
+      const result = await response.json() as any
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to delete variant')

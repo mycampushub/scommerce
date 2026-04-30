@@ -113,7 +113,7 @@ export default function CategoriesPage() {
       if (searchTerm) params.append('search', searchTerm)
 
       const response = await fetch(`/api/admin/categories?${params.toString()}`)
-      const result = await response.json()
+      const result = await response.json() as any
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to fetch categories')
@@ -159,7 +159,7 @@ export default function CategoriesPage() {
         }),
       })
 
-      const result = await response.json()
+      const result = await response.json() as any
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to create category')
@@ -216,7 +216,7 @@ export default function CategoriesPage() {
         }),
       })
 
-      const result = await response.json()
+      const result = await response.json() as any
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to update category')
@@ -252,7 +252,7 @@ export default function CategoriesPage() {
         }),
       })
 
-      const result = await response.json()
+      const result = await response.json() as any
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to update category')
@@ -282,7 +282,7 @@ export default function CategoriesPage() {
         method: 'DELETE',
       })
 
-      const result = await response.json()
+      const result = await response.json() as any
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to delete category')
@@ -317,7 +317,7 @@ export default function CategoriesPage() {
         body: formData,
       })
 
-      const result = await response.json()
+      const result = await response.json() as any
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to upload image')

@@ -36,7 +36,7 @@ export function ReviewsSection({ productId, averageRating = 0, reviewCount = 0 }
     try {
       setLoading(true)
       const response = await fetch(`/api/reviews?productId=${productId}`)
-      const data = await response.json()
+      const data = await response.json() as any
 
       if (data.success) {
         setReviews(data.data)

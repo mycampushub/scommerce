@@ -94,7 +94,7 @@ export default function InventoryPage() {
 
   const fetchProducts = async () => {
     const response = await fetch('/api/admin/products')
-    const result = await response.json()
+    const result = await response.json() as any
 
     if (result.success) {
       setProducts(result.data || [])
@@ -108,7 +108,7 @@ export default function InventoryPage() {
       params.append('isResolved', 'false')
 
       const response = await fetch(`/api/admin/inventory/alerts?${params.toString()}`)
-      const result = await response.json()
+      const result = await response.json() as any
 
       if (result.success) {
         setAlerts(result.data || [])

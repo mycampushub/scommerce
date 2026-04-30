@@ -35,7 +35,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string; variantId: string }> }
 ) {
   try {
-    const env = getEnv(request)
+    const env = getEnv()
     const { id, variantId } = await params
 
     // Fetch variant
@@ -96,7 +96,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string; variantId: string }> }
 ) {
   try {
-    const env = getEnv(request)
+    const env = getEnv()
     const { id, variantId } = await params
 
     // Check if variant exists
@@ -121,7 +121,7 @@ export async function PUT(
     }
 
     // Parse request body
-    const body = await request.json()
+    const body: any = await request.json() as any
 
     // Validate input
     const validatedData = updateVariantSchema.parse(body)
@@ -243,7 +243,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string; variantId: string }> }
 ) {
   try {
-    const env = getEnv(request)
+    const env = getEnv()
     const { id, variantId } = await params
 
     // Check if variant exists

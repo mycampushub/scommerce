@@ -9,7 +9,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const env = getEnv(request)
+    const env = getEnv()
     const banner = await BannerRepository.findById(env, id)
 
     if (!banner) {
@@ -43,8 +43,8 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const env = getEnv(request)
-    const body = await request.json()
+    const env = getEnv()
+    const body = await request.json() as any
     const { id } = await params
 
     const banner = await BannerRepository.update(env, id, {
@@ -90,7 +90,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params
-    const env = getEnv(request)
+    const env = getEnv()
     await BannerRepository.delete(env, id)
 
     return NextResponse.json({

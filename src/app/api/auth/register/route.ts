@@ -9,11 +9,11 @@ import { getEnv } from '@/lib/cloudflare';
 
 export async function POST(request: NextRequest) {
   // Get D1 database from request context (Cloudflare Pages/Workers)
-  const env = getEnv(request);
+  const env = getEnv();
 
   // Apply rate limiting based on IP and email
   const clientIp = getClientIp(request);
-  const body = await request.json();
+  const body = await request.json() as any;
   const { email, name, phone, password, confirmPassword, adminSecret } = body;
 
   // Rate limit by IP to prevent spam registration

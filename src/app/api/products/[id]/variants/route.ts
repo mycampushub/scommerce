@@ -12,7 +12,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const env = getEnv(request)
+  const env = getEnv()
   try {
     const { id } = await params
 

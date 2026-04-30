@@ -11,7 +11,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const env = getEnv(request)
+    const env = getEnv()
     const order = await OrderRepository.findById(env, id)
 
     if (!order) {
@@ -71,8 +71,8 @@ export async function PUT(
 ) {
   try {
     const { id } = await params
-    const env = getEnv(request)
-    const body = await request.json()
+    const env = getEnv()
+    const body: any = await request.json() as any
 
     // Prepare update data
     const updates: any = {}
@@ -181,7 +181,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params
-    const env = getEnv(request)
+    const env = getEnv()
 
     // Delete order items first
     await execute(env, 'DELETE FROM order_items WHERE orderId = ?', id)

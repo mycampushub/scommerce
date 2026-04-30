@@ -133,7 +133,7 @@ export default function HomepageManagementPage() {
   const fetchProducts = async () => {
     try {
       const res = await fetch('/api/products?limit=100')
-      const data = await res.json()
+      const data = await res.json() as any
       if (data.success) {
         setProducts(data.data)
       }
@@ -145,7 +145,7 @@ export default function HomepageManagementPage() {
   const fetchBanners = async () => {
     try {
       const res = await fetch('/api/admin/banners')
-      const data = await res.json()
+      const data = await res.json() as any
       if (data.success) {
         setBanners(data.data)
       }
@@ -158,7 +158,7 @@ export default function HomepageManagementPage() {
   const fetchStories = async () => {
     try {
       const res = await fetch('/api/admin/stories')
-      const data = await res.json()
+      const data = await res.json() as any
       if (data.success) {
         setStories(data.data)
       }
@@ -171,7 +171,7 @@ export default function HomepageManagementPage() {
   const fetchReels = async () => {
     try {
       const res = await fetch('/api/admin/reels')
-      const data = await res.json()
+      const data = await res.json() as any
       if (data.success) {
         setReels(data.data)
       }
@@ -184,7 +184,7 @@ export default function HomepageManagementPage() {
   const fetchPromotions = async () => {
     try {
       const res = await fetch('/api/admin/promotions')
-      const data = await res.json()
+      const data = await res.json() as any
       if (data.success) {
         setPromotions(data.data)
       }
@@ -197,7 +197,7 @@ export default function HomepageManagementPage() {
   const fetchSettings = async () => {
     try {
       const res = await fetch('/api/admin/homepage/settings')
-      const data = await res.json()
+      const data = await res.json() as any
       if (data.success) {
         const settingsObj: Record<string, HomepageSetting> = {}
         data.data.forEach((setting: HomepageSetting) => {
@@ -232,7 +232,7 @@ export default function HomepageManagementPage() {
         body: JSON.stringify(bannerForm)
       })
 
-      const data = await res.json()
+      const data = await res.json() as any
       if (data.success) {
         toast.success(editingBanner ? 'Banner updated' : 'Banner created')
         setBannerDialogOpen(false)
@@ -253,7 +253,7 @@ export default function HomepageManagementPage() {
 
     try {
       const res = await fetch(`/api/admin/banners/${id}`, { method: 'DELETE' })
-      const data = await res.json()
+      const data = await res.json() as any
       if (data.success) {
         toast.success('Banner deleted')
         fetchBanners()
@@ -273,7 +273,7 @@ export default function HomepageManagementPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isActive: !banner.isActive })
       })
-      const data = await res.json()
+      const data = await res.json() as any
       if (data.success) {
         toast.success(banner.isActive ? 'Banner disabled' : 'Banner enabled')
         fetchBanners()
@@ -296,7 +296,7 @@ export default function HomepageManagementPage() {
         body: JSON.stringify(storyForm)
       })
 
-      const data = await res.json()
+      const data = await res.json() as any
       if (data.success) {
         toast.success(editingStory ? 'Story updated' : 'Story created')
         setStoryDialogOpen(false)
@@ -317,7 +317,7 @@ export default function HomepageManagementPage() {
 
     try {
       const res = await fetch(`/api/admin/stories/${id}`, { method: 'DELETE' })
-      const data = await res.json()
+      const data = await res.json() as any
       if (data.success) {
         toast.success('Story deleted')
         fetchStories()
@@ -337,7 +337,7 @@ export default function HomepageManagementPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isActive: !story.isActive })
       })
-      const data = await res.json()
+      const data = await res.json() as any
       if (data.success) {
         toast.success(story.isActive ? 'Story disabled' : 'Story enabled')
         fetchStories()
@@ -360,7 +360,7 @@ export default function HomepageManagementPage() {
         body: JSON.stringify(reelForm)
       })
 
-      const data = await res.json()
+      const data = await res.json() as any
       if (data.success) {
         toast.success(editingReel ? 'Reel updated' : 'Reel created')
         setReelDialogOpen(false)
@@ -381,7 +381,7 @@ export default function HomepageManagementPage() {
 
     try {
       const res = await fetch(`/api/admin/reels/${id}`, { method: 'DELETE' })
-      const data = await res.json()
+      const data = await res.json() as any
       if (data.success) {
         toast.success('Reel deleted')
         fetchReels()
@@ -401,7 +401,7 @@ export default function HomepageManagementPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isActive: !reel.isActive })
       })
-      const data = await res.json()
+      const data = await res.json() as any
       if (data.success) {
         toast.success(reel.isActive ? 'Reel disabled' : 'Reel enabled')
         fetchReels()
@@ -424,7 +424,7 @@ export default function HomepageManagementPage() {
         body: JSON.stringify(promotionForm)
       })
 
-      const data = await res.json()
+      const data = await res.json() as any
       if (data.success) {
         toast.success(editingPromotion ? 'Promotion updated' : 'Promotion created')
         setPromotionDialogOpen(false)
@@ -445,7 +445,7 @@ export default function HomepageManagementPage() {
 
     try {
       const res = await fetch(`/api/admin/promotions/${id}`, { method: 'DELETE' })
-      const data = await res.json()
+      const data = await res.json() as any
       if (data.success) {
         toast.success('Promotion deleted')
         fetchPromotions()
@@ -465,7 +465,7 @@ export default function HomepageManagementPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isActive: !promotion.isActive })
       })
-      const data = await res.json()
+      const data = await res.json() as any
       if (data.success) {
         toast.success(promotion.isActive ? 'Promotion disabled' : 'Promotion enabled')
         fetchPromotions()
@@ -485,7 +485,7 @@ export default function HomepageManagementPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ settings: Object.values(settings) })
       })
-      const data = await res.json()
+      const data = await res.json() as any
       if (data.success) {
         toast.success('Settings saved successfully')
       } else {

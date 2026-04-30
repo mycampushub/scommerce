@@ -40,7 +40,7 @@ export async function verifyAdminAuth(
     }
 
     // Verify user exists and has valid role
-    const env = getEnv(request)
+    const env = getEnv()
     const user = await UserRepository.findById(env, payload.userId)
 
     if (!user) {

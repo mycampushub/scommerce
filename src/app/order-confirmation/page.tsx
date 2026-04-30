@@ -222,7 +222,7 @@ function OrderConfirmationContent() {
 
     try {
       const response = await fetch(`/api/orders/${orderId}`)
-      const result: OrderResponse = await response.json()
+      const result: OrderResponse = await response.json() as any
 
       if (!response.ok || !result.success) {
         throw new Error(result.error || 'Failed to fetch order')
@@ -268,7 +268,7 @@ function OrderConfirmationContent() {
         }),
       })
 
-      const result = await response.json()
+      const result = await response.json() as any as any
 
       if (!response.ok || !result.success) {
         throw new Error(result.error || 'Failed to cancel order')
@@ -330,7 +330,7 @@ function OrderConfirmationContent() {
         }),
       })
 
-      const result = await response.json()
+      const result = await response.json() as any as any
 
       if (!response.ok || !result.success) {
         throw new Error(result.error || 'Failed to process refund request')

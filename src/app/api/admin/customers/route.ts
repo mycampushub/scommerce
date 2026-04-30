@@ -6,7 +6,7 @@ import { queryAll, count, numberToBool } from '@/db/db'
 
 export async function GET(request: NextRequest) {
   try {
-    const env = getEnv(request)
+    const env = getEnv()
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search') || ''
     const status = searchParams.get('status') || ''
@@ -63,8 +63,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const env = getEnv(request)
-    const body = await request.json()
+    const env = getEnv()
+    const body: any = await request.json() as any
 
     const customer = await UserRepository.create(env, {
       email: body.email,

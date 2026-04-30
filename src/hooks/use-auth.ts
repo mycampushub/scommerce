@@ -18,7 +18,7 @@ export function useAuth() {
   const checkSession = useCallback(async () => {
     try {
       const response = await fetch('/api/auth/session')
-      const data = await response.json()
+      const data = await response.json() as any
 
       if (data.success && data.data.user) {
         setUser(data.data.user)
@@ -47,7 +47,7 @@ export function useAuth() {
       body: JSON.stringify({ email, password }),
     })
 
-    const data = await response.json()
+    const data = await response.json() as any
 
     if (data.success) {
       setUser(data.data.user)

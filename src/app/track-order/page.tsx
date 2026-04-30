@@ -154,7 +154,7 @@ export default function TrackOrderPage() {
       // If searching by order ID directly
       if (searchType === 'orderId') {
         const response = await fetch(`/api/orders/${searchQuery.trim()}/track`)
-        const result = await response.json()
+        const result = await response.json() as any as any
 
         if (!result.success) {
           throw new Error(result.error || 'Order not found')
@@ -164,7 +164,7 @@ export default function TrackOrderPage() {
       } else {
         // Search by order number - need to find the order first
         const searchResponse = await fetch(`/api/orders?orderNumber=${searchQuery.trim()}`)
-        const searchResult = await searchResponse.json()
+        const searchResult = await searchResponse.json() as any
 
         if (!searchResult.success || !searchResult.data || searchResult.data.length === 0) {
           throw new Error('Order not found')
@@ -172,7 +172,7 @@ export default function TrackOrderPage() {
 
         const order = searchResult.data[0]
         const trackingResponse = await fetch(`/api/orders/${order.id}/track`)
-        const trackingResult = await trackingResponse.json()
+        const trackingResult = await trackingResponse.json() as any
 
         if (!trackingResult.success) {
           throw new Error(trackingResult.error || 'Failed to fetch tracking information')

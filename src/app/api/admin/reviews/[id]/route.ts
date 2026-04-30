@@ -9,9 +9,9 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const env = getEnv(request)
+    const env = getEnv()
     const { id } = await params
-    const body = await request.json()
+    const body = await request.json() as any
     const { action } = body // approve or reject
 
     if (!action || !['approve', 'reject'].includes(action)) {
@@ -94,7 +94,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const env = getEnv(request)
+    const env = getEnv()
     const { id } = await params
     const reviewId = id
 

@@ -5,7 +5,7 @@ import { queryAll, queryFirst, execute, boolToNumber, numberToBool, parseJSON, s
 
 export async function GET(request: NextRequest) {
   try {
-    const env = getEnv(request)
+    const env = getEnv()
     const searchParams = request.nextUrl.searchParams
     const activeOnly = searchParams.get('activeOnly') === 'true'
 
@@ -47,8 +47,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const env = getEnv(request)
-    const body = await request.json()
+    const env = getEnv()
+    const body = await request.json() as any
     const {
       title,
       description,

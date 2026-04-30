@@ -10,7 +10,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const env = getEnv(request)
+    const env = getEnv()
     const { id } = await params
     const product = await ProductRepository.findById(env, id)
 
@@ -54,7 +54,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const env = getEnv(request)
+    const env = getEnv()
     const contentType = request.headers.get('content-type') || ''
     const action = request.headers.get('x-action') || 'update'
 
@@ -87,8 +87,8 @@ export async function PUT(
         method: 'POST',
         body: uploadFormData,
       })
-
-      const uploadResult = await uploadResponse.json()
+      const uploadResult = await uploadResponse.json() as any
+      
       if (!uploadResult.success) {
         return NextResponse.json(
           { success: false, error: uploadResult.error },
@@ -119,7 +119,7 @@ export async function PUT(
     }
 
     if (action === 'remove-image') {
-      const body = await request.json()
+      const body = await request.json() as any
       const { imageUrl } = body
 
       if (!imageUrl) {
@@ -167,7 +167,7 @@ export async function PUT(
     }
 
     if (action === 'reorder-images') {
-      const body = await request.json()
+      const body = await request.json() as any
       const { images } = body
 
       if (!Array.isArray(images)) {
@@ -235,7 +235,7 @@ export async function PUT(
             body: uploadFormData,
           })
 
-          const uploadResult = await uploadResponse.json()
+          const uploadResult = await uploadResponse.json() as any
           if (uploadResult.success) {
             images.push(uploadResult.data.url)
           }
@@ -274,7 +274,7 @@ export async function PUT(
     }
 
     // Handle JSON payload
-    const body = await request.json()
+    const body = await request.json() as any
     const { id } = await params
 
     const updateData: any = {}
@@ -323,7 +323,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const env = getEnv(request)
+    const env = getEnv()
     const { id } = await params
     await ProductRepository.delete(env, id)
 

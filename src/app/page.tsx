@@ -1537,16 +1537,16 @@ export default function Home() {
           featuredData, saleData, newData, trendingData, categoriesData,
           bannersData, storiesData, reelsData, promotionsData, settingsData
         ] = await Promise.all([
-          featuredRes.json(),
-          saleRes.json(),
-          newRes.json(),
-          trendingRes.json(),
-          categoriesRes.json(),
-          bannersRes.json(),
-          storiesRes.json(),
-          reelsRes.json(),
-          promotionsRes.json(),
-          settingsRes.json()
+          featuredRes.json() as any,
+          saleRes.json() as any,
+          newRes.json() as any,
+          trendingRes.json() as any,
+          categoriesRes.json() as any,
+          bannersRes.json() as any,
+          storiesRes.json() as any,
+          reelsRes.json() as any,
+          promotionsRes.json() as any,
+          settingsRes.json() as any
         ])
 
         // Set products and categories

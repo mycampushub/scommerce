@@ -59,7 +59,7 @@ export default function AdminDashboard() {
     try {
       setLoading(true)
       const response = await fetch('/api/admin/stats')
-      const result = await response.json()
+      const result = await response.json() as any
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to fetch stats')
@@ -79,7 +79,7 @@ export default function AdminDashboard() {
   const fetchAnalyticsData = async () => {
     try {
       const response = await fetch(`/api/admin/analytics?period=${period}`)
-      const result = await response.json()
+      const result = await response.json() as any
 
       if (result.success) {
         setAnalytics(result.data)

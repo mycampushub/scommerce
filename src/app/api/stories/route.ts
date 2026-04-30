@@ -6,7 +6,7 @@ import { StoryRepository } from '@/db/story.repository';
 
 export async function GET(request: Request) {
   // Get D1 database from request context (Cloudflare Pages/Workers)
-  const env = getEnv(request);
+  const env = getEnv();
 
   try {
     const stories = await StoryRepository.findAllActive(env);

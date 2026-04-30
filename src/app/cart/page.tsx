@@ -20,7 +20,7 @@ export default function CartPage() {
     const fetchSettings = async () => {
       try {
         const response = await fetch('/api/settings')
-        const result = await response.json()
+        const result = await response.json() as any
         if (result.success && result.data) {
           setFreeShippingThreshold(result.data.freeShippingThreshold || 5000)
           setBaseShippingCost(result.data.baseShippingCost || 150)

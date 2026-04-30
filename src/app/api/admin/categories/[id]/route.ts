@@ -10,7 +10,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const env = getEnv(request)
+    const env = getEnv()
     const category = await CategoryRepository.findById(env, (await params).id)
 
     if (!category) {
@@ -51,8 +51,8 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const env = getEnv(request)
-    const body = await request.json()
+    const env = getEnv()
+    const body = await request.json() as any
 
     const category = await CategoryRepository.update(env, (await params).id, {
       ...(body.name && { name: body.name }),
@@ -93,7 +93,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const env = getEnv(request)
+    const env = getEnv()
     await CategoryRepository.delete(env, (await params).id)
 
     return NextResponse.json({

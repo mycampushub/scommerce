@@ -70,7 +70,7 @@ function ResetPasswordContent() {
         }),
       })
 
-      const data = await response.json()
+      const data = await response.json() as any
 
       if (!response.ok || !data.success) {
         throw new Error(data.error || 'Failed to reset password')

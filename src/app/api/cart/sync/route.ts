@@ -13,7 +13,7 @@ import { queryAll, queryFirst, parseJSON, numberToBool } from '@/db/db'
  */
 export async function POST(request: NextRequest) {
   // Get D1 database from request context
-  const env = getEnv(request)
+  const env = getEnv()
 
   try {
     // Get token from Authorization header or cookie
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = payload.userId
-    const body = await request.json()
+    const body = await request.json() as any
     const { localCart } = body
 
     if (!Array.isArray(localCart)) {

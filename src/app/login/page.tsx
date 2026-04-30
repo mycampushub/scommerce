@@ -69,7 +69,7 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       })
 
-      const data = await response.json()
+      const data = await response.json() as any
 
       if (!response.ok || !data.success) {
         // Check if email verification is required

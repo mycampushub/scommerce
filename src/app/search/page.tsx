@@ -241,7 +241,7 @@ export default function SearchPage() {
           throw new Error('Failed to fetch products')
         }
         
-        const products = await response.json()
+        const products = await response.json() as any
         setSearchResults(products)
       } catch (err) {
         console.error('Error searching products:', err)

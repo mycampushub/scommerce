@@ -87,7 +87,7 @@ export default function RegisterPage() {
         body: JSON.stringify(formData),
       })
 
-      const data = await response.json()
+      const data = await response.json() as any
 
       if (!response.ok || !data.success) {
         throw new Error(data.error || 'Registration failed')

@@ -52,7 +52,7 @@ export default function AnalyticsPage() {
     try {
       setLoading(true)
       const response = await fetch(`/api/admin/analytics?period=${period}`)
-      const result = await response.json()
+      const result = await response.json() as any
 
       if (result.success) {
         setAnalytics(result.data)

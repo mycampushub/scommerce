@@ -332,7 +332,7 @@ export function prefetchRouteData(route: string): void {
       // Prefetch endpoint data
       fetchWithCache(`route:${route}:${endpoint}`, async () => {
         // Actual fetch would go here
-        return fetch(endpoint).then(res => res.json());
+        return fetch(endpoint).then(res => res.json() as any);
       }, { ttl: 300000 });
     });
   }

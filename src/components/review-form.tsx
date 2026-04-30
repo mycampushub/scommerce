@@ -74,7 +74,7 @@ export function ReviewForm({
         }),
       })
 
-      const data = await response.json()
+      const data = await response.json() as any
 
       if (data.success) {
         toast.success(data.message || 'Review submitted successfully!')

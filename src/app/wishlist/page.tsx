@@ -44,7 +44,7 @@ export default function WishlistPage() {
     try {
       setLoading(true)
       const response = await fetch('/api/wishlist')
-      const data = await response.json()
+      const data = await response.json() as any
 
       if (data.success) {
         setWishlistItems(data.data)
@@ -72,7 +72,7 @@ export default function WishlistPage() {
         method: 'DELETE',
       })
 
-      const data = await response.json()
+      const data = await response.json() as any
 
       if (data.success) {
         setWishlistItems((prev) => 
@@ -196,7 +196,7 @@ export default function WishlistPage() {
           const response = await fetch(`/api/wishlist?productId=${item.productId}`, {
             method: 'DELETE',
           })
-          const data = await response.json()
+          const data = await response.json() as any
           if (data.success) {
             removedCount++
           }

@@ -8,7 +8,7 @@ import { getEnv } from '@/lib/cloudflare'
 
 
 export async function POST(request: NextRequest) {
-  const env = getEnv(request)
+  const env = getEnv()
   const clientIp = getClientIp(request)
   const rateLimitResult = await rateLimit(env, 'change-password:' + clientIp, {
     maxRequests: 5,
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const body = await request.json()
+    const body = await request.json() as any
     const { currentPassword, newPassword, confirmPassword } = body
 
     const validation = changePasswordSchema.safeParse({

@@ -115,7 +115,7 @@ export const useCartStore = create<CartStore>()(
               weight: weight || 1, // Default weight 1kg
             }),
           })
-          const result = await response.json()
+          const result = await response.json() as any
           if (result.success) {
             return result.data.shippingCost
           }

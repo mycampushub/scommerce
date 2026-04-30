@@ -9,7 +9,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const env = getEnv(request)
+    const env = getEnv()
     const story = await StoryRepository.findById(env, id)
 
     if (!story) {
@@ -44,8 +44,8 @@ export async function PUT(
 ) {
   try {
     const { id } = await params
-    const env = getEnv(request)
-    const body = await request.json()
+    const env = getEnv()
+    const body = await request.json() as any
     const { title, thumbnail, images, isActive, order } = body
 
     const story = await StoryRepository.update(env, id, {
@@ -88,7 +88,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params
-    const env = getEnv(request)
+    const env = getEnv()
     await StoryRepository.delete(env, id)
 
     return NextResponse.json({

@@ -292,9 +292,9 @@ export default function ProductPage() {
     try {
       const response = await fetch(`/api/products?limit=8`)
       if (response.ok) {
-        const products = await response.json()
+        const products = await response.json() as any
         // Filter products from same category, excluding current product
-        const related = products
+        const related = (products as any)
           .filter((p: Product) => p.categoryId === categoryId && p.id !== currentProductId)
           .slice(0, 4)
         setRelatedProducts(related)
@@ -311,7 +311,7 @@ export default function ProductPage() {
         `/api/products/recommendations?productId=${currentProductId}&categoryId=${categoryId || ''}&limit=8&type=mixed`
       )
       if (response.ok) {
-        const result = await response.json()
+        const result = await response.json() as any
         if (result.success && result.data.products) {
           setRecommendedProducts(result.data.products.slice(0, 4))
         }
@@ -334,14 +334,14 @@ export default function ProductPage() {
           throw new Error('Failed to fetch product')
         }
         
-        const productData = await productResponse.json()
-        setProduct(productData)
+        const productData = await productResponse.json() as any
+        setProduct(productData as any)
         
         // Fetch variants
         const variantsResponse = await fetch(`/api/products/${productId}/variants`)
         if (variantsResponse.ok) {
-          const variantsData = await variantsResponse.json()
-          setVariants(variantsData.data.variants || [])
+          const variantsData = await variantsResponse.json() as any
+          setVariants((variantsData as any).data.variants || [])
 
           // Select default variant or first variant
           if (variantsData.data.variants && variantsData.data.variants.length > 0) {
@@ -427,8 +427,8 @@ export default function ProductPage() {
     try {
       const response = await fetch(`/api/orders?userId=${user.id}`)
       if (response.ok) {
-        const orders = await response.json()
-        const hasBought = orders.data?.some((order: any) =>
+        const orders = await response.json() as any
+        const hasBought = (orders as any).data?.some((order: any) =>
           order.orderItems?.some((item: any) => item.productId === productId)
         )
         setHasPurchased(hasBought)

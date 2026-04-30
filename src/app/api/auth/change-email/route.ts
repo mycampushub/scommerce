@@ -9,7 +9,7 @@ import { boolToNumber } from '@/db/db'
 
 
 export async function POST(request: NextRequest) {
-  const env = getEnv(request)
+  const env = getEnv()
   const clientIp = getClientIp(request)
   const rateLimitResult = await rateLimit(env, 'change-email:' + clientIp, {
     maxRequests: 3,
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const body = await request.json()
+    const body = await request.json() as any
     const { password, newEmail, confirmEmail } = body
 
     const validation = changeEmailSchema.safeParse({

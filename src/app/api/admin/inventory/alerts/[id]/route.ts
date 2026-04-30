@@ -10,8 +10,8 @@ export async function PUT(
 ) {
   try {
     const { id } = await params
-    const env = getEnv(request)
-    const body = await request.json()
+    const env = getEnv()
+    const body = await request.json() as any
     const alertId = id
 
     // Check if alert exists
@@ -100,7 +100,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params
-    const env = getEnv(request)
+    const env = getEnv()
     const alertId = id
 
     // Check if alert exists

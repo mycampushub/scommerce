@@ -284,76 +284,9 @@ export interface HomepageSettings {
   updatedAt: string;
 }
 
-// Database context type
+// Database context type - use Cloudflare types from worker-configuration.d.ts
 export interface Env {
   DB?: D1Database;
-  scommerce_uploads?: R2Bucket;
+  BUCKET?: R2Bucket;
   KV?: KVNamespace;
-}
-
-export interface D1Database {
-  prepare: (sql: string) => D1PreparedStatement;
-  batch: (statements: D1PreparedStatement[]) => D1Result[];
-  exec: (sql: string) => D1Result;
-}
-
-export interface D1PreparedStatement {
-  bind: (...params: unknown[]) => D1PreparedStatement;
-  first: () => Promise<Record<string, unknown> | null>;
-  all: () => Promise<{ results: Record<string, unknown>[] }>;
-  run: () => D1Result;
-}
-
-export interface D1Result {
-  meta: {
-    duration: number;
-    last_row_id: number | null;
-    rows_read: number;
-    rows_written: number;
-    changed_db: boolean;
-    size_after: number;
-  };
-  success: boolean;
-}
-
-export interface R2Bucket {
-  put: (key: string, value: ArrayBuffer | ReadableStream | string, options?: R2PutOptions) => Promise<R2Object>;
-  get: (key: string) => Promise<R2Object | null>;
-  delete: (key: string) => Promise<void>;
-  list: (options?: R2ListOptions) => Promise<R2Objects>;
-}
-
-export interface R2PutOptions {
-  httpMetadata?: Record<string, string>;
-  customMetadata?: Record<string, string>;
-}
-
-export interface R2Object {
-  key: string;
-  size: number;
-  httpMetadata?: Record<string, string>;
-  customMetadata?: Record<string, string>;
-  write?: (options: { signal: AbortSignal }) => Promise<Response>;
-}
-
-export interface R2Objects {
-  objects: R2Object[];
-  truncated: boolean;
-}
-
-export interface R2ListOptions {
-  limit?: number;
-  prefix?: string;
-  cursor?: string;
-}
-
-export interface KVNamespace {
-  get: (key: string, type?: 'text' | 'json' | 'arrayBuffer' | 'stream') => Promise<string | null | Record<string, unknown> | ArrayBuffer | ReadableStream | null>;
-  put: (key: string, value: string, options?: KVNamespacePutOptions) => Promise<void>;
-  delete: (key: string) => Promise<void>;
-}
-
-export interface KVNamespacePutOptions {
-  expirationTtl?: number;
-  expiration?: Date | number;
 }

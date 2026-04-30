@@ -10,7 +10,7 @@ import { addCacheHeaders, CachePresets } from '@/lib/http-cache';
 
 export async function GET(request: Request) {
   // Get D1 database from request context (Cloudflare Pages/Workers)
-  const env = getEnv(request);
+  const env = getEnv();
 
   try {
     const { searchParams } = new URL(request.url);

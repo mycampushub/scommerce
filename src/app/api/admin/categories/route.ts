@@ -6,7 +6,7 @@ import { queryAll, count, numberToBool } from '@/db/db'
 
 export async function GET(request: NextRequest) {
   try {
-    const env = getEnv(request)
+    const env = getEnv()
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search') || ''
 
@@ -50,8 +50,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const env = getEnv(request)
-    const body = await request.json()
+    const env = getEnv()
+    const body = await request.json() as any
 
     const category = await CategoryRepository.create(env, {
       name: body.name,

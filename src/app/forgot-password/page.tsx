@@ -33,8 +33,8 @@ export default function ForgotPasswordPage() {
         body: JSON.stringify({ email }),
       })
 
-      const data = await response.json()
-
+      const data = await response.json() as any
+      
       if (!response.ok || !data.success) {
         throw new Error(data.error || 'Failed to request password reset')
       }

@@ -250,7 +250,7 @@ export default function ShopPage() {
           throw new Error('Failed to fetch products')
         }
 
-        const data = await response.json()
+        const data = await response.json() as any
         const productsArray = Array.isArray(data.products) ? data.products : (Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []))
         setProducts(productsArray)
       } catch (err) {

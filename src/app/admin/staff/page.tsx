@@ -104,7 +104,7 @@ export default function StaffPage() {
       if (roleFilter !== 'all') params.append('role', roleFilter)
 
       const response = await fetch(`/api/admin/staff?${params.toString()}`)
-      const result = await response.json()
+      const result = await response.json() as any
 
       if (result.success) {
         setStaff(result.data || [])
@@ -164,7 +164,7 @@ export default function StaffPage() {
         body: JSON.stringify(addFormData),
       })
 
-      const result = await response.json()
+      const result = await response.json() as any
 
       if (result.success) {
         toast({
@@ -207,7 +207,7 @@ export default function StaffPage() {
         body: JSON.stringify(editFormData),
       })
 
-      const result = await response.json()
+      const result = await response.json() as any
 
       if (result.success) {
         toast({
@@ -248,7 +248,7 @@ export default function StaffPage() {
         method: 'DELETE',
       })
 
-      const result = await response.json()
+      const result = await response.json() as any
 
       if (result.success) {
         toast({

@@ -15,7 +15,7 @@ import { sanitizeForDB } from '@/lib/sanitize';
  */
 export async function GET(request: NextRequest) {
   // Get D1 database from request context (Cloudflare Pages/Workers)
-  const env = getEnv(request);
+  const env = getEnv();
 
   try {
     // Get token from Authorization header or cookie
@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   // Get D1 database from request context (Cloudflare Pages/Workers)
-  const env = getEnv(request);
+  const env = getEnv();
 
   // Check CSRF protection
   const csrfError = await csrfMiddleware(request, env);
@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json();
+    const body = await request.json() as any;
     const { action, item, items } = body;
 
     // Get token from Authorization header or cookie

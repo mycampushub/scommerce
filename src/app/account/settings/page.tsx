@@ -58,8 +58,8 @@ export default function AccountSettingsPage() {
         body: JSON.stringify({ currentPassword, newPassword, confirmPassword }),
       })
 
-      const result = await response.json()
-
+      const result = await response.json() as any
+      
       if (!result.success) {
         throw new Error(result.error || 'Failed to change password')
       }
@@ -87,8 +87,8 @@ export default function AccountSettingsPage() {
         body: JSON.stringify({ password, newEmail, confirmEmail }),
       })
 
-      const result = await response.json()
-
+      const result = await response.json() as any
+      
       if (!result.success) {
         throw new Error(result.error || 'Failed to request email change')
       }

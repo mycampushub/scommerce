@@ -185,7 +185,7 @@ export function ImageUpload({
           body: formData
         })
 
-        const result = await response.json()
+        const result = await response.json() as any
 
         if (result.success) {
           newImages.push({

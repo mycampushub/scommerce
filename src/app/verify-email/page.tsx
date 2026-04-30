@@ -17,7 +17,7 @@ export default function VerifyEmailPage() {
     setLoading(true)
     try {
       const response = await fetch(`/api/auth/verify-email?token=${token}`)
-      const data = await response.json()
+      const data = await response.json() as any
 
       if (!response.ok || !data.success) {
         throw new Error(data.error || 'Failed to verify email')

@@ -132,7 +132,7 @@ export default function OrdersPage() {
       if (searchTerm) params.append('search', searchTerm)
 
       const response = await fetch(`/api/admin/orders?${params.toString()}`)
-      const result = await response.json()
+      const result = await response.json() as any
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to fetch orders')
@@ -191,7 +191,7 @@ export default function OrdersPage() {
         }),
       })
 
-      const result = await response.json()
+      const result = await response.json() as any
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to update order status')

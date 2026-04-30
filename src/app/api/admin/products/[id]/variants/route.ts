@@ -35,7 +35,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const env = getEnv(request)
+    const env = getEnv()
     const { id } = await params
 
     // Fetch product to check if it exists
@@ -120,7 +120,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const env = getEnv(request)
+    const env = getEnv()
     const { id } = await params
 
     // Fetch product to check if it exists
@@ -140,7 +140,7 @@ export async function POST(
     }
 
     // Parse request body
-    const body = await request.json()
+    const body = await request.json() as any
 
     // Validate input
     const validatedData = createVariantSchema.parse(body)

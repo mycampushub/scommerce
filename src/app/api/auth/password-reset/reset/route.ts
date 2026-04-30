@@ -7,9 +7,9 @@ import { getEnv } from '@/lib/cloudflare';
 
 
 export async function POST(request: NextRequest) {
-  const env = getEnv(request)
+  const env = getEnv()
   try {
-    const body = await request.json();
+    const body = await request.json() as any;
 
     // Validate input
     const validation = resetPasswordSchema.safeParse(body);

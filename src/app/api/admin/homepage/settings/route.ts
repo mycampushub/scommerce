@@ -33,7 +33,7 @@ const DEFAULT_SETTINGS = {
 
 export async function GET(request: NextRequest) {
   try {
-    const env = getEnv(request)
+    const env = getEnv()
     const settings = await queryAll<any>(
       env,
       'SELECT * FROM homepage_settings'
@@ -72,8 +72,8 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const env = getEnv(request)
-    const body = await request.json()
+    const env = getEnv()
+    const body = await request.json() as any
     const { settings } = body
 
     if (!settings || !Array.isArray(settings)) {

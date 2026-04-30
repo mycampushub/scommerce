@@ -113,7 +113,7 @@ export default function CustomersPage() {
       if (statusFilter !== 'all') params.append('status', statusFilter)
 
       const response = await fetch(`/api/admin/customers?${params.toString()}`)
-      const result = await response.json()
+      const result = await response.json() as any
 
       if (result.success) {
         setCustomers(result.data || [])
@@ -166,7 +166,7 @@ export default function CustomersPage() {
     setLoadingOrders(true)
     try {
       const response = await fetch(`/api/admin/orders?userId=${customer.id}`)
-      const result = await response.json()
+      const result = await response.json() as any
       if (result.success) {
         setCustomerOrders(result.data || [])
       }
@@ -188,7 +188,7 @@ export default function CustomersPage() {
         body: JSON.stringify(addFormData),
       })
 
-      const result = await response.json()
+      const result = await response.json() as any
 
       if (result.success) {
         toast({
@@ -229,7 +229,7 @@ export default function CustomersPage() {
         body: JSON.stringify(editFormData),
       })
 
-      const result = await response.json()
+      const result = await response.json() as any
 
       if (result.success) {
         toast({
@@ -263,7 +263,7 @@ export default function CustomersPage() {
         }),
       })
 
-      const result = await response.json()
+      const result = await response.json() as any
 
       if (result.success) {
         toast({
@@ -304,7 +304,7 @@ export default function CustomersPage() {
         }),
       })
 
-      const result = await response.json()
+      const result = await response.json() as any
 
       if (result.success) {
         toast({
@@ -341,7 +341,7 @@ export default function CustomersPage() {
         }),
       })
 
-      const result = await response.json()
+      const result = await response.json() as any
 
       if (result.success) {
         toast({
@@ -376,7 +376,7 @@ export default function CustomersPage() {
         method: 'DELETE',
       })
 
-      const result = await response.json()
+      const result = await response.json() as any
 
       if (result.success) {
         toast({

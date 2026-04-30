@@ -5,7 +5,7 @@ import { parseJSON } from '@/db/db'
 
 
 export async function GET(request: Request) {
-  const env = getEnv(request)
+  const env = getEnv()
   try {
     const settings = await queryAll(
       env,

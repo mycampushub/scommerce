@@ -27,10 +27,10 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   // Get D1 database from request context
-  const env = getEnv(request);
+  const env = getEnv();
 
   try {
-    const body = await request.json();
+    const body = await request.json() as any;
 
     // Validate input
     const validation = refundRequestSchema.safeParse(body);

@@ -9,8 +9,8 @@ export async function PUT(
 ) {
   try {
     const { id } = await params
-    const env = getEnv(request)
-    const body = await request.json()
+    const env = getEnv()
+    const body = await request.json() as any
     const { order } = body
 
     if (order === undefined || order === null) {

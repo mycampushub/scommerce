@@ -51,7 +51,7 @@ export async function verifyAuth(request: NextRequest): Promise<AuthResult> {
     }
 
     // Fetch user from database to ensure account exists and is valid
-    const env = getEnv(request)
+    const env = getEnv()
     const user = await UserRepository.findById(env, payload.userId)
 
     if (!user) {
