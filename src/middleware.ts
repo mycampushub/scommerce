@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { verifyToken } from '@/lib/jwt'
 
+// Edge Runtime for Cloudflare Workers
+export const runtime = 'experimental-edge'
+
 // Paths that require authentication
 const protectedPaths = ['/admin', '/admin/']
 const publicPaths = ['/login', '/register', '/api/auth']

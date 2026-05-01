@@ -3,7 +3,6 @@ import { getEnv } from '@/lib/cloudflare';
 import { SettingsRepository } from '@/db/settings.repository';
 import { addCacheHeaders, CachePresets } from '@/lib/http-cache';
 
-// Edge Runtime export for Cloudflare
 
 /**
  * GET /api/settings

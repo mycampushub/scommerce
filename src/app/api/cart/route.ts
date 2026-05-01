@@ -7,7 +7,6 @@ import { parseJSON, queryFirst, queryAll } from '@/db/db';
 import { csrfMiddleware } from '@/lib/csrf';
 import { sanitizeForDB } from '@/lib/sanitize';
 
-// Edge Runtime export for Cloudflare
 
 /**
  * GET /api/cart

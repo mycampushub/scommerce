@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getEnv } from '@/lib/cloudflare';
 
+
 export async function GET() {
   const env = getEnv();
   

@@ -3,7 +3,6 @@ import { getEnv } from '@/lib/cloudflare';
 import { CategoryRepository } from '@/db/category.repository';
 import { addCacheHeaders, CachePresets } from '@/lib/http-cache';
 
-// Edge Runtime export for Cloudflare
 
 export async function GET(request: Request) {
   // Get D1 database from request context (Cloudflare Pages/Workers)

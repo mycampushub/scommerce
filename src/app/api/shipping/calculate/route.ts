@@ -16,6 +16,7 @@ const SHIPPING_RATES: Record<string, { base: number; perKg: number; freeThreshol
 // Default shipping rate for unknown divisions
 const DEFAULT_RATE = { base: 120, perKg: 25, freeThreshold: 5000 }
 
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json() as any

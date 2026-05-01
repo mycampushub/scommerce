@@ -4,7 +4,6 @@ import { ProductRepository } from '@/db/product.repository';
 import { CategoryRepository } from '@/db/category.repository';
 import { numberToBool, parseJSON, queryFirst } from '@/db/db';
 
-// Edge Runtime export for Cloudflare
 
 export async function GET(
   request: Request,

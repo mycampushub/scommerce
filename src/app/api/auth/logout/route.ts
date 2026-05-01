@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 
-// Edge Runtime export for Cloudflare
 
 export async function POST() {
   const response = NextResponse.json({

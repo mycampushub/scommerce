@@ -7,7 +7,6 @@ import { UserRepository } from '@/db/user.repository';
 import { getEnv } from '@/lib/cloudflare';
 import { numberToBool } from '@/db/db';
 
-// Edge Runtime export for Cloudflare
 
 export async function POST(request: NextRequest) {
   // Get D1 database from request context (Cloudflare Pages/Workers)

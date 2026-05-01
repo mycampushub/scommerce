@@ -7,7 +7,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createCSRFToken, getCSRFSessionId } from '@/lib/csrf';
 import { getEnv } from '@/lib/cloudflare';
 
-// Edge Runtime export for Cloudflare
 
 /**
  * GET /api/auth/csrf

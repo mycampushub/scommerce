@@ -3,6 +3,7 @@ import { getEnv } from '@/lib/cloudflare'
 import { queryAll } from '@/db/db'
 import { parseJSON } from '@/db/db'
 
+
 /**
  * GET /api/search/autocomplete - Get search suggestions
  * Query params:
