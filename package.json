@@ -9,6 +9,7 @@
     "build:workers": "npm run build && npm run build:cloudflare",
     "start": "NODE_ENV=production node .next/standalone/server.js 2>&1 | tee server.log",
     "predeploy": "npm install --no-frozen-lockfile",
+    "install:ci": "npm install --no-frozen-lockfile",
     "lint": "eslint .",
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
