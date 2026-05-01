@@ -2,9 +2,9 @@ name = "scommerce"
 compatibility_date = "2026-04-30"
 compatibility_flags = ["nodejs_compat"]
 
-# For Cloudflare Workers - use the worker.js from OpenNext build
+# For Cloudflare Workers - main points to OpenNext worker.js
 main = ".open-next/worker.js"
-# Note: For Cloudflare Pages, use: pages_build_output_dir = ".open-next"
+# Note: Make sure .open-next/worker.js exists after running: npm run build:cloudflare
 
 [[d1_databases]]
 binding = "DB"
