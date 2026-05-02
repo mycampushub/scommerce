@@ -5,7 +5,10 @@
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "next build",
-    "build:cloudflare": "npx opennextjs-cloudflare build --packager npm && node scripts/copy-public-assets.js",
+    "build:cloudflare": "npx opennextjs-cloudflare build --packager npm",
+    "copy:public": "node scripts/copy-public-assets.js",
+    "copy:public:win": "scripts\\copy-public-assets.bat",
+    "copy:public:ps": "powershell -ExecutionPolicy Bypass -File scripts/copy-public-assets.ps1",
     "build:workers": "npm run build && npm run build:cloudflare",
     "start": "NODE_ENV=production node .next/standalone/server.js 2>&1 | tee server.log",
     "predeploy": "npm install --no-frozen-lockfile",
@@ -16,8 +19,8 @@
     "db:migrate": "prisma migrate dev",
     "db:reset": "prisma migrate reset",
     "db:seed": "tsx prisma/seed.ts",
-    "deploy:workers": "npm run build:cloudflare && wrangler deploy",
-    "deploy:pages": "npm run build:cloudflare && wrangler pages deploy .open-next/assets"
+    "deploy:workers": "npm run build:cloudflare && npm run copy:public && wrangler deploy",
+    "deploy:pages": "npm run build:cloudflare && npm run copy:public && wrangler pages deploy .open-next/assets"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

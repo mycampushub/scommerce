@@ -1,8 +1,7 @@
-#!/usr/bin/env node
-
 /**
  * Post-build script to copy public folder assets to .open-next/assets
  * This ensures static assets are included in Cloudflare deployment
+ * Cross-platform compatible (Windows, Mac, Linux)
  */
 
 const fs = require('fs');
