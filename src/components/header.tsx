@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { Search, ShoppingCart, Menu, Loader2, Heart } from 'lucide-react'
 import Link from 'next/link'
 import { useCartStore } from '@/lib/store/cart-store'
@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 
 export function Header() {
   const pathname = usePathname()
+  const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [wishlistCount, setWishlistCount] = useState(0)
   const { getItemCount } = useCartStore()
@@ -105,7 +106,7 @@ export function Header() {
           <div className="flex items-center gap-4">
             <button
               className="hidden md:flex items-center gap-2 text-gray-700 hover:text-pink-600 transition-colors"
-              onClick={() => window.location.href = '/search'}
+              onClick={() => router.push('/search')}
             >
               <Search className="w-5 h-5" />
             </button>
@@ -189,7 +190,7 @@ export function Header() {
             <div className="flex items-center gap-4 mt-4 pt-4 border-t border-gray-200">
               <button
                 className="flex items-center gap-2 text-gray-700"
-                onClick={() => window.location.href = '/search'}
+                onClick={() => router.push('/search')}
               >
                 <Search className="w-5 h-5" />
               </button>
@@ -214,7 +215,7 @@ export function Header() {
                   <Loader2 className="w-5 h-5 animate-spin" />
                 </div>
               ) : user ? (
-                <Link href="/profile" className="flex items-center gap-2 text-gray-700">
+                <Link href="/account/settings" className="flex items-center gap-2 text-gray-700">
                   <span className="text-sm font-medium">{user.name || 'Profile'}</span>
                 </Link>
               ) : (

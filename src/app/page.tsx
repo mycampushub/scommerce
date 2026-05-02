@@ -1575,13 +1575,28 @@ export default function Home() {
         })))
 
         const storyList = storiesData.data || []
-        setStories(storyList.map((s: any) => ({
-          id: s.id,
-          title: s.title,
-          thumbnail: s.thumbnail,
-          images: Array.isArray(s.images) ? s.images : [],
-          videoUrl: undefined
-        })))
+        setStories(storyList.map((s: any) => {
+          // Parse images from JSON string or use as-is if already an array
+          let images: string[] = []
+          try {
+            if (typeof s.images === 'string') {
+              images = JSON.parse(s.images)
+            } else if (Array.isArray(s.images)) {
+              images = s.images
+            }
+          } catch (e) {
+            console.warn('Failed to parse story images:', e)
+            images = []
+          }
+
+          return {
+            id: s.id,
+            title: s.title,
+            thumbnail: s.thumbnail,
+            images: images,
+            videoUrl: s.videoUrl || undefined
+          }
+        }))
 
         const reelList = reelsData.data || []
         setReels(reelList.map((r: any) => ({

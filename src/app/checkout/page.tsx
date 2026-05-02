@@ -240,7 +240,7 @@ export default function CheckoutPage() {
         customerPhone: shippingInfo.phone,
         shippingAddress: fullAddress,
         billingAddress: fullAddress, // Same as shipping for now
-        paymentMethod: paymentMethod.toUpperCase(),
+        paymentMethod: 'CASH_ON_DELIVERY',
         orderItems,
         subtotal,
         shipping,
@@ -538,7 +538,7 @@ export default function CheckoutPage() {
                         Back
                       </button>
                       <button
-                        type="submit"
+                        onClick={handlePlaceOrder}
                         disabled={isProcessing || Object.values(stockIssues).some(issue => !issue.inStock)}
                         className="flex-1 bg-pink-600 text-white py-4 rounded-xl font-semibold hover:bg-pink-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                       >

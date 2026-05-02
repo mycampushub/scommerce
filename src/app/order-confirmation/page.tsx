@@ -3,6 +3,10 @@
 import React, { useEffect, useState, Suspense } from 'react'
 import { Check, ShoppingBag, Home as HomeIcon, ArrowLeft, Download, Share2, Package, X, RotateCcw } from 'lucide-react'
 import Link from 'next/link'
+import { Header } from '@/components/header'
+import { Footer } from '@/components/footer'
+import { MobileBottomNav } from '@/components/mobile-bottom-nav'
+import { useRouter } from 'next/navigation'
 import { useCartStore } from '@/lib/store/cart-store'
 import { useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
@@ -75,131 +79,12 @@ interface OrderResponse {
 }
 
 // Components
-function Navbar() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
-  return (
-    <header className="bg-white shadow-sm">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16 md:h-20">
-          <Link href="/" className="flex items-center">
-            <img
-              src="/logo.svg"
-              alt="modern ecommerce"
-              className="h-10 md:h-12 w-auto"
-            />
-          </Link>
 
-          <nav className="hidden lg:flex items-center gap-8">
-            <Link href="/collections/saree" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Sarees</Link>
-            <Link href="/collections/salwar" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Salwar Suits</Link>
-            <Link href="/collections/lehengas" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Lehengas</Link>
-            <Link href="/collections/kurtas" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Kurtas</Link>
-            <Link href="/collections/menswear" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Menswear</Link>
-          </nav>
-
-          <div className="flex items-center gap-4">
-            <Link
-              href="/shop"
-              className="hidden md:flex items-center gap-2 text-gray-700 hover:text-pink-600 transition-colors"
-            >
-              <ShoppingBag className="w-5 h-5" />
-              <span>Shop</span>
-            </Link>
-            <button
-              className="lg:hidden p-2"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        {mobileMenuOpen && (
-          <div className="lg:hidden border-t border-gray-200 py-4">
-            <nav className="flex flex-col gap-4">
-              <Link href="/collections/saree" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Sarees</Link>
-              <Link href="/collections/salwar" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Salwar Suits</Link>
-              <Link href="/collections/lehengas" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Lehengas</Link>
-              <Link href="/collections/kurtas" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Kurtas</Link>
-              <Link href="/collections/menswear" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Menswear</Link>
-            </nav>
-          </div>
-        )}
-      </div>
-    </header>
-  )
-}
-
-function Footer() {
-  return (
-    <footer className="bg-gray-900 text-white mt-auto">
-      <div className="container mx-auto px-4 py-8 pb-24 md:pb-8">
-        <div className="border-t border-gray-700 pt-6 text-center">
-          <p className="text-gray-400 text-sm">
-            © 2024 modern ecommerce. All rights reserved.
-          </p>
-        </div>
-      </div>
-    </footer>
-  )
-}
-
-function MobileBottomNav() {
-  const { getItemCount } = useCartStore()
-  const cartCount = getItemCount()
-
-  return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
-      <div className="pb-safe pt-3 pb-6 px-4">
-        <div className="max-w-md mx-auto">
-          <div className="bg-white rounded-full shadow-2xl border border-gray-200 px-4 py-2 flex items-center justify-between gap-2">
-            <Link
-              href="/"
-              className="flex flex-col items-center justify-center w-14 h-14 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors active:scale-95"
-              aria-label="Navigate to home"
-            >
-              <HomeIcon className="w-6 h-6" strokeWidth={2.5} />
-            </Link>
-            <Link
-              href="/shop"
-              className="flex flex-col items-center justify-center w-14 h-14 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors active:scale-95"
-              aria-label="Navigate to shop"
-            >
-              <ShoppingBag className="w-6 h-6" strokeWidth={2} />
-            </Link>
-            <button
-              className="flex flex-col items-center justify-center w-14 h-14 rounded-full bg-gray-100 text-gray-700 transition-colors active:scale-95"
-              aria-label="Open search"
-              onClick={() => window.location.href = '/search'}
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </button>
-            <Link
-              href="/cart"
-              className="flex flex-col items-center justify-center w-14 h-14 rounded-full bg-pink-600 text-white relative transition-colors active:scale-95"
-              aria-label="View cart"
-            >
-              <ShoppingBag className="w-6 h-6" strokeWidth={2} />
-              {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-white text-pink-600 text-xs rounded-full flex items-center justify-center">
-                  {cartCount}
-                </span>
-              )}
-            </Link>
-          </div>
-        </div>
-      </div>
-    </nav>
-  )
-}
 
 function OrderConfirmationContent() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const orderId = searchParams.get('id')
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)
@@ -358,7 +243,7 @@ function OrderConfirmationContent() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      <Navbar />
+      <Header />
 
       <main className="flex-1 py-12">
         <div className="container mx-auto px-4">

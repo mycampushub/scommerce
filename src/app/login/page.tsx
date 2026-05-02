@@ -101,7 +101,7 @@ export default function LoginPage() {
         }
       }
 
-      // Redirect based on user role using full page reload to ensure cookie is set
+      // Redirect based on user role using Next.js router
       // Check if there's a redirect parameter
       const urlParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '')
       const redirectTo = urlParams.get('redirect')
@@ -111,9 +111,9 @@ export default function LoginPage() {
       if (from === 'login' || from === 'middleware') {
         // Already redirected, stay on login or redirect based on role
         if (data.data.user.role === 'admin') {
-          window.location.href = '/admin'
+          router.push('/admin')
         } else {
-          window.location.href = '/'
+          router.push('/')
         }
         return
       }
@@ -122,7 +122,7 @@ export default function LoginPage() {
       if (redirectTo && redirectTo !== '/login' && redirectTo !== '/login/' && !redirectTo.includes('login') && !redirectTo.startsWith('//')) {
         try {
           if (redirectTo.startsWith('/')) {
-            window.location.href = redirectTo
+            router.push(redirectTo)
             return
           }
         } catch {}
@@ -130,9 +130,9 @@ export default function LoginPage() {
       
       // Default redirect based on role
       if (data.data.user.role === 'admin') {
-        window.location.href = '/admin'
+        router.push('/admin')
       } else {
-        window.location.href = '/'
+        router.push('/')
       }
     } catch (err: any) {
       console.error('Login error:', err)

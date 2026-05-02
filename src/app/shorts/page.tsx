@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { motion, AnimatePresence, PanInfo } from 'framer-motion'
@@ -416,6 +417,7 @@ function formatNumber(num: number): string {
 }
 
 export default function ShortsPage() {
+  const router = useRouter()
   const [currentIndex, setCurrentIndex] = useState(0)
   const [likedVideos, setLikedVideos] = useState<Set<string>>(new Set())
   const [showProduct, setShowProduct] = useState(false)
@@ -574,7 +576,7 @@ export default function ShortsPage() {
 
       {/* Exit Button */}
       <button
-        onClick={() => window.history.back()}
+        onClick={() => router.back()}
         className="absolute top-4 right-4 z-50 text-white bg-black/50 backdrop-blur-md rounded-full p-2 hover:bg-black/70 transition-colors"
       >
         <ChevronDown className="h-6 w-6" />

@@ -53,12 +53,23 @@ export const addressSchema = z.object({
   phone: z.string().min(10, 'Phone number must be at least 10 digits'),
 });
 
+// Address can be either an object or a string (for backward compatibility)
+export const addressSchemaFlexible = z.union([
+  addressSchema,
+  z.string().min(1, 'Address is required'),
+]);
+
 export const orderItemSchema = z.object({
-  productId: z.string().uuid('Invalid product ID'),
+  productId: z.string().min(1, 'Product ID is required'),
   quantity: z.number().int().min(1, 'Quantity must be at least 1'),
   price: z.number().positive('Price must be positive'),
   productName: z.string().min(1, 'Product name is required'),
   productImage: z.string().url('Invalid image URL'),
+  variantId: z.string().optional(),
+  variantSku: z.string().optional(),
+  variantSize: z.string().optional(),
+  variantColor: z.string().optional(),
+  variantMaterial: z.string().optional(),
 });
 
 export const createOrderSchema = z.object({
@@ -66,8 +77,8 @@ export const createOrderSchema = z.object({
   customerName: z.string().min(1, 'Customer name is required'),
   customerEmail: z.string().email('Invalid email address'),
   customerPhone: z.string().min(10, 'Phone number must be at least 10 digits'),
-  shippingAddress: addressSchema,
-  billingAddress: addressSchema.optional(),
+  shippingAddress: addressSchemaFlexible,
+  billingAddress: addressSchemaFlexible.optional(),
   orderItems: z.array(orderItemSchema).min(1, 'At least one order item is required'),
   subtotal: z.number().positive('Subtotal must be positive'),
   shipping: z.number().min(0, 'Shipping must be non-negative'),

@@ -3,6 +3,9 @@
 import React, { useState } from 'react'
 import { Search, Package, MapPin, Calendar, Clock, Truck, CheckCircle, AlertCircle, ExternalLink, Loader2, Home, ShoppingBag } from 'lucide-react'
 import Link from 'next/link'
+import { Header } from '@/components/header'
+import { Footer } from '@/components/footer'
+import { MobileBottomNav } from '@/components/mobile-bottom-nav'
 import { useToast } from '@/hooks/use-toast'
 
 interface TrackingTimeline {
@@ -49,82 +52,8 @@ interface TrackingData {
 }
 
 // Components
-function Navbar() {
-  return (
-    <header className="bg-white shadow-sm">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16 md:h-20">
-          <Link href="/" className="flex items-center">
-            <img
-              src="/logo.svg"
-              alt="Modern Ecommerce"
-              className="h-10 md:h-12 w-auto"
-            />
-          </Link>
 
-          <nav className="hidden lg:flex items-center gap-8">
-            <Link href="/collections/saree" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Sarees</Link>
-            <Link href="/collections/salwar" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Salwar Suits</Link>
-            <Link href="/collections/lehengas" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Lehengas</Link>
-            <Link href="/collections/kurtas" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Kurtas</Link>
-            <Link href="/collections/menswear" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Menswear</Link>
-          </nav>
 
-          <div className="flex items-center gap-4">
-            <Link
-              href="/shop"
-              className="hidden md:flex items-center gap-2 text-gray-700 hover:text-pink-600 transition-colors"
-            >
-              <ShoppingBag className="w-5 h-5" />
-              <span>Shop</span>
-            </Link>
-          </div>
-        </div>
-      </div>
-    </header>
-  )
-}
-
-function Footer() {
-  return (
-    <footer className="bg-gray-900 text-white mt-auto">
-      <div className="container mx-auto px-4 py-8 pb-24 md:pb-8">
-        <div className="border-t border-gray-700 pt-6 text-center">
-          <p className="text-gray-400 text-sm">
-            © 2024 modern ecommerce. All rights reserved.
-          </p>
-        </div>
-      </div>
-    </footer>
-  )
-}
-
-function MobileBottomNav() {
-  return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
-      <div className="pb-safe pt-3 pb-6 px-4">
-        <div className="max-w-md mx-auto">
-          <div className="bg-white rounded-full shadow-2xl border border-gray-200 px-4 py-2 flex items-center justify-between gap-2">
-            <Link
-              href="/"
-              className="flex flex-col items-center justify-center w-14 h-14 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors active:scale-95"
-              aria-label="Navigate to home"
-            >
-              <Home className="w-6 h-6" strokeWidth={2.5} />
-            </Link>
-            <Link
-              href="/shop"
-              className="flex flex-col items-center justify-center w-14 h-14 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors active:scale-95"
-              aria-label="Navigate to shop"
-            >
-              <ShoppingBag className="w-6 h-6" strokeWidth={2} />
-            </Link>
-          </div>
-        </div>
-      </div>
-    </nav>
-  )
-}
 
 export default function TrackOrderPage() {
   const { toast } = useToast()
@@ -217,7 +146,7 @@ export default function TrackOrderPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      <Navbar />
+      <Header />
 
       <main className="flex-1 py-12">
         <div className="container mx-auto px-4">

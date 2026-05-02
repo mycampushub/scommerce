@@ -37,7 +37,7 @@ export class StoryRepository {
 
     await execute(
       env,
-      `INSERT INTO stories (id, title, thumbnail, images, isActive, orderNum, createdAt, updatedAt)
+      `INSERT INTO stories (id, title, thumbnail, images, isActive, "order", createdAt, updatedAt)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       id,
       data.title,
@@ -76,7 +76,7 @@ export class StoryRepository {
       values.push(typeof data.isActive === 'boolean' ? boolToNumber(data.isActive) : data.isActive);
     }
     if (data.orderNum !== undefined) {
-      updates.push('orderNum = ?');
+      updates.push('"order" = ?');
       values.push(data.orderNum);
     }
 
@@ -108,7 +108,7 @@ export class StoryRepository {
   static async findAllActive(env : Env | null): Promise<Story[]> {
     const stories = await queryAll<Story>(
       env,
-      'SELECT * FROM stories WHERE isActive = 1 ORDER BY orderNum ASC, createdAt DESC'
+      'SELECT * FROM stories WHERE isActive = 1 ORDER BY "order" ASC, createdAt DESC'
     );
     return stories;
   }
@@ -119,7 +119,7 @@ export class StoryRepository {
   static async findAll(env : Env | null): Promise<Story[]> {
     const stories = await queryAll<Story>(
       env,
-      'SELECT * FROM stories ORDER BY orderNum ASC, createdAt DESC'
+      'SELECT * FROM stories ORDER BY "order" ASC, createdAt DESC'
     );
     return stories;
   }
@@ -131,7 +131,7 @@ export class StoryRepository {
     for (let i = 0; i < storyIds.length; i++) {
       await execute(
         env,
-        'UPDATE stories SET orderNum = ?, updatedAt = ? WHERE id = ?',
+        'UPDATE stories SET "order" = ?, updatedAt = ? WHERE id = ?',
         i,
         now(),
         storyIds[i]

@@ -19,7 +19,8 @@ export default {
       pathname === '/sw.js' ||
       pathname.startsWith('/_next/static/media/') ||
       pathname.startsWith('/_next/static/css/') ||
-      pathname.startsWith('/_next/static/chunks/')
+      pathname.startsWith('/_next/static/chunks/') ||
+      pathname.startsWith('/uploads/')
     ) {
       // Try to serve from R2 bucket first
       try {
@@ -40,6 +41,11 @@ export default {
             'woff2': 'font/woff2',
             'ttf': 'font/ttf',
             'eot': 'application/vnd.ms-fontobject',
+            'jpg': 'image/jpeg',
+            'jpeg': 'image/jpeg',
+            'png': 'image/png',
+            'gif': 'image/gif',
+            'webp': 'image/webp',
           };
 
           headers.set('Content-Type', contentTypes[ext] || 'application/octet-stream');

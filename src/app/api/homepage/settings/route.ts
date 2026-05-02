@@ -49,7 +49,7 @@ export async function GET(request: Request) {
     const settingsObject = settings.reduce((acc: any, setting: any) => {
       acc[setting.sectionName] = {
         sectionName: setting.sectionName,
-        isEnabled: setting.isEnabled,
+        isEnabled: setting.isEnabled === 1,
         autoPlay: setting.autoPlay,
         displayLimit: setting.displayLimit,
         settings: setting.settings ? parseJSON(setting.settings) : null

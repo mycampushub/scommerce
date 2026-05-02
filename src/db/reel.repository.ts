@@ -38,7 +38,7 @@ export class ReelRepository {
 
     await execute(
       env,
-      `INSERT INTO reels (id, title, thumbnail, videoUrl, productIds, isActive, orderNum, createdAt, updatedAt)
+      `INSERT INTO reels (id, title, thumbnail, videoUrl, productIds, isActive, "order", createdAt, updatedAt)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       id,
       data.title,
@@ -82,7 +82,7 @@ export class ReelRepository {
       values.push(typeof data.isActive === 'boolean' ? boolToNumber(data.isActive) : data.isActive);
     }
     if (data.orderNum !== undefined) {
-      updates.push('orderNum = ?');
+      updates.push('"order" = ?');
       values.push(data.orderNum);
     }
 
@@ -114,7 +114,7 @@ export class ReelRepository {
   static async findAllActive(env : Env | null): Promise<Reel[]> {
     const reels = await queryAll<Reel>(
       env,
-      'SELECT * FROM reels WHERE isActive = 1 ORDER BY orderNum ASC, createdAt DESC'
+      'SELECT * FROM reels WHERE isActive = 1 ORDER BY "order" ASC, createdAt DESC'
     );
     return reels;
   }
@@ -125,7 +125,7 @@ export class ReelRepository {
   static async findAll(env : Env | null): Promise<Reel[]> {
     const reels = await queryAll<Reel>(
       env,
-      'SELECT * FROM reels ORDER BY orderNum ASC, createdAt DESC'
+      'SELECT * FROM reels ORDER BY "order" ASC, createdAt DESC'
     );
     return reels;
   }
@@ -137,7 +137,7 @@ export class ReelRepository {
     for (let i = 0; i < reelIds.length; i++) {
       await execute(
         env,
-        'UPDATE reels SET orderNum = ?, updatedAt = ? WHERE id = ?',
+        'UPDATE reels SET "order" = ?, updatedAt = ? WHERE id = ?',
         i,
         now(),
         reelIds[i]

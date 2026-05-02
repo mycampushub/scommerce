@@ -387,8 +387,8 @@ export default function WishlistPage() {
 
                     {/* Product Info */}
                     <div className="p-4">
-                      <Link 
-                        href={`/${item.product.category.slug}`}
+                      <Link
+                        href={`/collections/${item.product.category.slug}`}
                         className="text-sm text-pink-600 hover:text-pink-700 mb-1 block"
                       >
                         {item.product.category.name}

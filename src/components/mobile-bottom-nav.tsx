@@ -58,17 +58,17 @@ export function MobileBottomNav() {
                 >
                   <ShoppingBag className="w-5 h-5" strokeWidth={2} />
                 </Link>
-                <button
+                <Link
+                  href="/search"
                   className={`flex flex-col items-center justify-center w-11 h-11 rounded-full transition-colors active:scale-95 ${
                     pathname === '/search'
                       ? 'bg-pink-600 text-white hover:bg-pink-700'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                   aria-label="Open search"
-                  onClick={() => window.location.href = '/search'}
                 >
                   <Search className="w-5 h-5" strokeWidth={2} />
-                </button>
+                </Link>
                 <Link
                   href="/cart"
                   className={`flex flex-col items-center justify-center w-11 h-11 rounded-full transition-colors active:scale-95 relative ${
@@ -80,7 +80,7 @@ export function MobileBottomNav() {
                 >
                   <ShoppingCart className="w-5 h-5" strokeWidth={2} />
                   {cartCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 bg-white text-pink-600 text-[10px] rounded-full flex items-center justify-center font-bold">
+                    <span className="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 bg-white text-pink-600 text-[10px] rounded-full flex items-center justify-center font-bold pointer-events-none">
                       {cartCount}
                     </span>
                   )}
@@ -94,7 +94,7 @@ export function MobileBottomNav() {
                     <SheetTrigger asChild>
                       <button
                         className={`flex flex-col items-center justify-center w-11 h-11 rounded-full transition-colors active:scale-95 ${
-                          pathname?.startsWith('/profile')
+                          pathname?.startsWith('/account/settings')
                             ? 'bg-pink-600 text-white hover:bg-pink-700'
                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                         }`}
@@ -117,7 +117,7 @@ export function MobileBottomNav() {
                           variant="ghost"
                           className="w-full justify-start h-12 px-4"
                           onClick={() => {
-                            router.push('/profile')
+                            router.push('/account/settings')
                             setUserMenuOpen(false)
                           }}
                         >
@@ -128,7 +128,7 @@ export function MobileBottomNav() {
                           variant="ghost"
                           className="w-full justify-start h-12 px-4"
                           onClick={() => {
-                            router.push('/orders')
+                            router.push('/account/orders')
                             setUserMenuOpen(false)
                           }}
                         >

@@ -82,13 +82,13 @@ export function UserMenu({ user, loading, isAdmin, onLogout }: UserMenuProps) {
           </>
         )}
         <DropdownMenuItem asChild>
-          <Link href="/profile" className="flex items-center gap-2 cursor-pointer">
+          <Link href="/account/settings" className="flex items-center gap-2 cursor-pointer">
             <User className="w-4 h-4" />
             Profile
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href="/orders" className="flex items-center gap-2 cursor-pointer">
+          <Link href="/account/orders" className="flex items-center gap-2 cursor-pointer">
             <ShoppingBag className="w-4 h-4" />
             Orders
           </Link>

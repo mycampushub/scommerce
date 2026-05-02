@@ -39,7 +39,7 @@ export class BannerRepository {
 
     await execute(
       env,
-      `INSERT INTO banners (id, title, description, image, mobileImage, buttonText, buttonLink, isActive, orderNum, createdAt, updatedAt)
+      `INSERT INTO banners (id, title, description, image, mobileImage, buttonText, buttonLink, isActive, "order", createdAt, updatedAt)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       id,
       data.title,
@@ -93,7 +93,7 @@ export class BannerRepository {
       values.push(boolToNumber(data.isActive !== undefined ? true : data.isActive));
     }
     if (data.orderNum !== undefined) {
-      updates.push('orderNum = ?');
+      updates.push('"order" = ?');
       values.push(data.orderNum);
     }
 
@@ -125,7 +125,7 @@ export class BannerRepository {
   static async findAllActive(env: Env | null): Promise<Banner[]> {
     const banners = await queryAll<Banner>(
       env,
-      'SELECT * FROM banners WHERE isActive = 1 ORDER BY orderNum ASC, createdAt DESC'
+      'SELECT * FROM banners WHERE isActive = 1 ORDER BY "order" ASC, createdAt DESC'
     );
     return banners;
   }
@@ -136,7 +136,7 @@ export class BannerRepository {
   static async findAll(env: Env | null): Promise<Banner[]> {
     const banners = await queryAll<Banner>(
       env,
-      'SELECT * FROM banners ORDER BY orderNum ASC, createdAt DESC'
+      'SELECT * FROM banners ORDER BY "order" ASC, createdAt DESC'
     );
     return banners.map(b => ({
       ...b,
@@ -150,7 +150,7 @@ export class BannerRepository {
     for (let i = 0; i < bannerIds.length; i++) {
       await execute(
         env,
-        'UPDATE banners SET orderNum = ?, updatedAt = ? WHERE id = ?',
+        'UPDATE banners SET "order" = ?, updatedAt = ? WHERE id = ?',
         i,
         now(),
         bannerIds[i]

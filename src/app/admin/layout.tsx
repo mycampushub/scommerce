@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -43,6 +43,7 @@ export default function AdminLayout({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
+  const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { user } = useAuth()
 
@@ -123,7 +124,7 @@ export default function AdminLayout({
               className="w-full justify-start gap-3 text-red-600 hover:bg-red-50 hover:text-red-700"
               onClick={async () => {
                 await fetch('/api/auth/logout', { method: 'POST' })
-                window.location.href = '/login'
+                router.push('/login')
               }}
             >
               <LogOut className="h-5 w-5" />

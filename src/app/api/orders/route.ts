@@ -25,14 +25,25 @@ export async function POST(request: NextRequest) {
   try {
     const body: any = await request.json() as any;
 
+    // Helper function to sanitize address (can be object or string)
+    const sanitizeAddress = (address: unknown) => {
+      if (typeof address === 'string') {
+        return sanitizeForDB(address);
+      }
+      if (typeof address === 'object' && address !== null) {
+        return sanitizeAddressData(address as Record<string, unknown>);
+      }
+      return '';
+    };
+
     // Sanitize input data
     const sanitized = {
       ...body,
       customerName: sanitizeForDB(body.customerName),
       customerEmail: sanitizeEmail(body.customerEmail),
       customerPhone: sanitizePhone(body.customerPhone),
-      shippingAddress: sanitizeAddressData(body.shippingAddress),
-      billingAddress: body.billingAddress ? sanitizeAddressData(body.billingAddress) : undefined,
+      shippingAddress: sanitizeAddress(body.shippingAddress),
+      billingAddress: body.billingAddress ? sanitizeAddress(body.billingAddress) : undefined,
       orderItems: body.orderItems?.map((item: any) => ({
         productId: item.productId,
         productName: sanitizeForDB(item.productName),
