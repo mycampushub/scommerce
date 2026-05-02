@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
 
     // Add order counts for each user
     for (const user of users) {
-      const orderCount = await count(env, 'orders', 'WHERE userId = ?', user.id)
+      const orderCount = await count(env, 'SELECT COUNT(*) as count FROM orders WHERE userId = ?', user.id)
       user._count = { orders: orderCount }
       user.emailVerified = numberToBool(user.emailVerified)
     }

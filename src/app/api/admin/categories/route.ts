@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     // Add product counts
     const categoriesWithCounts: any[] = []
     for (const category of categories) {
-      const productCount = await count(env, 'products', 'WHERE categoryId = ?', category.id)
+      const productCount = await count(env, 'SELECT COUNT(*) as count FROM products WHERE categoryId = ?', category.id)
       categoriesWithCounts.push({
         ...category,
         _count: { products: productCount },

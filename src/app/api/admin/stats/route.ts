@@ -27,10 +27,10 @@ export async function GET(request: NextRequest) {
       lowStockProducts,
       outOfStockProducts,
     ] = await Promise.all([
-      count(env, 'products'),
-      count(env, 'products', 'WHERE isActive = 1'),
-      count(env, 'products', 'WHERE stock > 0 AND stock < 10'),
-      count(env, 'products', 'WHERE stock = 0'),
+      count(env, 'SELECT COUNT(*) as count FROM products'),
+      count(env, 'SELECT COUNT(*) as count FROM products WHERE isActive = 1'),
+      count(env, 'SELECT COUNT(*) as count FROM products WHERE stock > 0 AND stock < 10'),
+      count(env, 'SELECT COUNT(*) as count FROM products WHERE stock = 0'),
     ])
 
     // Order stats
@@ -41,11 +41,11 @@ export async function GET(request: NextRequest) {
       completedOrders,
       cancelledOrders,
     ] = await Promise.all([
-      count(env, 'orders'),
-      count(env, 'orders', 'WHERE status = ?', 'PENDING'),
-      count(env, 'orders', 'WHERE status = ?', 'PROCESSING'),
-      count(env, 'orders', 'WHERE status = ?', 'DELIVERED'),
-      count(env, 'orders', 'WHERE status = ?', 'CANCELLED'),
+      count(env, 'SELECT COUNT(*) as count FROM orders'),
+      count(env, 'SELECT COUNT(*) as count FROM orders WHERE status = ?', 'PENDING'),
+      count(env, 'SELECT COUNT(*) as count FROM orders WHERE status = ?', 'PROCESSING'),
+      count(env, 'SELECT COUNT(*) as count FROM orders WHERE status = ?', 'DELIVERED'),
+      count(env, 'SELECT COUNT(*) as count FROM orders WHERE status = ?', 'CANCELLED'),
     ])
 
     // Customer stats
@@ -53,8 +53,8 @@ export async function GET(request: NextRequest) {
       totalCustomers,
       activeCustomers,
     ] = await Promise.all([
-      count(env, 'users', 'WHERE role = ?', 'user'),
-      count(env, 'users', 'WHERE role = ?', 'user'), // All users are active in this implementation
+      count(env, 'SELECT COUNT(*) as count FROM users WHERE role = ?', 'user'),
+      count(env, 'SELECT COUNT(*) as count FROM users WHERE role = ?', 'user'), // All users are active in this implementation
     ])
 
     // Get orders with items for the period

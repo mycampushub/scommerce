@@ -3,6 +3,7 @@
  * Handles both Next.js requests and static assets
  */
 
+/* eslint-disable import/no-anonymous-default-export */
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);

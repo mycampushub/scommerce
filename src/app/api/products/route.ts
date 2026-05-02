@@ -104,8 +104,7 @@ export async function GET(request: Request) {
     // Get total count for pagination
     const totalCount = await count(
       env,
-      'products',
-      whereClause,
+      `SELECT COUNT(*) as count FROM products ${whereClause}`,
       ...params
     );
 

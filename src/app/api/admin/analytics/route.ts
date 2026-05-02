@@ -230,7 +230,7 @@ export async function GET(request: NextRequest) {
       daysAgoIso
     )
 
-    const totalCustomers = await count(env, 'users', 'WHERE role = ?', 'user')
+    const totalCustomers = await count(env, 'SELECT COUNT(*) as count FROM users WHERE role = ?', 'user')
 
     const newCustomerGrowth = previousCustomers.length > 0
       ? ((currentCustomers.length - previousCustomers.length) / previousCustomers.length) * 100

@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
     // Add order counts and convert booleans
     const customersWithCounts = await Promise.all(
       customers.map(async (customer) => {
-        const orderCount = await count(env, 'orders', 'WHERE userId = ?', customer.id)
+        const orderCount = await count(env, 'SELECT COUNT(*) as count FROM orders WHERE userId = ?', customer.id)
         return {
           ...customer,
           _count: { orders: orderCount },

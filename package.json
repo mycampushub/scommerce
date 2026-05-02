@@ -19,6 +19,10 @@
     "db:migrate": "prisma migrate dev",
     "db:reset": "prisma migrate reset",
     "db:seed": "tsx prisma/seed.ts",
+    "db:setup": "wrangler d1 execute scommerce-db --file=db/schema.sql",
+    "db:setup:remote": "wrangler d1 execute scommerce-db --remote --file=db/schema.sql",
+    "db:seed:d1": "wrangler d1 execute scommerce-db --file=db/seed.sql",
+    "db:seed:d1:remote": "wrangler d1 execute scommerce-db --remote --file=db/seed.sql",
     "deploy:workers": "npm run build:cloudflare && npm run copy:public && wrangler deploy",
     "deploy:pages": "npm run build:cloudflare && npm run copy:public && wrangler pages deploy .open-next/assets"
   },

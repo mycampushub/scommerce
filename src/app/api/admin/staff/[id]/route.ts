@@ -34,7 +34,7 @@ export async function GET(
     }
 
     // Get order count
-    const orderCount = await count(env, 'orders', 'WHERE userId = ?', user.id)
+    const orderCount = await count(env, 'SELECT COUNT(*) as count FROM orders WHERE userId = ?', user.id)
 
     return NextResponse.json({
       success: true,

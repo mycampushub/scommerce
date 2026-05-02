@@ -304,12 +304,13 @@ model Banner {
   buttonText  String?
   buttonLink  String?
   isActive    Int      @default(1)
-  order       Int      @default(0)
+  order       Int      @default(0) @map("\"order\"")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@index([isActive])
   @@index([order])
+  @@map("banners")
 }
 
 model Story {
@@ -318,12 +319,13 @@ model Story {
   thumbnail String
   images    String
   isActive  Int      @default(1)
-  order     Int      @default(0)
+  order     Int      @default(0) @map("\"order\"")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([isActive])
   @@index([order])
+  @@map("stories")
 }
 
 model Reel {
@@ -333,12 +335,13 @@ model Reel {
   videoUrl   String
   productIds String?
   isActive   Int      @default(1)
-  order      Int      @default(0)
+  order      Int      @default(0) @map("\"order\"")
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
   @@index([isActive])
   @@index([order])
+  @@map("reels")
 }
 
 model Promotion {
@@ -350,12 +353,13 @@ model Promotion {
   ctaLink   String?
   type      String   @default("banner")
   isActive  Int      @default(1)
-  order     Int      @default(0)
+  order     Int      @default(0) @map("\"order\"")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([isActive])
   @@index([type, isActive])
+  @@map("promotions")
 }
 
 model HomepageSettings {
