@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "next build",
-    "build:cloudflare": "npx opennextjs-cloudflare build --packager npm",
+    "build:cloudflare": "npx opennextjs-cloudflare build --packager npm && node scripts/copy-public-assets.js",
     "build:workers": "npm run build && npm run build:cloudflare",
     "start": "NODE_ENV=production node .next/standalone/server.js 2>&1 | tee server.log",
     "predeploy": "npm install --no-frozen-lockfile",
