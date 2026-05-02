@@ -1,9 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,19 +11,359 @@ datasource db {
 }
 
 model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  name            String?
+  phone           String?
+  address         String?
+  password        String?
+  emailVerified   Int       @default(0)
+  emailToken      String?
+  newEmail        String?
+  resetToken      String?
+  resetTokenExpiry String?
+  role            String    @default("user")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  addresses       Address[]
+  orders          Order[]
+  cartItems       CartItem[]
+  wishlistItems   WishlistItem[]
+  productReviews  ProductReview[]
+  posts           Post[]
+}
+
+model Address {
+  id            String   @id @default(cuid())
+  userId        String
+  fullName      String
+  phone         String
+  addressLine1  String
+  addressLine2  String?
+  city          String
+  district      String?
+  division      String
+  postalCode    String?
+  isDefault     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isDefault])
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  image       String?
+  isActive    Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  products    Product[]
+
+  @@index([slug])
+  @@index([isActive])
+}
+
+model Product {
+  id              String            @id @default(cuid())
+  name            String
+  slug            String            @unique
+  description     String?
+  categoryId      String
+  price           Float             @default(0)
+  basePrice       Float             @default(0)
+  comparePrice    Float?
+  discount        Float             @default(0)
+  discountType    String            @default("percentage")
+  images          String?
+  stock           Int               @default(0)
+  lowStockAlert   Int               @default(10)
+  reorderLevel    Int               @default(5)
+  reorderQty      Int               @default(20)
+  isActive        Int               @default(1)
+  isFeatured      Int               @default(0)
+  hasVariants     Int               @default(0)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  category        Category          @relation(fields: [categoryId], references: [id])
+  variants        ProductVariant[]
+  reviews         ProductReview[]
+  cartItems       CartItem[]
+  wishlistItems   WishlistItem[]
+  orderItems      OrderItem[]
+  inventoryAlerts InventoryAlert[]
+
+  @@index([categoryId])
+  @@index([isFeatured])
+  @@index([isActive, createdAt(sort: Desc)])
+  @@index([slug])
+  @@index([isActive, isFeatured])
+}
+
+model ProductVariant {
+  id            String   @id @default(cuid())
+  productId     String
+  sku           String   @unique
+  name          String
+  price         Float
+  comparePrice  Float?
+  stock         Int      @default(0)
+  images        String?
+  size          String?
+  color         String?
+  material      String?
+  isActive      Int      @default(1)
+  isDefault     Int      @default(0)
+  lowStockAlert Int      @default(10)
+  reorderLevel  Int      @default(5)
+  reorderQty    Int      @default(20)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  cartItems     CartItem[]
+  orderItems    OrderItem[]
+  inventoryAlerts InventoryAlert[]
+
+  @@index([productId])
+  @@index([sku])
+  @@index([productId, isActive])
+  @@index([productId, size, color])
+}
+
+model ProductReview {
+  id          String   @id @default(cuid())
+  productId   String
+  userId      String
+  userName    String?
+  rating      Int
+  title       String?
+  comment     String?
+  isVerified  Int      @default(0)
+  isApproved  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  product     Product  @relation(fields: [productId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@unique([productId, userId])
+  @@index([productId])
+  @@index([userId])
+  @@index([isApproved])
+}
+
+model WishlistItem {
   id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+}
+
+model Order {
+  id                    String   @id @default(cuid())
+  orderNumber           String   @unique
+  userId                String?
+  customerName          String
+  customerEmail         String
+  customerPhone         String?
+  shippingAddress       String
+  billingAddress        String?
+  city                  String?
+  district              String?
+  division              String?
+  subtotal              Float
+  shipping              Float    @default(0)
+  tax                   Float    @default(0)
+  discount              Float    @default(0)
+  total                 Float
+  status                String   @default("PENDING")
+  paymentStatus         String   @default("PENDING")
+  paymentMethod         String?
+  trackingNumber        String?
+  trackingStatus        String   @default("PENDING")
+  estimatedDeliveryDate String?
+  cancelledAt           String?
+  cancelledBy           String?
+  cancellationReason    String?
+  refundedAt            String?
+  refundedAmount        Float?
+  refundMethod          String?
+  refundReason          String?
+  notes                 String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  user                  User?    @relation(fields: [userId], references: [id])
+  items                 OrderItem[]
+
+  @@index([userId])
+  @@index([customerEmail])
+  @@index([orderNumber])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([customerEmail, status])
+}
+
+model OrderItem {
+  id              String  @id @default(cuid())
+  orderId         String
+  productId       String
+  variantId       String?
+  quantity        Int
+  price           Float
+  productName     String
+  productImage    String?
+  variantSku      String?
+  variantSize     String?
+  variantColor    String?
+  variantMaterial String?
+  createdAt       DateTime @default(now())
+  order           Order          @relation(fields: [orderId], references: [id])
+  product         Product        @relation(fields: [productId], references: [id])
+  variant         ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([variantId])
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  variantId String?
+  quantity  Int      @default(1)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  user      User            @relation(fields: [userId], references: [id])
+  product   Product         @relation(fields: [productId], references: [id])
+  variant   ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([userId, productId])
+  @@index([variantId])
+}
+
+model AdminLog {
+  id        String   @id @default(cuid())
+  action    String
+  entity    String
+  entityId  String?
+  adminId   String
+  details   String?
+  createdAt DateTime @default(now())
+
+  @@index([adminId])
+  @@index([entity])
+  @@index([createdAt])
+}
+
+model InventoryAlert {
+  id         String   @id @default(cuid())
+  variantId  String?
+  productId  String?
+  alertType  String   @default("LOW_STOCK")
+  quantity   Int
+  isRead     Int      @default(0)
+  isResolved Int      @default(0)
+  resolvedAt String?
+  createdAt  DateTime @default(now())
+  variant    ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  product    Product?        @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([variantId])
+  @@index([productId])
+  @@index([isRead, isResolved])
 }
 
 model Post {
   id        String   @id @default(cuid())
   title     String
   content   String?
-  published Boolean  @default(false)
+  published Int      @default(0)
   authorId  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [authorId], references: [id])
+
+  @@index([authorId])
+}
+
+model Banner {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  image       String
+  mobileImage String?
+  buttonText  String?
+  buttonLink  String?
+  isActive    Int      @default(1)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([order])
+}
+
+model Story {
+  id        String   @id @default(cuid())
+  title     String
+  thumbnail String
+  images    String
+  isActive  Int      @default(1)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([order])
+}
+
+model Reel {
+  id         String   @id @default(cuid())
+  title      String
+  thumbnail  String
+  videoUrl   String
+  productIds String?
+  isActive   Int      @default(1)
+  order      Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([order])
+}
+
+model Promotion {
+  id        String   @id @default(cuid())
+  title     String
+  description String?
+  image     String
+  ctaText   String?
+  ctaLink   String?
+  type      String   @default("banner")
+  isActive  Int      @default(1)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([type, isActive])
+}
+
+model HomepageSettings {
+  id          String   @id @default(cuid())
+  sectionName String   @unique
+  isEnabled   Int      @default(1)
+  autoPlay    Int      @default(5000)
+  displayLimit Int?
+  settings    String?
+  updatedAt   DateTime @default(now())
 }

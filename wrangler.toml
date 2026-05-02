@@ -2,9 +2,9 @@ name = "scommerce"
 compatibility_date = "2026-04-30"
 compatibility_flags = ["nodejs_compat"]
 
-# For Cloudflare Workers - main points to OpenNext worker.js
-main = ".open-next/worker.js"
-# Note: Make sure .open-next/worker.js exists after running: npm run build:cloudflare
+# For Cloudflare Pages deployment
+main = "_worker.js"
+# Note: This worker serves both Next.js (via OpenNext) and static assets
 
 [[d1_databases]]
 binding = "DB"
@@ -18,3 +18,12 @@ bucket_name = "scommerce-uploads"
 [[kv_namespaces]]
 binding = "KV"
 id = "88d9b0d91f674eeab798ba907b15c716"
+
+# Configuration for Workers Assets
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
+
+[build]
+command = "npm run build:cloudflare"
+cwd = "."

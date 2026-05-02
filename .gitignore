@@ -52,21 +52,3 @@ prompt
 server.log
 # Skills directory
 /skills/
-
-# Uploads directory
-/public/uploads/
-
-# OpenNext build output
-/.open-next/
-.dev.vars
-
-# Database files
-*.db
-db/*.db
-prisma/*.db
-
-# Backup files
-*.bak
-open-next.config.ts.bak
-open-next.config.mjs
-open-next.config.js

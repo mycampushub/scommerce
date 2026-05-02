@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  // Remove standalone output for development
+  // output: "standalone",
   /* config options here */
   typescript: {
     ignoreBuildErrors: true,
