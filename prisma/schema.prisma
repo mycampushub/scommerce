@@ -304,7 +304,7 @@ model Banner {
   buttonText  String?
   buttonLink  String?
   isActive    Int      @default(1)
-  order       Int      @default(0) @map("\"order\"")
+  order       Int      @default(0) @map("displayOrder")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -319,7 +319,7 @@ model Story {
   thumbnail String
   images    String
   isActive  Int      @default(1)
-  order     Int      @default(0) @map("\"order\"")
+  order     Int      @default(0) @map("displayOrder")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -335,7 +335,7 @@ model Reel {
   videoUrl   String
   productIds String?
   isActive   Int      @default(1)
-  order      Int      @default(0) @map("\"order\"")
+  order      Int      @default(0) @map("displayOrder")
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -353,7 +353,7 @@ model Promotion {
   ctaLink   String?
   type      String   @default("banner")
   isActive  Int      @default(1)
-  order     Int      @default(0) @map("\"order\"")
+  order     Int      @default(0) @map("displayOrder")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

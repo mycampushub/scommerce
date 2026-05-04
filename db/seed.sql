@@ -9,13 +9,13 @@ PRAGMA foreign_keys = OFF;
 -- ============================================
 INSERT OR IGNORE INTO categories (id, name, slug, description, image, isActive, createdAt, updatedAt)
 VALUES
-('cat-lehengas', 'Lehengas', 'lehengas', 'Traditional and contemporary lehengas for every occasion', '/images/categories/lehengas.jpg', 1, datetime('now'), datetime('now')),
-('cat-sarees', 'Sarees', 'sarees', 'Beautiful collection of sarees from across India', '/images/categories/sarees.jpg', 1, datetime('now'), datetime('now')),
-('cat-salwar', 'Salwar Suits', 'salwar', 'Comfortable and elegant salwar suits', '/images/categories/salwar.jpg', 1, datetime('now'), datetime('now')),
-('cat-kurtas', 'Kurtas', 'kurtas', 'Stylish kurtas for modern women', '/images/categories/kurtas.jpg', 1, datetime('now'), datetime('now')),
-('cat-tops', 'Tops', 'tops', 'Trendy tops for casual and formal wear', '/images/categories/tops.jpg', 1, datetime('now'), datetime('now')),
-('cat-gowns', 'Gowns', 'gowns', 'Elegant gowns for special occasions', '/images/categories/gowns.jpg', 1, datetime('now'), datetime('now')),
-('cat-menswear', 'Menswear', 'menswear', 'Traditional and modern menswear collection', '/images/categories/menswear.jpg', 1, datetime('now'), datetime('now'));
+('cat-lehengas', 'Lehengas', 'lehengas', 'Traditional and contemporary lehengas for every occasion', '/images/categories/lehengas.svg', 1, datetime('now'), datetime('now')),
+('cat-sarees', 'Sarees', 'sarees', 'Beautiful collection of sarees from across India', '/images/categories/sarees.svg', 1, datetime('now'), datetime('now')),
+('cat-salwar', 'Salwar Suits', 'salwar', 'Comfortable and elegant salwar suits', '/images/categories/salwar.svg', 1, datetime('now'), datetime('now')),
+('cat-kurtas', 'Kurtas', 'kurtas', 'Stylish kurtas for modern women', '/images/categories/kurtas.svg', 1, datetime('now'), datetime('now')),
+('cat-tops', 'Tops', 'tops', 'Trendy tops for casual and formal wear', '/images/categories/tops.svg', 1, datetime('now'), datetime('now')),
+('cat-gowns', 'Gowns', 'gowns', 'Elegant gowns for special occasions', '/images/categories/gowns.svg', 1, datetime('now'), datetime('now')),
+('cat-menswear', 'Menswear', 'menswear', 'Traditional and modern menswear collection', '/images/categories/menswear.svg', 1, datetime('now'), datetime('now'));
 
 -- ============================================
 -- PRODUCTS
@@ -23,11 +23,11 @@ VALUES
 INSERT OR IGNORE INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, discount, discountType, images, stock, isActive, isFeatured, hasVariants, createdAt, updatedAt)
 VALUES
 -- Lehengas
-('prod-lh-001', 'Red Bridal Lehenga', 'red-bridal-lehenga', 'Stunning red bridal lehenga with intricate embroidery work', 'cat-lehengas', 15000, 15000, 18000, 16.67, 'percentage', '["/images/products/lehenga-1.jpg","/images/products/lehenga-1-2.jpg"]', 10, 1, 1, 1, datetime('now'), datetime('now')),
-('prod-lh-002', 'Pink Designer Lehenga', 'pink-designer-lehenga', 'Beautiful pink lehenga with stone work', 'cat-lehengas', 12000, 12000, 15000, 20, 'percentage', '["/images/products/lehenga-2.jpg","/images/products/lehenga-2-2.jpg"]', 8, 1, 1, 1, datetime('now'), datetime('now')),
-('prod-lh-003', 'Green Festive Lehenga', 'green-festive-lehenga', 'Elegant green lehenga perfect for festivals', 'cat-lehengas', 8000, 8000, 10000, 20, 'percentage', '["/images/products/lehenga-3.jpg"]', 15, 1, 0, 0, datetime('now'), datetime('now')),
-('prod-lh-004', 'Royal Blue Lehenga', 'royal-blue-lehenga', 'Royal blue lehenga with zari work', 'cat-lehengas', 10000, 10000, 12000, 16.67, 'percentage', '["/images/products/lehenga-4.jpg"]', 12, 1, 1, 0, datetime('now'), datetime('now')),
-('prod-lh-005', 'Maroon Party Lehenga', 'maroon-party-lehenga', 'Gorgeous maroon lehenga for parties', 'cat-lehengas', 9500, 9500, null, 0, 'percentage', '["/images/products/lehenga-5.jpg"]', 20, 1, 0, 0, datetime('now'), datetime('now')),
+('prod-lh-001', 'Red Bridal Lehenga', 'red-bridal-lehenga', 'Stunning red bridal lehenga with intricate embroidery work', 'cat-lehengas', 15000, 15000, 18000, 16.67, 'percentage', '["/images/products/lehenga-1.svg","/images/products/lehenga-1.svg"]', 10, 1, 1, 1, datetime('now'), datetime('now')),
+('prod-lh-002', 'Pink Designer Lehenga', 'pink-designer-lehenga', 'Beautiful pink lehenga with stone work', 'cat-lehengas', 12000, 12000, 15000, 20, 'percentage', '["/images/products/lehenga-1.svg","/images/products/lehenga-1.svg"]', 8, 1, 1, 1, datetime('now'), datetime('now')),
+('prod-lh-003', 'Green Festive Lehenga', 'green-festive-lehenga', 'Elegant green lehenga perfect for festivals', 'cat-lehengas', 8000, 8000, 10000, 20, 'percentage', '["/images/products/lehenga-1.svg"]', 15, 1, 0, 0, datetime('now'), datetime('now')),
+('prod-lh-004', 'Royal Blue Lehenga', 'royal-blue-lehenga', 'Royal blue lehenga with zari work', 'cat-lehengas', 10000, 10000, 12000, 16.67, 'percentage', '["/images/products/lehenga-1.svg"]', 12, 1, 1, 0, datetime('now'), datetime('now')),
+('prod-lh-005', 'Maroon Party Lehenga', 'maroon-party-lehenga', 'Gorgeous maroon lehenga for parties', 'cat-lehengas', 9500, 9500, null, 0, 'percentage', '["/images/products/lehenga-1.svg"]', 20, 1, 0, 0, datetime('now'), datetime('now')),
 
 -- Sarees
 ('prod-sa-001', 'Silk Banarasi Saree', 'silk-banarasi-saree', 'Pure silk Banarasi saree with gold border', 'cat-sarees', 8000, 8000, 10000, 20, 'percentage', '["/images/products/saree-1.jpg"]', 10, 1, 1, 1, datetime('now'), datetime('now')),
@@ -77,23 +77,23 @@ VALUES
 -- Admin user
 INSERT OR IGNORE INTO users (id, email, name, phone, password, emailVerified, role, createdAt, updatedAt)
 VALUES
-('user-admin-001', 'admin@scommerce.com', 'Admin User', '+8801700000001', '$2b$10$3mciW/peZUcMwL6ka/dGqugIBMlVmBQ2i9KzwH4fDT6ljLY/.csie', 1, 'admin', datetime('now'), datetime('now'));
+('user-admin-001', 'admin@scommerce.com', 'Admin User', '+8801700000001', '$2b$10$e6s/LRi2Y/r3Som//41mj.EJo.4FyWu8xy7GAPa8nTBwcdBji71yW', 1, 'admin', datetime('now'), datetime('now'));
 
 -- Staff users
 INSERT OR IGNORE INTO users (id, email, name, phone, password, emailVerified, role, createdAt, updatedAt)
 VALUES
-('user-staff-001', 'rahul@scommerce.com', 'Rahul Sharma', '+8801700000002', '$2b$10$YVpGgGrbfNonB1dXBuzi.egqKQYe9HRYaz7DJe1Wwv5HPWPbd46J6', 1, 'staff', datetime('now'), datetime('now')),
-('user-staff-002', 'priya@scommerce.com', 'Priya Singh', '+8801700000003', '$2b$10$YVpGgGrbfNonB1dXBuzi.egqKQYe9HRYaz7DJe1Wwv5HPWPbd46J6', 1, 'staff', datetime('now'), datetime('now')),
-('user-staff-003', 'amit@scommerce.com', 'Amit Kumar', '+8801700000004', '$2b$10$YVpGgGrbfNonB1dXBuzi.egqKQYe9HRYaz7DJe1Wwv5HPWPbd46J6', 1, 'staff', datetime('now'), datetime('now'));
+('user-staff-001', 'rahul@scommerce.com', 'Rahul Sharma', '+8801700000002', '$2b$10$t/M5Ao1vVAKhuTHAcDJuZ.HFwb3WaNkqm509HE6oyZnUxwnpp0kdG', 1, 'staff', datetime('now'), datetime('now')),
+('user-staff-002', 'priya@scommerce.com', 'Priya Singh', '+8801700000003', '$2b$10$t/M5Ao1vVAKhuTHAcDJuZ.HFwb3WaNkqm509HE6oyZnUxwnpp0kdG', 1, 'staff', datetime('now'), datetime('now')),
+('user-staff-003', 'amit@scommerce.com', 'Amit Kumar', '+8801700000004', '$2b$10$t/M5Ao1vVAKhuTHAcDJuZ.HFwb3WaNkqm509HE6oyZnUxwnpp0kdG', 1, 'staff', datetime('now'), datetime('now'));
 
 -- Customer users
 INSERT OR IGNORE INTO users (id, email, name, phone, password, emailVerified, role, createdAt, updatedAt)
 VALUES
-('user-cust-001', 'fatema@example.com', 'Fatema Akhter', '+8801700000101', '$2b$10$m.JclDadGiz99rG8CxOumuEbpokIAD8QZHW16kX.jd.k2cNbmx0pS', 1, 'user', datetime('now'), datetime('now')),
-('user-cust-002', 'noor@example.com', 'Noor Jahan', '+8801700000102', '$2b$10$m.JclDadGiz99rG8CxOumuEbpokIAD8QZHW16kX.jd.k2cNbmx0pS', 1, 'user', datetime('now'), datetime('now')),
-('user-cust-003', 'sara@example.com', 'Sara Ahmed', '+8801700000103', '$2b$10$m.JclDadGiz99rG8CxOumuEbpokIAD8QZHW16kX.jd.k2cNbmx0pS', 1, 'user', datetime('now'), datetime('now')),
-('user-cust-004', 'zara@example.com', 'Zara Khan', '+8801700000104', '$2b$10$m.JclDadGiz99rG8CxOumuEbpokIAD8QZHW16kX.jd.k2cNbmx0pS', 1, 'user', datetime('now'), datetime('now')),
-('user-cust-005', 'hana@example.com', 'Hana Begum', '+8801700000105', '$2b$10$m.JclDadGiz99rG8CxOumuEbpokIAD8QZHW16kX.jd.k2cNbmx0pS', 1, 'user', datetime('now'), datetime('now'));
+('user-cust-001', 'fatema@example.com', 'Fatema Akhter', '+8801700000101', '$2b$10$t/M5Ao1vVAKhuTHAcDJuZ.HFwb3WaNkqm509HE6oyZnUxwnpp0kdG', 1, 'user', datetime('now'), datetime('now')),
+('user-cust-002', 'noor@example.com', 'Noor Jahan', '+8801700000102', '$2b$10$t/M5Ao1vVAKhuTHAcDJuZ.HFwb3WaNkqm509HE6oyZnUxwnpp0kdG', 1, 'user', datetime('now'), datetime('now')),
+('user-cust-003', 'sara@example.com', 'Sara Ahmed', '+8801700000103', '$2b$10$t/M5Ao1vVAKhuTHAcDJuZ.HFwb3WaNkqm509HE6oyZnUxwnpp0kdG', 1, 'user', datetime('now'), datetime('now')),
+('user-cust-004', 'zara@example.com', 'Zara Khan', '+8801700000104', '$2b$10$t/M5Ao1vVAKhuTHAcDJuZ.HFwb3WaNkqm509HE6oyZnUxwnpp0kdG', 1, 'user', datetime('now'), datetime('now')),
+('user-cust-005', 'hana@example.com', 'Hana Begum', '+8801700000105', '$2b$10$t/M5Ao1vVAKhuTHAcDJuZ.HFwb3WaNkqm509HE6oyZnUxwnpp0kdG', 1, 'user', datetime('now'), datetime('now'));
 
 -- ============================================
 -- ADDRESSES

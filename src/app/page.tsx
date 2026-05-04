@@ -1704,8 +1704,7 @@ export default function Home() {
             {homepageSettings.stories?.isEnabled !== false && stories.length > 0 && (
               <Stories stories={stories} autoPlay={homepageSettings.stories?.autoPlay} />
             )}
-            {/* Floating Category Carousel - Temporarily disabled due to undefined product variables */}
-            {/* <FloatingCategoryCarousel onQuickView={openQuickView} onAddToCart={addToCart} /> */}
+            <FloatingCategoryCarousel categories={categories} />
             <FullscreenVideo />
             <Categories categories={categories} />
             {/* Reels - only show if enabled and has data */}

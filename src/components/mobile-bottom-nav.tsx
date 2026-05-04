@@ -36,6 +36,7 @@ export function MobileBottomNav() {
           <div className="pb-safe pt-3 pb-6 px-4">
             <div className="max-w-md mx-auto">
               <div className="bg-white rounded-full shadow-2xl border border-gray-200 px-3 py-2 flex items-center justify-between gap-1">
+                {/* 1. Home */}
                 <Link
                   href="/"
                   className={`flex flex-col items-center justify-center w-11 h-11 rounded-full transition-colors active:scale-95 ${
@@ -47,6 +48,8 @@ export function MobileBottomNav() {
                 >
                   <HomeIcon className="w-5 h-5" strokeWidth={2.5} />
                 </Link>
+                
+                {/* 2. Shop */}
                 <Link
                   href="/shop"
                   className={`flex flex-col items-center justify-center w-11 h-11 rounded-full transition-colors active:scale-95 ${
@@ -58,6 +61,8 @@ export function MobileBottomNav() {
                 >
                   <ShoppingBag className="w-5 h-5" strokeWidth={2} />
                 </Link>
+                
+                {/* 3. Search */}
                 <Link
                   href="/search"
                   className={`flex flex-col items-center justify-center w-11 h-11 rounded-full transition-colors active:scale-95 ${
@@ -69,6 +74,8 @@ export function MobileBottomNav() {
                 >
                   <Search className="w-5 h-5" strokeWidth={2} />
                 </Link>
+                
+                {/* 4. Cart */}
                 <Link
                   href="/cart"
                   className={`flex flex-col items-center justify-center w-11 h-11 rounded-full transition-colors active:scale-95 relative ${
@@ -85,6 +92,8 @@ export function MobileBottomNav() {
                     </span>
                   )}
                 </Link>
+                
+                {/* 5. User/Profile */}
                 {loading ? (
                   <div className="flex flex-col items-center justify-center w-11 h-11 rounded-full bg-gray-100 text-gray-700">
                     <Loader2 className="w-5 h-5 animate-spin" />
@@ -94,7 +103,7 @@ export function MobileBottomNav() {
                     <SheetTrigger asChild>
                       <button
                         className={`flex flex-col items-center justify-center w-11 h-11 rounded-full transition-colors active:scale-95 ${
-                          pathname?.startsWith('/account/settings')
+                          pathname?.startsWith('/account') || pathname === '/login'
                             ? 'bg-pink-600 text-white hover:bg-pink-700'
                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                         }`}
@@ -117,12 +126,12 @@ export function MobileBottomNav() {
                           variant="ghost"
                           className="w-full justify-start h-12 px-4"
                           onClick={() => {
-                            router.push('/account/settings')
+                            router.push('/wishlist')
                             setUserMenuOpen(false)
                           }}
                         >
-                          <User className="w-4 h-4 mr-3" />
-                          Profile
+                          <Heart className="w-4 h-4 mr-3" />
+                          Wishlist
                         </Button>
                         <Button
                           variant="ghost"
@@ -139,12 +148,12 @@ export function MobileBottomNav() {
                           variant="ghost"
                           className="w-full justify-start h-12 px-4"
                           onClick={() => {
-                            router.push('/wishlist')
+                            router.push('/account/settings')
                             setUserMenuOpen(false)
                           }}
                         >
-                          <Heart className="w-4 h-4 mr-3" />
-                          Wishlist
+                          <User className="w-4 h-4 mr-3" />
+                          Profile
                         </Button>
                         {isAdmin && (
                           <>
