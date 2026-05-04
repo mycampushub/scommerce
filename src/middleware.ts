@@ -48,10 +48,10 @@ export async function middleware(request: NextRequest) {
   // Create response with security headers helper
   const createSecureResponse = (baseResponse: NextResponse) => {
     const response = baseResponse
-    // Content Security Policy
+    // Content Security Policy - Updated to allow YouTube videos
     response.headers.set(
       'Content-Security-Policy',
-      "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'unsafe-dynamic'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'none'; form-action 'self'; base-uri 'self';"
+      "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.youtube.com https://www.youtube-nocookie.com https://s.ytimg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; connect-src 'self' https:; frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com; frame-ancestors 'self'; form-action 'self'; base-uri 'self';"
     )
     // X-Frame-Options - prevent clickjacking
     response.headers.set('X-Frame-Options', 'DENY')

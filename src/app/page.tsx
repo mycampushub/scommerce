@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { usePathname } from 'next/navigation'
-import { ChevronLeft, ChevronRight, X, Heart, MessageCircle, Share2, ShoppingCart, Star, Play, Search, User, Menu, Phone, Mail, Instagram, Facebook, Twitter, Youtube, Linkedin, ShoppingBag, Home as HomeIcon } from 'lucide-react'
+import { ChevronLeft, ChevronRight, X, Heart, MessageCircle, Share2, ShoppingCart, Star, Play, Search, User, Menu, Phone, Mail, Instagram, Facebook, Twitter, Youtube, Linkedin, ShoppingBag, Home as HomeIcon, Loader2 } from 'lucide-react'
 import { useScrollDirection } from '@/hooks/use-scroll-direction'
 import { useCartStore } from '@/lib/store/cart-store'
+import { useAuth } from '@/hooks/use-auth'
 import { QuickViewModal } from '@/components/quick-view-modal'
 
 // Types
@@ -80,6 +81,7 @@ interface StickyCard {
 function Navbar({ cartCount = 3 }: { cartCount?: number }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const isHeaderVisible = useScrollDirection()
+  const { user, loading } = useAuth()
 
   return (
     <header className={`bg-white shadow-sm z-40 transition-transform duration-300 ${
@@ -114,10 +116,20 @@ function Navbar({ cartCount = 3 }: { cartCount?: number }) {
               <ShoppingCart className="w-5 h-5" />
               <span className="absolute -top-1 -right-1 w-5 h-5 bg-pink-600 text-white text-xs rounded-full flex items-center justify-center">{cartCount}</span>
             </a>
-            <a href="/admin" className="hidden md:flex items-center gap-2 text-gray-700 hover:text-pink-600 transition-colors">
-              <User className="w-5 h-5" />
-            </a>
-            <button 
+            {loading ? (
+              <div className="hidden md:flex items-center gap-2 text-gray-700">
+                <Loader2 className="w-5 h-5 animate-spin" />
+              </div>
+            ) : user ? (
+              <a href="/account/settings" className="hidden md:flex items-center gap-2 text-gray-700 hover:text-pink-600 transition-colors">
+                <User className="w-5 h-5" />
+              </a>
+            ) : (
+              <a href="/login" className="hidden md:flex items-center gap-2 text-gray-700 hover:text-pink-600 transition-colors">
+                <User className="w-5 h-5" />
+              </a>
+            )}
+            <button
               className="lg:hidden p-2"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
@@ -144,9 +156,19 @@ function Navbar({ cartCount = 3 }: { cartCount?: number }) {
                 <ShoppingCart className="w-5 h-5" />
                 <span className="absolute -top-1 -right-1 w-5 h-5 bg-pink-600 text-white text-xs rounded-full flex items-center justify-center">{cartCount}</span>
               </a>
-              <a href="/admin" className="flex items-center gap-2 text-gray-700">
-                <User className="w-5 h-5" />
-              </a>
+              {loading ? (
+                <div className="flex items-center gap-2 text-gray-700">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                </div>
+              ) : user ? (
+                <a href="/account/settings" className="flex items-center gap-2 text-gray-700">
+                  <User className="w-5 h-5" />
+                </a>
+              ) : (
+                <a href="/login" className="flex items-center gap-2 text-gray-700">
+                  <User className="w-5 h-5" />
+                </a>
+              )}
             </div>
           </div>
         )}

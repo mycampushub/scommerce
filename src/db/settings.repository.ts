@@ -34,17 +34,23 @@ export class SettingsRepository {
    * Get site settings
    */
   static async getSettings(env : Env | null): Promise<SiteSettings> {
-    const settings = await queryFirst<SiteSettings>(
-      env,
-      'SELECT * FROM site_settings LIMIT 1'
-    );
+    try {
+      const settings = await queryFirst<SiteSettings>(
+        env,
+        'SELECT * FROM site_settings LIMIT 1'
+      );
 
-    // Return default settings if none exist
-    if (!settings) {
+      // Return default settings if none exist
+      if (!settings) {
+        return this.getDefaultSettings();
+      }
+
+      return settings;
+    } catch (error) {
+      // Table doesn't exist or other DB error - return default settings
+      console.error('Error fetching site settings, using defaults:', error);
       return this.getDefaultSettings();
     }
-
-    return settings;
   }
 
   /**

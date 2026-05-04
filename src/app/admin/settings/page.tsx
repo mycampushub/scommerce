@@ -159,23 +159,23 @@ export default function SettingsPage() {
             <Plug className="h-4 w-4 mr-2" />
             Integrations
           </TabsTrigger>
-          <TabsTrigger value="store" className="data-[state=active]:bg-vendigo-600 data-[state=active]:text-white">
+          <TabsTrigger value="store" className="data-[state=active]:bg-violet-600 data-[state=active]:text-white">
             <Building className="h-4 w-4 mr-2" />
             Store
           </TabsTrigger>
-          <TabsTrigger value="shipping" className="data-[state=active]:bg-vendigo-600 data-[state=active]:text-white">
+          <TabsTrigger value="shipping" className="data-[state=active]:bg-violet-600 data-[state=active]:text-white">
             <Truck className="h-4 w-4 mr-2" />
             Shipping
           </TabsTrigger>
-          <TabsTrigger value="payment" className="data-[state=active]:bg-vendigo-600 data-[state=error]:text-white">
+          <TabsTrigger value="payment" className="data-[state=active]:bg-violet-600 data-[state=active]:text-white">
             <CreditCard className="h-4 w-4 mr-2" />
             Payment
           </TabsTrigger>
-          <TabsTrigger value="notifications" className="destructured:bg-violet-600 data-[state=active]:text-white">
+          <TabsTrigger value="notifications" className="data-[state=active]:bg-violet-600 data-[state=active]:text-white">
             <Bell className="h-4 w-4 mr-2" />
             Notifications
           </TabsTrigger>
-          <TabsTrigger value="appearance" className="data-[state=active]:bg-violet-600 data-[destructured:bg-violet-600]:text-white">
+          <TabsTrigger value="appearance" className="data-[state=active]:bg-violet-600 data-[state=active]:text-white">
             <Palette className="h-4 w-4 mr-2" />
             Appearance
           </TabsTrigger>

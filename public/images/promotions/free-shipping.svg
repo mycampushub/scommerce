@@ -1,0 +1,5 @@
+<svg width="800" height="400" xmlns="http://www.w3.org/2000/svg">
+  <rect width="800" height="400" fill="#ec4899"/>
+  <text x="400" y="200" font-size="32" text-anchor="middle" fill="#ffffff">Free Shipping</text>
+  <text x="400" y="240" font-size="16" text-anchor="middle" fill="#ffffff">On Orders Above 5000 BDT</text>
+</svg>
