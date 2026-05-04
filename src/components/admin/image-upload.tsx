@@ -87,6 +87,7 @@ function SortableImage({
               {...listeners}
               className="p-2 bg-white/20 hover:bg-white/40 rounded-full transition-colors"
               title="Drag to reorder"
+              aria-label="Drag to reorder"
             >
               <GripVertical className="h-5 w-5 text-white" />
             </button>
@@ -96,6 +97,7 @@ function SortableImage({
               onClick={() => onRemove(index)}
               disabled={isUploading}
               className="h-8 w-8"
+              aria-label="Remove image"
             >
               <X className="h-4 w-4" />
             </Button>

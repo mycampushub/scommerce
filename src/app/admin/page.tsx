@@ -42,6 +42,7 @@ import {
   Legend,
   ResponsiveContainer
 } from 'recharts'
+import { Skeleton } from '@/components/ui/skeleton'
 
 const STATUS_COLORS = ['#8b5cf6', '#6366f1', '#a855f7', '#ec4899', '#f43f5e', '#14b8a6', '#22c55e']
 
@@ -183,10 +184,101 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[600px]">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-violet-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading dashboard...</p>
+      <div className="space-y-6">
+        {/* Stats Grid Skeleton */}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i} className="border-0 shadow-lg">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <Skeleton className="h-5 w-24" />
+                  <Skeleton className="h-4 w-4 rounded-full" />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-10 w-24 mb-2" />
+                <Skeleton className="h-4 w-32" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Charts Skeleton */}
+        <div className="grid gap-6 lg:grid-cols-3">
+          <Card className="col-span-2 border-0 shadow-lg">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-7 w-32" />
+                <Skeleton className="h-9 w-20" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-[400px] w-full" />
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <Skeleton className="h-7 w-32" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-[400px] w-full rounded-full" />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Tables Skeleton */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-7 w-32" />
+                <Skeleton className="h-9 w-20" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div className="space-y-2">
+                      <Skeleton className="h-5 w-24" />
+                      <Skeleton className="h-4 w-32" />
+                    </div>
+                    <div className="text-right space-y-2">
+                      <Skeleton className="h-5 w-20" />
+                      <Skeleton className="h-4 w-16" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-7 w-40" />
+                <Skeleton className="h-9 w-20" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
+                    <Skeleton className="h-12 w-12 rounded-lg" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-5 w-40" />
+                      <Skeleton className="h-4 w-24" />
+                    </div>
+                    <div className="text-right space-y-2">
+                      <Skeleton className="h-5 w-20" />
+                      <Skeleton className="h-4 w-16" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     )

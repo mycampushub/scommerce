@@ -52,7 +52,7 @@ export function Header() {
           {/* Logo */}
           <Link href="/" className="flex items-center">
             <img
-              src="/logo.svg"
+              src="/logo.png"
               alt="modern ecommerce"
               className="h-10 md:h-12 w-auto"
             />
@@ -107,6 +107,7 @@ export function Header() {
             <button
               className="hidden md:flex items-center gap-2 text-gray-700 hover:text-pink-600 transition-colors"
               onClick={() => router.push('/search')}
+              aria-label="Search products"
             >
               <Search className="w-5 h-5" />
             </button>
@@ -136,6 +137,7 @@ export function Header() {
             <button
               className="lg:hidden p-2"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Open menu"
             >
               <Menu className="w-6 h-6" />
             </button>
@@ -191,6 +193,7 @@ export function Header() {
               <button
                 className="flex items-center gap-2 text-gray-700"
                 onClick={() => router.push('/search')}
+                aria-label="Search products"
               >
                 <Search className="w-5 h-5" />
               </button>

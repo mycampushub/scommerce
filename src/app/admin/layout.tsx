@@ -45,7 +45,37 @@ export default function AdminLayout({
   const pathname = usePathname()
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const { user } = useAuth()
+  const { user, isLoading } = useAuth()
+
+  // Client-side auth check - redirect if not authenticated or not admin
+  useEffect(() => {
+    if (!isLoading) {
+      if (!user) {
+        // Not logged in, redirect to login
+        router.push('/login')
+      } else if (user.role !== 'admin') {
+        // Not an admin, redirect to home
+        router.push('/')
+      }
+    }
+  }, [user, isLoading, router])
+
+  // Show loading state while checking auth
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-violet-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Don't render admin content if not authenticated
+  if (!user || user.role !== 'admin') {
+    return null
+  }
 
   // Get user initials for avatar
   const getUserInitials = () => {
@@ -88,6 +118,7 @@ export default function AdminLayout({
               size="icon"
               className="lg:hidden"
               onClick={() => setSidebarOpen(false)}
+              aria-label="Close sidebar"
             >
               <X className="h-5 w-5" />
             </Button>
@@ -150,6 +181,7 @@ export default function AdminLayout({
             size="icon"
             className="lg:hidden"
             onClick={() => setSidebarOpen(true)}
+            aria-label="Open menu"
           >
             <Menu className="h-5 w-5" />
           </Button>

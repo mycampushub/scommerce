@@ -8,10 +8,14 @@ import { formatCurrency } from '@/lib/format-currency'
 import { Header } from '@/components/header'
 import { Footer } from '@/components/footer'
 import { MobileBottomNav } from '@/components/mobile-bottom-nav'
+import { useToast } from '@/hooks/use-toast'
 
 export default function CartPage() {
   const { items, updateQuantity, removeItem, getSubtotal, getTotal } = useCartStore()
   const [promoCode, setPromoCode] = useState('')
+  const [appliedDiscount, setAppliedDiscount] = useState<{ amount: number; code: string } | null>(null)
+  const [isApplyingPromo, setIsApplyingPromo] = useState(false)
+  const { toast } = useToast()
   const [freeShippingThreshold, setFreeShippingThreshold] = useState(5000)
   const [baseShippingCost, setBaseShippingCost] = useState(150)
 
@@ -35,11 +39,68 @@ export default function CartPage() {
   }, [])
 
   const subtotal = getSubtotal()
-  const discount = items.reduce((sum, item) =>
+  const discount = appliedDiscount ? appliedDiscount.amount : items.reduce((sum, item) =>
     sum + ((item.originalPrice || item.price) - item.price) * item.quantity, 0
   )
   const shipping = subtotal > freeShippingThreshold ? 0 : baseShippingCost
   const total = getTotal()
+
+  // Apply promo button handler
+  const handleApplyPromo = async () => {
+    if (!promoCode.trim()) {
+      toast({
+        title: 'Error',
+        description: 'Please enter a promo code',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setIsApplyingPromo(true)
+
+    try {
+      const response = await fetch('/api/cart/apply-promo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ promoCode: promoCode.trim() }),
+      })
+
+      const data = await response.json() as any
+
+      if (data.success) {
+        setAppliedDiscount({
+          code: data.data.promoCode,
+          amount: data.data.discountAmount,
+        })
+        toast({
+          title: 'Success',
+          description: `Promo code applied: ${data.data.discountAmount}${data.data.discountType === 'percentage' ? '%' : ' off'}`,
+        })
+      } else {
+        setAppliedDiscount(null)
+        toast({
+          title: 'Error',
+          description: data.error || 'Invalid promo code',
+          variant: 'destructive',
+        })
+      }
+    } catch (error) {
+      setAppliedDiscount(null)
+      toast({
+        title: 'Error',
+        description: 'Failed to apply promo code',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsApplyingPromo(false)
+    }
+  }
+
+  // Clear promo code handler
+  const handleClearPromo = () => {
+    setPromoCode('')
+    setAppliedDiscount(null)
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -119,22 +180,22 @@ export default function CartPage() {
                             <Trash2 className="w-5 h-5" />
                           </button>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <button
-                            onClick={() => updateQuantity(item.id, item.quantity - 1, item.variantId)}
-                            className="w-8 h-8 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-50"
-                            disabled={item.quantity <= 1}
-                          >
-                            <Minus className="w-4 h-4" />
-                          </button>
-                          <span className="w-10 text-center font-semibold">{item.quantity}</span>
-                          <button
-                            onClick={() => updateQuantity(item.id, item.quantity + 1, item.variantId)}
-                            className="w-8 h-8 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors"
-                          >
-                            <Plus className="w-4 h-4" />
-                          </button>
-                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => updateQuantity(item.id, item.quantity - 1, item.variantId)}
+                          className="w-8 h-8 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-50"
+                          disabled={item.quantity <= 1}
+                        >
+                          <Minus className="w-4 h-4" />
+                        </button>
+                        <span className="w-10 text-center font-semibold">{item.quantity}</span>
+                        <button
+                          onClick={() => updateQuantity(item.id, item.quantity + 1, item.variantId)}
+                          className="w-8 h-8 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -151,10 +212,13 @@ export default function CartPage() {
                       <span className="text-gray-600">Subtotal</span>
                       <span className="font-semibold">{formatCurrency(subtotal)}</span>
                     </div>
-                    {discount > 0 && (
+                    {(discount > 0 || appliedDiscount) && (
                       <div className="flex justify-between text-green-600">
                         <span>Discount</span>
-                        <span className="font-semibold">-{formatCurrency(discount)}</span>
+                        <span className="font-semibold">
+                          -{formatCurrency(appliedDiscount ? appliedDiscount.amount : discount)}
+                          {appliedDiscount && ` (${appliedDiscount.code})`}
+                        </span>
                       </div>
                     )}
                     <div className="flex justify-between">
@@ -178,11 +242,29 @@ export default function CartPage() {
                         value={promoCode}
                         onChange={(e) => setPromoCode(e.target.value)}
                         placeholder="Enter code"
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                        disabled={!!appliedDiscount}
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                       />
-                      <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors">
-                        Apply
-                      </button>
+                      {!appliedDiscount ? (
+                        <button
+                          onClick={handleApplyPromo}
+                          disabled={isApplyingPromo}
+                          className="px-4 py-2 bg-pink-600 text-white rounded-lg font-medium hover:bg-pink-700 transition-colors disabled:opacity-50"
+                        >
+                          {isApplyingPromo ? 'Applying...' : 'Apply'}
+                        </button>
+                      ) : (
+                        <div className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg">
+                          <span className="font-semibold">{appliedDiscount.code}</span>
+                          <button
+                            onClick={handleClearPromo}
+                            className="text-green-600 hover:text-green-800 font-medium"
+                            title="Remove promo code"
+                          >
+                            Clear
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -223,7 +305,6 @@ export default function CartPage() {
           )}
         </div>
       </section>
-
       <Footer />
       <MobileBottomNav />
     </div>

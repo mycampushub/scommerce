@@ -39,7 +39,7 @@ export class InventoryAlertRepository {
     await execute(
       env,
       `INSERT INTO inventory_alerts (id, variantId, productId, alertType, quantity, isRead, isResolved, createdAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       id,
       data.variantId || null,
       data.productId || null,

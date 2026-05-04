@@ -10,12 +10,33 @@ export interface JWTPayload {
 
 /**
  * Get JWT_SECRET (only when needed at runtime)
+ * SECURITY: In production, JWT_SECRET MUST be set or throws error
  */
 function getJWTSecret(): Uint8Array {
   const JWT_SECRET_STRING = process.env.JWT_SECRET;
+  
   if (!JWT_SECRET_STRING) {
-    throw new Error('JWT_SECRET environment variable is required');
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(
+        'CRITICAL SECURITY: JWT_SECRET environment variable is required in production. '
+        + 'Set JWT_SECRET to a secure, random string with at least 32 characters.'
+      );
+    }
+    // Only use fallback in development with clear warning
+    console.warn(
+      'SECURITY WARNING: Using insecure JWT_SECRET fallback. '
+      + 'This is only for development. Set JWT_SECRET environment variable!'
+    );
+    return new TextEncoder().encode('dev-only-secret-min-32-chars-do-not-use-in-production');
   }
+  
+  // Validate secret length in production
+  if (process.env.NODE_ENV === 'production' && JWT_SECRET_STRING.length < 32) {
+    throw new Error(
+      'SECURITY: JWT_SECRET must be at least 32 characters long for production use.'
+    );
+  }
+  
   return new TextEncoder().encode(JWT_SECRET_STRING);
 }
 

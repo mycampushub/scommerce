@@ -9,6 +9,9 @@ import { MobileBottomNav } from '@/components/mobile-bottom-nav'
 import { QuickViewModal, Product } from '@/components/quick-view-modal'
 import { useCartStore } from '@/lib/store/cart-store'
 import { toast } from 'sonner'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useDebounce } from '@/hooks/use-debounce'
+import { useFocusTrap } from '@/hooks/use-focus-trap'
 
 // Use Product type from QuickViewModal component
 
@@ -44,11 +47,29 @@ export default function ShopPage() {
   const itemsPerPage = 8
   const { addItem, items: cartItems } = useCartStore()
 
+  // Focus trap for mobile filter modal
+  const mobileFilterRef = useFocusTrap<HTMLDivElement>({ isOpen: mobileFiltersOpen })
+
+  // Close mobile filter modal on Escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && mobileFiltersOpen) {
+        setMobileFiltersOpen(false)
+      }
+    }
+
+    if (mobileFiltersOpen) {
+      document.addEventListener('keydown', handleEscape)
+      return () => document.removeEventListener('keydown', handleEscape)
+    }
+  }, [mobileFiltersOpen])
+
   // Dynamic data states
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const debouncedSearchQuery = useDebounce(searchQuery, 500)
 
   // Get URL search params
   const searchParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '')
@@ -76,8 +97,8 @@ export default function ShopPage() {
         if (searchParam) {
           setSearchQuery(searchParam)
           params.append('search', searchParam)
-        } else if (searchQuery) {
-          params.append('search', searchQuery)
+        } else if (debouncedSearchQuery) {
+          params.append('search', debouncedSearchQuery)
         }
 
         const url = `/api/products?${params.toString()}`
@@ -99,7 +120,7 @@ export default function ShopPage() {
     }
 
     fetchProducts()
-  }, [categoryParam, selectedCategory, searchParam, searchQuery])
+  }, [categoryParam, selectedCategory, searchParam, debouncedSearchQuery])
 
   const openQuickView = (product: Product) => {
     setQuickViewProduct(product)
@@ -296,11 +317,18 @@ export default function ShopPage() {
 
               {/* Product Grid */}
               {loading ? (
-                <div className="col-span-full py-12">
-                  <div className="flex flex-col items-center justify-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600 mb-4"></div>
-                    <p className="text-gray-600">Loading products...</p>
-                  </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {[...Array(6)].map((_, i) => (
+                    <div key={i} className="space-y-3">
+                      <Skeleton className="h-64 w-full rounded-xl" />
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-4 w-1/2" />
+                      <div className="flex gap-2">
+                        <Skeleton className="h-4 w-1/3" />
+                        <Skeleton className="h-4 w-1/4" />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : error ? (
                 <div className="col-span-full py-12">
@@ -424,18 +452,20 @@ export default function ShopPage() {
 
       {/* Mobile Filter Modal */}
       {mobileFiltersOpen && (
-        <div className="fixed inset-0 z-50 md:hidden">
+        <div className="fixed inset-0 z-50 md:hidden" ref={mobileFilterRef} role="dialog" aria-modal="true" aria-labelledby="mobile-filter-title">
           <div
             className="absolute inset-0 bg-black/50"
             onClick={() => setMobileFiltersOpen(false)}
+            role="presentation"
           />
           <div className="absolute right-0 top-0 bottom-0 w-80 bg-white overflow-y-auto">
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="font-bold text-lg">Filters</h2>
+                <h2 className="font-bold text-lg" id="mobile-filter-title">Filters</h2>
                 <button
                   onClick={() => setMobileFiltersOpen(false)}
                   className="p-2 hover:bg-gray-100 rounded-full"
+                  aria-label="Close filters"
                 >
                   <X className="w-6 h-6" />
                 </button>

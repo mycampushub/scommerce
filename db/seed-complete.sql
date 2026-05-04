@@ -168,22 +168,22 @@ VALUES
 -- ============================================
 INSERT OR IGNORE INTO stories (id, title, thumbnail, images, isActive, "order", createdAt, updatedAt)
 VALUES
-('story-001', 'New Arrivals', '/images/stories/story1-thumb.jpg', '["/images/stories/story1-1.jpg","/images/stories/story1-2.jpg","/images/stories/story1-3.jpg"]', 1, 1, datetime('now'), datetime('now')),
-('story-002', 'Festival Special', '/images/stories/story2-thumb.jpg', '["/images/stories/story2-1.jpg","/images/stories/story2-2.jpg","/images/stories/story2-3.jpg","/images/stories/story2-4.jpg"]', 1, 2, datetime('now'), datetime('now')),
-('story-003', 'Best Sellers', '/images/stories/story3-thumb.jpg', '["/images/stories/story3-1.jpg","/images/stories/story3-2.jpg"]', 1, 3, datetime('now'), datetime('now')),
-('story-004', 'Wedding Collection', '/images/stories/story4-thumb.jpg', '["/images/stories/story4-1.jpg","/images/stories/story4-2.jpg"]', 1, 4, datetime('now'), datetime('now')),
-('story-005', 'Sale Alert', '/images/stories/story5-thumb.jpg', '["/images/stories/story5-1.jpg","/images/stories/story5-2.jpg","/images/stories/story5-3.jpg"]', 1, 5, datetime('now'), datetime('now'));
+('story-001', 'New Arrivals', 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=200&h=200&fit=crop', '["https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=400&h=700&fit=crop","https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=400&h=700&fit=crop","https://images.unsplash.com/photo-1594463750939-ebb28c3f7f75?w=400&h=700&fit=crop"]', 1, 1, datetime('now'), datetime('now')),
+('story-002', 'Festival Special', 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=200&h=200&fit=crop', '["https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=400&h=700&fit=crop","https://images.unsplash.com/photo-1594463750939-ebb28c3f7f75?w=400&h=700&fit=crop","https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=400&h=700&fit=crop","https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=400&h=700&fit=crop"]', 1, 2, datetime('now'), datetime('now')),
+('story-003', 'Best Sellers', 'https://images.unsplash.com/photo-1594463750939-ebb28c3f7f75?w=200&h=200&fit=crop', '["https://images.unsplash.com/photo-1594463750939-ebb28c3f7f75?w=400&h=700&fit=crop","https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=400&h=700&fit=crop"]', 1, 3, datetime('now'), datetime('now')),
+('story-004', 'Wedding Collection', 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=200&h=200&fit=crop', '["https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=400&h=700&fit=crop","https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=400&h=700&fit=crop"]', 1, 4, datetime('now'), datetime('now')),
+('story-005', 'Sale Alert', 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=200&h=200&fit=crop', '["https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=400&h=700&fit=crop","https://images.unsplash.com/photo-1594463750939-ebb28c3f7f75?w=400&h=700&fit=crop","https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=400&h=700&fit=crop"]', 1, 5, datetime('now'), datetime('now'));
 
 -- ============================================
 -- REELS
 -- ============================================
 INSERT OR IGNORE INTO reels (id, title, thumbnail, videoUrl, productIds, isActive, "order", createdAt, updatedAt)
 VALUES
-('reel-001', 'Lehenga Styling Tips', '/images/reels/reel1-thumb.jpg', 'https://example.com/videos/reel1.mp4', '["prod-lh-001","prod-lh-002","prod-lh-003"]', 1, 1, datetime('now'), datetime('now')),
-('reel-002', 'Saree Draping Styles', '/images/reels/reel2-thumb.jpg', 'https://example.com/videos/reel2.mp4', '["prod-sa-001","prod-sa-002","prod-sa-003"]', 1, 2, datetime('now'), datetime('now')),
-('reel-003', 'Kurta Fashion', '/images/reels/reel3-thumb.jpg', 'https://example.com/videos/reel3.mp4', '["prod-ku-001","prod-ku-002","prod-ku-003"]', 1, 3, datetime('now'), datetime('now')),
-('reel-004', 'Wedding Looks 2024', '/images/reels/reel4-thumb.jpg', 'https://example.com/videos/reel4.mp4', '["prod-lh-001","prod-go-002","prod-me-003"]', 1, 4, datetime('now'), datetime('now')),
-('reel-005', 'Menswear Collection', '/images/reels/reel5-thumb.jpg', 'https://example.com/videos/reel5.mp4', '["prod-me-001","prod-me-002","prod-me-003"]', 1, 5, datetime('now'), datetime('now'));
+('reel-001', 'Lehenga Styling Tips', 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=320&h=568&fit=crop', 'https://www.youtube.com/embed/Gk-s0icT2CI?autoplay=1&mute=1', '["prod-lh-001","prod-lh-002","prod-lh-003"]', 1, 1, datetime('now'), datetime('now')),
+('reel-002', 'Saree Draping Styles', 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=320&h=568&fit=crop', 'https://www.youtube.com/embed/Gk-s0icT2CI?autoplay=1&mute=1', '["prod-sa-001","prod-sa-002","prod-sa-003"]', 1, 2, datetime('now'), datetime('now')),
+('reel-003', 'Kurta Fashion', 'https://images.unsplash.com/photo-1594463750939-ebb28c3f7f75?w=320&h=568&fit=crop', 'https://www.youtube.com/embed/Gk-s0icT2CI?autoplay=1&mute=1', '["prod-ku-001","prod-ku-002","prod-ku-003"]', 1, 3, datetime('now'), datetime('now')),
+('reel-004', 'Wedding Looks 2024', 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=320&h=568&fit=crop', 'https://www.youtube.com/embed/Gk-s0icT2CI?autoplay=1&mute=1', '["prod-lh-001","prod-go-002","prod-me-003"]', 1, 4, datetime('now'), datetime('now')),
+('reel-005', 'Menswear Collection', 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=320&h=568&fit=crop', 'https://www.youtube.com/embed/Gk-s0icT2CI?autoplay=1&mute=1', '["prod-me-001","prod-me-002","prod-me-003"]', 1, 5, datetime('now'), datetime('now'));
 
 -- ============================================
 -- PROMOTIONS
@@ -199,9 +199,9 @@ VALUES
 -- ============================================
 INSERT OR IGNORE INTO banners (id, title, description, image, mobileImage, buttonText, buttonLink, isActive, "order", createdAt, updatedAt)
 VALUES
-('banner-1', 'New Collection 2024', 'Discover our latest ethnic wear collection', '/images/banners/banner1.jpg', '/images/banners/banner1-mobile.jpg', 'Shop Now', '/shop', 1, 1, datetime('now'), datetime('now')),
-('banner-2', 'Festival Special', 'Get ready for the festive season', '/images/banners/banner2.jpg', '/images/banners/banner2-mobile.jpg', 'Explore', '/collections/sarees', 1, 2, datetime('now'), datetime('now')),
-('banner-3', 'Wedding Season', 'Perfect outfits for your special day', '/images/banners/banner3.jpg', '/images/banners/banner3-mobile.jpg', 'View Collection', '/collections/lehengas', 1, 3, datetime('now'), datetime('now'));
+('banner-1', 'New Collection 2024', 'Discover our latest ethnic wear collection', 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=1400&h=450&fit=crop', 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=580&h=700&fit=crop', 'Shop Now', '/shop', 1, 1, datetime('now'), datetime('now')),
+('banner-2', 'Festival Special', 'Get ready for the festive season', 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=1400&h=450&fit=crop', 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=580&h=700&fit=crop', 'Explore', '/collections/sarees', 1, 2, datetime('now'), datetime('now')),
+('banner-3', 'Wedding Season', 'Perfect outfits for your special day', 'https://images.unsplash.com/photo-1594463750939-ebb28c3f7f75?w=1400&h=450&fit=crop', 'https://images.unsplash.com/photo-1594463750939-ebb28c3f7f75?w=580&h=700&fit=crop', 'View Collection', '/collections/lehengas', 1, 3, datetime('now'), datetime('now'));
 
 -- ============================================
 -- HOMEPAGE SETTINGS

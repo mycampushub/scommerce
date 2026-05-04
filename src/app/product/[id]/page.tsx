@@ -1,7 +1,7 @@
 'use client'
 
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { ChevronLeft, ChevronRight, Heart, Share2, Truck, Shield, RotateCcw, Star, ShoppingCart, Check, Minus, Plus, Home as HomeIcon, ShoppingBag, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { Header } from '@/components/header'
@@ -12,12 +12,13 @@ import { useScrollDirection } from '@/hooks/use-scroll-direction'
 import { useCartStore } from '@/lib/store/cart-store'
 import { useRecentlyViewedStore } from '@/lib/store/recently-viewed-store'
 import { toast } from 'sonner'
-import { ReviewsSection } from '@/components/reviews-section'
+import { ReviewsSection, ReviewsSectionHandle } from '@/components/reviews-section'
 import { ReviewForm } from '@/components/review-form'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/use-auth'
 import { RecentlyViewed } from '@/components/recently-viewed'
 import { ProductStructuredData } from '@/components/product-structured-data'
+import { Skeleton } from '@/components/ui/skeleton'
 
 // Types
 interface Product {
@@ -101,6 +102,7 @@ export default function ProductPage() {
   const [recommendedProducts, setRecommendedProducts] = useState<RelatedProduct[]>([])
   const [reviewFormOpen, setReviewFormOpen] = useState(false)
   const [hasPurchased, setHasPurchased] = useState(false)
+  const reviewsSectionRef = useRef<ReviewsSectionHandle>(null)
 
   // Fetch related products
   async function fetchRelatedProducts(categoryId: string, currentProductId: string) {
@@ -137,11 +139,10 @@ export default function ProductPage() {
   }
 
   // Fetch product data
-  useEffect(() => {
-    async function fetchProduct() {
-      try {
-        setLoading(true)
-        setError(null)
+  const fetchProduct = async () => {
+    try {
+      setLoading(true)
+      setError(null)
         
         const productResponse = await fetch(`/api/products/${productId}`)
         
@@ -179,10 +180,11 @@ export default function ProductPage() {
         console.error('Error fetching product:', err)
         setError('Unable to load product. Please try again later.')
       } finally {
-        setLoading(false)
-      }
+      setLoading(false)
     }
+  }
 
+  useEffect(() => {
     if (productId) {
       fetchProduct()
     }
@@ -325,10 +327,64 @@ export default function ProductPage() {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <div className="flex items-center justify-center py-32">
-          <div className="text-center">
-            <Loader2 className="w-12 h-12 animate-spin text-pink-600 mx-auto mb-4" />
-            <p className="text-gray-600">Loading product...</p>
+        <div className="container mx-auto px-4 py-8 md:py-12">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+            {/* Image Gallery Skeleton */}
+            <div className="space-y-4">
+              <Skeleton className="aspect-[3/4] w-full rounded-xl" />
+              <div className="grid grid-cols-4 gap-4">
+                {[...Array(4)].map((_, i) => (
+                  <Skeleton key={i} className="aspect-[3/4] w-full rounded-lg" />
+                ))}
+              </div>
+            </div>
+
+            {/* Product Info Skeleton */}
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <Skeleton className="h-5 w-24" />
+                <Skeleton className="h-10 w-3/4" />
+                <div className="flex items-center gap-4">
+                  <Skeleton className="h-5 w-24" />
+                </div>
+              </div>
+
+              <div className="flex items-baseline gap-3">
+                <Skeleton className="h-10 w-32" />
+                <Skeleton className="h-6 w-24" />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-6 w-32" />
+              </div>
+
+              {/* Quantity Skeleton */}
+              <div className="space-y-3">
+                <Skeleton className="h-5 w-24" />
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-12 w-12 rounded-lg" />
+                  <Skeleton className="h-10 w-16" />
+                  <Skeleton className="h-12 w-12 rounded-lg" />
+                </div>
+              </div>
+
+              {/* Action Buttons Skeleton */}
+              <div className="flex flex-col gap-4">
+                <Skeleton className="h-14 w-full rounded-xl" />
+                <Skeleton className="h-14 w-full rounded-xl" />
+              </div>
+
+              {/* Features Skeleton */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 border-t border-gray-200">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="space-y-2">
+                    <Skeleton className="h-6 w-6" />
+                    <Skeleton className="h-5 w-24" />
+                    <Skeleton className="h-4 w-full" />
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
         <Footer />
@@ -687,6 +743,7 @@ export default function ProductPage() {
 
       {/* Reviews */}
       <ReviewsSection 
+        ref={reviewsSectionRef}
         productId={productId}
         averageRating={product?.rating || 0}
         reviewCount={product?.reviews || 0}
@@ -699,9 +756,13 @@ export default function ProductPage() {
           productName={product.name}
           isOpen={reviewFormOpen}
           onClose={() => setReviewFormOpen(false)}
-          onSuccess={() => {
-            // Refresh the page to update reviews
-            window.location.reload()
+          onSuccess={async () => {
+            // Refresh the reviews section and product data
+            if (reviewsSectionRef.current) {
+              reviewsSectionRef.current.refetch()
+            }
+            // Re-fetch product data to update rating and review count
+            await fetchProduct()
           }}
           hasPurchased={hasPurchased}
         />

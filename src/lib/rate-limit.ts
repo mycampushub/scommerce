@@ -37,12 +37,24 @@ export async function rateLimit(
 ): Promise<RateLimitResult> {
   // KV is required for rate limiting
   if (!env || !env.KV) {
-    console.error('Rate limiting requires KV namespace. Configure wrangler.toml with KV binding.');
-    // Fail open for security - allow requests but log warning
-    return {
-      success: true,
-      remainingRequests: Number.MAX_SAFE_INTEGER,
-    };
+    const errorMsg = 'Rate limiting requires KV namespace. Configure wrangler.toml with KV binding.';
+    
+    // SECURITY: Fail closed in production, fail open only in development
+    if (process.env.NODE_ENV === 'production') {
+      console.error('CRITICAL: Rate limiting unavailable in production - blocking request');
+      return {
+        success: false,
+        remainingRequests: 0,
+        resetTime: Date.now() + 60000, // 1 minute
+      };
+    } else {
+      // Development mode: allow requests but log warning
+      console.warn('WARNING: Rate limiting disabled - KV namespace not available');
+      return {
+        success: true,
+        remainingRequests: Number.MAX_SAFE_INTEGER,
+      };
+    }
   }
 
   const {
@@ -85,11 +97,23 @@ export async function rateLimit(
     };
   } catch (error) {
     console.error('KV rate limit error:', error);
-    // Fail open for reliability - allow request on error
-    return {
-      success: true,
-      remainingRequests: Number.MAX_SAFE_INTEGER,
-    };
+    
+    // SECURITY: Fail closed in production, fail open only in development
+    if (process.env.NODE_ENV === 'production') {
+      console.error('CRITICAL: Rate limiting error in production - blocking request');
+      return {
+        success: false,
+        remainingRequests: 0,
+        resetTime: Date.now() + windowMs,
+      };
+    } else {
+      // Development mode: allow requests but log warning
+      console.warn('WARNING: Rate limiting error in development - allowing request');
+      return {
+        success: true,
+        remainingRequests: Number.MAX_SAFE_INTEGER,
+      };
+    }
   }
 }
 

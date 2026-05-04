@@ -45,6 +45,37 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const sessionToken = request.cookies.get('session')?.value
 
+  // Create response with security headers helper
+  const createSecureResponse = (baseResponse: NextResponse) => {
+    const response = baseResponse
+    // Content Security Policy
+    response.headers.set(
+      'Content-Security-Policy',
+      "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'unsafe-dynamic'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'none'; form-action 'self'; base-uri 'self';"
+    )
+    // X-Frame-Options - prevent clickjacking
+    response.headers.set('X-Frame-Options', 'DENY')
+    // X-Content-Type-Options - prevent MIME sniffing
+    response.headers.set('X-Content-Type-Options', 'nosniff')
+    // X-XSS-Protection
+    response.headers.set('X-XSS-Protection', '1; mode=block')
+    // Referrer-Policy
+    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+    // Permissions-Policy
+    response.headers.set(
+      'Permissions-Policy',
+      'geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=()'
+    )
+    // Strict-Transport-Security (only in production with HTTPS)
+    if (request.url.startsWith('https://')) {
+      response.headers.set(
+        'Strict-Transport-Security',
+        'max-age=31536000; includeSubDomains; preload'
+      )
+    }
+    return response
+  }
+
   // Check if the path is protected
   const isProtectedPath = protectedPaths.some(path => pathname.startsWith(path))
   const isPublicPath = publicPaths.some(path => pathname.startsWith(path))
@@ -57,25 +88,27 @@ export async function middleware(request: NextRequest) {
   if (isApiRoute && isSensitiveRoute) {
     // Check authentication for sensitive routes
     if (!sessionToken) {
-      return new Response(
+      const response = new Response(
         JSON.stringify({ error: 'Authentication required' }),
         {
           status: 401,
           headers: { 'Content-Type': 'application/json' },
         }
       )
+      return createSecureResponse(NextResponse.fromResponse(response))
     }
 
     // Verify token
     const payload = await verifyToken(sessionToken)
     if (!payload) {
-      return new Response(
+      const response = new Response(
         JSON.stringify({ error: 'Invalid session' }),
         {
           status: 401,
           headers: { 'Content-Type': 'application/json' },
         }
       )
+      return createSecureResponse(NextResponse.fromResponse(response))
     }
   }
 
@@ -83,12 +116,12 @@ export async function middleware(request: NextRequest) {
   if (isProtectedPath && !sessionToken) {
     // Don't redirect if already on login page (prevent loop)
     if (pathname === '/login' || pathname === '/login/') {
-      return NextResponse.next()
+      return createSecureResponse(NextResponse.next())
     }
     // Don't redirect if we're already coming from login (prevent loop)
     const from = request.nextUrl.searchParams.get('from')
     if (from === 'login') {
-      return NextResponse.next()
+      return createSecureResponse(NextResponse.next())
     }
     const loginUrl = new URL('/login', request.url)
     // Only set redirect if not already coming from a redirect
@@ -97,7 +130,7 @@ export async function middleware(request: NextRequest) {
       loginUrl.searchParams.set('redirect', pathname)
       loginUrl.searchParams.set('from', 'middleware')
     }
-    return NextResponse.redirect(loginUrl)
+    return createSecureResponse(NextResponse.redirect(loginUrl))
   }
 
   // If path is protected and has session, verify the token
@@ -108,19 +141,19 @@ export async function middleware(request: NextRequest) {
     if (!payload) {
       // Don't redirect if already on login page
       if (pathname === '/login' || pathname === '/login/') {
-        return NextResponse.next()
+        return createSecureResponse(NextResponse.next())
       }
       const loginUrl = new URL('/login', request.url)
       loginUrl.searchParams.set('redirect', pathname)
       loginUrl.searchParams.set('session', 'expired')
       loginUrl.searchParams.set('from', 'middleware')
-      return NextResponse.redirect(loginUrl)
+      return createSecureResponse(NextResponse.redirect(loginUrl))
     }
 
     // Check if user has admin role for admin paths
     if (pathname.startsWith('/admin') && payload.role !== 'admin') {
       const homeUrl = new URL('/', request.url)
-      return NextResponse.redirect(homeUrl)
+      return createSecureResponse(NextResponse.redirect(homeUrl))
     }
   }
 
@@ -136,32 +169,33 @@ export async function middleware(request: NextRequest) {
       
       // If we're already coming from a redirect (from=login), don't redirect again
       if (from === 'login') {
-        return NextResponse.next()
+        return createSecureResponse(NextResponse.next())
       }
       
       // If no redirect or redirect is to login page itself, redirect to appropriate page
       if (!redirectTo || redirectTo === '/login' || redirectTo === '/login/' || redirectTo.includes('login')) {
         if (payload.role === 'admin') {
-          return NextResponse.redirect(new URL('/admin', request.url))
+          return createSecureResponse(NextResponse.redirect(new URL('/admin', request.url)))
         } else {
-          return NextResponse.redirect(new URL('/', request.url))
+          return createSecureResponse(NextResponse.redirect(new URL('/', request.url)))
         }
       } else {
         // Validate redirect URL to prevent open redirects
-        try {
-          const redirectUrl = new URL(redirectTo, request.url)
-          // Only allow relative URLs or same-origin URLs
-          if (redirectUrl.origin === new URL(request.url).origin || redirectTo.startsWith('/')) {
-            return NextResponse.redirect(redirectUrl)
+        // STRICT: Only allow relative URLs starting with single '/' (no absolute URLs, even same-origin)
+        if (redirectTo.startsWith('/') && !redirectTo.startsWith('//')) {
+          // Additional safety: ensure no suspicious patterns
+          // Reject if contains :// (absolute URL with protocol)
+          // Reject if contains \\ (backslash, path traversal attempt)
+          if (!redirectTo.includes('://') && !redirectTo.includes('\\')) {
+            const redirectUrl = new URL(redirectTo, request.url)
+            return createSecureResponse(NextResponse.redirect(redirectUrl))
           }
-        } catch {
-          // Invalid URL, redirect to home
         }
-        // Fallback: redirect based on role
+        // Invalid URL or suspicious pattern - redirect based on role
         if (payload.role === 'admin') {
-          return NextResponse.redirect(new URL('/admin', request.url))
+          return createSecureResponse(NextResponse.redirect(new URL('/admin', request.url)))
         } else {
-          return NextResponse.redirect(new URL('/', request.url))
+          return createSecureResponse(NextResponse.redirect(new URL('/', request.url)))
         }
       }
     }
@@ -169,7 +203,7 @@ export async function middleware(request: NextRequest) {
 
   // Add caching headers for cacheable routes
   if (isCacheable && !isApiRoute) {
-    const response = NextResponse.next()
+    const response = createSecureResponse(NextResponse.next())
     const isStaticAsset = pathname.match(/\.(jpg|jpeg|png|gif|svg|webp|ico|css|js|woff|woff2|ttf|eot)$/)
 
     if (isStaticAsset) {
@@ -186,14 +220,14 @@ export async function middleware(request: NextRequest) {
 
   // For API routes, prevent caching by default
   if (isApiRoute) {
-    const response = NextResponse.next()
+    const response = createSecureResponse(NextResponse.next())
     response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
     response.headers.set('Pragma', 'no-cache')
     response.headers.set('Expires', '0')
     return response
   }
 
-  return NextResponse.next()
+  return createSecureResponse(NextResponse.next())
 }
 
 export const config = {

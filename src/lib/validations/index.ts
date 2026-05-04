@@ -95,6 +95,16 @@ export const updateOrderStatusSchema = z.object({
   notes: z.string().optional(),
 });
 
+// Tracking Number Schema
+export const updateTrackingSchema = z.object({
+  trackingNumber: z.string()
+    .min(5, 'Tracking number must be at least 5 characters')
+    .max(50, 'Tracking number must be less than 50 characters')
+    .regex(/^[A-Za-z0-9\s-]+$/, 'Tracking number can only contain letters, numbers, spaces, and hyphens')
+    .trim(),
+  trackingStatus: z.enum(['PENDING', 'PICKED_UP', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'DELIVERED', 'FAILED', 'RETURNED']),
+});
+
 // Cart Schemas
 export const cartItemSchema = z.object({
   productId: z.string().uuid('Invalid product ID'),
@@ -252,6 +262,7 @@ export const schemas = {
   orderItem: orderItemSchema,
   createOrder: createOrderSchema,
   updateOrderStatus: updateOrderStatusSchema,
+  updateTracking: updateTrackingSchema,
   cartItem: cartItemSchema,
   updateCartItem: updateCartItemSchema,
   searchProducts: searchProductsSchema,

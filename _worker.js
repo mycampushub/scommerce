@@ -13,7 +13,7 @@ export default {
     if (
       pathname === '/favicon.ico' ||
       pathname === '/favicon.svg' ||
-      pathname === '/logo.svg' ||
+      pathname === '/logo.png' ||
       pathname === '/manifest.json' ||
       pathname === '/robots.txt' ||
       pathname === '/sw.js' ||

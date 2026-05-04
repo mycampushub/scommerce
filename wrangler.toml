@@ -6,6 +6,11 @@ compatibility_flags = ["nodejs_compat"]
 main = "_worker.js"
 # Note: This worker serves both Next.js (via OpenNext) and static assets
 
+# Environment Variables - Add these in Cloudflare Dashboard or .dev.vars
+# JWT_SECRET=your-super-secret-jwt-key-min-32-characters
+# ADMIN_SECRET=your-admin-registration-secret
+# NEXT_PUBLIC_URL=https://your-domain.workers.dev
+
 [[d1_databases]]
 binding = "DB"
 database_name = "scommerce-db"

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useDebounce } from '@/hooks/use-debounce'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -76,6 +77,7 @@ export default function CategoriesPage() {
   const [error, setError] = useState<string | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
   const [searchTerm, setSearchTerm] = useState('')
+  const debouncedSearchTerm = useDebounce(searchTerm, 500)
 
   // Add modal state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
@@ -110,7 +112,7 @@ export default function CategoriesPage() {
     try {
       setLoading(true)
       const params = new URLSearchParams()
-      if (searchTerm) params.append('search', searchTerm)
+      if (debouncedSearchTerm) params.append('search', debouncedSearchTerm)
 
       const response = await fetch(`/api/admin/categories?${params.toString()}`)
       const result = await response.json() as any
@@ -136,6 +138,10 @@ export default function CategoriesPage() {
   useEffect(() => {
     fetchCategories()
   }, [])
+
+  useEffect(() => {
+    fetchCategories()
+  }, [debouncedSearchTerm])
 
   const handleSearch = () => {
     fetchCategories()
@@ -454,7 +460,6 @@ export default function CategoriesPage() {
                 placeholder="Search categories..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 className="pl-10"
               />
             </div>
@@ -527,7 +532,7 @@ export default function CategoriesPage() {
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
+                            <Button variant="ghost" size="icon" aria-label="More options">
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>

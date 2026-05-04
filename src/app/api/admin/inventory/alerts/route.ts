@@ -40,10 +40,25 @@ export async function GET(request: NextRequest) {
       ...params
     )
 
-    // Enrich with product data
+    // Enrich with product data - Fix N+1 query by batching
+    // Collect unique product IDs
+    const productIds = [...new Set(alerts.map(alert => alert.productId).filter(Boolean))]
+
+    // Batch fetch all products in a single query
+    const productsMap = new Map<string, any>()
+    if (productIds.length > 0) {
+      const placeholders = productIds.map(() => '?').join(',')
+      const products = await queryAll<any>(
+        env,
+        `SELECT id, name, slug, image FROM products WHERE id IN (${placeholders})`,
+        ...productIds
+      )
+      products.forEach(p => productsMap.set(p.id, p))
+    }
+
+    // Attach product data to alerts
     for (const alert of alerts) {
-      const product = await ProductRepository.findById(env, alert.productId)
-      ;(alert as any).product = product
+      ;(alert as any).product = productsMap.get(alert.productId) || null
       alert.isRead = numberToBool(alert.isRead)
       alert.isResolved = numberToBool(alert.isResolved)
     }

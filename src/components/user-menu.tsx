@@ -30,7 +30,7 @@ export function UserMenu({ user, loading, isAdmin, onLogout }: UserMenuProps) {
 
   if (loading) {
     return (
-      <Button variant="ghost" size="icon" className="hidden md:flex items-center gap-2">
+      <Button variant="ghost" size="icon" className="hidden md:flex items-center gap-2" aria-label="Loading">
         <Loader2 className="w-5 h-5 animate-spin" />
       </Button>
     )
@@ -44,6 +44,7 @@ export function UserMenu({ user, loading, isAdmin, onLogout }: UserMenuProps) {
         size="icon"
         className="hidden md:flex items-center gap-2"
         onClick={() => router.push('/login')}
+        aria-label="Login"
       >
         <User className="w-5 h-5" />
       </Button>
@@ -54,7 +55,7 @@ export function UserMenu({ user, loading, isAdmin, onLogout }: UserMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="hidden md:flex items-center gap-2">
+        <Button variant="ghost" className="hidden md:flex items-center gap-2" aria-label="User menu">
           <User className="w-5 h-5" />
         </Button>
       </DropdownMenuTrigger>

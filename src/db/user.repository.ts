@@ -64,7 +64,7 @@ export class UserRepository {
     await execute(
       env,
       `INSERT INTO users (id, email, name, phone, password, role, emailVerified, createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       id,
       data.email,
       data.name || null,

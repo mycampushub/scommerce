@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useDebounce } from '@/hooks/use-debounce'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -51,6 +52,7 @@ import {
   Loader2,
   RefreshCw
 } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface Order {
   id: string
@@ -110,6 +112,7 @@ export default function OrdersPage() {
   const [error, setError] = useState<string | null>(null)
   const [orders, setOrders] = useState<Order[]>([])
   const [searchTerm, setSearchTerm] = useState('')
+  const debouncedSearchTerm = useDebounce(searchTerm, 500)
   const [statusFilter, setStatusFilter] = useState('all')
 
   // Order details modal
@@ -129,7 +132,7 @@ export default function OrdersPage() {
       setLoading(true)
       const params = new URLSearchParams()
       if (statusFilter !== 'all') params.append('status', statusFilter)
-      if (searchTerm) params.append('search', searchTerm)
+      if (debouncedSearchTerm) params.append('search', debouncedSearchTerm)
 
       const response = await fetch(`/api/admin/orders?${params.toString()}`)
       const result = await response.json() as any
@@ -154,7 +157,7 @@ export default function OrdersPage() {
 
   useEffect(() => {
     fetchOrders()
-  }, [statusFilter])
+  }, [statusFilter, debouncedSearchTerm])
 
   const handleSearch = () => {
     fetchOrders()
@@ -214,11 +217,30 @@ export default function OrdersPage() {
     }
   }
 
-  const handleExportOrders = () => {
-    toast({
-      title: 'Info',
-      description: 'Export functionality will be implemented soon',
-    })
+  const handleExportOrders = async () => {
+    try {
+      // Build query parameters with current status filter
+      const params = new URLSearchParams()
+      if (statusFilter !== 'all') {
+        params.append('status', statusFilter)
+      }
+
+      // Open the export endpoint in a new tab to trigger download
+      const exportUrl = `/api/admin/orders/export${params.toString() ? '?' + params.toString() : ''}`
+      window.open(exportUrl, '_blank')
+
+      toast({
+        title: 'Export Started',
+        description: 'Your orders export is being downloaded',
+      })
+    } catch (error) {
+      console.error('Export error:', error)
+      toast({
+        title: 'Export Failed',
+        description: 'Failed to export orders. Please try again.',
+        variant: 'destructive',
+      })
+    }
   }
 
   const formatDate = (date: Date | string) => {
@@ -266,7 +288,7 @@ export default function OrdersPage() {
         </div>
         <Button variant="outline" onClick={handleExportOrders}>
           <Download className="h-4 w-4 mr-2" />
-          Export Orders
+          Export Orders (CSV)
         </Button>
       </div>
 
@@ -337,7 +359,6 @@ export default function OrdersPage() {
                 placeholder="Search orders..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 className="pl-10"
               />
             </div>
@@ -363,8 +384,27 @@ export default function OrdersPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center h-[400px]">
-              <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
+            <div className="space-y-4">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="flex items-center gap-4 p-4 border-b">
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-5 w-32" />
+                    <Skeleton className="h-4 w-20" />
+                  </div>
+                  <div className="space-y-2">
+                    <Skeleton className="h-5 w-40" />
+                    <Skeleton className="h-4 w-32" />
+                  </div>
+                  <Skeleton className="h-5 w-16" />
+                  <Skeleton className="h-5 w-20" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-5 w-24" />
+                    <Skeleton className="h-4 w-20" />
+                  </div>
+                  <Skeleton className="h-6 w-20" />
+                  <Skeleton className="h-8 w-8" />
+                </div>
+              ))}
             </div>
           ) : orders.length === 0 ? (
             <div className="text-center py-12">
@@ -431,7 +471,7 @@ export default function OrdersPage() {
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
+                            <Button variant="ghost" size="icon" aria-label="More options">
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>

@@ -3,6 +3,7 @@ import { getEnv } from '@/lib/cloudflare'
 import { OrderRepository } from '@/db/order.repository'
 import { UserRepository } from '@/db/user.repository'
 import { execute, parseJSON } from '@/db/db'
+import { updateTrackingSchema } from '@/lib/validations'
 
 
 export async function GET(
@@ -113,7 +114,23 @@ export async function PUT(
       })
     }
 
-    if (body.trackingNumber !== undefined && body.trackingStatus) {
+    if (body.trackingNumber !== undefined || body.trackingStatus) {
+      // Validate tracking number and status
+      const validation = updateTrackingSchema.safeParse({
+        trackingNumber: body.trackingNumber || '',
+        trackingStatus: body.trackingStatus || 'PENDING',
+      })
+
+      if (!validation.success) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: validation.error.issues[0].message,
+          },
+          { status: 400 }
+        )
+      }
+
       await OrderRepository.updateTracking(env, id, body.trackingNumber, body.trackingStatus)
       const updated = await OrderRepository.findById(env, id)
       if (updated) {

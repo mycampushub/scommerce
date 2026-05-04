@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Header } from '@/components/header'
 import { Footer } from '@/components/footer'
 import { MobileBottomNav } from '@/components/mobile-bottom-nav'
+import { useDebounce } from '@/hooks/use-debounce'
 
 // Types
 interface Product {
@@ -31,24 +32,6 @@ const popularSearches = [
   'Bridal Wear',
   'Festive Collection'
 ]
-
-// Debounce hook for search
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value)
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value)
-    }, delay)
-
-    return () => {
-      clearTimeout(handler)
-    }
-  }, [value, delay])
-
-  return debouncedValue
-}
-
 
 
 

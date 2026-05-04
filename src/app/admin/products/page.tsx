@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useDebounce } from '@/hooks/use-debounce'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -71,6 +72,7 @@ import { ImageUpload } from '@/components/admin/image-upload'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface Product {
   id: string
@@ -124,6 +126,7 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [searchTerm, setSearchTerm] = useState('')
+  const debouncedSearchTerm = useDebounce(searchTerm, 500)
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
 
@@ -197,7 +200,7 @@ export default function ProductsPage() {
       const params = new URLSearchParams()
       if (categoryFilter !== 'all') params.append('category', categoryFilter)
       if (statusFilter !== 'all') params.append('status', statusFilter)
-      if (searchTerm) params.append('search', searchTerm)
+      if (debouncedSearchTerm) params.append('search', debouncedSearchTerm)
 
       const response = await fetch(`/api/admin/products?${params.toString()}`)
       const result = await response.json() as any
@@ -240,7 +243,7 @@ export default function ProductsPage() {
 
   useEffect(() => {
     fetchProducts()
-  }, [categoryFilter, statusFilter])
+  }, [categoryFilter, statusFilter, debouncedSearchTerm])
 
   const handleSearch = () => {
     fetchProducts()
@@ -774,7 +777,6 @@ export default function ProductsPage() {
                 placeholder="Search products..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 className="pl-10"
               />
             </div>
@@ -808,8 +810,21 @@ export default function ProductsPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center h-[400px]">
-              <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
+            <div className="space-y-4">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="flex items-center gap-4 p-4 border-b">
+                  <Skeleton className="h-12 w-12 rounded-lg" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-5 w-48" />
+                    <Skeleton className="h-4 w-24" />
+                  </div>
+                  <Skeleton className="h-5 w-20" />
+                  <Skeleton className="h-5 w-16" />
+                  <Skeleton className="h-5 w-16" />
+                  <Skeleton className="h-5 w-20" />
+                  <Skeleton className="h-8 w-8" />
+                </div>
+              ))}
             </div>
           ) : products.length === 0 ? (
             <div className="text-center py-12">
@@ -893,7 +908,7 @@ export default function ProductsPage() {
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
+                            <Button variant="ghost" size="icon" aria-label="More options">
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>

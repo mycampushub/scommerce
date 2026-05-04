@@ -125,6 +125,26 @@ export async function GET(request: Request) {
       offset
     );
 
+    // Batch fetch rating data for all products to avoid N+1 queries
+    const productIds = products.map((p: any) => p.id);
+    let ratingsMap = new Map<string, { avgRating: number, totalReviews: number }>();
+
+    if (productIds.length > 0) {
+      const placeholders = productIds.map(() => '?').join(',');
+      const ratings = await queryAll<{ productId: string, avgRating: number, totalReviews: number }>(
+        env,
+        `SELECT productId, AVG(rating) as avgRating, COUNT(*) as totalReviews
+         FROM product_reviews
+         WHERE productId IN (${placeholders}) AND isApproved = 1
+         GROUP BY productId`,
+        ...productIds
+      );
+      ratings.forEach(r => ratingsMap.set(r.productId, {
+        avgRating: r.avgRating || 0,
+        totalReviews: r.totalReviews || 0
+      }));
+    }
+
     // Transform products to match expected frontend format
     const transformedProducts = products.map((product: any) => {
       const images = parseJSON<string[]>(product.images) || [];
@@ -143,6 +163,9 @@ export async function GET(request: Request) {
         badge = 'New';
       }
 
+      // Get real rating data from batch-fetched ratings
+      const ratingData = ratingsMap.get(product.id) || { avgRating: null, totalReviews: 0 };
+
       return {
         id: product.id,
         name: product.name,
@@ -152,8 +175,8 @@ export async function GET(request: Request) {
         originalPrice: product.comparePrice || undefined,
         image: images[0] || category?.image || '',
         images: images,
-        rating: 4.5, // Default rating - in production, this would come from reviews
-        reviews: Math.floor(Math.random() * 500) + 10, // Random review count - in production, this would be real
+        rating: ratingData.avgRating,
+        reviews: ratingData.totalReviews,
         badge,
         category: category?.name,
         categorySlug: category?.slug,

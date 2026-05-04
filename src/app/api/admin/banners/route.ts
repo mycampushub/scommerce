@@ -50,11 +50,12 @@ export async function POST(request: NextRequest) {
     // Get highest order value if not provided
     let bannerOrder = order
     if (bannerOrder === undefined) {
-      const maxOrder = await queryFirst<{ orderNum: number }>(
+      // Fix: Use "order" (with quotes) instead of orderNum
+      const maxOrder = await queryFirst<{ "order": number }>(
         env,
-        'SELECT orderNum FROM banners ORDER BY orderNum DESC LIMIT 1'
+        'SELECT "order" FROM banners ORDER BY "order" DESC LIMIT 1'
       )
-      bannerOrder = maxOrder ? maxOrder.orderNum + 1 : 0
+      bannerOrder = maxOrder ? maxOrder["order"] + 1 : 0
     }
 
     const banner = await BannerRepository.create(env, {

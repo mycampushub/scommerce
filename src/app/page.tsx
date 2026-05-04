@@ -90,7 +90,7 @@ function Navbar({ cartCount = 3 }: { cartCount?: number }) {
           {/* Logo */}
           <a href="/" className="flex items-center">
             <img
-              src="/logo.svg"
+              src="/logo.png"
               alt="modern ecommerce"
               className="h-10 md:h-12 w-auto"
             />
@@ -558,7 +558,7 @@ function Stories({ stories, autoPlay = 4000 }: { stories: Story[], autoPlay?: nu
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6 pointer-events-none">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-full overflow-hidden">
-                  <img src={selectedStory.thumbnail} alt="" className="w-full h-full object-cover" width="40" height="40" />
+                  <img src={selectedStory.thumbnail} alt="" role="presentation" className="w-full h-full object-cover" width="40" height="40" />
                 </div>
                 <div>
                   <p className="text-white font-semibold text-sm">{selectedStory.title}</p>

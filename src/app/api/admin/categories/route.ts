@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { verifyAdminAuth } from '@/lib/admin-auth'
 import { getEnv } from '@/lib/cloudflare'
 import { CategoryRepository } from '@/db/category.repository'
 import { queryAll, count, numberToBool } from '@/db/db'
 
 
 export async function GET(request: NextRequest) {
+  // Verify admin authentication
+  const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
+
   try {
     const env = getEnv()
     const searchParams = request.nextUrl.searchParams
@@ -20,13 +27,28 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Add product counts
+    // Add product counts - Fix N+1 query by using a single GROUP BY query
     const categoriesWithCounts: any[] = []
+
+    // Get product counts for all categories in a single query
+    const categoryIds = categories.map(c => c.id)
+    let productCountsMap = new Map<string, number>()
+
+    if (categoryIds.length > 0) {
+      const placeholders = categoryIds.map(() => '?').join(',')
+      const counts = await queryAll<{ categoryId: string, count: number }>(
+        env,
+        `SELECT categoryId, COUNT(*) as count FROM products WHERE categoryId IN (${placeholders}) GROUP BY categoryId`,
+        ...categoryIds
+      )
+      counts.forEach(c => productCountsMap.set(c.categoryId, c.count))
+    }
+
+    // Attach counts to categories
     for (const category of categories) {
-      const productCount = await count(env, 'SELECT COUNT(*) as count FROM products WHERE categoryId = ?', category.id)
       categoriesWithCounts.push({
         ...category,
-        _count: { products: productCount },
+        _count: { products: productCountsMap.get(category.id) || 0 },
         isActive: numberToBool(category.isActive as number)
       })
     }
@@ -49,6 +71,12 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  // Verify admin authentication
+  const userOrResponse = await verifyAdminAuth(request, ['admin'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
+
   try {
     const env = getEnv()
     const body = await request.json() as any

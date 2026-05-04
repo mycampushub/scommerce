@@ -6,7 +6,30 @@ import { SignJWT, jwtVerify } from 'jose';
 import bcrypt from 'bcryptjs';
 
 function getJWTSecret(): Uint8Array {
-  const secret = process.env.JWT_SECRET || 'your-secret-key-change-in-production-min-32-chars';
+  const secret = process.env.JWT_SECRET;
+  
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(
+        'CRITICAL SECURITY: JWT_SECRET environment variable is required in production. '
+        + 'Set JWT_SECRET to a secure, random string with at least 32 characters.'
+      );
+    }
+    // Only use fallback in development with clear warning
+    console.warn(
+      'SECURITY WARNING: Using insecure JWT_SECRET fallback. '
+      + 'This is only for development. Set JWT_SECRET environment variable!'
+    );
+    return new TextEncoder().encode('dev-only-secret-min-32-chars-do-not-use-in-production');
+  }
+  
+  // Validate secret length in production
+  if (process.env.NODE_ENV === 'production' && secret.length < 32) {
+    throw new Error(
+      'SECURITY: JWT_SECRET must be at least 32 characters long for production use.'
+    );
+  }
+  
   return new TextEncoder().encode(secret);
 }
 

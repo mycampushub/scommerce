@@ -1,10 +1,14 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react'
 import { Star, Check, ChevronDown, ChevronUp, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+
+export interface ReviewsSectionHandle {
+  refetch: () => void
+}
 
 interface Review {
   id: string
@@ -26,13 +30,14 @@ interface ReviewsSectionProps {
   reviewCount?: number
 }
 
-export function ReviewsSection({ productId, averageRating = 0, reviewCount = 0 }: ReviewsSectionProps) {
-  const [reviews, setReviews] = useState<Review[]>([])
-  const [loading, setLoading] = useState(true)
-  const [sortBy, setSortBy] = useState<'latest' | 'highest'>('latest')
-  const [showAll, setShowAll] = useState(false)
+export const ReviewsSection = forwardRef<ReviewsSectionHandle, ReviewsSectionProps>(
+  ({ productId, averageRating = 0, reviewCount = 0 }, ref) => {
+    const [reviews, setReviews] = useState<Review[]>([])
+    const [loading, setLoading] = useState(true)
+    const [sortBy, setSortBy] = useState<'latest' | 'highest'>('latest')
+    const [showAll, setShowAll] = useState(false)
 
-  const fetchReviews = useCallback(async () => {
+    const fetchReviews = useCallback(async () => {
     try {
       setLoading(true)
       const response = await fetch(`/api/reviews?productId=${productId}`)
@@ -47,6 +52,11 @@ export function ReviewsSection({ productId, averageRating = 0, reviewCount = 0 }
       setLoading(false)
     }
   }, [productId])
+
+  // Expose refetch method to parent components
+  useImperativeHandle(ref, () => ({
+    refetch: fetchReviews
+  }), [fetchReviews])
 
   useEffect(() => {
     fetchReviews()
@@ -223,4 +233,7 @@ export function ReviewsSection({ productId, averageRating = 0, reviewCount = 0 }
       </div>
     </section>
   )
-}
+  }
+)
+
+ReviewsSection.displayName = 'ReviewsSection'

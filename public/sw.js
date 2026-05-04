@@ -11,7 +11,7 @@ const urlsToCache = [
   '/api/stories',
   '/api/reels',
   '/api/promotions',
-  '/logo.svg',
+  '/logo.png',
   '/favicon.svg',
 ]
 

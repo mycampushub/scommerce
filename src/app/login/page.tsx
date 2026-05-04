@@ -118,14 +118,19 @@ export default function LoginPage() {
         return
       }
       
-      // Validate redirect URL - only allow relative URLs and prevent login loops
+      // Validate redirect URL to prevent open redirects
+      // Only allow relative URLs starting with '/' (prevent same-origin absolute URLs)
       if (redirectTo && redirectTo !== '/login' && redirectTo !== '/login/' && !redirectTo.includes('login') && !redirectTo.startsWith('//')) {
-        try {
-          if (redirectTo.startsWith('/')) {
+        // Strict check: only allow relative paths starting with single '/'
+        if (redirectTo.startsWith('/') && !redirectTo.startsWith('//')) {
+          // Additional safety: ensure no suspicious patterns
+          // Reject if contains :// (absolute URL with protocol)
+          // Reject if contains \\ (backslash, path traversal attempt)
+          if (!redirectTo.includes('://') && !redirectTo.includes('\\')) {
             router.push(redirectTo)
             return
           }
-        } catch {}
+        }
       }
       
       // Default redirect based on role
@@ -255,8 +260,8 @@ export default function LoginPage() {
             {/* Demo Credentials */}
             <div className="text-center text-sm text-gray-600 bg-gray-50 p-4 rounded-lg">
               <p className="font-semibold mb-2">Demo Credentials:</p>
-              <p>Admin: admin@example.com (any password)</p>
-              <p>User: user1@example.com (any password)</p>
+              <p>Admin: admin@scommerce.com / admin123</p>
+              <p>Customer: fatema@example.com / user123</p>
             </div>
 
             {/* Links */}
