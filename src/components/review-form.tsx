@@ -100,18 +100,21 @@ export function ReviewForm({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-bold">Write a Review</DialogTitle>
-          <button
-            onClick={onClose}
-            className="absolute right-4 top-4 rounded-sm opacity-70 hover:opacity-100 transition-opacity"
-          >
-            <X className="h-4 w-4" />
-          </button>
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto" showCloseButton={false}>
+        <DialogHeader className="sticky top-0 bg-background z-10 pb-4">
+          <div className="flex items-center justify-between pr-10">
+            <DialogTitle className="text-xl font-bold">Write a Review</DialogTitle>
+            <button
+              onClick={onClose}
+              className="absolute right-4 top-4 flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+              aria-label="Close dialog"
+            >
+              <X className="w-5 h-5 text-gray-600" />
+            </button>
+          </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6 mt-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           {/* Product Info */}
           <div className="p-4 bg-gray-50 rounded-lg">
             <p className="text-sm text-gray-600">Reviewing:</p>
@@ -135,7 +138,7 @@ export function ReviewForm({
           {/* Rating */}
           <div className="space-y-2">
             <Label className="text-base font-semibold">Overall Rating</Label>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
                   key={star}
@@ -144,10 +147,11 @@ export function ReviewForm({
                   onClick={() => setRating(star)}
                   onMouseEnter={() => setHoverRating(star)}
                   onMouseLeave={() => setHoverRating(0)}
-                  className="transition-transform hover:scale-110 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="transition-transform hover:scale-110 disabled:cursor-not-allowed disabled:opacity-50 p-1 -m-1"
+                  aria-label={`Rate ${star} stars`}
                 >
                   <Star
-                    className={`w-8 h-8 ${
+                    className={`w-9 h-9 sm:w-8 sm:h-8 ${
                       star <= (hoverRating || rating)
                         ? 'fill-yellow-400 text-yellow-400'
                         : 'text-gray-300'
@@ -190,7 +194,7 @@ export function ReviewForm({
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               disabled={!isAuthenticated || submitting}
-              rows={4}
+              rows={5}
               maxLength={1000}
               required
               className={!isAuthenticated ? 'bg-gray-50' : ''}
@@ -202,7 +206,7 @@ export function ReviewForm({
           <Button
             type="submit"
             disabled={!isAuthenticated || submitting}
-            className="w-full"
+            className="w-full min-h-[44px] text-base"
           >
             {submitting ? (
               <>

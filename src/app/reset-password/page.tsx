@@ -162,18 +162,19 @@ function ResetPasswordContent() {
                       onChange={(e) => setNewPassword(e.target.value)}
                       required
                       disabled={loading || !token}
-                      className="pl-10 pr-10"
+                      className="pl-10 pr-12"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                       disabled={loading}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
                     >
                       {showPassword ? (
-                        <EyeOff className="w-4 h-4" />
+                        <EyeOff className="w-5 h-5" />
                       ) : (
-                        <Eye className="w-4 h-4" />
+                        <Eye className="w-5 h-5" />
                       )}
                     </button>
                   </div>
@@ -195,18 +196,19 @@ function ResetPasswordContent() {
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       required
                       disabled={loading || !token}
-                      className="pl-10 pr-10"
+                      className="pl-10 pr-12"
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                       disabled={loading}
+                      aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
                     >
                       {showConfirmPassword ? (
-                        <EyeOff className="w-4 h-4" />
+                        <EyeOff className="w-5 h-5" />
                       ) : (
-                        <Eye className="w-4 h-4" />
+                        <Eye className="w-5 h-5" />
                       )}
                     </button>
                   </div>

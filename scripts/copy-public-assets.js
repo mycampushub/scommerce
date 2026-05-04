@@ -23,7 +23,7 @@ if (!fs.existsSync(targetDir)) {
 const filesToCopy = [
   'favicon.ico',
   'favicon.svg',
-  'logo.png',
+  'logo.svg',
   'manifest.json',
   'robots.txt',
   'sw.js'

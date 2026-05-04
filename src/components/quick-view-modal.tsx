@@ -104,7 +104,8 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
 
         <button
           onClick={() => onOpenChange(false)}
-          className="absolute right-4 top-4 z-10 w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-gray-100 transition-colors"
+          aria-label="Close quick view"
+          className="absolute right-4 top-4 z-10 min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-white shadow-md flex items-center justify-center hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2"
         >
           <X className="w-5 h-5" />
         </button>
@@ -125,7 +126,8 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
               />
               <button
                 onClick={() => setIsWishlisted(!isWishlisted)}
-                className="absolute top-3 right-3 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md hover:bg-pink-600 hover:text-white transition-colors"
+                aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+                className="absolute top-3 right-3 min-w-[44px] min-h-[44px] w-11 h-11 bg-white rounded-full flex items-center justify-center shadow-md hover:bg-pink-600 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2"
               >
                 <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-pink-600 text-pink-600' : ''}`} />
               </button>
@@ -137,7 +139,8 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
                   <button
                     key={idx}
                     onClick={() => setSelectedImageIndex(idx)}
-                    className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                    aria-label={`View image ${idx + 1} of ${productImages.length}`}
+                    className={`flex-shrink-0 min-w-[64px] min-h-[64px] w-16 h-16 rounded-lg overflow-hidden border-2 transition-all focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2 ${
                       selectedImageIndex === idx
                         ? 'border-pink-600 ring-2 ring-pink-200'
                         : 'border-gray-200 hover:border-pink-400'
@@ -209,13 +212,17 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
                     <button
                       key={size}
                       onClick={() => setSelectedSize(size)}
-                      className={`px-4 py-2 rounded-lg border-2 font-medium transition-colors ${
-                        selectedSize === size
-                          ? 'border-pink-600 bg-pink-600 text-white'
-                          : 'border-gray-300 text-gray-700 hover:border-pink-600'
-                      }`}
+                      className="min-h-[44px] px-4 py-3 rounded-lg border-2 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2"
                     >
-                      {size}
+                      <span className={`transition-all ${
+                        selectedSize === size
+                          ? ''
+                          : ''
+                      }`}
+                        style={{ color: selectedSize === size ? 'white' : '' }}
+                      >
+                        {size}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -231,13 +238,17 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
                     <button
                       key={color}
                       onClick={() => setSelectedColor(color)}
-                      className={`px-4 py-2 rounded-lg border-2 font-medium transition-colors ${
-                        selectedColor === color
-                          ? 'border-pink-600 bg-pink-600 text-white'
-                          : 'border-gray-300 text-gray-700 hover:border-pink-600'
-                      }`}
+                      className="min-h-[44px] px-4 py-3 rounded-lg border-2 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2"
                     >
-                      {color}
+                      <span className={`transition-all ${
+                        selectedColor === color
+                          ? ''
+                          : ''
+                      }`}
+                        style={{ color: selectedColor === color ? 'white' : '' }}
+                      >
+                        {color}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -252,14 +263,16 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="w-10 h-10 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors"
+                  aria-label="Decrease quantity"
+                  className="min-w-[44px] min-h-[44px] w-12 h-12 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2"
                 >
                   <Minus className="w-4 h-4" />
                 </button>
-                <span className="w-16 text-center text-lg font-semibold">{quantity}</span>
+                <span className="w-16 text-center text-lg font-semibold" aria-live="polite">{quantity}</span>
                 <button
                   onClick={() => setQuantity(quantity + 1)}
-                  className="w-10 h-10 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors"
+                  aria-label="Increase quantity"
+                  className="min-w-[44px] min-h-[44px] w-12 h-12 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2"
                 >
                   <Plus className="w-4 h-4" />
                 </button>
@@ -270,39 +283,12 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
             <div className="mt-auto space-y-3">
               <button
                 onClick={handleAddToCart}
-                className="w-full bg-pink-600 text-white py-4 rounded-xl font-semibold hover:bg-pink-700 transition-colors flex items-center justify-center gap-2"
+                className="min-h-[48px] w-full bg-pink-600 text-white py-4 rounded-xl font-semibold hover:bg-pink-700 transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2"
               >
                 <ShoppingCart className="w-5 h-5" />
                 Add to Cart
               </button>
-              <button
-                onClick={() => {
-                  // Add to cart and navigate to checkout
-                  if (sizes.length > 0 && !selectedSize) {
-                    toast.error('Please select a size')
-                    return
-                  }
-
-                  addItem({
-                    id: product.id,
-                    name: product.name,
-                    price: product.price,
-                    originalPrice: product.originalPrice,
-                    image: product.image,
-                    size: selectedSize || undefined,
-                    color: selectedColor || undefined,
-                    quantity,
-                  })
-
-                  toast.success('Redirecting to checkout...')
-                  onOpenChange(false)
-                  // Navigate to checkout after a short delay
-                  setTimeout(() => {
-                    window.location.href = '/checkout'
-                  }, 500)
-                }}
-                className="w-full border-2 border-pink-600 text-pink-600 py-4 rounded-xl font-semibold hover:bg-pink-50 transition-colors"
-              >
+              <button className="min-h-[48px] w-full border-2 border-pink-600 text-pink-600 py-4 rounded-xl font-semibold hover:bg-pink-50 transition-colors focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2">
                 Buy Now
               </button>
             </div>

@@ -419,7 +419,8 @@ export default function ShopPage() {
                   <button
                     onClick={() => setCurrentPage((prev) => Math.max(0, prev - 1))}
                     disabled={currentPage === 0}
-                    className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-50"
+                    className="w-11 h-11 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-50"
+                    aria-label="Previous page"
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </button>
@@ -427,11 +428,12 @@ export default function ShopPage() {
                     <button
                       key={i}
                       onClick={() => setCurrentPage(i)}
-                      className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                      className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
                         currentPage === i
                           ? 'bg-pink-600 text-white'
                           : 'hover:bg-gray-100'
                       }`}
+                      aria-label={`Page ${i + 1}`}
                     >
                       {i + 1}
                     </button>
@@ -439,7 +441,8 @@ export default function ShopPage() {
                   <button
                     onClick={() => setCurrentPage((prev) => Math.min(totalPages - 1, prev + 1))}
                     disabled={currentPage === totalPages - 1}
-                    className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-50"
+                    className="w-11 h-11 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-50"
+                    aria-label="Next page"
                   >
                     <ChevronRight className="w-5 h-5" />
                   </button>

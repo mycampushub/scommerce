@@ -79,7 +79,7 @@ export default function RootLayout({
         <OrganizationStructuredData
           siteName="Modern E-commerce"
           siteUrl={SITE_URL}
-          logo="/logo.png"
+          logo="/logo.svg"
           description="Modern e-commerce platform for fashion and lifestyle products"
         />
       </head>
@@ -91,7 +91,7 @@ export default function RootLayout({
           <ServiceWorkerRegistration />
           {children}
           <Toaster />
-          <SonnerToaster position="bottom-right" />
+          <SonnerToaster position="top-center" />
         </CacheProvider>
       </body>
     </html>

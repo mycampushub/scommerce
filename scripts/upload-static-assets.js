@@ -13,7 +13,7 @@ const __dirname = path.dirname(__filename);
 // Files and directories to upload
 const staticAssets = [
   // Public folder assets
-  { source: 'public/logo.png', target: 'logo.png' },
+  { source: 'public/logo.svg', target: 'logo.svg' },
   { source: 'public/favicon.ico', target: 'favicon.ico' },
   { source: 'public/favicon.svg', target: 'favicon.svg' },
   { source: 'public/manifest.json', target: 'manifest.json' },

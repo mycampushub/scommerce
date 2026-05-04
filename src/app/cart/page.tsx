@@ -143,8 +143,9 @@ export default function CartPage() {
               <div className="flex-1 space-y-4">
                 {items.map((item) => (
                   <div key={`${item.id}-${item.size}-${item.color}`} className="bg-white rounded-xl p-4 md:p-6 shadow-sm">
-                    <div className="flex gap-4 md:gap-6">
-                      <div className="w-24 md:w-32 flex-shrink-0">
+                    {/* Desktop Layout: Horizontal */}
+                    <div className="hidden md:flex gap-4 md:gap-6">
+                      <div className="w-24 md:w-28 flex-shrink-0">
                         <Link href={`/product/${item.id}`}>
                           <img
                             src={item.image}
@@ -153,11 +154,11 @@ export default function CartPage() {
                           />
                         </Link>
                       </div>
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-0 flex flex-col justify-between">
                         <div className="flex justify-between items-start gap-4">
                           <div className="flex-1 min-w-0">
                             <Link href={`/product/${item.id}`}>
-                              <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2 hover:text-pink-600 transition-colors">
+                              <h3 className="font-semibold text-base text-gray-900 mb-1 line-clamp-2 hover:text-pink-600 transition-colors">
                                 {item.name}
                               </h3>
                             </Link>
@@ -166,7 +167,7 @@ export default function CartPage() {
                               {item.size && item.color && ' | '}
                               {item.color && <span>Color: {item.color}</span>}
                             </p>
-                            <div className="flex items-center gap-2 mb-3">
+                            <div className="flex items-center gap-2 mb-2">
                               <span className="text-lg font-bold text-gray-900">{formatCurrency(item.price)}</span>
                               {item.originalPrice && (
                                 <span className="text-sm text-gray-400 line-through">{formatCurrency(item.originalPrice)}</span>
@@ -175,27 +176,90 @@ export default function CartPage() {
                           </div>
                           <button
                             onClick={() => removeItem(item.id, item.variantId)}
-                            className="text-gray-400 hover:text-red-600 transition-colors"
+                            className="flex-shrink-0 p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            aria-label="Remove item"
                           >
                             <Trash2 className="w-5 h-5" />
                           </button>
                         </div>
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => updateQuantity(item.id, item.quantity - 1, item.variantId)}
+                            className="w-11 h-11 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-50"
+                            disabled={item.quantity <= 1}
+                            aria-label="Decrease quantity"
+                          >
+                            <Minus className="w-4 h-4" />
+                          </button>
+                          <span className="w-12 text-center font-semibold text-base">{item.quantity}</span>
+                          <button
+                            onClick={() => updateQuantity(item.id, item.quantity + 1, item.variantId)}
+                            className="w-11 h-11 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors"
+                            aria-label="Increase quantity"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <button
-                          onClick={() => updateQuantity(item.id, item.quantity - 1, item.variantId)}
-                          className="w-8 h-8 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-50"
-                          disabled={item.quantity <= 1}
-                        >
-                          <Minus className="w-4 h-4" />
-                        </button>
-                        <span className="w-10 text-center font-semibold">{item.quantity}</span>
-                        <button
-                          onClick={() => updateQuantity(item.id, item.quantity + 1, item.variantId)}
-                          className="w-8 h-8 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </button>
+                    </div>
+
+                    {/* Mobile Layout: Vertical with better spacing */}
+                    <div className="flex md:hidden gap-4">
+                      <div className="w-20 flex-shrink-0">
+                        <Link href={`/product/${item.id}`}>
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="w-full aspect-[3/4] object-cover rounded-lg"
+                          />
+                        </Link>
+                      </div>
+                      <div className="flex-1 min-w-0 flex flex-col">
+                        <div className="flex justify-between items-start gap-2 mb-2">
+                          <Link href={`/product/${item.id}`} className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-sm text-gray-900 mb-1 line-clamp-2 hover:text-pink-600 transition-colors">
+                              {item.name}
+                            </h3>
+                          </Link>
+                          <button
+                            onClick={() => removeItem(item.id, item.variantId)}
+                            className="flex-shrink-0 p-2 text-gray-400 hover:text-red-600 rounded-lg transition-colors"
+                            aria-label="Remove item"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-500 mb-2">
+                          {item.size && <span>Size: {item.size}</span>}
+                          {item.size && item.color && ' | '}
+                          {item.color && <span>Color: {item.color}</span>}
+                        </p>
+                        <div className="flex items-center justify-between mt-auto gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base font-bold text-gray-900">{formatCurrency(item.price)}</span>
+                            {item.originalPrice && (
+                              <span className="text-xs text-gray-400 line-through">{formatCurrency(item.originalPrice)}</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => updateQuantity(item.id, item.quantity - 1, item.variantId)}
+                              className="w-9 h-9 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-50"
+                              disabled={item.quantity <= 1}
+                              aria-label="Decrease quantity"
+                            >
+                              <Minus className="w-4 h-4" />
+                            </button>
+                            <span className="w-8 text-center font-semibold text-base">{item.quantity}</span>
+                            <button
+                              onClick={() => updateQuantity(item.id, item.quantity + 1, item.variantId)}
+                              className="w-9 h-9 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors"
+                              aria-label="Increase quantity"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -236,26 +300,26 @@ export default function CartPage() {
                   {/* Promo Code */}
                   <div className="mb-6">
                     <label className="block text-sm font-medium text-gray-700 mb-2">Promo Code</label>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap sm:flex-nowrap">
                       <input
                         type="text"
                         value={promoCode}
                         onChange={(e) => setPromoCode(e.target.value)}
                         placeholder="Enter code"
                         disabled={!!appliedDiscount}
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-1 min-w-0 px-4 py-3 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                       />
                       {!appliedDiscount ? (
                         <button
                           onClick={handleApplyPromo}
                           disabled={isApplyingPromo}
-                          className="px-4 py-2 bg-pink-600 text-white rounded-lg font-medium hover:bg-pink-700 transition-colors disabled:opacity-50"
+                          className="px-6 py-3 min-h-[48px] bg-pink-600 text-white rounded-lg font-medium hover:bg-pink-700 transition-colors disabled:opacity-50"
                         >
                           {isApplyingPromo ? 'Applying...' : 'Apply'}
                         </button>
                       ) : (
-                        <div className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg">
-                          <span className="font-semibold">{appliedDiscount.code}</span>
+                        <div className="flex items-center gap-2 px-4 py-3 bg-green-100 text-green-700 rounded-lg">
+                          <span className="font-semibold whitespace-nowrap">{appliedDiscount.code}</span>
                           <button
                             onClick={handleClearPromo}
                             className="text-green-600 hover:text-green-800 font-medium"
@@ -272,8 +336,8 @@ export default function CartPage() {
                   <div className="bg-pink-50 rounded-lg p-4 mb-6">
                     <div className="flex items-start gap-3">
                       <Check className="w-5 h-5 text-pink-600 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">Free Shipping on Orders Over {formatCurrency(freeShippingThreshold)}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 mb-1">Free Shipping on Orders Over {formatCurrency(freeShippingThreshold)}</p>
                         <p className="text-sm text-gray-600">
                           {subtotal >= freeShippingThreshold
                             ? "You've qualified for free shipping!"
@@ -287,7 +351,7 @@ export default function CartPage() {
                   {/* Checkout Button */}
                   <Link
                     href="/checkout"
-                    className="w-full bg-pink-600 text-white py-4 rounded-xl font-semibold hover:bg-pink-700 transition-colors flex items-center justify-center gap-2 mb-4"
+                    className="w-full min-h-[52px] bg-pink-600 text-white py-4 rounded-xl font-semibold hover:bg-pink-700 transition-colors flex items-center justify-center gap-2 mb-4"
                   >
                     Proceed to Checkout
                     <ArrowRight className="w-5 h-5" />
@@ -295,7 +359,7 @@ export default function CartPage() {
 
                   <Link
                     href="/shop"
-                    className="w-full py-4 border border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                    className="w-full min-h-[52px] py-4 border border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
                   >
                     Continue Shopping
                   </Link>

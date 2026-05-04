@@ -466,13 +466,15 @@ export default function ProductPage() {
                   <>
                     <button
                       onClick={prevImage}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-100 transition-colors"
+                      aria-label="Previous image"
+                      className="absolute left-4 top-1/2 -translate-y-1/2 min-w-[44px] min-h-[44px] w-11 h-11 sm:w-10 sm:h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-100 transition-colors"
                     >
                       <ChevronLeft className="w-5 h-5" />
                     </button>
                     <button
                       onClick={nextImage}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-100 transition-colors"
+                      aria-label="Next image"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 min-w-[44px] min-h-[44px] w-11 h-11 sm:w-10 sm:h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-100 transition-colors"
                     >
                       <ChevronRight className="w-5 h-5" />
                     </button>
@@ -480,18 +482,19 @@ export default function ProductPage() {
                 )}
               </div>
               {currentImages.length > 1 && (
-                <div className="grid grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                   {currentImages.map((image: string, index: number) => (
                     <button
                       key={index}
                       onClick={() => setCurrentImage(index)}
-                      className={`aspect-[3/4] rounded-lg overflow-hidden border-2 transition-all ${
+                      aria-label={`View image ${index + 1} of ${currentImages.length}`}
+                      className={`min-h-[80px] aspect-[3/4] rounded-lg overflow-hidden border-2 transition-all focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2 ${
                         currentImage === index ? 'border-pink-600' : 'border-transparent'
                       }`}
                     >
                       <img
                         src={image}
-                        alt={`${product.name} ${index + 1}`}
+                        alt={`${product.name} view ${index + 1}`}
                         className="w-full h-full object-cover"
                       />
                     </button>
@@ -550,18 +553,21 @@ export default function ProductPage() {
                   {availableSizes.length > 0 && (
                     <div>
                       <h3 className="font-semibold text-gray-900 mb-3">Size: <span className="text-pink-600">{selectedSize || 'Select'}</span></h3>
-                      <div className="flex flex-wrap gap-3">
+                      <div className="flex flex-wrap gap-2 sm:gap-3">
                         {availableSizes.map((size) => (
                           <button
                             key={size}
                             onClick={() => handleVariantSelection(size, selectedColor as string, selectedMaterial as string)}
-                            className={`w-20 py-3 rounded-lg border-2 font-medium transition-all ${
-                              selectedSize === size
-                                ? 'border-pink-600 bg-pink-50 text-pink-600'
-                                : 'border-gray-300 hover:border-gray-400'
-                            }`}
+                            className="min-h-[44px] w-20 px-3 py-3 rounded-lg border-2 font-medium transition-all focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2"
                           >
-                            {size}
+                            <span className={`transition-all ${
+                              selectedSize === size
+                                ? 'text-pink-600'
+                                : ''
+                            }`}
+                            >
+                              {size}
+                            </span>
                           </button>
                         ))}
                       </div>
@@ -572,18 +578,21 @@ export default function ProductPage() {
                   {availableColors.length > 0 && (
                     <div>
                       <h3 className="font-semibold text-gray-900 mb-3">Color: <span className="text-pink-600">{selectedColor || 'Select'}</span></h3>
-                      <div className="flex flex-wrap gap-3">
+                      <div className="flex flex-wrap gap-2 sm:gap-3">
                         {availableColors.map((color) => (
                           <button
                             key={color}
                             onClick={() => handleVariantSelection(selectedSize as string, color, selectedMaterial as string)}
-                            className={`px-4 py-2 rounded-lg border-2 transition-all ${
-                              selectedColor === color
-                                ? 'border-pink-600 bg-pink-50 text-pink-600'
-                                : 'border-gray-300 hover:border-gray-400'
-                            }`}
+                            className="min-h-[44px] px-4 py-3 rounded-lg border-2 font-medium transition-all focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2"
                           >
-                            {color}
+                            <span className={`transition-all ${
+                              selectedColor === color
+                                ? 'text-pink-600'
+                                : ''
+                            }`}
+                            >
+                              {color}
+                            </span>
                           </button>
                         ))}
                       </div>
@@ -594,18 +603,21 @@ export default function ProductPage() {
                   {availableMaterials.length > 0 && (
                     <div>
                       <h3 className="font-semibold text-gray-900 mb-3">Material: <span className="text-pink-600">{selectedMaterial || 'Select'}</span></h3>
-                      <div className="flex flex-wrap gap-3">
+                      <div className="flex flex-wrap gap-2 sm:gap-3">
                         {availableMaterials.map((material) => (
                           <button
                             key={material}
                             onClick={() => handleVariantSelection(selectedSize as string, selectedColor as string, material)}
-                            className={`px-4 py-2 rounded-lg border-2 transition-all ${
-                              selectedMaterial === material
-                                ? 'border-pink-600 bg-pink-50 text-pink-600'
-                                : 'border-gray-300 hover:border-gray-400'
-                            }`}
+                            className="min-h-[44px] px-4 py-3 rounded-lg border-2 font-medium transition-all focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2"
                           >
-                            {material}
+                            <span className={`transition-all ${
+                              selectedMaterial === material
+                                ? 'text-pink-600'
+                                : ''
+                            }`}
+                            >
+                              {material}
+                            </span>
                           </button>
                         ))}
                       </div>
@@ -620,14 +632,16 @@ export default function ProductPage() {
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
-                    className="w-12 h-12 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors"
+                    aria-label="Decrease quantity"
+                    className="min-w-[44px] min-h-[44px] w-12 h-12 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2"
                   >
                     <Minus className="w-5 h-5" />
                   </button>
-                  <span className="w-16 text-center text-xl font-semibold">{quantity}</span>
+                  <span className="w-16 text-center text-xl font-semibold" aria-live="polite">{quantity}</span>
                   <button
                     onClick={() => setQuantity((prev) => prev + 1)}
-                    className="w-12 h-12 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors"
+                    aria-label="Increase quantity"
+                    className="min-w-[44px] min-h-[44px] w-12 h-12 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2"
                   >
                     <Plus className="w-5 h-5" />
                   </button>
@@ -640,7 +654,7 @@ export default function ProductPage() {
                   <button
                     onClick={handleAddToCart}
                     disabled={currentStock <= 0 || (product.hasVariants && !selectedVariant)}
-                    className={`flex-1 py-4 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 ${
+                    className={`min-h-[48px] flex-1 py-4 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2 ${
                       currentStock <= 0 || (product.hasVariants && !selectedVariant)
                         ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                         : 'bg-pink-600 text-white hover:bg-pink-700'
@@ -651,20 +665,21 @@ export default function ProductPage() {
                   </button>
                   <button
                     onClick={() => setIsWishlisted(!isWishlisted)}
-                    className={`w-full sm:w-auto px-8 py-4 rounded-xl font-semibold border-2 transition-colors flex items-center justify-center gap-2 ${
+                    aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+                    className={`min-h-[48px] w-full sm:w-auto px-8 py-4 rounded-xl font-semibold border-2 transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2 ${
                       isWishlisted
                         ? 'border-pink-600 text-pink-600'
                         : 'border-gray-300 text-gray-700 hover:border-gray-400'
                     }`}
                   >
                     <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-pink-600' : ''}`} />
-                    {isWishlisted ? 'Wishlisted' : 'Wishlist'}
+                    <span className="hidden sm:inline">{isWishlisted ? 'Wishlisted' : 'Wishlist'}</span>
                   </button>
                 </div>
                 <Button
                   onClick={() => setReviewFormOpen(true)}
                   variant="outline"
-                  className="w-full"
+                  className="w-full min-h-[48px]"
                 >
                   Write a Review
                 </Button>
@@ -672,9 +687,10 @@ export default function ProductPage() {
 
               {/* Share */}
               <div className="flex items-center gap-4 pt-4 border-t border-gray-200">
-                <button className="flex items-center gap-2 text-gray-600 hover:text-pink-600 transition-colors">
+                <button className="min-h-[44px] px-4 py-3 rounded-lg flex items-center gap-2 text-gray-600 hover:text-pink-600 hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2">
                   <Share2 className="w-5 h-5" />
-                  Share this product
+                  <span className="hidden sm:inline">Share this product</span>
+                  <span className="sm:hidden">Share</span>
                 </button>
               </div>
 
@@ -790,18 +806,21 @@ export default function ProductPage() {
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                   </Link>
-                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                  <div className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
                     <Link
                       href={`/product/${product.id}`}
-                      className="bg-white text-gray-900 px-6 py-2 rounded-full text-sm font-medium hover:bg-pink-600 hover:text-white"
+                      className="min-h-[40px] px-4 sm:px-6 py-2 sm:py-2.5 rounded-full text-sm font-medium bg-white text-gray-900 hover:bg-pink-600 hover:text-white transition-colors"
                     >
-                      Quick View
+                      <span className="hidden sm:inline">Quick View</span>
+                      <span className="sm:hidden">View</span>
                     </Link>
                     <button
                       onClick={() => addRelatedProductToCart(product)}
-                      className="bg-pink-600 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-pink-700"
+                      aria-label={`Add ${product.name} to cart`}
+                      className="min-h-[40px] px-3 sm:px-4 py-2 sm:py-2.5 rounded-full text-sm font-medium bg-pink-600 text-white hover:bg-pink-700 transition-colors"
                     >
-                      Add to Cart
+                      <span className="hidden sm:inline">Add to Cart</span>
+                      <span className="sm:hidden">Add</span>
                     </button>
                   </div>
                 </div>
@@ -856,18 +875,21 @@ export default function ProductPage() {
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                       </Link>
-                      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                      <div className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
                         <Link
                           href={`/product/${product.id}`}
-                          className="bg-white text-gray-900 px-6 py-2 rounded-full text-sm font-medium hover:bg-pink-600 hover:text-white"
+                          className="min-h-[40px] px-4 sm:px-6 py-2 sm:py-2.5 rounded-full text-sm font-medium bg-white text-gray-900 hover:bg-pink-600 hover:text-white transition-colors"
                         >
-                          Quick View
+                          <span className="hidden sm:inline">Quick View</span>
+                          <span className="sm:hidden">View</span>
                         </Link>
                         <button
                           onClick={() => addRelatedProductToCart(product)}
-                          className="bg-pink-600 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-pink-700"
+                          aria-label={`Add ${product.name} to cart`}
+                          className="min-h-[40px] px-3 sm:px-4 py-2 sm:py-2.5 rounded-full text-sm font-medium bg-pink-600 text-white hover:bg-pink-700 transition-colors"
                         >
-                          Add to Cart
+                          <span className="hidden sm:inline">Add to Cart</span>
+                          <span className="sm:hidden">Add</span>
                         </button>
                       </div>
                     </div>

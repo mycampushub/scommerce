@@ -164,7 +164,7 @@ export default function SearchPage() {
                             loading="lazy"
                           />
                         </Link>
-                        <button className="absolute top-3 right-3 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-pink-600 hover:text-white">
+                        <button className="absolute top-3 right-3 w-11 h-11 bg-white rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-pink-600 hover:text-white" aria-label="Add to wishlist">
                           <Heart className="w-5 h-5" />
                         </button>
                         <Link

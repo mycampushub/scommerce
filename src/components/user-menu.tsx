@@ -39,13 +39,15 @@ export function UserMenu({ user, loading, isAdmin, onLogout }: UserMenuProps) {
   if (!user) {
     // User not logged in - show login link that navigates directly to login page
     return (
-      <Link
-        href="/login"
-        className="hidden md:flex items-center gap-2 text-gray-700 hover:text-pink-600 transition-colors"
+      <Button
+        variant="ghost"
+        size="icon"
+        className="hidden md:flex items-center gap-2"
+        onClick={() => router.push('/login')}
         aria-label="Login"
       >
         <User className="w-5 h-5" />
-      </Link>
+      </Button>
     )
   }
 

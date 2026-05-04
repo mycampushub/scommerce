@@ -9,9 +9,9 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/logo.png",
-      "sizes": "512x512",
-      "type": "image/png",
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
@@ -33,28 +33,28 @@
       "short_name": "Shop",
       "description": "Browse our products",
       "url": "/shop",
-      "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/logo.svg", "sizes": "192x192" }]
     },
     {
       "name": "Cart",
       "short_name": "Cart",
       "description": "View your cart",
       "url": "/cart",
-      "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/logo.svg", "sizes": "192x192" }]
     },
     {
       "name": "Wishlist",
       "short_name": "Wishlist",
       "description": "View your wishlist",
       "url": "/wishlist",
-      "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/logo.svg", "sizes": "192x192" }]
     },
     {
       "name": "Account",
       "short_name": "Account",
       "description": "Manage your account",
       "url": "/account/orders",
-      "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/logo.svg", "sizes": "192x192" }]
     }
   ]
 }

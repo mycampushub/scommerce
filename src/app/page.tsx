@@ -2,12 +2,10 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { usePathname } from 'next/navigation'
-import Link from 'next/link'
 import { ChevronLeft, ChevronRight, X, Heart, MessageCircle, Share2, ShoppingCart, Star, Play, Search, User, Menu, Phone, Mail, Instagram, Facebook, Twitter, Youtube, Linkedin, ShoppingBag, Home as HomeIcon } from 'lucide-react'
 import { useScrollDirection } from '@/hooks/use-scroll-direction'
 import { useCartStore } from '@/lib/store/cart-store'
 import { QuickViewModal } from '@/components/quick-view-modal'
-import { MobileBottomNav } from '@/components/mobile-bottom-nav'
 
 // Types
 interface Banner {
@@ -92,7 +90,7 @@ function Navbar({ cartCount = 3 }: { cartCount?: number }) {
           {/* Logo */}
           <a href="/" className="flex items-center">
             <img
-              src="/logo.png"
+              src="/logo.svg"
               alt="modern ecommerce"
               className="h-10 md:h-12 w-auto"
             />
@@ -862,173 +860,7 @@ function FullscreenVideo() {
   )
 }
 
-// 7. Floating Category Carousel Component
-function FloatingCategoryCarousel({ categories, onQuickView, onAddToCart }: { categories: Category[]; onQuickView: (product: Product) => void; onAddToCart: (product: Product) => void }) {
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [categoryProducts, setCategoryProducts] = useState<Record<string, Product[]>>({})
-
-  // Fetch products for each category
-  useEffect(() => {
-    categories.forEach(async (category) => {
-      try {
-        const response = await fetch(`/api/products?category=${category.href.split('/').pop()}&limit=4`)
-        if (response.ok) {
-          const data = await response.json() as any
-          setCategoryProducts(prev => ({
-            ...prev,
-            [category.id]: data.products || data || []
-          }))
-        }
-      } catch (error) {
-        console.error(`Error fetching products for category ${category.id}:`, error)
-      }
-    })
-  }, [categories])
-
-  if (categories.length === 0) {
-    return null
-  }
-
-  const handlePrev = () => {
-    setCurrentIndex((prev) => (prev - 1 + categories.length) % categories.length)
-  }
-
-  const handleNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % categories.length)
-  }
-
-  const currentCategory = categories[currentIndex]
-  const currentProducts = categoryProducts[currentCategory.id] || []
-
-  return (
-    <section className="relative z-10 w-full bg-gradient-to-b from-white to-gray-50 shadow-lg">
-      <div className="container mx-auto px-4 py-8">
-        {/* Category Navigation - Full Width */}
-        <div className="flex items-center justify-between mb-8">
-          <button
-            onClick={handlePrev}
-            className="w-12 h-12 rounded-full border border-gray-300 flex items-center justify-center hover:bg-pink-600 hover:border-pink-600 hover:text-white transition-colors"
-            aria-label="Previous category"
-          >
-            <ChevronLeft className="w-6 h-6" />
-          </button>
-
-          <div className="flex gap-4 md:gap-8 overflow-x-auto scrollbar-hide">
-            {categories.map((cat, index) => (
-              <button
-                key={cat.id}
-                onClick={() => setCurrentIndex(index)}
-                className={`text-sm md:text-base font-semibold transition-colors whitespace-nowrap ${
-                  index === currentIndex
-                    ? 'text-pink-600 underline decoration-2 underline-offset-4'
-                    : 'text-gray-500 hover:text-pink-600'
-                }`}
-              >
-                {cat.name}
-              </button>
-            ))}
-          </div>
-
-          <button
-            onClick={handleNext}
-            className="w-12 h-12 rounded-full border border-gray-300 flex items-center justify-center hover:bg-pink-600 hover:border-pink-600 hover:text-white transition-colors"
-            aria-label="Next category"
-          >
-            <ChevronRight className="w-6 h-6" />
-          </button>
-        </div>
-
-        {/* Category Products - Display One by One */}
-        <div className="overflow-hidden">
-          <div
-            className="flex transition-transform duration-500 ease-in-out"
-            style={{ transform: `translateX(-${currentIndex * 100}%)` }}
-          >
-            {categories.map((category) => {
-              const products = categoryProducts[category.id] || []
-              return (
-                <div key={category.id} className="flex-shrink-0 w-full">
-                  <div className="text-center mb-6">
-                    <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-                      {category.name}
-                    </h2>
-                    <Link
-                      href={category.href}
-                      className="text-pink-600 hover:text-pink-700 font-medium inline-flex items-center gap-2"
-                    >
-                      View All
-                      <ChevronRight className="w-4 h-4" />
-                    </Link>
-                  </div>
-
-                  {/* Products Grid */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-                    {products.length > 0 ? (
-                      products.map((product) => (
-                        <div key={product.id} className="group">
-                          <Link href={`/product/${product.id}`} className="block relative aspect-[3/4] overflow-hidden rounded-xl mb-3 bg-gray-100">
-                            {product.badge && (
-                              <span className="absolute top-2 left-2 z-10 bg-pink-600 text-white text-xs px-2 py-1 rounded-full font-medium">
-                                {product.badge}
-                              </span>
-                            )}
-                            <img
-                              src={product.image}
-                              alt={product.name}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                              loading="lazy"
-                            />
-                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all" />
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault()
-                                e.stopPropagation()
-                                onQuickView(product)
-                              }}
-                              className="absolute bottom-3 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-white text-gray-900 px-4 py-2 rounded-full text-sm font-medium hover:bg-pink-600 hover:text-white"
-                            >
-                              Quick View
-                            </button>
-                          </Link>
-                          <Link href={`/product/${product.id}`}>
-                            <h3 className="font-medium text-gray-900 mb-1 line-clamp-2 text-sm md:text-base group-hover:text-pink-600 transition-colors">
-                              {product.name}
-                            </h3>
-                          </Link>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-baseline gap-2">
-                              <span className="text-lg font-bold text-gray-900">৳{product.price}</span>
-                              {product.originalPrice && (
-                                <span className="text-sm text-gray-400 line-through">৳{product.originalPrice}</span>
-                              )}
-                            </div>
-                            <button
-                              onClick={() => onAddToCart(product)}
-                              className="bg-pink-600 text-white p-2 rounded-lg hover:bg-pink-700 transition-colors"
-                              aria-label="Add to cart"
-                            >
-                              <ShoppingCart className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="col-span-2 md:col-span-4 text-center py-8 text-gray-500">
-                        No products available in this category
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-// 8. Featured Collection Carousel Component
+// 7. Featured Collection Carousel Component
 function FeaturedCollection({ products, onQuickView, onAddToCart }: { products: Product[]; onQuickView: (product: Product) => void; onAddToCart: (product: Product) => void }) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const itemsPerPage = 4
@@ -1068,7 +900,7 @@ function FeaturedCollection({ products, onQuickView, onAddToCart }: { products: 
             <div key={pageIndex} className="flex-shrink-0 w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 px-1">
               {productsArray.slice(pageIndex * itemsPerPage, (pageIndex + 1) * itemsPerPage).map((product) => (
                 <div key={product.id} className="product-grid-item group">
-                  <Link href={`/product/${product.id}`} className="block product__media relative aspect-[3/4] overflow-hidden rounded-xl mb-4 bg-gray-100 group">
+                  <div className="product__media relative aspect-[3/4] overflow-hidden rounded-xl mb-4 bg-gray-100">
                     {product.badge && (
                       <span className="absolute top-3 left-3 z-10 bg-pink-600 text-white text-xs px-3 py-1 rounded-full font-medium">
                         {product.badge}
@@ -1078,24 +910,18 @@ function FeaturedCollection({ products, onQuickView, onAddToCart }: { products: 
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all" />
                     <div className="absolute bottom-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
-                        onClick={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          onQuickView(product)
-                        }}
+                        onClick={() => onQuickView(product)}
                         className="bg-white text-gray-900 px-4 py-2 rounded-full text-sm font-medium hover:bg-pink-600 hover:text-white"
                       >
                         Quick View
                       </button>
                     </div>
-                  </Link>
+                  </div>
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
-                      <Link href={`/product/${product.id}`} className="block">
-                        <h3 className="product-grid-item__title font-medium text-gray-900 mb-2 line-clamp-2 group-hover:text-pink-600 transition-colors">
-                          {product.name}
-                        </h3>
-                      </Link>
+                      <h3 className="product-grid-item__title font-medium text-gray-900 mb-2 line-clamp-2">
+                        {product.name}
+                      </h3>
                       <div className="flex items-center gap-1 mb-2">
                         <div className="flex">
                           {[...Array(5)].map((_, i) => (
@@ -1149,30 +975,26 @@ function MosaicGrid({ products, onQuickView, onAddToCart }: { products: Product[
               key={product.id}
               className={`product-card group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 ${index >= 4 ? 'hidden lg:block' : ''}`}
             >
-              <Link href={`/product/${product.id}`} className="block relative aspect-[3/4] overflow-hidden group">
+              <div className="relative aspect-[3/4] overflow-hidden">
                 <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-y-4 group-hover:translate-y-0">
                   <button
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      onQuickView(product)
-                    }}
+                    onClick={() => onQuickView(product)}
                     className="bg-white text-gray-900 px-4 py-2 rounded-full text-sm font-medium hover:bg-pink-600 hover:text-white"
                   >
                     Quick View
                   </button>
                 </div>
-              </Link>
+              </div>
               <div className="p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
-                    <Link href={`/product/${product.id}`} className="block">
+                    <a href={`/product/${product.id}`} className="block">
                       <h3 className="font-medium text-gray-900 mb-2 line-clamp-1 group-hover:text-pink-600 transition-colors">
                         {product.name}
                       </h3>
-                    </Link>
+                    </a>
                     <div className="flex items-center gap-1 mb-2">
                       <div className="flex">
                         {[...Array(5)].map((_, i) => (
@@ -1578,6 +1400,85 @@ function Footer() {
   )
 }
 
+// 13. Mobile Bottom Navigation Component (App-style fixed bottom nav)
+function MobileBottomNav() {
+  const pathname = usePathname()
+  const isVisible = useScrollDirection()
+
+  return (
+    <>
+      {isVisible && (
+        <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden transition-transform duration-300">
+          {/* Safe area padding for mobile devices */}
+          <div className="pb-safe pt-3 pb-6 px-4">
+            <div className="max-w-md mx-auto">
+              {/* Curved/rounded pill-shaped container */}
+              <div className="bg-white rounded-full shadow-2xl border border-gray-200 px-4 py-2 flex items-center justify-between gap-2">
+
+            {/* Home Button */}
+            <a
+              href="/"
+              className={`flex flex-col items-center justify-center w-14 h-14 rounded-full transition-colors active:scale-95 ${
+                pathname === '/'
+                  ? 'bg-pink-600 text-white hover:bg-pink-700'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+              aria-label="Navigate to home"
+            >
+              <HomeIcon className="w-6 h-6" strokeWidth={2.5} />
+            </a>
+
+            {/* Shop Button */}
+            <a
+              href="/shop"
+              className={`flex flex-col items-center justify-center w-14 h-14 rounded-full transition-colors active:scale-95 ${
+                pathname?.startsWith('/shop') && pathname !== '/shop/search'
+                  ? 'bg-pink-600 text-white hover:bg-pink-700'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+              aria-label="Navigate to shop"
+            >
+              <ShoppingBag className="w-6 h-6" strokeWidth={2} />
+            </a>
+
+            {/* Search Button */}
+            <a
+              href="/search"
+              className={`flex flex-col items-center justify-center w-14 h-14 rounded-full transition-colors active:scale-95 ${
+                pathname === '/search'
+                  ? 'bg-pink-600 text-white hover:bg-pink-700'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+              aria-label="Open search"
+            >
+              <Search className="w-6 h-6" strokeWidth={2.5} />
+            </a>
+
+            {/* Cart Button */}
+            <a
+              href="/cart"
+              className={`flex flex-col items-center justify-center w-14 h-14 rounded-full transition-colors active:scale-95 relative ${
+                pathname === '/cart'
+                  ? 'bg-pink-600 text-white hover:bg-pink-700'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+              aria-label="Open cart"
+            >
+              <ShoppingCart className="w-6 h-6" strokeWidth={2} />
+              {/* Cart Badge */}
+              <span className="absolute top-2 right-2 w-5 h-5 bg-pink-600 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                3
+              </span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </nav>
+      )}
+    </>
+  )
+}
+
 // Types for dynamic homepage data
 interface HomepageSettings {
   banners?: { sectionName: string; isEnabled: boolean; autoPlay: number | null; displayLimit: number | null }
@@ -1781,7 +1682,8 @@ export default function Home() {
             {homepageSettings.stories?.isEnabled !== false && stories.length > 0 && (
               <Stories stories={stories} autoPlay={homepageSettings.stories?.autoPlay} />
             )}
-            <FloatingCategoryCarousel categories={categories} onQuickView={openQuickView} onAddToCart={addToCart} />
+            {/* Floating Category Carousel - Temporarily disabled due to undefined product variables */}
+            {/* <FloatingCategoryCarousel onQuickView={openQuickView} onAddToCart={addToCart} /> */}
             <FullscreenVideo />
             <Categories categories={categories} />
             {/* Reels - only show if enabled and has data */}

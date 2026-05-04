@@ -220,17 +220,17 @@ export default function WishlistPage() {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-16">
+        <div className="container mx-auto px-4 py-12 sm:py-16">
           <div className="max-w-md mx-auto text-center">
-            <Heart className="w-16 h-16 text-pink-600 mx-auto mb-6" />
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">
+            <Heart className="w-14 h-14 sm:w-16 sm:h-16 text-pink-600 mx-auto mb-4 sm:mb-6" />
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">
               Sign in to view your wishlist
             </h1>
-            <p className="text-gray-600 mb-8">
+            <p className="text-sm sm:text-base text-gray-600 mb-6 sm:mb-8">
               Save your favorite products and never miss out on great deals.
             </p>
             <Link href="/login">
-              <Button size="lg" className="w-full sm:w-auto">
+              <Button size="lg" className="w-full sm:w-auto h-12 sm:h-14 text-sm sm:text-base">
                 Sign In
               </Button>
             </Link>
@@ -243,9 +243,9 @@ export default function WishlistPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-16">
+        <div className="container mx-auto px-4 py-12 sm:py-16">
           <div className="flex items-center justify-center">
-            <Loader2 className="w-8 h-8 animate-spin text-pink-600" />
+            <Loader2 className="w-8 h-8 sm:w-10 sm:h-10 animate-spin text-pink-600" />
           </div>
         </div>
       </div>
@@ -255,57 +255,61 @@ export default function WishlistPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-gray-50 py-8">
+      <div className="bg-gray-50 py-6 sm:py-8">
         <div className="container mx-auto px-4">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">My Wishlist</h1>
-          <p className="text-gray-600">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">My Wishlist</h1>
+          <p className="text-sm sm:text-base text-gray-600">
             {wishlistItems.length} {wishlistItems.length === 1 ? 'item' : 'items'} saved
           </p>
         </div>
       </div>
 
       {/* Wishlist Content */}
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-6 sm:py-8">
         {wishlistItems.length > 0 && (
-          <div className="mb-6 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center bg-white p-4 rounded-lg shadow-sm border">
-            <div className="flex items-center gap-4">
+          <div className="mb-6 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center bg-white p-4 sm:p-5 rounded-lg shadow-sm border">
+            <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={selectedItems.size === wishlistItems.length}
                   onChange={handleSelectAll}
-                  className="w-5 h-5 rounded border-gray-300 text-pink-600 focus:ring-pink-600"
+                  className="w-5 h-5 sm:w-6 sm:h-6 rounded border-gray-300 text-pink-600 focus:ring-pink-600"
                 />
-                <span className="text-sm text-gray-600">
+                <span className="text-sm sm:text-base text-gray-600">
                   {selectedItems.size === wishlistItems.length ? 'Deselect All' : 'Select All'} ({selectedItems.size})
                 </span>
               </label>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 sm:gap-3 w-full sm:w-auto">
               <Button
                 onClick={handleMoveAllToCart}
                 disabled={selectedItems.size === 0 || movingAll}
                 size="sm"
+                className="flex-1 sm:flex-none h-10 sm:h-11 text-xs sm:text-sm"
               >
                 {movingAll ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2 animate-spin" />
                 ) : (
-                  <ShoppingCart className="w-4 h-4 mr-2" />
+                  <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
                 )}
-                Move All to Cart
+                <span className="hidden xs:inline sm:inline">Move All to Cart</span>
+                <span className="xs:hidden sm:hidden">Move to Cart</span>
               </Button>
               <Button
                 variant="destructive"
                 onClick={handleBulkRemove}
                 disabled={selectedItems.size === 0 || bulkRemoving}
                 size="sm"
+                className="flex-1 sm:flex-none h-10 sm:h-11 text-xs sm:text-sm"
               >
                 {bulkRemoving ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2 animate-spin" />
                 ) : (
-                  <Trash2 className="w-4 h-4 mr-2" />
+                  <Trash2 className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
                 )}
-                Remove Selected
+                <span className="hidden xs:inline sm:inline">Remove Selected</span>
+                <span className="xs:hidden sm:hidden">Remove</span>
               </Button>
             </div>
           </div>
@@ -313,18 +317,18 @@ export default function WishlistPage() {
 
         {wishlistItems.length === 0 ? (
           <Card>
-            <CardContent className="py-16">
-              <div className="text-center">
-                <Heart className="w-16 h-16 text-gray-300 mx-auto mb-6" />
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            <CardContent className="py-12 sm:py-16">
+              <div className="text-center px-4">
+                <Heart className="w-14 h-14 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-4 sm:mb-6" />
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
                   Your wishlist is empty
                 </h2>
-                <p className="text-gray-600 mb-8">
+                <p className="text-sm sm:text-base text-gray-600 mb-6 sm:mb-8 max-w-md mx-auto">
                   Save items you love to keep them organized and easy to find.
                 </p>
                 <Link href="/shop">
-                  <Button size="lg">
-                    <ShoppingBag className="w-4 h-4 mr-2" />
+                  <Button size="lg" className="h-12 sm:h-14 text-sm sm:text-base px-6 sm:px-8">
+                    <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                     Start Shopping
                   </Button>
                 </Link>
@@ -332,7 +336,7 @@ export default function WishlistPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
             {wishlistItems.map((item) => {
               const images = JSON.parse(item.product.images || '[]')
               const imageUrl = Array.isArray(images) && images.length > 0 ? images[0] : item.product.images
@@ -362,12 +366,13 @@ export default function WishlistPage() {
                       {/* Select Checkbox */}
                       <button
                         onClick={() => handleSelectItem(item.id)}
-                        className="absolute top-3 left-3 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors z-10"
+                        className="absolute top-3 left-3 sm:top-4 sm:left-4 w-11 h-11 sm:w-12 sm:h-12 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors z-10"
+                        aria-label={isSelected ? 'Deselect item' : 'Select item'}
                       >
                         {isSelected ? (
-                          <CheckSquare className="w-5 h-5 text-pink-600" />
+                          <CheckSquare className="w-5 h-5 sm:w-6 sm:h-6 text-pink-600" />
                         ) : (
-                          <Square className="w-5 h-5 text-gray-400" />
+                          <Square className="w-5 h-5 sm:w-6 sm:h-6 text-gray-400" />
                         )}
                       </button>
 
@@ -375,61 +380,65 @@ export default function WishlistPage() {
                       <button
                         onClick={() => handleRemoveFromWishlist(item.productId)}
                         disabled={removing === item.productId}
-                        className="absolute top-3 right-3 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-red-50 hover:text-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="absolute top-3 right-3 sm:top-4 sm:right-4 w-11 h-11 sm:w-12 sm:h-12 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-red-50 hover:text-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        aria-label="Remove from wishlist"
                       >
                         {removing === item.productId ? (
-                          <Loader2 className="w-5 h-5 animate-spin" />
+                          <Loader2 className="w-5 h-5 sm:w-6 sm:h-6 animate-spin" />
                         ) : (
-                          <Trash2 className="w-5 h-5" />
+                          <Trash2 className="w-5 h-5 sm:w-6 sm:h-6" />
                         )}
                       </button>
                     </div>
 
                     {/* Product Info */}
-                    <div className="p-4">
+                    <div className="p-4 sm:p-5">
                       <Link
                         href={`/collections/${item.product.category.slug}`}
-                        className="text-sm text-pink-600 hover:text-pink-700 mb-1 block"
+                        className="text-xs sm:text-sm text-pink-600 hover:text-pink-700 block mb-1.5 sm:mb-2 truncate"
                       >
                         {item.product.category.name}
                       </Link>
                       
                       <Link href={`/product/${item.product.id}`}>
-                        <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 hover:text-pink-600 transition-colors">
+                        <h3 className="font-semibold text-sm sm:text-base text-gray-900 mb-2 sm:mb-3 line-clamp-2 min-h-[2.5rem] sm:min-h-[3rem] hover:text-pink-600 transition-colors">
                           {item.product.name}
                         </h3>
                       </Link>
 
                       {/* Price */}
-                      <div className="flex items-baseline gap-2 mb-4">
-                        <span className="text-lg font-bold text-gray-900">
+                      <div className="flex items-baseline gap-2 mb-3 sm:mb-4">
+                        <span className="text-base sm:text-lg font-bold text-gray-900">
                           ৳{item.product.price.toLocaleString()}
                         </span>
                         {item.product.comparePrice && (
-                          <span className="text-sm text-gray-400 line-through">
+                          <span className="text-xs sm:text-sm text-gray-400 line-through">
                             ৳{item.product.comparePrice.toLocaleString()}
                           </span>
                         )}
                       </div>
 
                       {/* Actions */}
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 sm:gap-3">
                         <Button
                           onClick={() => handleMoveToCart(item)}
                           disabled={isOutOfStock}
-                          className="flex-1"
-                          size="sm"
+                          className="flex-1 h-10 sm:h-11 text-xs sm:text-sm"
+                          size="default"
                         >
-                          <ShoppingCart className="w-4 h-4 mr-2" />
-                          {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
+                          <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
+                          <span className="hidden xs:inline sm:inline">{isOutOfStock ? 'Out of Stock' : 'Add to Cart'}</span>
+                          <span className="xs:hidden sm:hidden">{isOutOfStock ? 'No Stock' : 'Cart'}</span>
                         </Button>
                         <Button
                           variant="outline"
-                          size="sm"
+                          size="icon"
+                          className="h-10 sm:h-11 w-10 sm:w-11 flex-shrink-0"
                           onClick={() => handleRemoveFromWishlist(item.productId)}
                           disabled={removing === item.productId}
+                          aria-label="Remove from wishlist"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
                         </Button>
                       </div>
                     </div>
@@ -443,17 +452,17 @@ export default function WishlistPage() {
 
       {/* Continue Shopping */}
       {wishlistItems.length > 0 && (
-        <div className="container mx-auto px-4 pb-16">
+        <div className="container mx-auto px-4 pb-12 sm:pb-16">
           <Card>
-            <CardContent className="py-8">
+            <CardContent className="py-6 sm:py-8">
               <div className="text-center">
-                <p className="text-gray-600 mb-4">
+                <p className="text-sm sm:text-base text-gray-600 mb-4">
                   Looking for more products?
                 </p>
                 <Link href="/shop">
-                  <Button variant="outline" size="lg">
+                  <Button variant="outline" size="lg" className="h-10 sm:h-12 text-sm sm:text-base">
                     Continue Shopping
-                    <ArrowRight className="w-4 h-4 ml-2" />
+                    <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
                   </Button>
                 </Link>
               </div>
