@@ -275,7 +275,34 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
                 <ShoppingCart className="w-5 h-5" />
                 Add to Cart
               </button>
-              <button className="w-full border-2 border-pink-600 text-pink-600 py-4 rounded-xl font-semibold hover:bg-pink-50 transition-colors">
+              <button
+                onClick={() => {
+                  // Add to cart and navigate to checkout
+                  if (sizes.length > 0 && !selectedSize) {
+                    toast.error('Please select a size')
+                    return
+                  }
+
+                  addItem({
+                    id: product.id,
+                    name: product.name,
+                    price: product.price,
+                    originalPrice: product.originalPrice,
+                    image: product.image,
+                    size: selectedSize || undefined,
+                    color: selectedColor || undefined,
+                    quantity,
+                  })
+
+                  toast.success('Redirecting to checkout...')
+                  onOpenChange(false)
+                  // Navigate to checkout after a short delay
+                  setTimeout(() => {
+                    window.location.href = '/checkout'
+                  }, 500)
+                }}
+                className="w-full border-2 border-pink-600 text-pink-600 py-4 rounded-xl font-semibold hover:bg-pink-50 transition-colors"
+              >
                 Buy Now
               </button>
             </div>

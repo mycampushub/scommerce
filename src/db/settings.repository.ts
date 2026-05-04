@@ -34,17 +34,39 @@ export class SettingsRepository {
    * Get site settings
    */
   static async getSettings(env : Env | null): Promise<SiteSettings> {
-    const settings = await queryFirst<SiteSettings>(
-      env,
-      'SELECT * FROM site_settings LIMIT 1'
-    );
+    try {
+      const settings = await queryFirst<SiteSettings>(
+        env,
+        'SELECT * FROM site_settings LIMIT 1'
+      );
 
-    // Return default settings if none exist
-    if (!settings) {
+      // Return default settings if none exist or data is invalid
+      if (!settings) {
+        return this.getDefaultSettings();
+      }
+
+      // Parse settings JSON if available
+      let parsedSettings: any = {};
+      if (settings.settings && typeof settings.settings === 'string') {
+        try {
+          parsedSettings = JSON.parse(settings.settings);
+        } catch (e) {
+          console.warn('Failed to parse settings, using defaults');
+        }
+      }
+
+      return {
+        id: settings.id,
+        sectionName: settings.sectionName || 'general',
+        isEnabled: typeof settings.isEnabled === 'number' ? settings.isEnabled : 1,
+        autoPlay: typeof settings.autoPlay === 'number' ? settings.autoPlay : 5000,
+        displayLimit: typeof settings.displayLimit === 'number' ? settings.displayLimit : 12,
+        settings: parsedSettings || this.getDefaultSettings()
+      };
+    } catch (error) {
+      console.error('Error fetching settings:', error);
       return this.getDefaultSettings();
     }
-
-    return settings;
   }
 
   /**
