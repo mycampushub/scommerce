@@ -7,6 +7,7 @@ import { useScrollDirection } from '@/hooks/use-scroll-direction'
 import { useCartStore } from '@/lib/store/cart-store'
 import { useAuth } from '@/hooks/use-auth'
 import { QuickViewModal } from '@/components/quick-view-modal'
+import { FloatingCategoryCarousel } from '@/components/floating-category-carousel'
 
 // Types
 interface Banner {

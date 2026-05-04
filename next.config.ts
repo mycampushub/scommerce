@@ -50,6 +50,8 @@ const withPWA = withPWAInit({
       },
     },
   ],
+  // Add these options for better Cloudflare compatibility
+  buildExcludes: [/middleware-manifest\.json$/],
 });
 
 export default withPWA(nextConfig);
