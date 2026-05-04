@@ -4,20 +4,15 @@ import { useEffect } from 'react'
 
 export function ServiceWorkerRegistration() {
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-      // Register service worker
-      navigator.serviceWorker
-        .register('/sw.js')
-        .then((registration) => {
-          console.log('Service Worker registered with scope:', registration.scope)
-        })
-        .catch((error) => {
-          console.error('Service Worker registration failed:', error)
-        })
-
-      // Listen for waiting service worker
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        window.location.reload()
+    // next-pwa automatically handles service worker registration
+    // The service worker is registered through the build-in workbox integration
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
+      // Service worker is auto-registered by next-pwa
+      // Additional handling can be added here if needed
+      navigator.serviceWorker.ready.then(() => {
+        console.log('Service Worker is ready and active')
+      }).catch((error) => {
+        console.error('Service Worker registration failed:', error)
       })
     }
   }, [])

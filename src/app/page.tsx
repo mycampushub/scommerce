@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { usePathname } from 'next/navigation'
+import Link from 'next/link'
 import { ChevronLeft, ChevronRight, X, Heart, MessageCircle, Share2, ShoppingCart, Star, Play, Search, User, Menu, Phone, Mail, Instagram, Facebook, Twitter, Youtube, Linkedin, ShoppingBag, Home as HomeIcon } from 'lucide-react'
 import { useScrollDirection } from '@/hooks/use-scroll-direction'
 import { useCartStore } from '@/lib/store/cart-store'
@@ -900,7 +901,7 @@ function FeaturedCollection({ products, onQuickView, onAddToCart }: { products: 
             <div key={pageIndex} className="flex-shrink-0 w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 px-1">
               {productsArray.slice(pageIndex * itemsPerPage, (pageIndex + 1) * itemsPerPage).map((product) => (
                 <div key={product.id} className="product-grid-item group">
-                  <div className="product__media relative aspect-[3/4] overflow-hidden rounded-xl mb-4 bg-gray-100">
+                  <Link href={`/product/${product.id}`} className="block product__media relative aspect-[3/4] overflow-hidden rounded-xl mb-4 bg-gray-100 group">
                     {product.badge && (
                       <span className="absolute top-3 left-3 z-10 bg-pink-600 text-white text-xs px-3 py-1 rounded-full font-medium">
                         {product.badge}
@@ -910,18 +911,24 @@ function FeaturedCollection({ products, onQuickView, onAddToCart }: { products: 
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all" />
                     <div className="absolute bottom-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
-                        onClick={() => onQuickView(product)}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          onQuickView(product)
+                        }}
                         className="bg-white text-gray-900 px-4 py-2 rounded-full text-sm font-medium hover:bg-pink-600 hover:text-white"
                       >
                         Quick View
                       </button>
                     </div>
-                  </div>
+                  </Link>
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
-                      <h3 className="product-grid-item__title font-medium text-gray-900 mb-2 line-clamp-2">
-                        {product.name}
-                      </h3>
+                      <Link href={`/product/${product.id}`} className="block">
+                        <h3 className="product-grid-item__title font-medium text-gray-900 mb-2 line-clamp-2 group-hover:text-pink-600 transition-colors">
+                          {product.name}
+                        </h3>
+                      </Link>
                       <div className="flex items-center gap-1 mb-2">
                         <div className="flex">
                           {[...Array(5)].map((_, i) => (
@@ -975,26 +982,30 @@ function MosaicGrid({ products, onQuickView, onAddToCart }: { products: Product[
               key={product.id}
               className={`product-card group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 ${index >= 4 ? 'hidden lg:block' : ''}`}
             >
-              <div className="relative aspect-[3/4] overflow-hidden">
+              <Link href={`/product/${product.id}`} className="block relative aspect-[3/4] overflow-hidden group">
                 <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-y-4 group-hover:translate-y-0">
                   <button
-                    onClick={() => onQuickView(product)}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      onQuickView(product)
+                    }}
                     className="bg-white text-gray-900 px-4 py-2 rounded-full text-sm font-medium hover:bg-pink-600 hover:text-white"
                   >
                     Quick View
                   </button>
                 </div>
-              </div>
+              </Link>
               <div className="p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
-                    <a href={`/product/${product.id}`} className="block">
+                    <Link href={`/product/${product.id}`} className="block">
                       <h3 className="font-medium text-gray-900 mb-2 line-clamp-1 group-hover:text-pink-600 transition-colors">
                         {product.name}
                       </h3>
-                    </a>
+                    </Link>
                     <div className="flex items-center gap-1 mb-2">
                       <div className="flex">
                         {[...Array(5)].map((_, i) => (

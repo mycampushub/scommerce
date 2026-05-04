@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import withPWAInit from "next-pwa";
 
 const nextConfig: NextConfig = {
   // Remove standalone output for development
@@ -10,4 +11,12 @@ const nextConfig: NextConfig = {
   reactStrictMode: false,
 };
 
-export default nextConfig;
+const withPWA = withPWAInit({
+  dest: "public",
+  register: true,
+  skipWaiting: true,
+  disable: process.env.NODE_ENV === "development",
+  sw: "sw.js",
+});
+
+export default withPWA(nextConfig);

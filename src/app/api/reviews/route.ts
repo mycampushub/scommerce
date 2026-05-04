@@ -29,19 +29,19 @@ export async function GET(request: NextRequest) {
        LEFT JOIN users u ON pr.userId = u.id
        WHERE pr.productId = ? AND pr.isApproved = 1
        ORDER BY pr.createdAt DESC`,
-      productId
+      [productId]
     )
 
-    // Transform reviews to convert boolean fields
+    // Transform reviews to convert boolean fields and handle nullable user fields
     const transformedReviews = reviews.map((review: any) => ({
       ...review,
       isApproved: numberToBool(review.isApproved),
       isVerified: numberToBool(review.isVerified),
-      user: {
+      user: review.userId ? {
         id: review.userId,
         name: review.userName,
         email: review.userEmail,
-      },
+      } : null,
     }))
 
     return NextResponse.json({ success: true, data: transformedReviews })
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
     const product = await queryFirst(
       env,
       'SELECT * FROM products WHERE id = ? LIMIT 1',
-      productId
+      [productId]
     )
 
     if (!product) {
@@ -118,8 +118,7 @@ export async function POST(request: NextRequest) {
     const existingReview = await queryFirst(
       env,
       'SELECT * FROM product_reviews WHERE userId = ? AND productId = ? LIMIT 1',
-      userId,
-      productId
+      [userId, productId]
     )
 
     if (existingReview) {
@@ -137,8 +136,7 @@ export async function POST(request: NextRequest) {
        INNER JOIN orders o ON oi.orderId = o.id
        WHERE oi.productId = ? AND o.userId = ? AND o.status IN ('CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED')
        LIMIT 1`,
-      productId,
-      userId
+      [productId, userId]
     )
 
     // Create review
@@ -150,17 +148,7 @@ export async function POST(request: NextRequest) {
       env,
       `INSERT INTO product_reviews (id, productId, userId, userName, rating, title, comment, isVerified, isApproved, createdAt, updatedAt)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      id,
-      productId,
-      userId,
-      userName,
-      rating,
-      sanitizedTitle,
-      sanitizedComment,
-      isVerifiedPurchase ? 1 : 0,
-      0, // Requires admin approval
-      currentTime,
-      currentTime
+      [id, productId, userId, userName, rating, sanitizedTitle, sanitizedComment, isVerifiedPurchase ? 1 : 0, 0, currentTime, currentTime]
     )
 
     // Fetch the created review with user details
@@ -177,18 +165,18 @@ export async function POST(request: NextRequest) {
        FROM product_reviews pr
        LEFT JOIN users u ON pr.userId = u.id
        WHERE pr.id = ? LIMIT 1`,
-      id
+      [id]
     )
 
     const transformedReview = review ? {
       ...review,
       isApproved: numberToBool(review.isApproved),
       isVerified: numberToBool(review.isVerified),
-      user: {
+      user: review.userId ? {
         id: review.userId,
         name: review.userName,
         email: review.userEmail,
-      },
+      } : null,
     } : null
 
     return NextResponse.json({
