@@ -2,12 +2,15 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { usePathname } from 'next/navigation'
-import { ChevronLeft, ChevronRight, X, Heart, MessageCircle, Share2, ShoppingCart, Star, Play, Search, User, Menu, Phone, Mail, Instagram, Facebook, Twitter, Youtube, Linkedin, ShoppingBag, Home as HomeIcon, Loader2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, X, Heart, MessageCircle, Share2, ShoppingCart, Star, Play, Search, User, Menu, Phone, Mail, Instagram, Facebook, Twitter, Youtube, Linkedin, ShoppingBag, Home as HomeIcon, Loader2, LogOut, ChevronDown } from 'lucide-react'
 import { useScrollDirection } from '@/hooks/use-scroll-direction'
 import { useCartStore } from '@/lib/store/cart-store'
 import { useAuth } from '@/hooks/use-auth'
 import { QuickViewModal } from '@/components/quick-view-modal'
 import { MobileBottomNav } from '@/components/mobile-bottom-nav'
+import { PWAInstallPrompt } from '@/components/pwa-install-prompt'
+import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
 
 
 
@@ -58,6 +61,7 @@ interface Product {
   reviews: number
   badge?: string
   category?: string
+  categoryId?: string
   description?: string
   sizes?: string[]
   colors?: string[]
@@ -84,8 +88,29 @@ interface StickyCard {
 // 0. Navbar Component
 function Navbar({ cartCount = 3 }: { cartCount?: number }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
   const isHeaderVisible = useScrollDirection()
-  const { user, loading } = useAuth()
+  const { user, loading, logout } = useAuth()
+  const router = useRouter()
+  const userMenuRef = useRef<HTMLDivElement>(null)
+
+  const handleLogout = () => {
+    logout()
+    toast.success('Logged out successfully')
+    router.push('/')
+    setUserMenuOpen(false)
+  }
+
+  // Close user menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setUserMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   return (
     <header className={`bg-white shadow-sm z-40 transition-transform duration-300 ${
@@ -125,9 +150,46 @@ function Navbar({ cartCount = 3 }: { cartCount?: number }) {
                 <Loader2 className="w-5 h-5 animate-spin" />
               </div>
             ) : user ? (
-              <a href="/account/settings" className="hidden md:flex items-center gap-2 text-gray-700 hover:text-pink-600 transition-colors">
-                <User className="w-5 h-5" />
-              </a>
+              <div className="hidden md:flex relative" ref={userMenuRef}>
+                <button
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="flex items-center gap-2 text-gray-700 hover:text-pink-600 transition-colors"
+                >
+                  <User className="w-5 h-5" />
+                  <ChevronDown className={`w-4 h-4 transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {userMenuOpen && (
+                  <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                    <div className="px-4 py-2 border-b border-gray-100">
+                      <p className="text-sm font-medium text-gray-900">{user.name || 'User'}</p>
+                      <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                    </div>
+                    <a
+                      href="/account/settings"
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-pink-600 transition-colors"
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      <User className="w-4 h-4" />
+                      Account Settings
+                    </a>
+                    <a
+                      href="/account/orders"
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-pink-600 transition-colors"
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      <ShoppingBag className="w-4 h-4" />
+                      My Orders
+                    </a>
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors w-full text-left"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
             ) : (
               <a href="/login" className="hidden md:flex items-center gap-2 text-gray-700 hover:text-pink-600 transition-colors">
                 <User className="w-5 h-5" />
@@ -152,26 +214,37 @@ function Navbar({ cartCount = 3 }: { cartCount?: number }) {
               <a href="/collections/kurtas" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Kurtas</a>
               <a href="/collections/menswear" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Menswear</a>
             </nav>
-            <div className="flex items-center gap-4 mt-4 pt-4 border-t border-gray-200">
-              <a href="/search" className="flex items-center gap-2 text-gray-700">
-                <Search className="w-5 h-5" />
-              </a>
-              <a href="/cart" className="flex items-center gap-2 text-gray-700 relative">
-                <ShoppingCart className="w-5 h-5" />
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-pink-600 text-white text-xs rounded-full flex items-center justify-center">{cartCount}</span>
-              </a>
+            <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-gray-200">
               {loading ? (
                 <div className="flex items-center gap-2 text-gray-700">
                   <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>Loading...</span>
                 </div>
               ) : user ? (
-                <a href="/account/settings" className="flex items-center gap-2 text-gray-700">
-                  <User className="w-5 h-5" />
-                </a>
+                <div className="flex flex-col gap-2">
+                  <a href="/account/orders" className="flex items-center gap-2 text-gray-700">
+                    <ShoppingBag className="w-5 h-5" />
+                    <span>My Orders</span>
+                  </a>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 text-red-600"
+                  >
+                    <LogOut className="w-5 h-5" />
+                    <span>Logout</span>
+                  </button>
+                </div>
               ) : (
-                <a href="/login" className="flex items-center gap-2 text-gray-700">
-                  <User className="w-5 h-5" />
-                </a>
+                <div className="flex flex-col gap-2">
+                  <a href="/login" className="flex items-center gap-2 text-gray-700">
+                    <User className="w-5 h-5" />
+                    <span>Login</span>
+                  </a>
+                  <a href="/register" className="flex items-center gap-2 text-pink-600">
+                    <User className="w-5 h-5" />
+                    <span>Sign Up</span>
+                  </a>
+                </div>
               )}
             </div>
           </div>
@@ -632,10 +705,7 @@ function CategoryCarousel({ categories, products }: { categories: Category[]; pr
 
   const currentCategory = categories[currentIndex]
   const categoryProducts = products.filter(p =>
-    currentCategory && (
-      p.name.toLowerCase().includes(currentCategory.name.toLowerCase()) ||
-      (p.category && p.category.toLowerCase().includes(currentCategory.slug.toLowerCase()))
-    )
+    currentCategory && p.categoryId === currentCategory.id
   ).slice(0, 4)
 
   const href = currentCategory?.href || `/collections/${currentCategory?.slug}`
@@ -1066,28 +1136,24 @@ function FeaturedCollection({ products, onQuickView, onAddToCart }: { products: 
             <div key={pageIndex} className="flex-shrink-0 w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 px-1">
               {productsArray.slice(pageIndex * itemsPerPage, (pageIndex + 1) * itemsPerPage).map((product) => (
                 <div key={product.id} className="product-grid-item group">
-                  <div className="product__media relative aspect-[3/4] overflow-hidden rounded-xl mb-4 bg-gray-100">
-                    {product.badge && (
-                      <span className="absolute top-3 left-3 z-10 bg-pink-600 text-white text-xs px-3 py-1 rounded-full font-medium">
-                        {product.badge}
-                      </span>
-                    )}
-                    <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all" />
-                    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => onQuickView(product)}
-                        className="bg-white text-gray-900 px-4 py-2 rounded-full text-sm font-medium hover:bg-pink-600 hover:text-white"
-                      >
-                        Quick View
-                      </button>
+                  <a href={`/product/${product.id}`} className="block">
+                    <div className="product__media relative aspect-[3/4] overflow-hidden rounded-xl mb-4 bg-gray-100">
+                      {product.badge && (
+                        <span className="absolute top-3 left-3 z-10 bg-pink-600 text-white text-xs px-3 py-1 rounded-full font-medium">
+                          {product.badge}
+                        </span>
+                      )}
+                      <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all" />
                     </div>
-                  </div>
+                  </a>
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
-                      <h3 className="product-grid-item__title font-medium text-gray-900 mb-2 line-clamp-2">
-                        {product.name}
-                      </h3>
+                      <a href={`/product/${product.id}`} className="block">
+                        <h3 className="product-grid-item__title font-medium text-gray-900 mb-2 line-clamp-2 group-hover:text-pink-600 transition-colors">
+                          {product.name}
+                        </h3>
+                      </a>
                       <div className="flex items-center gap-1 mb-2">
                         <div className="flex">
                           {[...Array(5)].map((_, i) => (
@@ -1106,7 +1172,10 @@ function FeaturedCollection({ products, onQuickView, onAddToCart }: { products: 
                       </div>
                     </div>
                     <button
-                      onClick={() => onAddToCart(product)}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        onAddToCart(product)
+                      }}
                       className="flex-shrink-0 bg-pink-600 text-white p-2 rounded-lg hover:bg-pink-700 transition-colors"
                       aria-label="Add to cart"
                     >
@@ -1141,18 +1210,23 @@ function MosaicGrid({ products, onQuickView, onAddToCart }: { products: Product[
               key={product.id}
               className={`product-card group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 ${index >= 4 ? 'hidden lg:block' : ''}`}
             >
-              <div className="relative aspect-[3/4] overflow-hidden">
-                <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-y-4 group-hover:translate-y-0">
-                  <button
-                    onClick={() => onQuickView(product)}
-                    className="bg-white text-gray-900 px-4 py-2 rounded-full text-sm font-medium hover:bg-pink-600 hover:text-white"
-                  >
-                    Quick View
-                  </button>
+              <a href={`/product/${product.id}`} className="block">
+                <div className="relative aspect-[3/4] overflow-hidden">
+                  <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-y-4 group-hover:translate-y-0">
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault()
+                        onQuickView(product)
+                      }}
+                      className="bg-white text-gray-900 px-4 py-2 rounded-full text-sm font-medium hover:bg-pink-600 hover:text-white"
+                    >
+                      Quick View
+                    </button>
+                  </div>
                 </div>
-              </div>
+              </a>
               <div className="p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
@@ -1177,7 +1251,10 @@ function MosaicGrid({ products, onQuickView, onAddToCart }: { products: Product[
                     </div>
                   </div>
                   <button
-                    onClick={() => onAddToCart(product)}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      onAddToCart(product)
+                    }}
                     className="flex-shrink-0 bg-pink-600 text-white p-2 rounded-lg hover:bg-pink-700 transition-colors"
                     aria-label="Add to cart"
                   >
@@ -1591,8 +1668,6 @@ export default function Home() {
   const [reels, setReels] = useState<VideoReel[]>([])
   const [promotions, setPromotions] = useState<Promotion[]>([])
   const [homepageSettings, setHomepageSettings] = useState<HomepageSettings>({})
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
   const { addItem, getItemCount } = useCartStore()
 
@@ -1600,9 +1675,6 @@ export default function Home() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setLoading(true)
-        setError(null)
-
         // Fetch all data in parallel
         const [
           featuredRes, saleRes, newRes, trendingRes, categoriesRes,
@@ -1656,7 +1728,7 @@ export default function Home() {
           title: b.title,
           mobileImage: b.mobileImage || b.image,
           desktopImage: b.image,
-          ctaButtons: b.buttonText && b.buttonLink 
+          ctaButtons: b.buttonText && b.buttonLink
             ? [{ label: b.buttonText, href: b.buttonLink, variant: 'primary' as const }]
             : []
         })))
@@ -1707,9 +1779,6 @@ export default function Home() {
         setHomepageSettings(settingsData.data || {})
       } catch (err) {
         console.error('Error fetching data:', err)
-        setError('Failed to load data. Please refresh the page.')
-      } finally {
-        setLoading(false)
       }
     }
 
@@ -1737,58 +1806,36 @@ export default function Home() {
     <div className="min-h-screen flex flex-col bg-white">
       <Navbar cartCount={cartCount} />
       <main className="w-full flex-grow pb-24 md:pb-0">
-        {loading ? (
-          <div className="container mx-auto px-4 py-12">
-            <div className="flex items-center justify-center min-h-[400px]">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600 mx-auto mb-4"></div>
-                <p className="text-gray-600">Loading products...</p>
-              </div>
-            </div>
-          </div>
-        ) : error ? (
-          <div className="container mx-auto px-4 py-12">
-            <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-              <p className="text-red-800 mb-4">{error}</p>
-              <button
-                onClick={() => window.location.reload()}
-                className="px-6 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors"
-              >
-                Retry
-              </button>
-            </div>
-          </div>
-        ) : (
-          <>
-            {/* Banners - only show if enabled and has data */}
-            {homepageSettings.banners?.isEnabled !== false && banners.length > 0 && (
-              <HeroCarousel banners={banners} autoPlay={homepageSettings.banners?.autoPlay} />
-            )}
-            <SectionMarquee />
-            {/* Stories - only show if enabled and has data */}
-            {homepageSettings.stories?.isEnabled !== false && stories.length > 0 && (
-              <Stories stories={stories} autoPlay={homepageSettings.stories?.autoPlay} />
-            )}
-            {/* Category Carousel with Products */}
-            <CategoryCarousel categories={categories} products={[...featuredProducts, ...saleProducts, ...newProducts, ...trendingProducts]} />
-            <FullscreenVideo />
-            <Categories categories={categories} />
-            {/* Reels - only show if enabled and has data */}
-            {homepageSettings.reels?.isEnabled !== false && reels.length > 0 && (
-              <VideoReels reels={reels} />
-            )}
-            <FeaturedCollection products={featuredProducts} onQuickView={openQuickView} onAddToCart={addToCart} />
-            <MosaicGrid products={newProducts} onQuickView={openQuickView} onAddToCart={addToCart} />
-            {/* Promotions - only show if enabled and has data */}
-            {homepageSettings.promotions?.isEnabled !== false && promotions.length > 0 && (
-              <PromotionRow promotions={promotions} />
-            )}
-            <StickyImageCards />
-          </>
+        {/* Banners - only show if enabled and has data */}
+        {homepageSettings.banners?.isEnabled !== false && banners.length > 0 && (
+          <HeroCarousel banners={banners} autoPlay={homepageSettings.banners?.autoPlay} />
         )}
+        <SectionMarquee />
+        {/* Stories - only show if enabled and has data */}
+        {homepageSettings.stories?.isEnabled !== false && stories.length > 0 && (
+          <Stories stories={stories} autoPlay={homepageSettings.stories?.autoPlay} />
+        )}
+        {/* Category Carousel with Products */}
+        {categories.length > 0 && featuredProducts.length > 0 && (
+          <CategoryCarousel categories={categories} products={[...featuredProducts, ...saleProducts, ...newProducts, ...trendingProducts]} />
+        )}
+        <FullscreenVideo />
+        {categories.length > 0 && <Categories categories={categories} />}
+        {/* Reels - only show if enabled and has data */}
+        {homepageSettings.reels?.isEnabled !== false && reels.length > 0 && (
+          <VideoReels reels={reels} />
+        )}
+        {featuredProducts.length > 0 && <FeaturedCollection products={featuredProducts} onQuickView={openQuickView} onAddToCart={addToCart} />}
+        {newProducts.length > 0 && <MosaicGrid products={newProducts} onQuickView={openQuickView} onAddToCart={addToCart} />}
+        {/* Promotions - only show if enabled and has data */}
+        {homepageSettings.promotions?.isEnabled !== false && promotions.length > 0 && (
+          <PromotionRow promotions={promotions} />
+        )}
+        <StickyImageCards />
       </main>
       <Footer />
       <MobileBottomNav />
+      <PWAInstallPrompt />
 
       {/* Quick View Modal */}
       <QuickViewModal

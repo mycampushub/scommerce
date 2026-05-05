@@ -1,15 +1,19 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { ShoppingBag, ArrowRight, Check, Trash2, Home as HomeIcon } from 'lucide-react'
+import { ShoppingBag, ArrowRight, Check, Trash2, Home as HomeIcon, Lock, CreditCard, Wallet } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCartStore } from '@/lib/store/cart-store'
+import { useAuth } from '@/hooks/use-auth'
 import { toast } from 'sonner'
 import { formatCurrency } from '@/lib/format-currency'
 import { Header } from '@/components/header'
 import { Footer } from '@/components/footer'
 import { MobileBottomNav } from '@/components/mobile-bottom-nav'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Button } from '@/components/ui/button'
 
 interface OrderResponse {
   success: boolean
@@ -26,11 +30,14 @@ interface OrderResponse {
 export default function CheckoutPage() {
   const router = useRouter()
   const { items, getTotal, clearCart } = useCartStore()
+  const { user, loading } = useAuth()
   const [step, setStep] = useState(1)
   const [isProcessing, setIsProcessing] = useState(false)
   const [stockIssues, setStockIssues] = useState<{[key: string]: { inStock: boolean, availableStock: number }}>({})
   const [shippingCost, setShippingCost] = useState(150)
   const [calculatingShipping, setCalculatingShipping] = useState(false)
+  const [showLoginDialog, setShowLoginDialog] = useState(false)
+  const [loginTab, setLoginTab] = useState<'login' | 'signup'>('login')
 
   const [shippingInfo, setShippingInfo] = useState({
     firstName: '',
@@ -45,7 +52,7 @@ export default function CheckoutPage() {
     country: 'Bangladesh'
   })
 
-  const [paymentMethod, setPaymentMethod] = useState('cod')
+  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'online'>('cod')
   const [taxRate, setTaxRate] = useState(0.18) // Default fallback
   const [freeShippingThreshold, setFreeShippingThreshold] = useState(5000) // Default fallback
 
@@ -162,38 +169,49 @@ export default function CheckoutPage() {
 
   const handleShippingSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     // Check stock status before proceeding
     const stockOk = await checkStockStatus()
     if (!stockOk) {
       return
     }
-    
+
     // Validate all required fields
-    const requiredFields = ['firstName', 'lastName', 'email', 'phone', 'address', 'division', 'district', 'city']
+    const requiredFields = ['firstName', 'lastName', 'email', 'phone', 'address', 'division', 'district', 'city', 'zipCode']
     const missingFields = requiredFields.filter(field => !shippingInfo[field as keyof typeof shippingInfo])
-    
+
     if (missingFields.length > 0) {
       toast.error('Please fill in all required fields')
       return
     }
-    
+
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(shippingInfo.email)) {
       toast.error('Please enter a valid email address')
       return
     }
-    
+
     // Validate phone (Bangladesh format: 01XXXXXXXXX)
     const phoneRegex = /^01[3-9]\d{8}$/
     if (!phoneRegex.test(shippingInfo.phone)) {
       toast.error('Please enter a valid Bangladesh phone number (01XXXXXXXXX)')
       return
     }
-    
-    setStep(2)
-    toast.success('Shipping information saved')
+
+    // Proceed to confirm order
+    handleConfirmOrder()
+  }
+
+  const handleConfirmOrder = async () => {
+    // Check if user is logged in
+    if (!user) {
+      setShowLoginDialog(true)
+      return
+    }
+
+    // User is logged in, proceed with order placement
+    await handlePlaceOrder()
   }
 
   const handlePlaceOrder = async () => {
@@ -240,7 +258,7 @@ export default function CheckoutPage() {
         customerPhone: shippingInfo.phone,
         shippingAddress: fullAddress,
         billingAddress: fullAddress, // Same as shipping for now
-        paymentMethod: 'CASH_ON_DELIVERY',
+        paymentMethod: paymentMethod === 'cod' ? 'CASH_ON_DELIVERY' : 'ONLINE_PAYMENT',
         orderItems,
         subtotal,
         shipping,
@@ -338,19 +356,12 @@ export default function CheckoutPage() {
               <div className={`w-10 h-10 md:w-8 md:h-8 rounded-full flex items-center justify-center font-semibold text-sm md:text-base ${step >= 1 ? 'bg-pink-600 text-white' : 'bg-gray-200'}`}>
                 1
               </div>
-              <span className="hidden lg:inline">Shipping</span>
+              <span className="hidden lg:inline">Checkout</span>
             </div>
             <div className={`h-0.5 w-4 md:w-8 lg:w-16 ${step >= 2 ? 'bg-pink-600' : 'bg-gray-200'}`}></div>
             <div className={`flex items-center gap-2 ${step >= 2 ? 'text-pink-600' : 'text-gray-400'}`}>
               <div className={`w-10 h-10 md:w-8 md:h-8 rounded-full flex items-center justify-center font-semibold text-sm md:text-base ${step >= 2 ? 'bg-pink-600 text-white' : 'bg-gray-200'}`}>
                 2
-              </div>
-              <span className="hidden lg:inline">Payment</span>
-            </div>
-            <div className={`h-0.5 w-4 md:w-8 lg:w-16 ${step >= 3 ? 'bg-pink-600' : 'bg-gray-200'}`}></div>
-            <div className={`flex items-center gap-2 ${step >= 3 ? 'text-pink-600' : 'text-gray-400'}`}>
-              <div className={`w-10 h-10 md:w-8 md:h-8 rounded-full flex items-center justify-center font-semibold text-sm md:text-base ${step >= 3 ? 'bg-pink-600 text-white' : 'bg-gray-200'}`}>
-                3
               </div>
               <span className="hidden lg:inline">Complete</span>
             </div>
@@ -364,11 +375,13 @@ export default function CheckoutPage() {
           <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
             {/* Left Side - Forms */}
             <div className="flex-1">
-              {/* Step 1: Shipping */}
-              {step === 1 && (
-                <div className="bg-white rounded-xl p-4 md:p-6 lg:p-8 shadow-sm">
-                  <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-4 md:mb-6">Shipping Information</h2>
-                  <form onSubmit={handleShippingSubmit}>
+              {/* Single Step: Shipping + Payment */}
+              <div className="bg-white rounded-xl p-4 md:p-6 lg:p-8 shadow-sm">
+                  <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-4 md:mb-6">Checkout Information</h2>
+                  <form onSubmit={(e) => {
+                    e.preventDefault()
+                    handleShippingSubmit(e)
+                  }}>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -505,59 +518,54 @@ export default function CheckoutPage() {
                         />
                     </div>
 
+                    <div className="mb-6">
+                      <label className="block text-sm font-medium text-gray-700 mb-3">
+                        Payment Method <span className="text-red-500">*</span>
+                      </label>
+                      <div className="grid grid-cols-2 gap-4">
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod('cod')}
+                          className={`p-4 border-2 rounded-lg flex flex-col items-center gap-2 transition-all ${
+                            paymentMethod === 'cod'
+                              ? 'border-pink-600 bg-pink-50'
+                              : 'border-gray-200 hover:border-pink-300'
+                          }`}
+                        >
+                          <Wallet className="w-6 h-6 text-gray-700" />
+                          <span className="text-sm font-medium text-gray-900">Cash on Delivery</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod('online')}
+                          className={`p-4 border-2 rounded-lg flex flex-col items-center gap-2 transition-all ${
+                            paymentMethod === 'online'
+                              ? 'border-pink-600 bg-pink-50'
+                              : 'border-gray-200 hover:border-pink-300'
+                          }`}
+                        >
+                          <CreditCard className="w-6 h-6 text-gray-700" />
+                          <span className="text-sm font-medium text-gray-900">Online Payment</span>
+                        </button>
+                      </div>
+                    </div>
+
                     <button
                       type="submit"
-                      className="w-full min-h-[56px] bg-pink-600 text-white px-6 py-4 rounded-xl font-semibold hover:bg-pink-700 transition-colors flex items-center justify-center gap-2 text-base md:text-lg"
+                      disabled={isProcessing}
+                      className="w-full min-h-[56px] bg-pink-600 text-white px-6 py-4 rounded-xl font-semibold hover:bg-pink-700 transition-colors flex items-center justify-center gap-2 text-base md:text-lg disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Continue to Payment
-                      <ArrowRight className="w-5 h-5" />
+                      {isProcessing ? (
+                        'Processing...'
+                      ) : (
+                        <>
+                          Confirm Order
+                          <ArrowRight className="w-5 h-5" />
+                        </>
+                      )}
                     </button>
                   </form>
                 </div>
-              )}
-
-              {/* Step 2: Payment */}
-              {step === 2 && (
-                <div className="bg-white rounded-xl p-4 md:p-6 lg:p-8 shadow-sm">
-                  <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-4 md:mb-6">Payment Method</h2>
-
-                  {/* Payment Options */}
-                  <div className="space-y-4 mb-6">
-                    <label className={`flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-colors touch-action-manipulation ${paymentMethod === 'cod' ? 'border-pink-600 bg-pink-50' : 'border-gray-200'}`}>
-                      <input
-                        type="radio"
-                        name="payment"
-                        checked={paymentMethod === 'cod'}
-                        onChange={() => setPaymentMethod('cod')}
-                        className="w-5 h-5 text-pink-600 flex-shrink-0"
-                      />
-                      <div className="flex items-center gap-2 flex-1">
-                        <span className="font-semibold">Cash on Delivery</span>
-                      </div>
-                    </label>
-                  </div>
-
-                  {/* COD Direct Submit */}
-                  {paymentMethod === 'cod' && (
-                    <div className="flex gap-3 md:gap-4 mt-6">
-                      <button
-                        onClick={() => setStep(1)}
-                        className="flex-1 min-h-[56px] py-4 border border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors text-base md:text-lg"
-                      >
-                        Back
-                      </button>
-                      <button
-                        onClick={handlePlaceOrder}
-                        disabled={isProcessing || Object.values(stockIssues).some(issue => !issue.inStock)}
-                        className="flex-1 min-h-[56px] bg-pink-600 text-white py-4 rounded-xl font-semibold hover:bg-pink-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 text-base md:text-lg"
-                      >
-                        {isProcessing ? 'Processing...' : 'Place Order'}
-                        {!isProcessing && <ArrowRight className="w-5 h-5" />}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
 
             {/* Right Side - Order Summary */}
@@ -696,6 +704,242 @@ export default function CheckoutPage() {
 
       <Footer />
       <MobileBottomNav />
+
+      {/* Login/Signup Dialog */}
+      <Dialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Complete Your Order</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="text-center mb-4">
+              <Lock className="w-12 h-12 text-pink-600 mx-auto mb-2" />
+              <p className="text-sm text-gray-600 mb-2">Please log in or sign up to complete your order</p>
+            </div>
+            <Tabs defaultValue="login" onValueChange={(v) => setLoginTab(v as 'login' | 'signup')}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="login">Login</TabsTrigger>
+                <TabsTrigger value="signup">Sign Up</TabsTrigger>
+              </TabsList>
+              <TabsContent value="login" className="mt-4">
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault()
+                    const formData = new FormData(e.currentTarget)
+                    const email = formData.get('email') as string
+                    const password = formData.get('password') as string
+
+                    if (!email || !password) {
+                      toast.error('Please fill in all fields')
+                      return
+                    }
+
+                    try {
+                      const response = await fetch('/api/auth/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, password }),
+                      })
+
+                      const result = await response.json() as any
+
+                      if (result.success) {
+                        toast.success('Logged in successfully!')
+                        setShowLoginDialog(false)
+                        // After successful login, place the order
+                        await handlePlaceOrder()
+                      } else {
+                        toast.error(result.error || 'Invalid email or password')
+                      }
+                    } catch (error) {
+                      console.error('Login error:', error)
+                      toast.error('Failed to login. Please try again.')
+                    }
+                  }}
+                  className="space-y-4"
+                >
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                    <input
+                      type="email"
+                      name="email"
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                      placeholder="your@email.com"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                    <input
+                      type="password"
+                      name="password"
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                      placeholder="•••••••••••"
+                    />
+                  </div>
+                  <Button type="submit" className="w-full">
+                    Login & Order
+                  </Button>
+                  <p className="text-xs text-center text-gray-500 mt-2">
+                    Don't have an account?{' '}
+                    <button
+                      type="button"
+                      onClick={() => setLoginTab('signup')}
+                      className="text-pink-600 hover:underline font-medium"
+                    >
+                      Sign up
+                    </button>
+                  </p>
+                </form>
+              </TabsContent>
+              <TabsContent value="signup" className="mt-4">
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault()
+                    const formData = new FormData(e.currentTarget)
+                    const firstName = formData.get('firstName') as string
+                    const lastName = formData.get('lastName') as string
+                    const email = formData.get('email') as string
+                    const phone = formData.get('phone') as string
+                    const password = formData.get('password') as string
+                    const confirmPassword = formData.get('confirmPassword') as string
+
+                    if (!firstName || !lastName || !email || !phone || !password || !confirmPassword) {
+                      toast.error('Please fill in all fields')
+                      return
+                    }
+
+                    if (password !== confirmPassword) {
+                      toast.error('Passwords do not match')
+                      return
+                    }
+
+                    if (password.length < 8) {
+                      toast.error('Password must be at least 8 characters')
+                      return
+                    }
+
+                    // Use shipping info from checkout form for address fields
+                    const registerData = {
+                      firstName,
+                      lastName,
+                      email,
+                      phone,
+                      password,
+                      address: shippingInfo.address,
+                      division: shippingInfo.division,
+                      district: shippingInfo.district,
+                      city: shippingInfo.city,
+                      zipCode: shippingInfo.zipCode,
+                      country: shippingInfo.country
+                    }
+
+                    try {
+                      const response = await fetch('/api/auth/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(registerData),
+                      })
+
+                      const result = await response.json() as any
+
+                      if (result.success) {
+                        toast.success('Account created successfully!')
+                        setShowLoginDialog(false)
+                        // After successful signup, place the order
+                        await handlePlaceOrder()
+                      } else {
+                        toast.error(result.error || 'Failed to create account')
+                      }
+                    } catch (error) {
+                      console.error('Register error:', error)
+                      toast.error('Failed to create account. Please try again.')
+                    }
+                  }}
+                  className="space-y-3"
+                >
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">First Name</label>
+                    <input
+                      type="text"
+                      name="firstName"
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                      placeholder="John"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
+                    <input
+                      type="text"
+                      name="lastName"
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                      placeholder="Doe"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                    <input
+                      type="email"
+                      name="email"
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                      placeholder="your@email.com"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                      placeholder="01XXXXXXXXX"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                    <input
+                      type="password"
+                      name="password"
+                      required
+                      minLength={8}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                      placeholder="•••••••••••"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
+                    <input
+                      type="password"
+                      name="confirmPassword"
+                      required
+                      minLength={8}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                      placeholder="•••••••••••"
+                    />
+                  </div>
+                  <Button type="submit" className="w-full">
+                    Create Account & Order
+                  </Button>
+                  <p className="text-xs text-center text-gray-500 mt-2">
+                    Already have an account?{' '}
+                    <button
+                      type="button"
+                      onClick={() => setLoginTab('login')}
+                      className="text-pink-600 hover:underline font-medium"
+                    >
+                      Log in
+                    </button>
+                  </p>
+                </form>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

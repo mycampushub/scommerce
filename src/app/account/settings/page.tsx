@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { AlertCircle, CheckCircle2, Eye, EyeOff, Lock, Mail, User as UserIcon, Loader2 } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Eye, EyeOff, Lock, Mail, User as UserIcon, Loader2, LogOut } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { toast } from 'sonner'
 import { Suspense } from 'react'
@@ -30,7 +30,7 @@ function EmailChangeHandler() {
 
 export default function AccountSettingsPage() {
   const router = useRouter()
-  const { user, checkSession } = useAuth()
+  const { user, logout, checkSession } = useAuth()
   const [activeTab, setActiveTab] = useState<'password' | 'email'>('password')
 
   // Password change state
@@ -150,6 +150,18 @@ export default function AccountSettingsPage() {
                       <p className="text-xs text-gray-500">{user.email}</p>
                     </div>
                   </div>
+                  <Button
+                    variant="outline"
+                    className="w-full mt-2"
+                    onClick={() => {
+                      logout()
+                      toast.success('Logged out successfully')
+                      router.push('/')
+                    }}
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Logout
+                  </Button>
                 </div>
               </CardContent>
             </Card>

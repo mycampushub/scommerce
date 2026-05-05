@@ -204,7 +204,7 @@ export default function CartPage() {
                     </div>
 
                     {/* Mobile Layout: Vertical with better spacing */}
-                    <div className="flex md:hidden gap-4">
+                    <div className="flex md:hidden gap-3">
                       <div className="w-20 flex-shrink-0">
                         <Link href={`/product/${item.id}`}>
                           <img
@@ -214,50 +214,50 @@ export default function CartPage() {
                           />
                         </Link>
                       </div>
-                      <div className="flex-1 min-w-0 flex flex-col">
-                        <div className="flex justify-between items-start gap-2 mb-2">
+                      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+                        <div className="flex justify-between items-start gap-2 mb-2 min-w-0">
                           <Link href={`/product/${item.id}`} className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-sm text-gray-900 mb-1 line-clamp-2 hover:text-pink-600 transition-colors">
+                            <h3 className="font-semibold text-sm text-gray-900 line-clamp-2 hover:text-pink-600 transition-colors">
                               {item.name}
                             </h3>
                           </Link>
                           <button
                             onClick={() => removeItem(item.id, item.variantId)}
-                            className="flex-shrink-0 p-2 text-gray-400 hover:text-red-600 rounded-lg transition-colors"
+                            className="flex-shrink-0 p-1.5 text-gray-400 hover:text-red-600 rounded-lg transition-colors"
                             aria-label="Remove item"
                           >
-                            <Trash2 className="w-5 h-5" />
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
-                        <p className="text-xs text-gray-500 mb-2">
+                        <p className="text-xs text-gray-500 mb-2 line-clamp-1">
                           {item.size && <span>Size: {item.size}</span>}
                           {item.size && item.color && ' | '}
                           {item.color && <span>Color: {item.color}</span>}
                         </p>
-                        <div className="flex items-center justify-between mt-auto gap-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-base font-bold text-gray-900">{formatCurrency(item.price)}</span>
-                            {item.originalPrice && (
-                              <span className="text-xs text-gray-400 line-through">{formatCurrency(item.originalPrice)}</span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2">
+                        <div className="flex items-center justify-between mt-auto gap-2 flex-shrink-0">
+                          <div className="flex items-center gap-1.5 min-w-0">
                             <button
                               onClick={() => updateQuantity(item.id, item.quantity - 1, item.variantId)}
-                              className="w-9 h-9 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-50"
+                              className="w-8 h-8 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-50 flex-shrink-0"
                               disabled={item.quantity <= 1}
                               aria-label="Decrease quantity"
                             >
-                              <Minus className="w-4 h-4" />
+                              <Minus className="w-3.5 h-3.5" />
                             </button>
-                            <span className="w-8 text-center font-semibold text-base">{item.quantity}</span>
+                            <span className="w-7 text-center font-semibold text-base">{item.quantity}</span>
                             <button
                               onClick={() => updateQuantity(item.id, item.quantity + 1, item.variantId)}
-                              className="w-9 h-9 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors"
+                              className="w-8 h-8 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors flex-shrink-0"
                               aria-label="Increase quantity"
                             >
-                              <Plus className="w-4 h-4" />
+                              <Plus className="w-3.5 h-3.5" />
                             </button>
+                          </div>
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <span className="text-sm font-bold text-gray-900">{formatCurrency(item.price)}</span>
+                            {item.originalPrice && (
+                              <span className="text-xs text-gray-400 line-through">{formatCurrency(item.originalPrice)}</span>
+                            )}
                           </div>
                         </div>
                       </div>

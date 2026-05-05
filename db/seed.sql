@@ -77,7 +77,7 @@ VALUES
 -- Admin user
 INSERT OR IGNORE INTO users (id, email, name, phone, password, emailVerified, role, createdAt, updatedAt)
 VALUES
-('user-admin-001', 'admin@scommerce.com', 'Admin User', '+8801700000001', '$2b$10$hDI8zS9UbiE8KaiSW38fnOo87zBAbVW6GIVEyQHwhR99dm0iKNXbG', 1, 'admin', datetime('now'), datetime('now'));
+('user-admin-001', 'admin@scommerce.com', 'Admin User', '+8801700000001', '$2b$10$5y22htgQgUZVPkksz.6V1uY/TLQ9w.rkUX92xR4NWmB0jkiNa845u', 1, 'admin', datetime('now'), datetime('now'));
 
 -- Staff users
 INSERT OR IGNORE INTO users (id, email, name, phone, password, emailVerified, role, createdAt, updatedAt)
@@ -89,7 +89,7 @@ VALUES
 -- Customer users
 INSERT OR IGNORE INTO users (id, email, name, phone, password, emailVerified, role, createdAt, updatedAt)
 VALUES
-('user-cust-001', 'fatema@example.com', 'Fatema Akhter', '+8801700000101', '$2b$10$2G7va8aFIwDG1U.cdeypqu7juZ6ykYlLtRydWx4PhP77lz47E9ECS', 1, 'user', datetime('now'), datetime('now')),
+('user-cust-001', 'fatema@example.com', 'Fatema Akhter', '+8801700000101', '$2b$10$EcvgWa939MGFsiYb3Sged.k1cATkYrXj8hb6dGdWyyaGqpkWBQjyK', 1, 'user', datetime('now'), datetime('now')),
 ('user-cust-002', 'noor@example.com', 'Noor Jahan', '+8801700000102', '$2b$10$bwKw7jbXL1DEmFckWLhM5uCtbVghgRkq61NfL828KkR7wt6PNPqsO', 1, 'user', datetime('now'), datetime('now')),
 ('user-cust-003', 'sara@example.com', 'Sara Ahmed', '+8801700000103', '$2b$10$VZSrJ6C31npLpsbd0YKpj.4oacbmH0xYC5knPfOSKpsNGSFXvBy3u', 1, 'user', datetime('now'), datetime('now')),
 ('user-cust-004', 'zara@example.com', 'Zara Khan', '+8801700000104', '$2b$10$DTVovRdSzYGCI00JHg4/FOAdbGoPMYQCT7U39N1V0hY1v1IjFc.ha', 1, 'user', datetime('now'), datetime('now')),

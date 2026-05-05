@@ -36,6 +36,19 @@ export async function GET(
     // Parse images
     const images = parseJSON<string[]>(product.images) || [];
 
+    // Fetch real review data
+    const { queryFirst } = await import('@/db/db');
+    const reviewData = await queryFirst<{ avgRating: number, totalReviews: number }>(
+      env,
+      `SELECT AVG(rating) as avgRating, COUNT(*) as totalReviews
+       FROM product_reviews
+       WHERE productId = ? AND isApproved = 1`,
+      product.id
+    );
+
+    const avgRating = reviewData?.avgRating || 0;
+    const totalReviews = reviewData?.totalReviews || 0;
+
     // Transform to match frontend format
     const transformedProduct = {
       id: product.id,
@@ -47,8 +60,8 @@ export async function GET(
       originalPrice: product.comparePrice || undefined,
       image: images[0] || category?.image || '',
       images: images,
-      rating: 4.5, // Default rating - in production, calculate from reviews
-      reviews: Math.floor(Math.random() * 500) + 10, // Random reviews - in production, use real count
+      rating: avgRating || 4.5, // Fallback to 4.5 if no reviews
+      reviews: totalReviews,
       badge: product.comparePrice ? 'Sale' : numberToBool(product.isFeatured) ? 'New' : undefined,
       category: category?.name,
       categorySlug: category?.slug,

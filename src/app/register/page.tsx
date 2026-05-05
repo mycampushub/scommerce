@@ -24,7 +24,6 @@ export default function RegisterPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState(false)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({
@@ -94,11 +93,19 @@ export default function RegisterPage() {
       }
 
       // Show success message
-      setSuccess(true)
       toast({
         title: 'Registration Successful',
-        description: 'Your account has been created successfully.',
+        description: 'Your account has been created and you are now logged in.',
       })
+
+      // Auto-redirect based on user role after a short delay
+      setTimeout(() => {
+        if (data.data?.user?.role === 'admin') {
+          router.push('/admin')
+        } else {
+          router.push('/')
+        }
+      }, 1000)
 
       // Log verification link for demo purposes
       if (data.data?.verificationLink) {
@@ -139,37 +146,7 @@ export default function RegisterPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {success ? (
-              <div className="py-8 text-center space-y-4">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-                  <CheckCircle2 className="w-8 h-8 text-green-600" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                    Registration Successful!
-                  </h3>
-                  <p className="text-gray-600 text-sm">
-                    Your account has been created. You can now sign in to your account.
-                  </p>
-                </div>
-                <div className="pt-4 space-y-3">
-                  <Button
-                    onClick={() => router.push('/login')}
-                    className="w-full bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700"
-                  >
-                    Go to Login
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => router.push('/')}
-                    className="w-full"
-                  >
-                    Back to Home
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Name Field */}
                 <div className="space-y-2">
                   <Label htmlFor="name" className="flex items-center gap-2">
@@ -320,10 +297,8 @@ export default function RegisterPage() {
                   )}
                 </Button>
               </form>
-            )}
           </CardContent>
-          {!success && (
-            <CardFooter className="flex flex-col space-y-4">
+          <CardFooter className="flex flex-col space-y-4">
               {/* Links */}
               <div className="flex flex-col space-y-2 text-sm text-center">
                 <p className="text-gray-600">
@@ -337,20 +312,17 @@ export default function RegisterPage() {
                 </p>
               </div>
             </CardFooter>
-          )}
-        </Card>
+          </Card>
 
         {/* Back to Home */}
-        {!success && (
-          <div className="text-center mt-6">
-            <Link
-              href="/"
-              className="text-sm text-gray-600 hover:text-pink-600 transition-colors"
-            >
-              ← Back to Home
-            </Link>
-          </div>
-        )}
+        <div className="text-center mt-6">
+          <Link
+            href="/"
+            className="text-sm text-gray-600 hover:text-pink-600 transition-colors"
+          >
+            ← Back to Home
+          </Link>
+        </div>
       </div>
     </div>
   )
