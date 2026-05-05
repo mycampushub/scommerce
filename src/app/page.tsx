@@ -7,7 +7,7 @@ import { useScrollDirection } from '@/hooks/use-scroll-direction'
 import { useCartStore } from '@/lib/store/cart-store'
 import { useAuth } from '@/hooks/use-auth'
 import { QuickViewModal } from '@/components/quick-view-modal'
-import { FloatingCategoryCarousel } from '@/components/floating-category-carousel'
+
 
 // Types
 interface Banner {
@@ -1706,9 +1706,6 @@ export default function Home() {
             {homepageSettings.stories?.isEnabled !== false && stories.length > 0 && (
               <Stories stories={stories} autoPlay={homepageSettings.stories?.autoPlay} />
             )}
-            <div className="py-4 md:py-6">
-              <FloatingCategoryCarousel categories={categories} />
-            </div>
             <FullscreenVideo />
             <Categories categories={categories} />
             {/* Reels - only show if enabled and has data */}

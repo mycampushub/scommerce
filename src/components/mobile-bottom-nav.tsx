@@ -75,7 +75,20 @@ export function MobileBottomNav() {
                   <Search className="w-5 h-5" strokeWidth={2} />
                 </Link>
                 
-                {/* 4. Cart */}
+                {/* 4. Wishlist */}
+                <Link
+                  href="/wishlist"
+                  className={`flex flex-col items-center justify-center w-11 h-11 rounded-full transition-colors active:scale-95 ${
+                    pathname === '/wishlist'
+                      ? 'bg-pink-600 text-white hover:bg-pink-700'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                  aria-label="View wishlist"
+                >
+                  <Heart className="w-5 h-5" strokeWidth={2} />
+                </Link>
+                
+                {/* 5. Cart */}
                 <Link
                   href="/cart"
                   className={`flex flex-col items-center justify-center w-11 h-11 rounded-full transition-colors active:scale-95 relative ${
