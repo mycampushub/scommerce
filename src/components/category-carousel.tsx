@@ -14,6 +14,7 @@ interface Category {
 interface Product {
   id: string
   name: string
+  slug: string
   price: number
   image: string
   categoryId?: string
@@ -126,7 +127,7 @@ export function CategoryCarousel({ categories, products = [] }: CategoryCarousel
               {categoryProducts.map(product => (
                 <a
                   key={product.id}
-                  href={`/product/${product.id}`}
+                  href={`/product/${product.slug}`}
                   className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden group"
                 >
                   <div className="relative aspect-square overflow-hidden bg-gray-100">

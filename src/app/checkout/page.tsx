@@ -38,6 +38,7 @@ export default function CheckoutPage() {
   const [calculatingShipping, setCalculatingShipping] = useState(false)
   const [showLoginDialog, setShowLoginDialog] = useState(false)
   const [loginTab, setLoginTab] = useState<'login' | 'signup'>('login')
+  const [authenticatedUser, setAuthenticatedUser] = useState<any | null>(null)
 
   const [shippingInfo, setShippingInfo] = useState({
     firstName: '',
@@ -204,8 +205,9 @@ export default function CheckoutPage() {
   }
 
   const handleConfirmOrder = async () => {
-    // Check if user is logged in
-    if (!user) {
+    // Check if user is logged in (either from useAuth or from login/signup dialog)
+    const currentUser = user || authenticatedUser
+    if (!currentUser) {
       setShowLoginDialog(true)
       return
     }
@@ -215,6 +217,8 @@ export default function CheckoutPage() {
   }
 
   const handlePlaceOrder = async () => {
+    // Use authenticatedUser if available, otherwise use user from useAuth
+    const currentUser = authenticatedUser || user
     // Double-check stock before placing order
     const stockOk = await checkStockStatus()
     if (!stockOk) {
@@ -253,6 +257,7 @@ export default function CheckoutPage() {
       
       // Prepare order data
       const orderData = {
+        userId: currentUser?.id, // Include userId if user is logged in
         customerName: `${shippingInfo.firstName} ${shippingInfo.lastName}`,
         customerEmail: shippingInfo.email,
         customerPhone: shippingInfo.phone,
@@ -707,7 +712,7 @@ export default function CheckoutPage() {
 
       {/* Login/Signup Dialog */}
       <Dialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-[95vw] md:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Complete Your Order</DialogTitle>
           </DialogHeader>
@@ -744,6 +749,8 @@ export default function CheckoutPage() {
                       const result = await response.json() as any
 
                       if (result.success) {
+                        // Store the authenticated user data
+                        setAuthenticatedUser(result.data.user)
                         toast.success('Logged in successfully!')
                         setShowLoginDialog(false)
                         // After successful login, place the order
@@ -845,6 +852,8 @@ export default function CheckoutPage() {
                       const result = await response.json() as any
 
                       if (result.success) {
+                        // Store the authenticated user data
+                        setAuthenticatedUser(result.data.user)
                         toast.success('Account created successfully!')
                         setShowLoginDialog(false)
                         // After successful signup, place the order

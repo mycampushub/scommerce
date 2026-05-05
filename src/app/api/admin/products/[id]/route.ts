@@ -6,6 +6,7 @@ import { CategoryRepository } from '@/db/category.repository'
 import { updateProductSchema } from '@/lib/validations'
 import { queryFirst, queryAll, execute, parseJSON, stringifyJSON, boolToNumber, numberToBool, now } from '@/db/db'
 import { csrfMiddleware } from '@/lib/csrf'
+import { isValidSlug } from '@/lib/slug'
 
 
 export async function GET(
@@ -301,6 +302,25 @@ export async function PUT(
       if (isActive !== undefined) updateData.isActive = isActive
       if (isFeatured !== undefined) updateData.isFeatured = isFeatured
 
+      // Validate slug format if being updated
+      if (slug !== undefined) {
+        if (!isValidSlug(slug)) {
+          return NextResponse.json(
+            { success: false, error: 'Invalid slug format. Use only lowercase letters, numbers, and hyphens.' },
+            { status: 400 }
+          )
+        }
+
+        // Check for unique slug (excluding current product)
+        const existingProduct = await ProductRepository.findBySlug(env, slug)
+        if (existingProduct && existingProduct.id !== id) {
+          return NextResponse.json(
+            { success: false, error: 'A product with this URL slug already exists. Please use a different slug.' },
+            { status: 409 }
+          )
+        }
+      }
+
       const product = await ProductRepository.update(env, id, updateData)
 
       // Fetch category for response
@@ -346,6 +366,25 @@ export async function PUT(
     if (validatedData.isActive !== undefined) updateData.isActive = validatedData.isActive
     if (validatedData.isFeatured !== undefined) updateData.isFeatured = validatedData.isFeatured
     if (body.hasVariants !== undefined) updateData.hasVariants = body.hasVariants
+
+    // Validate slug format if being updated
+    if (validatedData.slug !== undefined) {
+      if (!isValidSlug(validatedData.slug)) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid slug format. Use only lowercase letters, numbers, and hyphens.' },
+          { status: 400 }
+        )
+      }
+
+      // Check for unique slug (excluding current product)
+      const existingProduct = await ProductRepository.findBySlug(env, validatedData.slug)
+      if (existingProduct && existingProduct.id !== id) {
+        return NextResponse.json(
+          { success: false, error: 'A product with this URL slug already exists. Please use a different slug.' },
+          { status: 409 }
+        )
+      }
+    }
 
     const product = await ProductRepository.update(env, id, updateData)
 

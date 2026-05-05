@@ -63,6 +63,7 @@ interface ProductVariant {
 
 interface RelatedProduct {
   id: string
+  slug: string
   name: string
   price: number
   originalPrice?: number
@@ -82,7 +83,7 @@ interface RelatedProduct {
 
 export default function ProductPage() {
   const pathname = usePathname()
-  const productId = pathname.split('/').pop() || ''
+  const productSlug = pathname.split('/').pop() || ''
   const { addItem, getItemCount } = useCartStore()
   const { addProduct } = useRecentlyViewedStore()
   const { user } = useAuth()
@@ -144,7 +145,7 @@ export default function ProductPage() {
       setLoading(true)
       setError(null)
         
-        const productResponse = await fetch(`/api/products/${productId}`)
+        const productResponse = await fetch(`/api/products/${productSlug}`)
         
         if (!productResponse.ok) {
           throw new Error('Failed to fetch product')
@@ -154,7 +155,7 @@ export default function ProductPage() {
         setProduct(productData as any)
         
         // Fetch variants
-        const variantsResponse = await fetch(`/api/products/${productId}/variants`)
+        const variantsResponse = await fetch(`/api/products/${productSlug}/variants`)
         if (variantsResponse.ok) {
           const variantsData = await variantsResponse.json() as any
           setVariants((variantsData as any).data.variants || [])
@@ -175,7 +176,7 @@ export default function ProductPage() {
         }
 
         // Fetch recommended products
-        fetchRecommendedProducts(productId, productData.categoryId)
+        fetchRecommendedProducts(productData.slug, productData.categoryId)
       } catch (err) {
         console.error('Error fetching product:', err)
         setError('Unable to load product. Please try again later.')
@@ -185,10 +186,10 @@ export default function ProductPage() {
   }
 
   useEffect(() => {
-    if (productId) {
+    if (productSlug) {
       fetchProduct()
     }
-  }, [productId])
+  }, [productSlug])
 
   // Track recently viewed product
   useEffect(() => {
@@ -240,13 +241,13 @@ export default function ProductPage() {
 
   // Check if user has purchased this product
   async function checkUserPurchase() {
-    if (!user) return
+    if (!user || !product) return
     try {
       const response = await fetch(`/api/orders?userId=${user.id}`)
       if (response.ok) {
         const orders = await response.json() as any
         const hasBought = (orders as any).data?.some((order: any) =>
-          order.orderItems?.some((item: any) => item.productId === productId)
+          order.orderItems?.some((item: any) => item.productId === product.id)
         )
         setHasPurchased(hasBought)
       }
@@ -757,7 +758,7 @@ export default function ProductPage() {
       {/* Reviews */}
       <ReviewsSection 
         ref={reviewsSectionRef}
-        productId={productId}
+        productId={product.id}
         averageRating={product?.rating || 0}
         reviewCount={product?.reviews || 0}
       />
@@ -765,7 +766,7 @@ export default function ProductPage() {
       {/* Review Form Dialog */}
       {product && (
         <ReviewForm
-          productId={productId}
+          productId={product.id}
           productName={product.name}
           isOpen={reviewFormOpen}
           onClose={() => setReviewFormOpen(false)}
@@ -796,7 +797,7 @@ export default function ProductPage() {
                       {product.badge}
                     </span>
                   )}
-                  <Link href={`/product/${product.id}`}>
+                  <Link href={`/product/${product.slug}`}>
                     <img
                       src={product.image}
                       alt={product.name}
@@ -805,7 +806,7 @@ export default function ProductPage() {
                   </Link>
                   <div className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
                     <Link
-                      href={`/product/${product.id}`}
+                      href={`/product/${product.slug}`}
                       className="min-h-[40px] px-4 sm:px-6 py-2 sm:py-2.5 rounded-full text-sm font-medium bg-white text-gray-900 hover:bg-pink-600 hover:text-white transition-colors"
                     >
                       <span className="hidden sm:inline">Quick View</span>
@@ -821,7 +822,7 @@ export default function ProductPage() {
                     </button>
                   </div>
                 </div>
-                <Link href={`/product/${product.id}`}>
+                <Link href={`/product/${product.slug}`}>
                   <h3 className="font-medium text-gray-900 mb-2 line-clamp-2 group-hover:text-pink-600 transition-colors">
                     {product.name}
                   </h3>
@@ -865,7 +866,7 @@ export default function ProductPage() {
                 {recommendedProducts.map((product) => (
                   <div key={product.id} className="group">
                     <div className="relative aspect-[3/4] overflow-hidden rounded-xl mb-4 bg-gray-100">
-                      <Link href={`/product/${product.id}`}>
+                      <Link href={`/product/${product.slug}`}>
                         <img
                           src={product.image}
                           alt={product.name}
@@ -874,7 +875,7 @@ export default function ProductPage() {
                       </Link>
                       <div className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
                         <Link
-                          href={`/product/${product.id}`}
+                          href={`/product/${product.slug}`}
                           className="min-h-[40px] px-4 sm:px-6 py-2 sm:py-2.5 rounded-full text-sm font-medium bg-white text-gray-900 hover:bg-pink-600 hover:text-white transition-colors"
                         >
                           <span className="hidden sm:inline">Quick View</span>
@@ -890,7 +891,7 @@ export default function ProductPage() {
                         </button>
                       </div>
                     </div>
-                    <Link href={`/product/${product.id}`}>
+                    <Link href={`/product/${product.slug}`}>
                       <h3 className="font-medium text-gray-900 mb-2 line-clamp-2 group-hover:text-pink-600 transition-colors">
                         {product.name}
                       </h3>

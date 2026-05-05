@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Header } from '@/components/header'
 import { Footer } from '@/components/footer'
 import { MobileBottomNav } from '@/components/mobile-bottom-nav'
+import { useAuth } from '@/hooks/use-auth'
 
 interface OrderItem {
   id: string
@@ -51,45 +52,26 @@ interface OrdersResponse {
   error?: string
 }
 
-// Simple JWT decoder - in production, use proper auth library
-const getUserIdFromToken = (token: string): string | null => {
-  try {
-    const payload = token.split('.')[1]
-    const decoded = JSON.parse(atob(payload))
-    return decoded.userId || decoded.sub || null
-  } catch {
-    return null
-  }
-}
-
 function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const { user, loading: authLoading } = useAuth()
 
   const fetchOrders = async () => {
     setLoading(true)
     setError(null)
     try {
-      // Get current user from localStorage (auth token)
-      const token = localStorage.getItem('auth_token')
-      if (!token) {
+      // Get userId from authenticated user
+      if (!user || !user.id) {
         setError('Please log in to view your orders')
         setLoading(false)
         return
       }
 
-      // Decode JWT to get userId (simple approach - in production, verify with backend)
-      const userId = getUserIdFromToken(token)
-      if (!userId) {
-        setError('Unable to verify user identity. Please log in again.')
-        setLoading(false)
-        return
-      }
-
-      const response = await fetch(`/api/orders?userId=${userId}`)
+      const response = await fetch(`/api/orders?userId=${user.id}`)
       const result: OrdersResponse = await response.json()
 
       if (!response.ok || !result.success) {
@@ -107,8 +89,11 @@ function OrdersPage() {
   }
 
   useEffect(() => {
-    fetchOrders()
-  }, [])
+    // Only fetch orders when auth is loaded and user is available
+    if (!authLoading) {
+      fetchOrders()
+    }
+  }, [user, authLoading])
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-IN', {

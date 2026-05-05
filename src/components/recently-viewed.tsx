@@ -52,7 +52,7 @@ export function RecentlyViewed({
           {recentProducts.map((product) => (
             <div key={product.id} className="group">
               <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-gray-100">
-                <Link href={`/product/${product.slug || product.id}`}>
+                <Link href={`/product/${product.slug}`}>
                   <img
                     src={product.image}
                     alt={product.name}
@@ -61,14 +61,14 @@ export function RecentlyViewed({
                 </Link>
                 <div className="absolute bottom-3 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all">
                   <Link
-                    href={`/product/${product.slug || product.id}`}
+                    href={`/product/${product.slug}`}
                     className="bg-white text-gray-900 px-6 py-2 rounded-full text-sm font-medium hover:bg-pink-600 hover:text-white transition-colors"
                   >
                     Quick View
                   </Link>
                 </div>
               </div>
-              <Link href={`/product/${product.slug || product.id}`}>
+              <Link href={`/product/${product.slug}`}>
                 <h3 className="font-medium text-gray-900 mb-2 mt-4 line-clamp-2 group-hover:text-pink-600 transition-colors">
                   {product.name}
                 </h3>
@@ -142,7 +142,7 @@ export function RecentlyViewedHorizontal({ limit = 6 }: { limit?: number }) {
         {recentProducts.map((product) => (
           <Link
             key={product.id}
-            href={`/product/${product.slug || product.id}`}
+            href={`/product/${product.slug}`}
             className="flex-shrink-0 w-32"
           >
             <div className="aspect-square rounded-lg bg-gray-100 overflow-hidden mb-2">
@@ -184,7 +184,7 @@ export function RecentlyViewedCompact({ limit = 5 }: { limit?: number }) {
         {recentProducts.map((product) => (
           <Link
             key={product.id}
-            href={`/product/${product.slug || product.id}`}
+            href={`/product/${product.slug}`}
             className="flex gap-3 group"
           >
             <div className="w-16 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">

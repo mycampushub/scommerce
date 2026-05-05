@@ -15,6 +15,7 @@ import {
   stringifyJSON
 } from '@/db/db'
 import { csrfMiddleware } from '@/lib/csrf'
+import { generateUniqueSlug, isValidSlug } from '@/lib/slug'
 
 
 export async function GET(request: NextRequest) {
@@ -190,6 +191,23 @@ export async function POST(request: NextRequest) {
         )
       }
 
+      // Validate slug format
+      if (!isValidSlug(slug)) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid slug format. Use only lowercase letters, numbers, and hyphens.' },
+          { status: 400 }
+        )
+      }
+
+      // Check for unique slug
+      const existingProduct = await ProductRepository.findBySlug(env, slug)
+      if (existingProduct) {
+        return NextResponse.json(
+          { success: false, error: 'A product with this URL slug already exists. Please use a different name or slug.' },
+          { status: 409 }
+        )
+      }
+
       // Handle image uploads
       const imagesJson = formData.get('images') as string | null
       let images: string[] = []
@@ -262,6 +280,23 @@ export async function POST(request: NextRequest) {
     }
 
     const validatedData = validation.data
+
+    // Validate slug format
+    if (!isValidSlug(validatedData.slug)) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid slug format. Use only lowercase letters, numbers, and hyphens.' },
+        { status: 400 }
+      )
+    }
+
+    // Check for unique slug
+    const existingProduct = await ProductRepository.findBySlug(env, validatedData.slug)
+    if (existingProduct) {
+      return NextResponse.json(
+        { success: false, error: 'A product with this URL slug already exists. Please use a different name or slug.' },
+        { status: 409 }
+      )
+    }
 
     const product = await ProductRepository.create(env, {
       name: validatedData.name,

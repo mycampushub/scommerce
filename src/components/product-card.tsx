@@ -121,7 +121,7 @@ export function ProductCard({ product }: ProductCardProps) {
             {product.badge}
           </span>
         )}
-        <Link href={`/product/${product.id}`}>
+        <Link href={`/product/${product.slug}`}>
           <img
             src={product.image}
             alt={product.name}
@@ -144,7 +144,7 @@ export function ProductCard({ product }: ProductCardProps) {
           Quick View
         </button>
       </div>
-      <Link href={`/product/${product.id}`}>
+      <Link href={`/product/${product.slug}`}>
         <h3 className="font-medium text-gray-900 mb-2 line-clamp-2 group-hover:text-pink-600 transition-colors">
           {product.name}
         </h3>

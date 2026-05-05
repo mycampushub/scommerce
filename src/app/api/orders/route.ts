@@ -10,8 +10,8 @@ import { invalidateCache } from '@/lib/cache';
 import { rateLimit, getClientIp, createRateLimitResponse } from '@/lib/rate-limit';
 import { verifyToken, extractTokenFromHeader } from '@/lib/auth';
 
-// Allowed payment methods - Only Cash on Delivery is enabled
-const ALLOWED_PAYMENT_METHODS = ['CASH_ON_DELIVERY'] as const;
+// Allowed payment methods - Cash on Delivery and Online Payment
+const ALLOWED_PAYMENT_METHODS = ['CASH_ON_DELIVERY', 'ONLINE_PAYMENT'] as const;
 
 
 export async function POST(request: NextRequest) {
@@ -110,12 +110,12 @@ export async function POST(request: NextRequest) {
 
     const validatedData = validation.data;
 
-    // Ensure only COD payment method is accepted
+    // Ensure valid payment method
     if (validatedData.paymentMethod && !ALLOWED_PAYMENT_METHODS.includes(validatedData.paymentMethod as any)) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Only Cash on Delivery payment method is currently supported',
+          error: 'Invalid payment method. Please select a valid payment option.',
           allowedMethods: ALLOWED_PAYMENT_METHODS,
         },
         { status: 400 }
@@ -207,7 +207,7 @@ export async function POST(request: NextRequest) {
     const discount = validatedData.discount || 0;
     const total = validatedData.total;
 
-    // Create order with Cash on Delivery as the only payment method
+    // Create order with the selected payment method
     const order = await OrderRepository.create(env, {
       userId: validatedData.userId || undefined,
       customerName: validatedData.customerName,
@@ -222,7 +222,7 @@ export async function POST(request: NextRequest) {
       tax: parseFloat(tax.toFixed(2)),
       discount: parseFloat(discount.toFixed(2)),
       total: parseFloat(total.toFixed(2)),
-      paymentMethod: 'CASH_ON_DELIVERY',
+      paymentMethod: validatedData.paymentMethod,
     });
 
     // Create order items

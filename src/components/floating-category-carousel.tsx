@@ -14,6 +14,7 @@ interface Category {
 interface Product {
   id: string
   name: string
+  slug: string
   price: number
   image: string
 }
@@ -88,7 +89,7 @@ export function FloatingCategoryCarousel({ categories, products = [] }: Floating
               {categoryProducts.map(product => (
                 <a
                   key={product.id}
-                  href={`/product/${product.id}`}
+                  href={`/product/${product.slug}`}
                   className="flex flex-col items-center gap-1"
                 >
                   <div className="aspect-square w-full rounded-lg overflow-hidden bg-gray-100">
