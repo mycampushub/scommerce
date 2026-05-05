@@ -1,0 +1,20 @@
+# Cloudflare Workers Environment Variables
+# Copy this file to dev.vars and fill in your actual values
+# DO NOT commit dev.vars to version control!
+
+# JWT Secret for authentication (min 32 characters)
+# Generate: openssl rand -base64 32
+JWT_SECRET=your-super-secret-jwt-key-min-32-characters
+
+# Admin registration secret
+# Generate: openssl rand -base64 24
+ADMIN_SECRET=your-admin-registration-secret
+
+# Public URL of your deployed application
+NEXT_PUBLIC_URL=https://your-subdomain.workers.dev
+
+# Optional: Database connection settings (if using different D1 database)
+# DATABASE_URL=sqlite:@cloudflare/db
+
+# Optional: API keys for external services
+# API_KEY_EXTERNAL_SERVICE=
