@@ -7,6 +7,7 @@ import { useScrollDirection } from '@/hooks/use-scroll-direction'
 import { useCartStore } from '@/lib/store/cart-store'
 import { useAuth } from '@/hooks/use-auth'
 import { QuickViewModal } from '@/components/quick-view-modal'
+import { MobileBottomNav } from '@/components/mobile-bottom-nav'
 
 
 // Types
@@ -595,6 +596,135 @@ function Stories({ stories, autoPlay = 4000 }: { stories: Story[], autoPlay?: nu
         </div>
       )}
     </>
+  )
+}
+
+// 4b. Category Carousel with Products Component
+function CategoryCarousel({ categories, products }: { categories: Category[]; products: Product[] }) {
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+
+  const scroll = (direction: 'left' | 'right') => {
+    if (scrollContainerRef.current) {
+      const scrollAmount = 300
+      scrollContainerRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      })
+    }
+  }
+
+  const getProductsForCategory = (categorySlug: string) => {
+    return products
+      .filter(p => p.category?.toLowerCase().includes(categorySlug.toLowerCase()))
+      .slice(0, 4)
+  }
+
+  if (categories.length === 0) return null
+
+  return (
+    <section className="w-full py-8 md:py-12 bg-gradient-to-b from-pink-50 to-white">
+      <div className="container mx-auto px-4">
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6 text-center">
+          Shop by Category
+        </h2>
+
+        {/* Mobile Carousel */}
+        <div className="relative md:hidden">
+          <div
+            ref={scrollContainerRef}
+            className="flex gap-4 overflow-x-auto pb-4 px-1 scrollbar-hide"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            {categories.map((category) => {
+              const categoryProducts = getProductsForCategory(category.slug)
+              return (
+                <a
+                  key={category.id}
+                  href={category.href}
+                  className="flex-shrink-0 w-[260px] bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow overflow-hidden"
+                >
+                  <div className="relative h-32 overflow-hidden">
+                    <img
+                      src={category.image}
+                      alt={category.name}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                    <h3 className="absolute bottom-2 left-3 text-white font-bold text-lg drop-shadow-lg">
+                      {category.name}
+                    </h3>
+                  </div>
+                  {categoryProducts.length > 0 && (
+                    <div className="p-3">
+                      <div className="grid grid-cols-2 gap-2">
+                        {categoryProducts.slice(0, 2).map(product => (
+                          <div key={product.id} className="rounded-lg overflow-hidden">
+                            <img
+                              src={product.image}
+                              alt={product.name}
+                              className="w-full h-20 object-cover rounded-lg"
+                              loading="lazy"
+                            />
+                            <p className="text-xs font-medium mt-1 truncate">{product.name}</p>
+                            <p className="text-xs text-pink-600 font-bold">৳{product.price}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </a>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Desktop Grid */}
+        <div className="hidden md:grid grid-cols-4 gap-6">
+          {categories.slice(0, 8).map((category) => {
+            const categoryProducts = getProductsForCategory(category.slug)
+            return (
+              <a
+                key={category.id}
+                href={category.href}
+                className="bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group"
+              >
+                <div className="relative h-48 overflow-hidden">
+                  <img
+                    src={category.image}
+                    alt={category.name}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                  <h3 className="absolute bottom-3 left-4 text-white font-bold text-xl drop-shadow-lg">
+                    {category.name}
+                  </h3>
+                </div>
+                {categoryProducts.length > 0 && (
+                  <div className="p-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      {categoryProducts.map(product => (
+                        <div key={product.id} className="rounded-lg overflow-hidden">
+                          <img
+                            src={product.image}
+                            alt={product.name}
+                            className="w-full h-24 object-cover rounded-lg hover:scale-105 transition-transform"
+                            loading="lazy"
+                          />
+                          <p className="text-sm font-medium mt-1 truncate">{product.name}</p>
+                          <p className="text-sm text-pink-600 font-bold">৳{product.price}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </a>
+            )
+          })}
+        </div>
+      </div>
+    </section>
   )
 }
 
@@ -1424,85 +1554,6 @@ function Footer() {
   )
 }
 
-// 13. Mobile Bottom Navigation Component (App-style fixed bottom nav)
-function MobileBottomNav() {
-  const pathname = usePathname()
-  const isVisible = useScrollDirection()
-
-  return (
-    <>
-      {isVisible && (
-        <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden transition-transform duration-300">
-          {/* Safe area padding for mobile devices */}
-          <div className="pb-safe pt-3 pb-6 px-4">
-            <div className="max-w-md mx-auto">
-              {/* Curved/rounded pill-shaped container */}
-              <div className="bg-white rounded-full shadow-2xl border border-gray-200 px-4 py-2 flex items-center justify-between gap-2">
-
-            {/* Home Button */}
-            <a
-              href="/"
-              className={`flex flex-col items-center justify-center w-14 h-14 rounded-full transition-colors active:scale-95 ${
-                pathname === '/'
-                  ? 'bg-pink-600 text-white hover:bg-pink-700'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-              aria-label="Navigate to home"
-            >
-              <HomeIcon className="w-6 h-6" strokeWidth={2.5} />
-            </a>
-
-            {/* Shop Button */}
-            <a
-              href="/shop"
-              className={`flex flex-col items-center justify-center w-14 h-14 rounded-full transition-colors active:scale-95 ${
-                pathname?.startsWith('/shop') && pathname !== '/shop/search'
-                  ? 'bg-pink-600 text-white hover:bg-pink-700'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-              aria-label="Navigate to shop"
-            >
-              <ShoppingBag className="w-6 h-6" strokeWidth={2} />
-            </a>
-
-            {/* Search Button */}
-            <a
-              href="/search"
-              className={`flex flex-col items-center justify-center w-14 h-14 rounded-full transition-colors active:scale-95 ${
-                pathname === '/search'
-                  ? 'bg-pink-600 text-white hover:bg-pink-700'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-              aria-label="Open search"
-            >
-              <Search className="w-6 h-6" strokeWidth={2.5} />
-            </a>
-
-            {/* Cart Button */}
-            <a
-              href="/cart"
-              className={`flex flex-col items-center justify-center w-14 h-14 rounded-full transition-colors active:scale-95 relative ${
-                pathname === '/cart'
-                  ? 'bg-pink-600 text-white hover:bg-pink-700'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-              aria-label="Open cart"
-            >
-              <ShoppingCart className="w-6 h-6" strokeWidth={2} />
-              {/* Cart Badge */}
-              <span className="absolute top-2 right-2 w-5 h-5 bg-pink-600 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                3
-              </span>
-            </a>
-          </div>
-        </div>
-      </div>
-    </nav>
-      )}
-    </>
-  )
-}
-
 // Types for dynamic homepage data
 interface HomepageSettings {
   banners?: { sectionName: string; isEnabled: boolean; autoPlay: number | null; displayLimit: number | null }
@@ -1706,6 +1757,8 @@ export default function Home() {
             {homepageSettings.stories?.isEnabled !== false && stories.length > 0 && (
               <Stories stories={stories} autoPlay={homepageSettings.stories?.autoPlay} />
             )}
+            {/* Category Carousel with Products */}
+            <CategoryCarousel categories={categories} products={[...featuredProducts, ...saleProducts, ...newProducts, ...trendingProducts]} />
             <FullscreenVideo />
             <Categories categories={categories} />
             {/* Reels - only show if enabled and has data */}

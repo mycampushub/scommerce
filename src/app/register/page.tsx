@@ -97,7 +97,7 @@ export default function RegisterPage() {
       setSuccess(true)
       toast({
         title: 'Registration Successful',
-        description: 'Please check your email to verify your account.',
+        description: 'Your account has been created successfully.',
       })
 
       // Log verification link for demo purposes
@@ -149,7 +149,7 @@ export default function RegisterPage() {
                     Registration Successful!
                   </h3>
                   <p className="text-gray-600 text-sm">
-                    We've sent a verification link to your email. Please check your inbox and click the link to verify your account.
+                    Your account has been created. You can now sign in to your account.
                   </p>
                 </div>
                 <div className="pt-4 space-y-3">

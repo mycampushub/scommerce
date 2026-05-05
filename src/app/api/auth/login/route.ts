@@ -55,17 +55,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if email is verified
-    if (!numberToBool(user.emailVerified)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Please verify your email before logging in',
-          requiresVerification: true,
-        },
-        { status: 403 }
-      );
-    }
+    // Check if email is verified (commented out - verification not required)
+    // if (!numberToBool(user.emailVerified)) {
+    //   return NextResponse.json(
+    //     {
+    //       success: false,
+    //       error: 'Please verify your email before logging in',
+    //       requiresVerification: true,
+    //     },
+    //     { status: 403 }
+    //   );
+    // }
 
     // Verify password
     if (!user.password) {

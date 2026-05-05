@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
       name,
       phone,
       password: hashedPassword,
-      emailVerified: false,
+      emailVerified: true, // Auto-verify on registration
       role: isAdmin ? 'admin' : 'user',
     });
 
