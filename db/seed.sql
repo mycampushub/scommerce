@@ -77,23 +77,23 @@ VALUES
 -- Admin user
 INSERT OR IGNORE INTO users (id, email, name, phone, password, emailVerified, role, createdAt, updatedAt)
 VALUES
-('user-admin-001', 'admin@scommerce.com', 'Admin User', '+8801700000001', '$2b$10$e6s/LRi2Y/r3Som//41mj.EJo.4FyWu8xy7GAPa8nTBwcdBji71yW', 1, 'admin', datetime('now'), datetime('now'));
+('user-admin-001', 'admin@scommerce.com', 'Admin User', '+8801700000001', '$2b$10$hDI8zS9UbiE8KaiSW38fnOo87zBAbVW6GIVEyQHwhR99dm0iKNXbG', 1, 'admin', datetime('now'), datetime('now'));
 
 -- Staff users
 INSERT OR IGNORE INTO users (id, email, name, phone, password, emailVerified, role, createdAt, updatedAt)
 VALUES
-('user-staff-001', 'rahul@scommerce.com', 'Rahul Sharma', '+8801700000002', '$2b$10$t/M5Ao1vVAKhuTHAcDJuZ.HFwb3WaNkqm509HE6oyZnUxwnpp0kdG', 1, 'staff', datetime('now'), datetime('now')),
-('user-staff-002', 'priya@scommerce.com', 'Priya Singh', '+8801700000003', '$2b$10$t/M5Ao1vVAKhuTHAcDJuZ.HFwb3WaNkqm509HE6oyZnUxwnpp0kdG', 1, 'staff', datetime('now'), datetime('now')),
-('user-staff-003', 'amit@scommerce.com', 'Amit Kumar', '+8801700000004', '$2b$10$t/M5Ao1vVAKhuTHAcDJuZ.HFwb3WaNkqm509HE6oyZnUxwnpp0kdG', 1, 'staff', datetime('now'), datetime('now'));
+('user-staff-001', 'rahul@scommerce.com', 'Rahul Sharma', '+8801700000002', '$2b$10$P1J2I1LPy/idWL7kkltP9erb6yeYGD630C9Q1mEAPjNVsUwCoT.z', 1, 'staff', datetime('now'), datetime('now')),
+('user-staff-002', 'priya@scommerce.com', 'Priya Singh', '+8801700000003', '$2b$10$a.F/Ul5zAnA24HVQPvmuE.VZUffKX32EXWob0WyEGK2q5TD2NUNQC', 1, 'staff', datetime('now'), datetime('now')),
+('user-staff-003', 'amit@scommerce.com', 'Amit Kumar', '+8801700000004', '$2b$10$0q3CVc8GTq8O5ILjZzHvm.IF9QNuWjLmMRkOdNo8RZfkMoWbsrjUW', 1, 'staff', datetime('now'), datetime('now'));
 
 -- Customer users
 INSERT OR IGNORE INTO users (id, email, name, phone, password, emailVerified, role, createdAt, updatedAt)
 VALUES
-('user-cust-001', 'fatema@example.com', 'Fatema Akhter', '+8801700000101', '$2b$10$t/M5Ao1vVAKhuTHAcDJuZ.HFwb3WaNkqm509HE6oyZnUxwnpp0kdG', 1, 'user', datetime('now'), datetime('now')),
-('user-cust-002', 'noor@example.com', 'Noor Jahan', '+8801700000102', '$2b$10$t/M5Ao1vVAKhuTHAcDJuZ.HFwb3WaNkqm509HE6oyZnUxwnpp0kdG', 1, 'user', datetime('now'), datetime('now')),
-('user-cust-003', 'sara@example.com', 'Sara Ahmed', '+8801700000103', '$2b$10$t/M5Ao1vVAKhuTHAcDJuZ.HFwb3WaNkqm509HE6oyZnUxwnpp0kdG', 1, 'user', datetime('now'), datetime('now')),
-('user-cust-004', 'zara@example.com', 'Zara Khan', '+8801700000104', '$2b$10$t/M5Ao1vVAKhuTHAcDJuZ.HFwb3WaNkqm509HE6oyZnUxwnpp0kdG', 1, 'user', datetime('now'), datetime('now')),
-('user-cust-005', 'hana@example.com', 'Hana Begum', '+8801700000105', '$2b$10$t/M5Ao1vVAKhuTHAcDJuZ.HFwb3WaNkqm509HE6oyZnUxwnpp0kdG', 1, 'user', datetime('now'), datetime('now'));
+('user-cust-001', 'fatema@example.com', 'Fatema Akhter', '+8801700000101', '$2b$10$2G7va8aFIwDG1U.cdeypqu7juZ6ykYlLtRydWx4PhP77lz47E9ECS', 1, 'user', datetime('now'), datetime('now')),
+('user-cust-002', 'noor@example.com', 'Noor Jahan', '+8801700000102', '$2b$10$bwKw7jbXL1DEmFckWLhM5uCtbVghgRkq61NfL828KkR7wt6PNPqsO', 1, 'user', datetime('now'), datetime('now')),
+('user-cust-003', 'sara@example.com', 'Sara Ahmed', '+8801700000103', '$2b$10$VZSrJ6C31npLpsbd0YKpj.4oacbmH0xYC5knPfOSKpsNGSFXvBy3u', 1, 'user', datetime('now'), datetime('now')),
+('user-cust-004', 'zara@example.com', 'Zara Khan', '+8801700000104', '$2b$10$DTVovRdSzYGCI00JHg4/FOAdbGoPMYQCT7U39N1V0hY1v1IjFc.ha', 1, 'user', datetime('now'), datetime('now')),
+('user-cust-005', 'hana@example.com', 'Hana Begum', '+8801700000105', '$2b$10$x46GOCnmvpF9MRaIPNAoT.AWlu6kp6SkhIh33F328B7fhV6hcuxs', 1, 'user', datetime('now'), datetime('now'));
 
 -- ============================================
 -- ADDRESSES

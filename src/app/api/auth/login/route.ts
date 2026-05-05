@@ -6,22 +6,34 @@ import { loginSchema } from '@/lib/validations';
 import { UserRepository } from '@/db/user.repository';
 import { getEnv } from '@/lib/cloudflare';
 import { numberToBool } from '@/db/db';
-
+import type { Env } from '@/db/types';
 
 export async function POST(request: NextRequest) {
-  // Get D1 database from request context (Cloudflare Pages/Workers)
-  const env = getEnv();
+  let env: Env | null = null;
+  try {
+    env = getEnv() as Env | null;
+    if (!env || !env.DB) {
+      console.error('[login] Database not available - env:', env);
+      return NextResponse.json(
+        { success: false, error: 'Database connection error. Please try again later.' },
+        { status: 500 }
+      );
+    }
+  } catch (error) {
+    console.error('[login] Error getting environment:', error);
+    return NextResponse.json(
+      { success: false, error: 'Configuration error. Please contact support.' },
+      { status: 500 }
+    );
+  }
 
-  // Apply rate limiting based on IP and email
   const clientIp = getClientIp(request);
   const body = await request.json() as any;
   const { email, password } = body;
-
-  // Rate limit by IP + email combination for better protection
   const rateLimitKey = `login:${clientIp}:${email || 'unknown'}`;
   const rateLimitResult = await rateLimit(env, rateLimitKey, {
-    maxRequests: 5, // 5 attempts
-    windowMs: 15 * 60 * 1000, // 15 minutes
+    maxRequests: 5,
+    windowMs: 15 * 60 * 1000,
   });
 
   if (!rateLimitResult.success) {
@@ -29,51 +41,33 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // Validate input using Zod schema
     const validation = loginSchema.safeParse({ email, password });
     if (!validation.success) {
       return NextResponse.json(
-        {
-          success: false,
-          error: validation.error.issues[0].message,
-        },
+        { success: false, error: validation.error.issues[0].message },
         { status: 400 }
       );
     }
 
-    // Find user by email using D1
     const user = await UserRepository.findByEmail(env, email);
 
-    // Check if user exists
     if (!user) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Invalid email or password',
-        },
+        { success: false, error: 'Invalid email or password' },
         { status: 401 }
       );
     }
 
-    // Check if email is verified (commented out - verification not required)
-    // if (!numberToBool(user.emailVerified)) {
-    //   return NextResponse.json(
-    //     {
-    //       success: false,
-    //       error: 'Please verify your email before logging in',
-    //       requiresVerification: true,
-    //     },
-    //     { status: 403 }
-    //   );
-    // }
+    if (!numberToBool(user.emailVerified)) {
+      return NextResponse.json(
+        { success: false, error: 'Please verify your email before logging in' },
+        { status: 403 }
+      );
+    }
 
-    // Verify password
     if (!user.password) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Password not set for this account. Please reset your password.',
-        },
+        { success: false, error: 'Password not set for this account. Please reset your password.' },
         { status: 401 }
       );
     }
@@ -81,15 +75,11 @@ export async function POST(request: NextRequest) {
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Invalid email or password',
-        },
+        { success: false, error: 'Invalid email or password' },
         { status: 401 }
       );
     }
 
-    // Create JWT token
     const token = await createToken({
       userId: user.id,
       email: user.email,
@@ -97,26 +87,16 @@ export async function POST(request: NextRequest) {
       role: user.role,
     });
 
-    // Create response with session cookie
     const response = NextResponse.json({
       success: true,
-      data: {
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-        },
-        token,
-      },
+      data: { user: { id: user.id, email: user.email, name: user.name, role: user.role }, token },
     });
 
-    // Set cookie with stricter security
     response.cookies.set('session', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: 60 * 60 * 24 * 7,
       path: '/',
     });
 
@@ -124,10 +104,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Login error:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Login failed',
-      },
+      { success: false, error: 'Login failed. Please try again.' },
       { status: 500 }
     );
   }

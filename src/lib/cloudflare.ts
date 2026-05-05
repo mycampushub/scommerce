@@ -10,6 +10,7 @@ export function getDB(_request?: Request): any | null {
     // First, try Cloudflare D1
     const { env } = getCloudflareContext();
     if (env && env['DB']) {
+      console.log('[cloudflare.ts] Using Cloudflare D1 database');
       return env['DB'];
     }
   } catch (error) {
@@ -35,6 +36,11 @@ export function getEnv(_request?: Request): any | null {
     // Try Cloudflare bindings first
     const { env } = getCloudflareContext();
     if (env && (env['DB'] || env['KV'] || env['BUCKET'])) {
+      console.log('[cloudflare.ts] Using Cloudflare bindings', {
+        hasDB: !!env['DB'],
+        hasKV: !!env['KV'],
+        hasBUCKET: !!env['BUCKET'],
+      });
       return env;
     }
   } catch (error) {

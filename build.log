@@ -1,4 +1,7 @@
-$ next build
+
+> scommerce@0.2.0 build
+> next build
+
    ▲ Next.js 15.5.2
    - Environments: .env
 
@@ -10,141 +13,21 @@ $ next build
 > [PWA] Service worker: /home/z/my-project/public/sw.js
 > [PWA]   url: /sw.js
 > [PWA]   scope: /
- ✓ Compiled successfully in 18.9s
+ ✓ Compiled successfully in 18.0s
    Linting and checking validity of types ...
-   Collecting page data ...
-   Generating static pages (0/93) ...
-   Generating static pages (23/93) 
-   Generating static pages (46/93) 
-   Generating static pages (69/93) 
- ✓ Generating static pages (93/93)
-   Finalizing page optimization ...
-   Collecting build traces ...
+Failed to compile.
 
-Route (app)                                           Size  First Load JS
-┌ ○ /                                              18.9 kB         158 kB
-├ ○ /_not-found                                      315 B         102 kB
-├ ○ /about                                           647 B         151 kB
-├ ○ /account/orders                                4.08 kB         166 kB
-├ ○ /account/settings                               6.2 kB         166 kB
-├ ○ /admin                                         5.42 kB         232 kB
-├ ○ /admin/analytics                               5.91 kB         265 kB
-├ ○ /admin/categories                                 9 kB         157 kB
-├ ○ /admin/customers                                9.7 kB         165 kB
-├ ○ /admin/homepage                                7.54 kB         167 kB
-├ ○ /admin/inventory                               8.32 kB         153 kB
-├ ○ /admin/orders                                  11.6 kB         164 kB
-├ ○ /admin/products                                10.5 kB         190 kB
-├ ○ /admin/settings                                6.72 kB         126 kB
-├ ○ /admin/staff                                   5.91 kB         165 kB
-├ ƒ /api                                             315 B         102 kB
-├ ƒ /api/addresses                                   315 B         102 kB
-├ ƒ /api/addresses/[id]                              315 B         102 kB
-├ ƒ /api/admin/analytics                             315 B         102 kB
-├ ƒ /api/admin/banners                               315 B         102 kB
-├ ƒ /api/admin/banners/[id]                          315 B         102 kB
-├ ƒ /api/admin/banners/[id]/reorder                  315 B         102 kB
-├ ƒ /api/admin/categories                            315 B         102 kB
-├ ƒ /api/admin/categories/[id]                       315 B         102 kB
-├ ƒ /api/admin/customers                             315 B         102 kB
-├ ƒ /api/admin/homepage/settings                     315 B         102 kB
-├ ƒ /api/admin/inventory/alerts                      315 B         102 kB
-├ ƒ /api/admin/inventory/alerts/[id]                 315 B         102 kB
-├ ƒ /api/admin/orders                                315 B         102 kB
-├ ƒ /api/admin/orders/[id]                           315 B         102 kB
-├ ƒ /api/admin/orders/export                         315 B         102 kB
-├ ƒ /api/admin/products                              315 B         102 kB
-├ ƒ /api/admin/products/[id]                         315 B         102 kB
-├ ƒ /api/admin/products/[id]/variants                315 B         102 kB
-├ ƒ /api/admin/products/[id]/variants/[variantId]    315 B         102 kB
-├ ƒ /api/admin/promotions                            315 B         102 kB
-├ ƒ /api/admin/promotions/[id]                       315 B         102 kB
-├ ƒ /api/admin/promotions/[id]/reorder               315 B         102 kB
-├ ƒ /api/admin/reels                                 315 B         102 kB
-├ ƒ /api/admin/reels/[id]                            315 B         102 kB
-├ ƒ /api/admin/reels/[id]/reorder                    315 B         102 kB
-├ ƒ /api/admin/reviews                               315 B         102 kB
-├ ƒ /api/admin/reviews/[id]                          315 B         102 kB
-├ ƒ /api/admin/staff                                 315 B         102 kB
-├ ƒ /api/admin/staff/[id]                            315 B         102 kB
-├ ƒ /api/admin/stats                                 315 B         102 kB
-├ ƒ /api/admin/stories                               315 B         102 kB
-├ ƒ /api/admin/stories/[id]                          315 B         102 kB
-├ ƒ /api/admin/stories/[id]/reorder                  315 B         102 kB
-├ ƒ /api/auth/change-email                           315 B         102 kB
-├ ƒ /api/auth/change-password                        315 B         102 kB
-├ ƒ /api/auth/csrf                                   315 B         102 kB
-├ ƒ /api/auth/login                                  315 B         102 kB
-├ ƒ /api/auth/logout                                 315 B         102 kB
-├ ƒ /api/auth/password-reset/request                 315 B         102 kB
-├ ƒ /api/auth/password-reset/reset                   315 B         102 kB
-├ ƒ /api/auth/password-reset/verify                  315 B         102 kB
-├ ƒ /api/auth/register                               315 B         102 kB
-├ ƒ /api/auth/session                                315 B         102 kB
-├ ƒ /api/auth/verify-email                           315 B         102 kB
-├ ƒ /api/auth/verify-email-change                    315 B         102 kB
-├ ƒ /api/banners                                     315 B         102 kB
-├ ƒ /api/cart                                        315 B         102 kB
-├ ƒ /api/cart/abandoned                              315 B         102 kB
-├ ƒ /api/cart/apply-promo                            315 B         102 kB
-├ ƒ /api/cart/sync                                   315 B         102 kB
-├ ƒ /api/categories                                  315 B         102 kB
-├ ƒ /api/health                                      315 B         102 kB
-├ ƒ /api/homepage/settings                           315 B         102 kB
-├ ƒ /api/orders                                      315 B         102 kB
-├ ƒ /api/orders/[id]                                 315 B         102 kB
-├ ƒ /api/orders/[id]/cancel                          315 B         102 kB
-├ ƒ /api/orders/[id]/refund                          315 B         102 kB
-├ ƒ /api/orders/[id]/track                           315 B         102 kB
-├ ƒ /api/products                                    315 B         102 kB
-├ ƒ /api/products/[id]                               315 B         102 kB
-├ ƒ /api/products/[id]/variants                      315 B         102 kB
-├ ƒ /api/products/recommendations                    315 B         102 kB
-├ ƒ /api/promotions                                  315 B         102 kB
-├ ƒ /api/reels                                       315 B         102 kB
-├ ƒ /api/reviews                                     315 B         102 kB
-├ ƒ /api/search/autocomplete                         315 B         102 kB
-├ ƒ /api/settings                                    315 B         102 kB
-├ ƒ /api/shipping/calculate                          315 B         102 kB
-├ ƒ /api/stories                                     315 B         102 kB
-├ ƒ /api/test-bindings                               315 B         102 kB
-├ ƒ /api/wishlist                                    315 B         102 kB
-├ ○ /cart                                          4.88 kB         156 kB
-├ ○ /checkout                                      5.88 kB         166 kB
-├ ○ /collections/gowns                               159 B         171 kB
-├ ○ /collections/kurtas                              160 B         171 kB
-├ ○ /collections/lehengas                            160 B         171 kB
-├ ○ /collections/menswear                            159 B         171 kB
-├ ○ /collections/salwar                              160 B         171 kB
-├ ○ /collections/saree                               159 B         171 kB
-├ ○ /collections/tops                                159 B         171 kB
-├ ○ /contact                                       3.91 kB         155 kB
-├ ○ /faq                                           4.36 kB         155 kB
-├ ○ /forgot-password                               5.04 kB         119 kB
-├ ○ /login                                         7.39 kB         122 kB
-├ ○ /order-confirmation                             8.5 kB         172 kB
-├ ○ /privacy                                       2.76 kB         153 kB
-├ ƒ /product/[id]                                  12.2 kB         175 kB
-├ ○ /register                                      6.15 kB         120 kB
-├ ○ /reset-password                                 5.9 kB         120 kB
-├ ○ /returns                                       3.08 kB         154 kB
-├ ○ /search                                        3.72 kB         154 kB
-├ ○ /shipping                                        647 B         151 kB
-├ ○ /shop                                          5.09 kB         171 kB
-├ ○ /shorts                                          49 kB         160 kB
-├ ○ /sitemap.xml                                     315 B         102 kB
-├ ○ /terms                                         2.88 kB         154 kB
-├ ○ /track-order                                   3.98 kB         156 kB
-├ ○ /verify-email                                  3.72 kB         118 kB
-└ ○ /wishlist                                       6.2 kB         132 kB
-+ First Load JS shared by all                       102 kB
-  ├ chunks/1255-f206d8cb7c37a3ff.js                45.5 kB
-  ├ chunks/4bd1b696-100b9d70ed4e49c1.js            54.2 kB
-  └ other shared chunks (total)                    1.99 kB
+./src/db/user.repository.ts:272:14
+Type error: Conversion of type '{ name: string | null; emailVerified: number; id: string; email: string; phone: string | null; password: string | null; newEmail: string | null; createdAt: Date; address: string | null; ... 4 more ...; updatedAt: Date; }[]' to type 'User[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ name: string | null; emailVerified: number; id: string; email: string; phone: string | null; password: string | null; newEmail: string | null; createdAt: Date; address: string | null; ... 4 more ...; updatedAt: Date; }' is not comparable to type 'User'.
+    Types of property 'createdAt' are incompatible.
+      Type 'Date' is not comparable to type 'string'.
 
-
-ƒ Middleware                                       40.6 kB
-
-○  (Static)   prerendered as static content
-ƒ  (Dynamic)  server-rendered on demand
-
+[0m [90m 270 |[39m         skip[33m:[39m offset
+ [90m 271 |[39m       })[33m;[39m
+[31m[1m>[22m[39m[90m 272 |[39m       [36mreturn[39m users [36mas[39m [33mUser[39m[][33m;[39m
+ [90m     |[39m              [31m[1m^[22m[39m
+ [90m 273 |[39m     }
+ [90m 274 |[39m
+ [90m 275 |[39m     [90m// Use D1[39m[0m
+Next.js build worker exited with code: 1 and signal: null

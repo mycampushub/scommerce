@@ -5,6 +5,7 @@ import { registerSchema } from '@/lib/validations';
 import { UserRepository } from '@/db/user.repository';
 import { getEnv } from '@/lib/cloudflare';
 import { generateEmailToken } from '@/lib/crypto-utils';
+import { createToken } from '@/lib/auth';
 
 
 export async function POST(request: NextRequest) {
@@ -110,6 +111,14 @@ export async function POST(request: NextRequest) {
       emailToken,
     });
 
+    // Create JWT token for auto-login
+    const token = await createToken({
+      userId: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+    });
+
     // Return user data (converting emailVerified from number to boolean for frontend)
     const transformedUser = {
       id: user.id,
@@ -127,14 +136,27 @@ export async function POST(request: NextRequest) {
     console.log('Please send this link to user email:', email);
     console.log(`User registered with role: ${user.role}`);
 
-    return NextResponse.json({
+    // Create response with session cookie for auto-login
+    const response = NextResponse.json({
       success: true,
-      message: 'Registration successful! Please check your email to verify your account.',
+      message: 'Registration successful! You have been automatically logged in.',
       data: {
         user: transformedUser,
+        token,
         verificationLink, // Only included for demo purposes
       },
     });
+
+    // Set cookie with stricter security for auto-login
+    response.cookies.set('session', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      path: '/',
+    });
+
+    return response;
   } catch (error: any) {
     console.error('Registration error:', error);
     return NextResponse.json(

@@ -8,7 +8,7 @@ import { useCartStore } from '@/lib/store/cart-store'
 import { useAuth } from '@/hooks/use-auth'
 import { QuickViewModal } from '@/components/quick-view-modal'
 import { MobileBottomNav } from '@/components/mobile-bottom-nav'
-import { FloatingCategoryCarousel } from '@/components/floating-category-carousel'
+
 
 
 // Types
@@ -602,127 +602,138 @@ function Stories({ stories, autoPlay = 4000 }: { stories: Story[], autoPlay?: nu
 
 // 4b. Category Carousel with Products Component
 function CategoryCarousel({ categories, products }: { categories: Category[]; products: Product[] }) {
-  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [isPaused, setIsPaused] = useState(false)
 
-  const scroll = (direction: 'left' | 'right') => {
-    if (scrollContainerRef.current) {
-      const scrollAmount = 300
-      scrollContainerRef.current.scrollBy({
-        left: direction === 'left' ? -scrollAmount : scrollAmount,
-        behavior: 'smooth'
-      })
-    }
+  // Auto-scroll effect
+  useEffect(() => {
+    if (isPaused) return
+
+    const interval = setInterval(() => {
+      setCurrentIndex(prev => (prev + 1) % categories.length)
+    }, 4000)
+
+    return () => clearInterval(interval)
+  }, [isPaused, categories.length])
+
+  const nextSlide = () => {
+    setCurrentIndex(prev => (prev + 1) % categories.length)
   }
 
-  const getProductsForCategory = (categorySlug: string) => {
-    return products
-      .filter(p => p.category?.toLowerCase().includes(categorySlug.toLowerCase()))
-      .slice(0, 4)
+  const prevSlide = () => {
+    setCurrentIndex(prev => (prev - 1 + categories.length) % categories.length)
   }
 
-  if (categories.length === 0) return null
+  const goToSlide = (index: number) => {
+    setCurrentIndex(index)
+  }
+
+  if (!categories || categories.length === 0) return null
+
+  const currentCategory = categories[currentIndex]
+  const categoryProducts = products.filter(p =>
+    currentCategory && (
+      p.name.toLowerCase().includes(currentCategory.name.toLowerCase()) ||
+      (p.category && p.category.toLowerCase().includes(currentCategory.slug.toLowerCase()))
+    )
+  ).slice(0, 4)
+
+  const href = currentCategory?.href || `/collections/${currentCategory?.slug}`
 
   return (
-    <section className="w-full py-8 md:py-12 bg-gradient-to-b from-pink-50 to-white">
+    <section className="w-full py-6 md:py-8 bg-gradient-to-b from-pink-50 to-white">
       <div className="container mx-auto px-4">
-        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6 text-center">
-          Shop by Category
-        </h2>
-
-        {/* Mobile Carousel */}
-        <div className="relative md:hidden">
-          <div
-            ref={scrollContainerRef}
-            className="flex gap-4 overflow-x-auto pb-4 px-1 scrollbar-hide"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        {/* Category Name Carousel with Left/Right Controls */}
+        <div
+          className="relative bg-white rounded-2xl shadow-sm p-4 md:p-6"
+          onMouseEnter={() => setIsPaused(true)}
+          onMouseLeave={() => setIsPaused(false)}
+        >
+          {/* Left Navigation Button */}
+          <button
+            onClick={prevSlide}
+            className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 md:w-12 md:h-12 bg-white shadow-lg rounded-full flex items-center justify-center hover:bg-pink-50 transition-colors border border-gray-200"
+            aria-label="Previous category"
           >
-            {categories.map((category) => {
-              const categoryProducts = getProductsForCategory(category.slug)
-              return (
-                <a
-                  key={category.id}
-                  href={category.href}
-                  className="flex-shrink-0 w-[260px] bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow overflow-hidden"
-                >
-                  <div className="relative h-32 overflow-hidden">
-                    <img
-                      src={category.image}
-                      alt={category.name}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                    <h3 className="absolute bottom-2 left-3 text-white font-bold text-lg drop-shadow-lg">
-                      {category.name}
-                    </h3>
-                  </div>
-                  {categoryProducts.length > 0 && (
-                    <div className="p-3">
-                      <div className="grid grid-cols-2 gap-2">
-                        {categoryProducts.slice(0, 2).map(product => (
-                          <div key={product.id} className="rounded-lg overflow-hidden">
-                            <img
-                              src={product.image}
-                              alt={product.name}
-                              className="w-full h-20 object-cover rounded-lg"
-                              loading="lazy"
-                            />
-                            <p className="text-xs font-medium mt-1 truncate">{product.name}</p>
-                            <p className="text-xs text-pink-600 font-bold">৳{product.price}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </a>
-              )
-            })}
+            <ChevronLeft className="w-5 h-5 md:w-6 md:h-6 text-gray-700" strokeWidth={2.5} />
+          </button>
+
+          {/* Category Name Display */}
+          <div className="text-center py-4 md:py-6">
+            <h2 className="text-2xl md:text-4xl font-bold text-gray-900">
+              {currentCategory?.name}
+            </h2>
+            <p className="text-sm md:text-base text-gray-500 mt-2">
+              Swipe or use arrows to explore
+            </p>
+          </div>
+
+          {/* Right Navigation Button */}
+          <button
+            onClick={nextSlide}
+            className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 md:w-12 md:h-12 bg-white shadow-lg rounded-full flex items-center justify-center hover:bg-pink-50 transition-colors border border-gray-200"
+            aria-label="Next category"
+          >
+            <ChevronRight className="w-5 h-5 md:w-6 md:h-6 text-gray-700" strokeWidth={2.5} />
+          </button>
+
+          {/* Category Dots Indicator */}
+          <div className="flex justify-center gap-2 mt-2">
+            {categories.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => goToSlide(index)}
+                className={`h-2 rounded-full transition-all ${
+                  index === currentIndex ? 'bg-pink-600 w-6' : 'bg-gray-300 w-2 hover:bg-gray-400'
+                }`}
+                aria-label={`Go to category ${index + 1}`}
+                aria-current={index === currentIndex ? 'step' : undefined}
+              />
+            ))}
           </div>
         </div>
 
-        {/* Desktop Grid */}
-        <div className="hidden md:grid grid-cols-4 gap-6">
-          {categories.slice(0, 8).map((category) => {
-            const categoryProducts = getProductsForCategory(category.slug)
-            return (
-              <a
-                key={category.id}
-                href={category.href}
-                className="bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group"
-              >
-                <div className="relative h-48 overflow-hidden">
-                  <img
-                    src={category.image}
-                    alt={category.name}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    loading="lazy"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                  <h3 className="absolute bottom-3 left-4 text-white font-bold text-xl drop-shadow-lg">
-                    {category.name}
-                  </h3>
-                </div>
-                {categoryProducts.length > 0 && (
-                  <div className="p-4">
-                    <div className="grid grid-cols-2 gap-3">
-                      {categoryProducts.map(product => (
-                        <div key={product.id} className="rounded-lg overflow-hidden">
-                          <img
-                            src={product.image}
-                            alt={product.name}
-                            className="w-full h-24 object-cover rounded-lg hover:scale-105 transition-transform"
-                            loading="lazy"
-                          />
-                          <p className="text-sm font-medium mt-1 truncate">{product.name}</p>
-                          <p className="text-sm text-pink-600 font-bold">৳{product.price}</p>
-                        </div>
-                      ))}
-                    </div>
+        {/* Active Category Products - Shown Below Carousel */}
+        {categoryProducts.length > 0 && (
+          <div className="mt-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+              {categoryProducts.map(product => (
+                <a
+                  key={product.id}
+                  href={`/product/${product.id}`}
+                  className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden group"
+                >
+                  <div className="relative aspect-square overflow-hidden bg-gray-100">
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                    />
                   </div>
-                )}
-              </a>
-            )
-          })}
+                  <div className="p-3">
+                    <h3 className="text-sm md:text-base font-medium text-gray-900 line-clamp-2 mb-2">
+                      {product.name}
+                    </h3>
+                    <p className="text-base md:text-lg font-bold text-pink-600">
+                      ৳{product.price}
+                    </p>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* View All Button */}
+        <div className="mt-6 text-center">
+          <a
+            href={href}
+            className="inline-flex items-center gap-2 bg-pink-600 text-white px-6 py-3 md:px-8 md:py-3.5 rounded-xl text-base md:text-lg font-medium hover:bg-pink-700 transition-colors shadow-md hover:shadow-lg"
+          >
+            <ShoppingBag className="w-5 h-5" strokeWidth={2} />
+            View All {currentCategory?.name}
+          </a>
         </div>
       </div>
     </section>
@@ -1778,7 +1789,6 @@ export default function Home() {
       </main>
       <Footer />
       <MobileBottomNav />
-      <FloatingCategoryCarousel categories={categories} products={[...featuredProducts, ...saleProducts, ...newProducts, ...trendingProducts]} />
 
       {/* Quick View Modal */}
       <QuickViewModal

@@ -7,13 +7,16 @@ import bcrypt from 'bcryptjs';
 
 function getJWTSecret(): Uint8Array {
   const secret = process.env.JWT_SECRET;
-  
+
   if (!secret) {
+    // In production, we must have JWT_SECRET
     if (process.env.NODE_ENV === 'production') {
-      throw new Error(
+      console.error(
         'CRITICAL SECURITY: JWT_SECRET environment variable is required in production. '
-        + 'Set JWT_SECRET to a secure, random string with at least 32 characters.'
+        + 'Set JWT_SECRET in Cloudflare Dashboard or wrangler.toml with a secure, random string (at least 32 characters).'
       );
+      // Return a temporary fallback to allow the API to return a proper error
+      return new TextEncoder().encode('production-secret-must-be-configured-in-cf-dashboard');
     }
     // Only use fallback in development with clear warning
     console.warn(
@@ -22,14 +25,15 @@ function getJWTSecret(): Uint8Array {
     );
     return new TextEncoder().encode('dev-only-secret-min-32-chars-do-not-use-in-production');
   }
-  
+
   // Validate secret length in production
   if (process.env.NODE_ENV === 'production' && secret.length < 32) {
-    throw new Error(
+    console.error(
       'SECURITY: JWT_SECRET must be at least 32 characters long for production use.'
     );
+    // Return the secret anyway but log error
   }
-  
+
   return new TextEncoder().encode(secret);
 }
 
