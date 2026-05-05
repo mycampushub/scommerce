@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyAdminAuth } from '@/lib/admin-auth'
 import { getEnv } from '@/lib/cloudflare'
 import { CategoryRepository } from '@/db/category.repository'
+import { categorySchema } from '@/lib/validations'
 import { queryAll, count, numberToBool } from '@/db/db'
+import { csrfMiddleware } from '@/lib/csrf'
 
 
 export async function GET(request: NextRequest) {
@@ -77,16 +79,33 @@ export async function POST(request: NextRequest) {
     return userOrResponse
   }
 
+  // Check CSRF protection
+  const env = getEnv()
+  const csrfError = await csrfMiddleware(request, env)
+  if (csrfError) {
+    return csrfError
+  }
+
   try {
-    const env = getEnv()
     const body = await request.json() as any
 
+    // Validate with Zod
+    const validation = categorySchema.safeParse(body)
+    if (!validation.success) {
+      return NextResponse.json(
+        { success: false, error: validation.error.issues[0].message },
+        { status: 400 }
+      )
+    }
+
+    const validatedData = validation.data
+
     const category = await CategoryRepository.create(env, {
-      name: body.name,
-      slug: body.slug,
-      description: body.description,
-      image: body.image,
-      isActive: body.isActive ?? true,
+      name: validatedData.name,
+      slug: validatedData.slug,
+      description: validatedData.description,
+      image: validatedData.image,
+      isActive: validatedData.isActive ?? true,
     })
 
     return NextResponse.json({

@@ -29,6 +29,7 @@ interface Story {
 interface Category {
   id: string
   name: string
+  slug: string
   image: string
   href: string
 }
@@ -1705,7 +1706,9 @@ export default function Home() {
             {homepageSettings.stories?.isEnabled !== false && stories.length > 0 && (
               <Stories stories={stories} autoPlay={homepageSettings.stories?.autoPlay} />
             )}
-            <FloatingCategoryCarousel categories={categories} />
+            <div className="py-4 md:py-6">
+              <FloatingCategoryCarousel categories={categories} />
+            </div>
             <FullscreenVideo />
             <Categories categories={categories} />
             {/* Reels - only show if enabled and has data */}

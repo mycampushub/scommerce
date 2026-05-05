@@ -4,6 +4,7 @@ import { OrderRepository } from '@/db/order.repository';
 import { ProductRepository } from '@/db/product.repository';
 import { z } from 'zod';
 import { queryFirst } from '@/db/db';
+import { csrfMiddleware } from '@/lib/csrf';
 
 
 // Validation schema for refund request
@@ -28,6 +29,12 @@ export async function POST(
 ) {
   // Get D1 database from request context
   const env = getEnv();
+
+  // Check CSRF protection
+  const csrfError = await csrfMiddleware(request, env);
+  if (csrfError) {
+    return csrfError;
+  }
 
   try {
     const body = await request.json() as any;

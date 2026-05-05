@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { verifyAdminAuth } from '@/lib/admin-auth'
 import { getEnv } from '@/lib/cloudflare'
 import { OrderRepository } from '@/db/order.repository'
 import { UserRepository } from '@/db/user.repository'
 import { execute, parseJSON } from '@/db/db'
 import { updateTrackingSchema } from '@/lib/validations'
+import { csrfMiddleware } from '@/lib/csrf'
 
 
 export async function GET(
@@ -70,9 +72,21 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Verify admin authentication (admin or staff)
+  const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
+
+  // Check CSRF protection
+  const env = getEnv()
+  const csrfError = await csrfMiddleware(request, env)
+  if (csrfError) {
+    return csrfError
+  }
+
   try {
     const { id } = await params
-    const env = getEnv()
     const body: any = await request.json() as any
 
     // Prepare update data
@@ -196,9 +210,21 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Verify admin authentication (admin only)
+  const userOrResponse = await verifyAdminAuth(request, ['admin'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
+
+  // Check CSRF protection
+  const env = getEnv()
+  const csrfError = await csrfMiddleware(request, env)
+  if (csrfError) {
+    return csrfError
+  }
+
   try {
     const { id } = await params
-    const env = getEnv()
 
     // Delete order items first
     await execute(env, 'DELETE FROM order_items WHERE orderId = ?', id)

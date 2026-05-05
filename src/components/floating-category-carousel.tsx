@@ -43,7 +43,7 @@ export function FloatingCategoryCarousel({ categories }: FloatingCategoryCarouse
     return null
   }
 
-  const visibleCategories = []
+  const visibleCategories: Category[] = []
   for (let i = 0; i < 5; i++) {
     visibleCategories.push(categories[(currentIndex + i) % categories.length])
   }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
 import { queryFirst } from '@/db/db'
+import { csrfMiddleware } from '@/lib/csrf'
 
 // Simple promo codes for demo (in production, use promotions table)
 const PROMO_CODES: Record<string, { discount: number; type: 'percentage' | 'fixed'; minOrder?: number }> = {
@@ -12,6 +13,12 @@ const PROMO_CODES: Record<string, { discount: number; type: 'percentage' | 'fixe
 
 export async function POST(request: NextRequest) {
   const env = getEnv()
+
+  // Check CSRF protection
+  const csrfError = await csrfMiddleware(request, env)
+  if (csrfError) {
+    return csrfError
+  }
 
   try {
     const body = await request.json() as { promoCode?: string }

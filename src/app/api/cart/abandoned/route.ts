@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyAdminAuth } from '@/lib/admin-auth'
 import { getEnv } from '@/lib/cloudflare'
 import { UserRepository } from '@/db/user.repository'
-import { queryAll, queryFirst, parseJSON, numberToBool } from '@/db/db'
+import { queryAll, queryFirst, parseJSON, numberToBool, generateSecureId } from '@/db/db'
+import { csrfMiddleware } from '@/lib/csrf'
 
 
 const ABANDONED_CART_HOURS = 24 // Consider cart abandoned after 24 hours of inactivity
@@ -173,6 +174,12 @@ export async function POST(request: NextRequest) {
   // Get D1 database from request context
   const env = getEnv()
 
+  // Check CSRF protection
+  const csrfError = await csrfMiddleware(request, env)
+  if (csrfError) {
+    return csrfError
+  }
+
   try {
     const body = await request.json() as any
     const { userIds, subject, message } = body
@@ -208,7 +215,7 @@ export async function POST(request: NextRequest) {
         env,
         `INSERT INTO admin_logs (id, adminId, action, entity, entityId, details, createdAt)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        generateSecureId(),
         adminId,
         'ABANDONED_CART_NOTIFICATION',
         'Cart',

@@ -3,7 +3,11 @@ import { verifyAdminAuth } from '@/lib/admin-auth'
 import { getEnv } from '@/lib/cloudflare'
 import { OrderRepository } from '@/db/order.repository'
 import { UserRepository } from '@/db/user.repository'
+import { createOrderSchema } from '@/lib/validations'
 import { queryAll, execute, parseJSON, generateId, generateOrderNumber, now } from '@/db/db'
+import { csrfMiddleware } from '@/lib/csrf'
+import { rateLimit } from '@/lib/rate-limit'
+import { verifyToken, extractTokenFromHeader } from '@/lib/auth'
 
 
 export async function GET(request: NextRequest) {
@@ -102,42 +106,99 @@ export async function POST(request: NextRequest) {
     return userOrResponse
   }
 
+  // Get admin user ID for rate limiting
+  const authHeader = request.headers.get('authorization')
+  const cookieToken = request.cookies.get('session')?.value
+  const token = extractTokenFromHeader(authHeader) || cookieToken
+  let userId: string | undefined
+  
+  if (token) {
+    const payload = await verifyToken(token)
+    if (payload && payload.userId) {
+      userId = payload.userId
+    }
+  }
+  
+  // Rate limiting: 100 orders per hour per admin
+  const env = getEnv()
+  if (userId) {
+    const rateLimitKey = `admin-order-create:${userId}`
+    const rateLimitResult = await rateLimit(env, rateLimitKey, {
+      maxRequests: 100,
+      windowMs: 3600000, // 1 hour in milliseconds
+    })
+    
+    if (!rateLimitResult.success) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Too many order attempts. Please try again later.',
+        }),
+        {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'Retry-After': Math.ceil(((rateLimitResult.resetTime || 0) - Date.now()) / 1000).toString(),
+          },
+        }
+      )
+    }
+  }
+
+  // Check CSRF protection
+  const csrfError = await csrfMiddleware(request, env)
+  if (csrfError) {
+    return csrfError
+  }
+
   try {
-    const env = getEnv()
     const body: any = await request.json() as any
+
+    // Validate with Zod
+    const validation = createOrderSchema.safeParse(body)
+    if (!validation.success) {
+      return NextResponse.json(
+        { success: false, error: validation.error.issues[0].message },
+        { status: 400 }
+      )
+    }
+
+    const validatedData = validation.data
 
     const orderNumber = generateOrderNumber()
 
     const order = await OrderRepository.create(env, {
-      userId: body.userId,
-      customerName: body.customerName,
-      customerEmail: body.customerEmail,
-      customerPhone: body.customerPhone,
-      shippingAddress: typeof body.shippingAddress === 'string'
-        ? body.shippingAddress
-        : JSON.stringify(body.shippingAddress),
-      billingAddress: typeof body.billingAddress === 'string'
-        ? body.billingAddress
-        : JSON.stringify(body.billingAddress),
+      userId: validatedData.userId,
+      customerName: validatedData.customerName,
+      customerEmail: validatedData.customerEmail,
+      customerPhone: validatedData.customerPhone,
+      shippingAddress: typeof validatedData.shippingAddress === 'string'
+        ? validatedData.shippingAddress
+        : JSON.stringify(validatedData.shippingAddress),
+      billingAddress: validatedData.billingAddress
+        ? (typeof validatedData.billingAddress === 'string'
+            ? validatedData.billingAddress
+            : JSON.stringify(validatedData.billingAddress))
+        : undefined,
       city: body.city,
       district: body.district,
       division: body.division,
-      subtotal: parseFloat(body.subtotal),
-      shipping: parseFloat(body.shipping) || 0,
-      tax: parseFloat(body.tax) || 0,
-      discount: parseFloat(body.discount) || 0,
-      total: parseFloat(body.total),
-      paymentMethod: body.paymentMethod,
+      subtotal: validatedData.subtotal,
+      shipping: validatedData.shipping,
+      tax: validatedData.tax,
+      discount: validatedData.discount,
+      total: validatedData.total,
+      paymentMethod: validatedData.paymentMethod,
     })
 
     // Create order items
-    if (body.orderItems && Array.isArray(body.orderItems)) {
-      for (const item of body.orderItems) {
+    if (validatedData.orderItems && Array.isArray(validatedData.orderItems)) {
+      for (const item of validatedData.orderItems) {
         await OrderRepository.addItem(env, {
           orderId: order.id,
           productId: item.productId,
-          quantity: parseInt(item.quantity),
-          price: parseFloat(item.price),
+          quantity: item.quantity,
+          price: item.price,
           productName: item.productName,
           productImage: item.productImage,
         })

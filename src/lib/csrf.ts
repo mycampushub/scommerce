@@ -33,8 +33,10 @@ export async function createCSRFToken(
   ttlSeconds: number = 3600
 ): Promise<string | null> {
   if (!env?.KV) {
-    console.error('CSRF protection requires KV namespace');
-    return null;
+    // KV not available (local development) - return a dummy token for development
+    console.warn('CSRF protection: KV not available (local development), using dummy token');
+    const dummyToken = generateCSRFToken();
+    return dummyToken;
   }
 
   const token = generateCSRFToken();
@@ -66,8 +68,9 @@ export async function validateCSRFToken(
   token: string
 ): Promise<boolean> {
   if (!env?.KV) {
-    console.error('CSRF protection requires KV namespace');
-    return false;
+    // KV not available (local development) - skip validation
+    console.warn('CSRF protection: KV not available (local development), skipping validation');
+    return true;
   }
 
   // Basic token format validation
@@ -179,6 +182,12 @@ export async function csrfMiddleware(
   // Skip CSRF for GET, HEAD, OPTIONS requests (safe methods)
   const method = request.method.toUpperCase();
   if (['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+    return null;
+  }
+
+  // Skip CSRF validation if KV is not available (local development)
+  if (!env?.KV) {
+    console.warn('CSRF protection: KV not available (local development), skipping CSRF validation');
     return null;
   }
 

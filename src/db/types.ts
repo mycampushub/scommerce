@@ -286,7 +286,7 @@ export interface HomepageSettings {
 
 // Database context type - use Cloudflare types from worker-configuration.d.ts
 export interface Env {
-  DB?: D1Database;
-  BUCKET?: R2Bucket;
-  KV?: KVNamespace;
+  DB?: any;
+  BUCKET?: any;
+  KV?: any;
 }

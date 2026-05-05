@@ -7,8 +7,14 @@ export async function POST() {
     message: 'Logged out successfully',
   });
 
-  // Clear session cookie
-  response.cookies.delete('session');
+  // Clear session cookie with same attributes as when it was set
+  response.cookies.set('session', '', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+    maxAge: 0, // Expire immediately
+    path: '/',
+  });
 
   return response;
 }

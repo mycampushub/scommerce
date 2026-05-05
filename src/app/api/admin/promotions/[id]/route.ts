@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
+import { verifyAdminAuth } from '@/lib/admin-auth'
+import { updatePromotionSchema } from '@/lib/validations'
 import { queryFirst, execute, boolToNumber, numberToBool, parseJSON, stringifyJSON, now } from '@/db/db'
+import { csrfMiddleware } from '@/lib/csrf'
 
 
 export async function GET(
@@ -52,85 +55,95 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Verify admin authentication
+  const userOrResponse = await verifyAdminAuth(request, ['admin'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
+
+  // Check CSRF protection
+  const env = getEnv()
+  const csrfError = await csrfMiddleware(request, env)
+  if (csrfError) {
+    return csrfError
+  }
+
   try {
-    const env = getEnv()
     const { id } = await params
     const body = await request.json() as any
-    const {
-      title,
-      description,
-      image,
-      discountType,
-      discountValue,
-      discountRules,
-      applicableProducts,
-      applicableCategories,
-      startDate,
-      endDate,
-      ctaText,
-      ctaLink,
-      isActive,
-      order
-    } = body
+
+    // Validate with Zod
+    const validation = updatePromotionSchema.safeParse(body)
+    if (!validation.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: validation.error.issues[0].message
+        },
+        { status: 400 }
+      )
+    }
+
+    const validatedData = validation.data
 
     const updates: string[] = []
     const values: any[] = []
 
-    if (title !== undefined) {
+    if (validatedData.title !== undefined) {
       updates.push('title = ?')
-      values.push(title)
+      values.push(validatedData.title)
     }
-    if (description !== undefined) {
+    if (validatedData.description !== undefined) {
       updates.push('description = ?')
-      values.push(description)
+      values.push(validatedData.description)
     }
-    if (image !== undefined) {
+    if (validatedData.image !== undefined) {
       updates.push('image = ?')
-      values.push(image)
+      values.push(validatedData.image)
     }
-    if (discountType !== undefined) {
+    if (validatedData.discountType !== undefined) {
       updates.push('discountType = ?')
-      values.push(discountType)
+      values.push(validatedData.discountType)
     }
-    if (discountValue !== undefined) {
+    if (validatedData.discountValue !== undefined) {
       updates.push('discountValue = ?')
-      values.push(discountValue)
+      values.push(validatedData.discountValue)
     }
-    if (discountRules !== undefined) {
+    if (validatedData.discountRules !== undefined) {
       updates.push('discountRules = ?')
-      values.push(stringifyJSON(discountRules))
+      values.push(stringifyJSON(validatedData.discountRules))
     }
-    if (applicableProducts !== undefined) {
+    if (validatedData.applicableProducts !== undefined) {
       updates.push('applicableProducts = ?')
-      values.push(stringifyJSON(applicableProducts))
+      values.push(stringifyJSON(validatedData.applicableProducts))
     }
-    if (applicableCategories !== undefined) {
+    if (validatedData.applicableCategories !== undefined) {
       updates.push('applicableCategories = ?')
-      values.push(stringifyJSON(applicableCategories))
+      values.push(stringifyJSON(validatedData.applicableCategories))
     }
-    if (startDate !== undefined) {
+    if (validatedData.startDate !== undefined) {
       updates.push('startDate = ?')
-      values.push(startDate)
+      values.push(validatedData.startDate)
     }
-    if (endDate !== undefined) {
+    if (validatedData.endDate !== undefined) {
       updates.push('endDate = ?')
-      values.push(endDate)
+      values.push(validatedData.endDate)
     }
-    if (ctaText !== undefined) {
+    if (validatedData.ctaText !== undefined) {
       updates.push('ctaText = ?')
-      values.push(ctaText)
+      values.push(validatedData.ctaText)
     }
-    if (ctaLink !== undefined) {
+    if (validatedData.ctaLink !== undefined) {
       updates.push('ctaLink = ?')
-      values.push(ctaLink)
+      values.push(validatedData.ctaLink)
     }
-    if (isActive !== undefined) {
+    if (validatedData.isActive !== undefined) {
       updates.push('isActive = ?')
-      values.push(boolToNumber(isActive))
+      values.push(boolToNumber(validatedData.isActive))
     }
-    if (order !== undefined) {
+    if (body.order !== undefined) {
       updates.push('`order` = ?')
-      values.push(order)
+      values.push(body.order)
     }
 
     if (updates.length === 0) {
@@ -193,8 +206,20 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Verify admin authentication
+  const userOrResponse = await verifyAdminAuth(request, ['admin'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
+
+  // Check CSRF protection
+  const env = getEnv()
+  const csrfError = await csrfMiddleware(request, env)
+  if (csrfError) {
+    return csrfError
+  }
+
   try {
-    const env = getEnv()
     const { id } = await params
     await execute(env, 'DELETE FROM promotions WHERE id = ?', id)
 

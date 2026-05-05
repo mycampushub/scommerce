@@ -48,7 +48,7 @@ export class CategoryRepository {
     await execute(
       env,
       `INSERT INTO categories (id, name, slug, description, image, isActive, createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       id,
       data.name,
       data.slug,

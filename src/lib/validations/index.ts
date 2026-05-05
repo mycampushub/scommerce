@@ -61,7 +61,7 @@ export const addressSchemaFlexible = z.union([
 
 export const orderItemSchema = z.object({
   productId: z.string().min(1, 'Product ID is required'),
-  quantity: z.number().int().min(1, 'Quantity must be at least 1'),
+  quantity: z.number().int().min(1, 'Quantity must be at least 1').max(99, 'Quantity cannot exceed 99'),
   price: z.number().positive('Price must be positive'),
   productName: z.string().min(1, 'Product name is required'),
   productImage: z.string().url('Invalid image URL'),
@@ -79,7 +79,12 @@ export const createOrderSchema = z.object({
   customerPhone: z.string().min(10, 'Phone number must be at least 10 digits'),
   shippingAddress: addressSchemaFlexible,
   billingAddress: addressSchemaFlexible.optional(),
-  orderItems: z.array(orderItemSchema).min(1, 'At least one order item is required'),
+  orderItems: z.array(orderItemSchema)
+    .min(1, 'At least one order item is required')
+    .refine((items) => items.reduce((sum, item) => sum + item.quantity, 0) <= 500, {
+      message: 'Total order quantity cannot exceed 500 items',
+      path: ['orderItems'],
+    }),
   subtotal: z.number().positive('Subtotal must be positive'),
   shipping: z.number().min(0, 'Shipping must be non-negative'),
   tax: z.number().min(0, 'Tax must be non-negative'),
@@ -108,7 +113,7 @@ export const updateTrackingSchema = z.object({
 // Cart Schemas
 export const cartItemSchema = z.object({
   productId: z.string().uuid('Invalid product ID'),
-  quantity: z.number().int().min(1, 'Quantity must be at least 1'),
+  quantity: z.number().int().min(1, 'Quantity must be at least 1').max(99, 'Quantity cannot exceed 99'),
   size: z.string().optional(),
   color: z.string().optional(),
 });
@@ -178,7 +183,26 @@ export const settingsSchema = z.object({
   freeShippingThreshold: z.number().min(0).optional(),
   taxRate: z.number().min(0).optional(),
   socialMedia: z.record(z.string(), z.string().url()).optional(),
-});
+})
+
+// Promotion Schemas
+export const promotionSchema = z.object({
+  title: z.string().min(1, 'Title is required'),
+  description: z.string().optional(),
+  image: z.string().url('Invalid image URL'),
+  discountType: z.enum(['percentage', 'fixed']).optional().default('percentage'),
+  discountValue: z.number().min(0, 'Discount value must be non-negative').optional().default(0),
+  discountRules: z.record(z.string(), z.unknown()).optional(),
+  applicableProducts: z.array(z.string()).optional().default([]),
+  applicableCategories: z.array(z.string()).optional().default([]),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  ctaText: z.string().optional(),
+  ctaLink: z.string().optional(),
+  isActive: z.boolean().optional(),
+})
+
+export const updatePromotionSchema = promotionSchema.partial();
 
 // Review Schemas
 export const reviewSchema = z.object({
@@ -270,6 +294,8 @@ export const schemas = {
   banner: bannerSchema,
   story: storySchema,
   reel: reelSchema,
+  promotion: promotionSchema,
+  updatePromotion: updatePromotionSchema,
   settings: settingsSchema,
   review: reviewSchema,
   contactForm: contactFormSchema,

@@ -1,15 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
+import { verifyAdminAuth } from '@/lib/admin-auth'
 import { StoryRepository } from '@/db/story.repository'
+import { csrfMiddleware } from '@/lib/csrf'
 
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Verify admin authentication
+  const userOrResponse = await verifyAdminAuth(request, ['admin'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
+
+  // Check CSRF protection
+  const env = getEnv()
+  const csrfError = await csrfMiddleware(request, env)
+  if (csrfError) {
+    return csrfError
+  }
+
   try {
     const { id } = await params
-    const env = getEnv()
     const body = await request.json() as any
     const { order } = body
 

@@ -2,9 +2,6 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { verifyToken } from '@/lib/jwt'
 
-// Edge Runtime for Cloudflare Workers
-export const runtime = 'experimental-edge'
-
 // Paths that require authentication
 const protectedPaths = ['/admin', '/admin/']
 const publicPaths = ['/login', '/register', '/api/auth']
@@ -95,7 +92,16 @@ export async function middleware(request: NextRequest) {
           headers: { 'Content-Type': 'application/json' },
         }
       )
-      return createSecureResponse(NextResponse.fromResponse(response))
+      // Apply security headers directly to Response
+      response.headers.set('X-Frame-Options', 'DENY')
+      response.headers.set('X-Content-Type-Options', 'nosniff')
+      response.headers.set('X-XSS-Protection', '1; mode=block')
+      response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+      response.headers.set('Permissions-Policy', 'geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=()')
+      if (request.url.startsWith('https://')) {
+        response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload')
+      }
+      return response
     }
 
     // Verify token
@@ -108,7 +114,16 @@ export async function middleware(request: NextRequest) {
           headers: { 'Content-Type': 'application/json' },
         }
       )
-      return createSecureResponse(NextResponse.fromResponse(response))
+      // Apply security headers directly to Response
+      response.headers.set('X-Frame-Options', 'DENY')
+      response.headers.set('X-Content-Type-Options', 'nosniff')
+      response.headers.set('X-XSS-Protection', '1; mode=block')
+      response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+      response.headers.set('Permissions-Policy', 'geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=()')
+      if (request.url.startsWith('https://')) {
+        response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload')
+      }
+      return response
     }
   }
 

@@ -1,15 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { verifyAdminAuth } from '@/lib/admin-auth'
 import { getEnv } from '@/lib/cloudflare'
 import { queryAll, count, parseJSON, numberToBool } from '@/db/db'
 
-
-// Bangladesh divisions
+// Bangladesh divisions for geographic distribution
 const BANGLADESH_DIVISIONS = [
   'Dhaka', 'Chittagong', 'Khulna', 'Rajshahi',
   'Barisal', 'Sylhet', 'Rangpur', 'Mymensingh'
 ]
 
 export async function GET(request: NextRequest) {
+  // Verify admin authentication
+  const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
+
   try {
     const env = getEnv()
     const searchParams = request.nextUrl.searchParams

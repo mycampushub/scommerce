@@ -4,6 +4,7 @@ import { rateLimit, createRateLimitResponse, getClientIp } from '@/lib/rate-limi
 import { registerSchema } from '@/lib/validations';
 import { UserRepository } from '@/db/user.repository';
 import { getEnv } from '@/lib/cloudflare';
+import { generateEmailToken } from '@/lib/crypto-utils';
 
 
 export async function POST(request: NextRequest) {
@@ -87,12 +88,12 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Determine user role
-    // Allow admin registration if adminSecret matches
-    const ADMIN_SECRET = process.env.ADMIN_SECRET || 'your-admin-secret-change-in-production';
-    const isAdmin = adminSecret === ADMIN_SECRET;
+    // Allow admin registration if adminSecret matches (from environment)
+    const ADMIN_SECRET = process.env.ADMIN_SECRET;
+    const isAdmin = ADMIN_SECRET && adminSecret === ADMIN_SECRET;
 
-    // Generate email verification token
-    const emailToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    // Generate email verification token using secure random
+    const emailToken = generateEmailToken();
 
     // Create user with appropriate role
     const user = await UserRepository.create(env, {

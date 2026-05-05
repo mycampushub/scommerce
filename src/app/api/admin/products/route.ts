@@ -3,6 +3,7 @@ import { verifyAdminAuth } from '@/lib/admin-auth'
 import { getEnv } from '@/lib/cloudflare'
 import { ProductRepository } from '@/db/product.repository'
 import { CategoryRepository } from '@/db/category.repository'
+import { productSchema } from '@/lib/validations'
 import {
   queryAll,
   count,
@@ -13,6 +14,7 @@ import {
   parseJSON,
   stringifyJSON
 } from '@/db/db'
+import { csrfMiddleware } from '@/lib/csrf'
 
 
 export async function GET(request: NextRequest) {
@@ -122,14 +124,21 @@ export async function POST(request: NextRequest) {
     return userOrResponse
   }
 
+  // Check CSRF protection
+  const env = getEnv()
+  const csrfError = await csrfMiddleware(request, env)
+  if (csrfError) {
+    return csrfError
+  }
+
   try {
-    const env = getEnv()
     const contentType = request.headers.get('content-type') || ''
 
     // Handle multipart/form-data for image uploads
     if (contentType.includes('multipart/form-data')) {
       const formData = await request.formData()
 
+      // Validate required fields manually for multipart
       const name = formData.get('name') as string
       const slug = formData.get('slug') as string
       const description = formData.get('description') as string | null
@@ -140,6 +149,46 @@ export async function POST(request: NextRequest) {
       const lowStockAlert = formData.get('lowStockAlert') as string | null
       const isActive = formData.get('isActive') === 'true'
       const isFeatured = formData.get('isFeatured') === 'true'
+
+      // Manual validation for multipart
+      if (!name || name.trim().length === 0) {
+        return NextResponse.json(
+          { success: false, error: 'Product name is required' },
+          { status: 400 }
+        )
+      }
+      if (!slug || slug.trim().length === 0) {
+        return NextResponse.json(
+          { success: false, error: 'Product slug is required' },
+          { status: 400 }
+        )
+      }
+      if (!description || description.trim().length === 0) {
+        return NextResponse.json(
+          { success: false, error: 'Description is required' },
+          { status: 400 }
+        )
+      }
+      const price = parseFloat(basePrice)
+      if (isNaN(price) || price <= 0) {
+        return NextResponse.json(
+          { success: false, error: 'Price must be a positive number' },
+          { status: 400 }
+        )
+      }
+      if (!categoryId) {
+        return NextResponse.json(
+          { success: false, error: 'Category ID is required' },
+          { status: 400 }
+        )
+      }
+      const stockNum = parseInt(stock)
+      if (isNaN(stockNum) || stockNum < 0) {
+        return NextResponse.json(
+          { success: false, error: 'Stock must be a non-negative integer' },
+          { status: 400 }
+        )
+      }
 
       // Handle image uploads
       const imagesJson = formData.get('images') as string | null
@@ -203,18 +252,29 @@ export async function POST(request: NextRequest) {
     // Handle JSON payload
     const body = await request.json() as any
 
+    // Validate with Zod
+    const validation = productSchema.safeParse(body)
+    if (!validation.success) {
+      return NextResponse.json(
+        { success: false, error: validation.error.issues[0].message },
+        { status: 400 }
+      )
+    }
+
+    const validatedData = validation.data
+
     const product = await ProductRepository.create(env, {
-      name: body.name,
-      slug: body.slug,
-      description: body.description,
-      categoryId: body.categoryId || '',
-      basePrice: parseFloat(body.price),
-      comparePrice: body.comparePrice ? parseFloat(body.comparePrice) : undefined,
-      images: Array.isArray(body.images) ? body.images : (body.images ? JSON.parse(body.images) : []),
-      stock: parseInt(body.stock),
-      lowStockAlert: parseInt(body.lowStockAlert) || 10,
-      isActive: body.isActive ?? true,
-      isFeatured: body.isFeatured ?? false,
+      name: validatedData.name,
+      slug: validatedData.slug,
+      description: validatedData.description,
+      categoryId: validatedData.categoryId,
+      basePrice: validatedData.price,
+      comparePrice: validatedData.comparePrice,
+      images: validatedData.images,
+      stock: validatedData.stock,
+      lowStockAlert: validatedData.lowStockAlert,
+      isActive: validatedData.isActive ?? true,
+      isFeatured: validatedData.isFeatured ?? false,
       hasVariants: body.hasVariants ?? false,
     })
 

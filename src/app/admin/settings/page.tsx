@@ -70,7 +70,10 @@ interface GeneralSettings {
 export default function SettingsPage() {
   const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState<TabValue>('general')
-  const { toast } = toast()
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value as TabValue)
+  }
 
   // State for general settings
   const [generalSettings, setGeneralSettings] = useState<GeneralSettings>({
@@ -149,7 +152,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Settings Form */}
-      <Tabs defaultValue="general" value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs defaultValue="general" value={activeTab} onValueChange={handleTabChange} className="space-y-6">
         <TabsList className="bg-white shadow-md flex-wrap gap-2">
           <TabsTrigger value="general" className="data-[state=active]:bg-violet-600 data-[state=active]:text-white">
             <Globe className="h-4 w-4 mr-2" />

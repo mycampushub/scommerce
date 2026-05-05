@@ -3,10 +3,12 @@ import { createOrderSchema } from '@/lib/validations';
 import { getEnv } from '@/lib/cloudflare';
 import { OrderRepository } from '@/db/order.repository';
 import { ProductRepository } from '@/db/product.repository';
-import { queryFirst, queryAll, execute, stringifyJSON, numberToBool, boolToNumber } from '@/db/db';
+import { queryFirst, queryAll, execute, stringifyJSON, numberToBool, boolToNumber, generateSecureId } from '@/db/db';
 import { csrfMiddleware } from '@/lib/csrf';
 import { sanitizeAddressData, sanitizeForDB, sanitizeEmail, sanitizePhone, sanitizeProductData } from '@/lib/sanitize';
 import { invalidateCache } from '@/lib/cache';
+import { rateLimit, getClientIp, createRateLimitResponse } from '@/lib/rate-limit';
+import { verifyToken, extractTokenFromHeader } from '@/lib/auth';
 
 // Allowed payment methods - Only Cash on Delivery is enabled
 const ALLOWED_PAYMENT_METHODS = ['CASH_ON_DELIVERY'] as const;
@@ -20,6 +22,42 @@ export async function POST(request: NextRequest) {
   const csrfError = await csrfMiddleware(request, env);
   if (csrfError) {
     return csrfError;
+  }
+
+  // Rate limiting: 10 orders per hour per user/IP
+  const authHeader = request.headers.get('authorization');
+  const cookieToken = request.cookies.get('session')?.value;
+  const token = extractTokenFromHeader(authHeader) || cookieToken;
+  let userId: string | undefined;
+  
+  if (token) {
+    const payload = await verifyToken(token);
+    if (payload && payload.userId) {
+      userId = payload.userId;
+    }
+  }
+  
+  const ip = getClientIp(request);
+  const rateLimitKey = `order-create:${userId || ip}`;
+  const rateLimitResult = await rateLimit(env, rateLimitKey, {
+    maxRequests: 10,
+    windowMs: 3600000, // 1 hour in milliseconds
+  });
+  
+  if (!rateLimitResult.success) {
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: 'Too many order attempts. Please try again later.',
+      }),
+      {
+        status: 429,
+        headers: {
+          'Content-Type': 'application/json',
+          'Retry-After': Math.ceil(((rateLimitResult.resetTime || 0) - Date.now()) / 1000).toString(),
+        },
+      }
+    );
   }
 
   try {
@@ -232,7 +270,7 @@ export async function POST(request: NextRequest) {
           await execute(
             env,
             'INSERT INTO inventory_alerts (id, variantId, alertType, quantity, isRead, isResolved, createdAt) VALUES (?, ?, ?, ?, 0, 0, ?)',
-            `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+            generateSecureId(),
             item.variantId,
             'OUT_OF_STOCK',
             0,
@@ -251,7 +289,7 @@ export async function POST(request: NextRequest) {
             await execute(
               env,
               'INSERT INTO inventory_alerts (id, variantId, alertType, quantity, isRead, isResolved, createdAt) VALUES (?, ?, ?, ?, 0, 0, ?)',
-              `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+              generateSecureId(),
               item.variantId,
               'REORDER_NEEDED',
               newStock,
@@ -271,7 +309,7 @@ export async function POST(request: NextRequest) {
             await execute(
               env,
               'INSERT INTO inventory_alerts (id, variantId, alertType, quantity, isRead, isResolved, createdAt) VALUES (?, ?, ?, ?, 0, 0, ?)',
-              `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+              generateSecureId(),
               item.variantId,
               'LOW_STOCK',
               newStock,
@@ -303,7 +341,7 @@ export async function POST(request: NextRequest) {
           await execute(
             env,
             'INSERT INTO inventory_alerts (id, productId, alertType, quantity, isRead, isResolved, createdAt) VALUES (?, ?, ?, ?, 0, 0, ?)',
-            `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+            generateSecureId(),
             item.productId,
             'OUT_OF_STOCK',
             0,
@@ -322,7 +360,7 @@ export async function POST(request: NextRequest) {
             await execute(
               env,
               'INSERT INTO inventory_alerts (id, productId, alertType, quantity, isRead, isResolved, createdAt) VALUES (?, ?, ?, ?, 0, 0, ?)',
-              `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+              generateSecureId(),
               item.productId,
               'REORDER_NEEDED',
               newStock,
@@ -342,7 +380,7 @@ export async function POST(request: NextRequest) {
             await execute(
               env,
               'INSERT INTO inventory_alerts (id, productId, alertType, quantity, isRead, isResolved, createdAt) VALUES (?, ?, ?, ?, 0, 0, ?)',
-              `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+              generateSecureId(),
               item.productId,
               'LOW_STOCK',
               newStock,

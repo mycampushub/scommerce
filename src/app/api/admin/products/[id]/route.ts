@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { verifyAdminAuth } from '@/lib/admin-auth'
 import { getEnv } from '@/lib/cloudflare'
 import { ProductRepository } from '@/db/product.repository'
 import { CategoryRepository } from '@/db/category.repository'
+import { updateProductSchema } from '@/lib/validations'
 import { queryFirst, queryAll, execute, parseJSON, stringifyJSON, boolToNumber, numberToBool, now } from '@/db/db'
+import { csrfMiddleware } from '@/lib/csrf'
 
 
 export async function GET(
@@ -53,8 +56,20 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Verify admin authentication (admin only)
+  const userOrResponse = await verifyAdminAuth(request, ['admin'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
+
+  // Check CSRF protection
+  const env = getEnv()
+  const csrfError = await csrfMiddleware(request, env)
+  if (csrfError) {
+    return csrfError
+  }
+
   try {
-    const env = getEnv()
     const contentType = request.headers.get('content-type') || ''
     const action = request.headers.get('x-action') || 'update'
 
@@ -201,6 +216,7 @@ export async function PUT(
     if (contentType.includes('multipart/form-data')) {
       const formData = await request.formData()
 
+      // Validate required fields manually for multipart
       const name = formData.get('name') as string
       const slug = formData.get('slug') as string
       const description = formData.get('description') as string | null
@@ -211,6 +227,35 @@ export async function PUT(
       const lowStockAlert = formData.get('lowStockAlert') as string | null
       const isActive = formData.get('isActive') === 'true'
       const isFeatured = formData.get('isFeatured') === 'true'
+
+      // Manual validation for multipart - validate if fields are provided
+      if (name !== undefined) {
+        const trimmedName = name?.trim()
+        if (!trimmedName || trimmedName.length === 0) {
+          return NextResponse.json(
+            { success: false, error: 'Product name cannot be empty' },
+            { status: 400 }
+          )
+        }
+      }
+      if (basePrice !== undefined) {
+        const price = parseFloat(basePrice)
+        if (isNaN(price) || price <= 0) {
+          return NextResponse.json(
+            { success: false, error: 'Price must be a positive number' },
+            { status: 400 }
+          )
+        }
+      }
+      if (stock !== undefined) {
+        const stockNum = parseInt(stock)
+        if (isNaN(stockNum) || stockNum < 0) {
+          return NextResponse.json(
+            { success: false, error: 'Stock must be a non-negative integer' },
+            { status: 400 }
+          )
+        }
+      }
 
       // Handle image uploads
       const imagesJson = formData.get('images') as string | null
@@ -277,18 +322,29 @@ export async function PUT(
     const body = await request.json() as any
     const { id } = await params
 
+    // Validate with Zod for JSON payload
+    const validation = updateProductSchema.safeParse(body)
+    if (!validation.success) {
+      return NextResponse.json(
+        { success: false, error: validation.error.issues[0].message },
+        { status: 400 }
+      )
+    }
+
+    const validatedData = validation.data
+
     const updateData: any = {}
-    if (body.name !== undefined) updateData.name = body.name
-    if (body.slug !== undefined) updateData.slug = body.slug
-    if (body.description !== undefined) updateData.description = body.description
-    if (body.price !== undefined) updateData.basePrice = parseFloat(body.price)
-    if (body.comparePrice !== undefined) updateData.comparePrice = body.comparePrice ? parseFloat(body.comparePrice) : null
-    if (body.categoryId !== undefined) updateData.categoryId = body.categoryId
-    if (body.images !== undefined) updateData.images = typeof body.images === 'string' ? body.images : JSON.stringify(body.images)
-    if (body.stock !== undefined) updateData.stock = parseInt(body.stock)
-    if (body.lowStockAlert !== undefined) updateData.lowStockAlert = parseInt(body.lowStockAlert)
-    if (body.isActive !== undefined) updateData.isActive = body.isActive
-    if (body.isFeatured !== undefined) updateData.isFeatured = body.isFeatured
+    if (validatedData.name !== undefined) updateData.name = validatedData.name
+    if (validatedData.slug !== undefined) updateData.slug = validatedData.slug
+    if (validatedData.description !== undefined) updateData.description = validatedData.description
+    if (validatedData.price !== undefined) updateData.basePrice = validatedData.price
+    if (validatedData.comparePrice !== undefined) updateData.comparePrice = validatedData.comparePrice
+    if (validatedData.categoryId !== undefined) updateData.categoryId = validatedData.categoryId
+    if (validatedData.images !== undefined) updateData.images = typeof validatedData.images === 'string' ? validatedData.images : JSON.stringify(validatedData.images)
+    if (validatedData.stock !== undefined) updateData.stock = validatedData.stock
+    if (validatedData.lowStockAlert !== undefined) updateData.lowStockAlert = validatedData.lowStockAlert
+    if (validatedData.isActive !== undefined) updateData.isActive = validatedData.isActive
+    if (validatedData.isFeatured !== undefined) updateData.isFeatured = validatedData.isFeatured
     if (body.hasVariants !== undefined) updateData.hasVariants = body.hasVariants
 
     const product = await ProductRepository.update(env, id, updateData)
@@ -322,8 +378,20 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Verify admin authentication (admin only)
+  const userOrResponse = await verifyAdminAuth(request, ['admin'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
+
+  // Check CSRF protection
+  const env = getEnv()
+  const csrfError = await csrfMiddleware(request, env)
+  if (csrfError) {
+    return csrfError
+  }
+
   try {
-    const env = getEnv()
     const { id } = await params
     await ProductRepository.delete(env, id)
 

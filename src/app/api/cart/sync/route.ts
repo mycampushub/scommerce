@@ -4,6 +4,8 @@ import { getEnv } from '@/lib/cloudflare'
 import { CartRepository } from '@/db/cart.repository'
 import { UserRepository } from '@/db/user.repository'
 import { queryAll, queryFirst, parseJSON, numberToBool } from '@/db/db'
+import { csrfMiddleware } from '@/lib/csrf'
+import { cartItemSchema } from '@/lib/validations'
 
 
 /**
@@ -14,6 +16,12 @@ import { queryAll, queryFirst, parseJSON, numberToBool } from '@/db/db'
 export async function POST(request: NextRequest) {
   // Get D1 database from request context
   const env = getEnv()
+
+  // Check CSRF protection
+  const csrfError = await csrfMiddleware(request, env)
+  if (csrfError) {
+    return csrfError
+  }
 
   try {
     // Get token from Authorization header or cookie
@@ -45,6 +53,22 @@ export async function POST(request: NextRequest) {
         { success: false, error: 'Invalid cart data' },
         { status: 400 }
       )
+    }
+
+    // Validate each cart item
+    for (const item of localCart) {
+      const validation = cartItemSchema.safeParse({
+        productId: item.id,
+        quantity: item.quantity || 1,
+        size: item.size,
+        color: item.color,
+      })
+      if (!validation.success) {
+        return NextResponse.json(
+          { success: false, error: `Invalid cart item: ${validation.error.issues[0].message}` },
+          { status: 400 }
+        )
+      }
     }
 
     // Get existing database cart items with products and variants

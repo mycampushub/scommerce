@@ -171,7 +171,7 @@ export function addIndexHint(sql: string, indexName: string): string {
  * Create materialized view-like pattern using cache
  */
 export async function cachedAggregate<T>(
-  db: D1Database,
+  db: any,
   cacheKey: string,
   query: string,
   params: unknown[] = [],
@@ -256,7 +256,7 @@ export function buildSearchQuery(
  * Execute batch query with transaction
  */
 export async function executeBatch(
-  db: D1Database,
+  db: any,
   statements: Array<{ sql: string; params: unknown[] }>
 ): Promise<void> {
   const preparedStatements = statements.map(stmt => {
@@ -271,7 +271,7 @@ export async function executeBatch(
  * Query with automatic retry for lock contention
  */
 export async function queryWithRetry<T>(
-  db: D1Database,
+  db: any,
   queryFn: () => Promise<T>,
   maxRetries: number = 3,
   delay: number = 100
@@ -315,7 +315,7 @@ export interface QueryStats {
 }
 
 export async function queryWithStats<T>(
-  db: D1Database,
+  db: any,
   sql: string,
   params: unknown[] = []
 ): Promise<{ result: T; stats: QueryStats }> {

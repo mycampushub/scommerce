@@ -23,15 +23,16 @@ export function ServiceWorkerRegistration() {
           // Listen for new service worker installing
           registration.addEventListener('updatefound', () => {
             const newWorker = registration.installing
-            console.log('New service worker found')
-
-            newWorker.addEventListener('statechange', () => {
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                updateAvailable = true
-                console.log('New service worker installed, waiting to activate')
-                showUpdatePrompt()
-              }
-            })
+            if (newWorker) {
+              console.log('New service worker found')
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  updateAvailable = true
+                  console.log('New service worker installed, waiting to activate')
+                  showUpdatePrompt()
+                }
+              })
+            }
           })
 
           // Listen for waiting service worker (when it's waiting to activate)

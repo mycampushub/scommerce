@@ -3,9 +3,9 @@ import withPWAInit from "next-pwa";
 
 const nextConfig: NextConfig = {
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
-  reactStrictMode: false,
+  reactStrictMode: true,
 };
 
 const withPWA = withPWAInit({

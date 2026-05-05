@@ -5,6 +5,7 @@ import { ProductRepository } from '@/db/product.repository';
 import { CategoryRepository } from '@/db/category.repository';
 import { numberToBool, parseJSON, count } from '@/db/db';
 import { addCacheHeaders, CachePresets } from '@/lib/http-cache';
+import { errorResponse } from '@/lib/api-response';
 
 
 export async function GET(request: Request) {
@@ -64,8 +65,9 @@ export async function GET(request: Request) {
         conditions.push('categoryId = ?');
         params.push(category.id);
       } else {
-        // Category not found, return empty results
+        // Category not found, return empty results with standard format
         return NextResponse.json({
+          success: true,
           products: [],
           pagination: {
             page,
@@ -212,9 +214,6 @@ export async function GET(request: Request) {
     return addCacheHeaders(response, CachePresets.STATIC);
   } catch (error) {
     console.error('Error fetching products:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch products' },
-      { status: 500 }
-    );
+    return errorResponse('Failed to fetch products', 500);
   }
 }

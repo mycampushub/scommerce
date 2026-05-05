@@ -45,11 +45,11 @@ export default function AdminLayout({
   const pathname = usePathname()
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const { user, isLoading } = useAuth()
+  const { user, loading } = useAuth()
 
   // Client-side auth check - redirect if not authenticated or not admin
   useEffect(() => {
-    if (!isLoading) {
+    if (!loading) {
       if (!user) {
         // Not logged in, redirect to login
         router.push('/login')
@@ -58,10 +58,10 @@ export default function AdminLayout({
         router.push('/')
       }
     }
-  }, [user, isLoading, router])
+  }, [user, loading, router])
 
   // Show loading state while checking auth
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">

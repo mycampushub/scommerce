@@ -1,7 +1,11 @@
 import { Env } from './types';
+import { secureRandomString, generateSecureId, secureRandomInt } from '@/lib/crypto-utils';
+
+// Re-export generateSecureId for use in other files
+export { generateSecureId } from '@/lib/crypto-utils';
 
 /**
- * Execute a SQL query and return the first result
+ * Execute a SQL query and return first result
  */
 export async function queryFirst<T = Record<string, unknown>>(
   env: Env | null,
@@ -77,10 +81,10 @@ export function parseJSON<T = unknown>(value: string | null | undefined, fallbac
 }
 
 /**
- * Generate a unique ID using timestamp and random string
+ * Generate a unique ID using timestamp and secure random string
  */
 export function generateId(): string {
-  return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+  return generateSecureId();
 }
 
 /**
@@ -88,7 +92,7 @@ export function generateId(): string {
  */
 export function generateOrderNumber(): string {
   const timestamp = Date.now();
-  const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+  const random = secureRandomInt(0, 10000).toString().padStart(4, '0');
   return `ORD-${timestamp}-${random}`;
 }
 

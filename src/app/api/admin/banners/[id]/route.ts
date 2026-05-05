@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
+import { verifyAdminAuth } from '@/lib/admin-auth'
 import { BannerRepository } from '@/db/banner.repository'
+import { csrfMiddleware } from '@/lib/csrf'
 
 
 export async function GET(
@@ -42,10 +44,76 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Verify admin authentication
+  const userOrResponse = await verifyAdminAuth(request, ['admin'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
+
+  // Check CSRF protection
+  const env = getEnv()
+  const csrfError = await csrfMiddleware(request, env)
+  if (csrfError) {
+    return csrfError
+  }
+
   try {
-    const env = getEnv()
     const body = await request.json() as any
     const { id } = await params
+    const { title, image, mobileImage } = body
+
+    // Validate required fields if provided
+    if (title !== undefined) {
+      if (typeof title !== 'string' || title.trim().length === 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Title cannot be empty'
+          },
+          { status: 400 }
+        )
+      }
+    }
+
+    if (image !== undefined) {
+      if (typeof image !== 'string' || image.trim().length === 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Image cannot be empty'
+          },
+          { status: 400 }
+        )
+      }
+      // Validate image URL
+      try {
+        new URL(image)
+      } catch (e) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Invalid image URL'
+          },
+          { status: 400 }
+        )
+      }
+    }
+
+    if (mobileImage !== undefined) {
+      if (mobileImage && mobileImage.trim().length > 0) {
+        try {
+          new URL(mobileImage)
+        } catch (e) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: 'Invalid mobile image URL'
+            },
+            { status: 400 }
+          )
+        }
+      }
+    }
 
     const banner = await BannerRepository.update(env, id, {
       ...(body.title !== undefined && { title: body.title }),
@@ -88,9 +156,21 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Verify admin authentication
+  const userOrResponse = await verifyAdminAuth(request, ['admin'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
+
+  // Check CSRF protection
+  const env = getEnv()
+  const csrfError = await csrfMiddleware(request, env)
+  if (csrfError) {
+    return csrfError
+  }
+
   try {
     const { id } = await params
-    const env = getEnv()
     await BannerRepository.delete(env, id)
 
     return NextResponse.json({

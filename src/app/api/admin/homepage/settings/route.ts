@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
+import { verifyAdminAuth } from '@/lib/admin-auth'
 import { queryAll, execute, queryFirst, generateId, now, parseJSON, stringifyJSON, boolToNumber, numberToBool } from '@/db/db'
+import { csrfMiddleware } from '@/lib/csrf'
 
 
 // Default homepage settings
@@ -71,8 +73,20 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
+  // Verify admin authentication
+  const userOrResponse = await verifyAdminAuth(request, ['admin'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
+
+  // Check CSRF protection
+  const env = getEnv()
+  const csrfError = await csrfMiddleware(request, env)
+  if (csrfError) {
+    return csrfError
+  }
+
   try {
-    const env = getEnv()
     const body = await request.json() as any
     const { settings } = body
 
@@ -84,6 +98,53 @@ export async function PUT(request: NextRequest) {
         },
         { status: 400 }
       )
+    }
+
+    // Validate each setting
+    for (const setting of settings) {
+      if (!setting.sectionName || typeof setting.sectionName !== 'string' || setting.sectionName.trim().length === 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Section name is required'
+          },
+          { status: 400 }
+        )
+      }
+
+      if (setting.isEnabled !== undefined && typeof setting.isEnabled !== 'boolean') {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'isActive must be a boolean'
+          },
+          { status: 400 }
+        )
+      }
+
+      if (setting.autoPlay !== undefined && setting.autoPlay !== null) {
+        if (typeof setting.autoPlay !== 'number' || setting.autoPlay < 0) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: 'autoPlay must be a non-negative number'
+            },
+            { status: 400 }
+          )
+        }
+      }
+
+      if (setting.displayLimit !== undefined && setting.displayLimit !== null) {
+        if (typeof setting.displayLimit !== 'number' || setting.displayLimit < 0) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: 'displayLimit must be a non-negative number'
+            },
+            { status: 400 }
+          )
+        }
+      }
     }
 
     // Update or create each setting

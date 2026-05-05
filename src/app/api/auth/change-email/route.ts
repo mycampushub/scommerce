@@ -6,6 +6,7 @@ import { rateLimit, createRateLimitResponse, getClientIp } from '@/lib/rate-limi
 import { UserRepository } from '@/db/user.repository'
 import { getEnv } from '@/lib/cloudflare'
 import { boolToNumber } from '@/db/db'
+import { generateEmailToken } from '@/lib/crypto-utils'
 
 
 export async function POST(request: NextRequest) {
@@ -86,7 +87,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const emailToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+    const emailToken = generateEmailToken()
 
     await UserRepository.update(env, user.id, {
       emailVerified: boolToNumber(false),

@@ -233,6 +233,22 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ success: true, synced: 0 });
         }
 
+        // Validate each cart item
+        for (const clientItem of items) {
+          const validation = cartItemSchema.safeParse({
+            productId: clientItem.id,
+            quantity: clientItem.quantity || 1,
+            size: clientItem.size,
+            color: clientItem.color,
+          });
+          if (!validation.success) {
+            return NextResponse.json(
+              { success: false, error: `Invalid cart item: ${validation.error.issues[0].message}` },
+              { status: 400 }
+            );
+          }
+        }
+
         // Clear existing cart
         await CartRepository.clearCart(env, userId);
 

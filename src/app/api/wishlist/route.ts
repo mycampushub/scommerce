@@ -3,7 +3,7 @@ import { verifyAuth } from '@/lib/auth-utils'
 import { getEnv } from '@/lib/cloudflare'
 import { ProductRepository } from '@/db/product.repository'
 import { CategoryRepository } from '@/db/category.repository'
-import { queryAll, queryFirst, execute, parseJSON, numberToBool } from '@/db/db'
+import { queryAll, queryFirst, execute, parseJSON, numberToBool, generateSecureId } from '@/db/db'
 import { csrfMiddleware } from '@/lib/csrf'
 import { sanitizeForDB } from '@/lib/sanitize'
 
@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Add to wishlist
-    const id = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+    const id = generateSecureId()
     const createdAt = new Date().toISOString()
 
     await execute(

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
+import { verifyAdminAuth } from '@/lib/admin-auth'
+import { promotionSchema } from '@/lib/validations'
 import { queryAll, queryFirst, execute, boolToNumber, numberToBool, parseJSON, stringifyJSON, now, generateId } from '@/db/db'
+import { csrfMiddleware } from '@/lib/csrf'
 
 
 export async function GET(request: NextRequest) {
@@ -46,39 +49,38 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const env = getEnv()
-    const body = await request.json() as any
-    const {
-      title,
-      description,
-      image,
-      discountType,
-      discountValue,
-      discountRules,
-      applicableProducts,
-      applicableCategories,
-      startDate,
-      endDate,
-      ctaText,
-      ctaLink,
-      isActive,
-      order
-    } = body
+  // Verify admin authentication
+  const userOrResponse = await verifyAdminAuth(request, ['admin'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
 
-    // Validate required fields
-    if (!title || !image) {
+  // Check CSRF protection
+  const env = getEnv()
+  const csrfError = await csrfMiddleware(request, env)
+  if (csrfError) {
+    return csrfError
+  }
+
+  try {
+    const body = await request.json() as any
+
+    // Validate with Zod
+    const validation = promotionSchema.safeParse(body)
+    if (!validation.success) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Title and image are required'
+          error: validation.error.issues[0].message
         },
         { status: 400 }
       )
     }
 
+    const validatedData = validation.data
+
     // Get highest order value if not provided
-    let promotionOrder = order
+    let promotionOrder = body.order
     if (promotionOrder === undefined || promotionOrder === null) {
       const maxOrder = await queryFirst<{ order: number }>(
         env,
@@ -97,19 +99,19 @@ export async function POST(request: NextRequest) {
        ctaText, ctaLink, isActive, \`order\`, createdAt, updatedAt)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       id,
-      title,
-      description || null,
-      image,
-      discountType || 'percentage',
-      discountValue || 0,
-      discountRules ? stringifyJSON(discountRules) : null,
-      applicableProducts ? stringifyJSON(applicableProducts) : null,
-      applicableCategories ? stringifyJSON(applicableCategories) : null,
-      startDate || null,
-      endDate || null,
-      ctaText || null,
-      ctaLink || null,
-      boolToNumber(isActive !== undefined ? isActive : true),
+      validatedData.title,
+      validatedData.description || null,
+      validatedData.image,
+      validatedData.discountType,
+      validatedData.discountValue,
+      validatedData.discountRules ? stringifyJSON(validatedData.discountRules) : null,
+      validatedData.applicableProducts ? stringifyJSON(validatedData.applicableProducts) : null,
+      validatedData.applicableCategories ? stringifyJSON(validatedData.applicableCategories) : null,
+      validatedData.startDate || null,
+      validatedData.endDate || null,
+      validatedData.ctaText || null,
+      validatedData.ctaLink || null,
+      boolToNumber(validatedData.isActive ?? true),
       promotionOrder,
       currentTime,
       currentTime

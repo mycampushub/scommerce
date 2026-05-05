@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
+import { verifyAdminAuth } from '@/lib/admin-auth'
 import { BannerRepository } from '@/db/banner.repository'
 import { queryFirst } from '@/db/db'
+import { csrfMiddleware } from '@/lib/csrf'
 
 
 export async function GET(request: NextRequest) {
@@ -31,17 +33,55 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  // Verify admin authentication
+  const userOrResponse = await verifyAdminAuth(request, ['admin'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
+
+  // Check CSRF protection
+  const env = getEnv()
+  const csrfError = await csrfMiddleware(request, env)
+  if (csrfError) {
+    return csrfError
+  }
+
   try {
-    const env = getEnv()
     const body = await request.json() as any
     const { title, description, image, mobileImage, buttonText, buttonLink, isActive, order } = body
 
-    // Validate required fields
-    if (!title || !image) {
+    // Validate required fields manually
+    if (!title || typeof title !== 'string' || title.trim().length === 0) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Title and image are required'
+          error: 'Title is required'
+        },
+        { status: 400 }
+      )
+    }
+
+    if (!image || typeof image !== 'string' || image.trim().length === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Image is required'
+        },
+        { status: 400 }
+      )
+    }
+
+    // Validate image URLs
+    try {
+      new URL(image)
+      if (mobileImage) {
+        new URL(mobileImage)
+      }
+    } catch (e) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Invalid image URL'
         },
         { status: 400 }
       )

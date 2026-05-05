@@ -13,6 +13,8 @@ export async function GET() {
     timestamp: new Date().toISOString(),
     environment: env ? 'cloudflare' : 'unknown',
     database: env?.DB ? 'connected' : 'not found',
+    dbTest: 'skipped' as 'skipped' | 'passed' | 'failed',
+    dbError: '' as string,
     hasKV: !!env?.KV,
     hasR2: !!env?.BUCKET,
     bindings: {

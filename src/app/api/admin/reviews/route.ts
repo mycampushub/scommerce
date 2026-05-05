@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
+import { verifyAdminAuth } from '@/lib/admin-auth'
 import { queryAll, count, boolToNumber, numberToBool, parseJSON } from '@/db/db'
+import { csrfMiddleware } from '@/lib/csrf'
 
 
 // GET /api/admin/reviews - List all reviews with filtering

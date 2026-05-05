@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyAdminAuth } from '@/lib/admin-auth'
 import { getEnv } from '@/lib/cloudflare'
 import { CategoryRepository } from '@/db/category.repository'
-import { queryAll, count, numberToBool } from '@/db/db'
+import { updateCategorySchema } from '@/lib/validations'
+import { queryAll, count, numberToBool, boolToNumber } from '@/db/db'
 import { ProductRepository } from '@/db/product.repository'
+import { csrfMiddleware } from '@/lib/csrf'
 
 
 export async function GET(
@@ -63,16 +65,33 @@ export async function PUT(
     return userOrResponse
   }
 
+  // Check CSRF protection
+  const env = getEnv()
+  const csrfError = await csrfMiddleware(request, env)
+  if (csrfError) {
+    return csrfError
+  }
+
   try {
-    const env = getEnv()
     const body = await request.json() as any
 
+    // Validate with Zod
+    const validation = updateCategorySchema.safeParse(body)
+    if (!validation.success) {
+      return NextResponse.json(
+        { success: false, error: validation.error.issues[0].message },
+        { status: 400 }
+      )
+    }
+
+    const validatedData = validation.data
+
     const category = await CategoryRepository.update(env, (await params).id, {
-      ...(body.name && { name: body.name }),
-      ...(body.slug && { slug: body.slug }),
-      ...(body.description !== undefined && { description: body.description }),
-      ...(body.image !== undefined && { image: body.image }),
-      ...(body.isActive !== undefined && { isActive: body.isActive }),
+      ...(validatedData.name !== undefined && { name: validatedData.name }),
+      ...(validatedData.slug !== undefined && { slug: validatedData.slug }),
+      ...(validatedData.description !== undefined && { description: validatedData.description }),
+      ...(validatedData.image !== undefined && { image: validatedData.image }),
+      ...(validatedData.isActive !== undefined && { isActive: boolToNumber(validatedData.isActive) }),
     })
 
     if (!category) {
@@ -111,8 +130,14 @@ export async function DELETE(
     return userOrResponse
   }
 
+  // Check CSRF protection
+  const env = getEnv()
+  const csrfError = await csrfMiddleware(request, env)
+  if (csrfError) {
+    return csrfError
+  }
+
   try {
-    const env = getEnv()
     await CategoryRepository.delete(env, (await params).id)
 
     return NextResponse.json({
