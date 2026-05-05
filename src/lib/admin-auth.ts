@@ -21,8 +21,14 @@ export async function verifyAdminAuth(
   allowedRoles: string[] = ['admin']
 ): Promise<AdminUser | NextResponse> {
   try {
+    // First check Authorization header (for API calls)
     const authHeader = request.headers.get('authorization')
-    const token = extractTokenFromHeader(authHeader)
+    let token = extractTokenFromHeader(authHeader)
+
+    // If no Authorization header, check session cookie
+    if (!token) {
+      token = request.cookies.get('session')?.value
+    }
 
     if (!token) {
       return NextResponse.json(
