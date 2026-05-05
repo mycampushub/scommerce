@@ -4,8 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000",
-    "build": "bun run build:cloudflare",
+    "build": "next build",
+    "build:next": "next build",
     "build:cloudflare": "npx opennextjs-cloudflare build --packager bun",
+    "build::cloudflare": "npx opennextjs-cloudflare build --packager bun",
     "copy:public": "node scripts/copy-public-assets.js",
     "copy:public:win": "scripts\\copy-public-assets.bat",
     "copy:public:ps": "powershell -ExecutionPolicy Bypass -File scripts/copy-public-assets.ps1",
