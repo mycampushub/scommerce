@@ -82,7 +82,7 @@ VALUES
 -- Staff users
 INSERT OR IGNORE INTO users (id, email, name, phone, password, emailVerified, role, createdAt, updatedAt)
 VALUES
-('user-staff-001', 'rahul@scommerce.com', 'Rahul Sharma', '+8801700000002', '$2b$10$P1J2I1LPy/idWL7kkltP9erb6yeYGD630C9Q1mEAPjNVsUwCoT.z', 1, 'staff', datetime('now'), datetime('now')),
+('user-staff-001', 'rahul@scommerce.com', 'Rahul Sharma', '+8801700000002', '$2b$10$eoee6iYh9VMesjluGRY9ROb9ArHRCDolSaHQR6L8yYRuC1LEjYeRC', 1, 'staff', datetime('now'), datetime('now')),
 ('user-staff-002', 'priya@scommerce.com', 'Priya Singh', '+8801700000003', '$2b$10$a.F/Ul5zAnA24HVQPvmuE.VZUffKX32EXWob0WyEGK2q5TD2NUNQC', 1, 'staff', datetime('now'), datetime('now')),
 ('user-staff-003', 'amit@scommerce.com', 'Amit Kumar', '+8801700000004', '$2b$10$0q3CVc8GTq8O5ILjZzHvm.IF9QNuWjLmMRkOdNo8RZfkMoWbsrjUW', 1, 'staff', datetime('now'), datetime('now'));
 
@@ -93,7 +93,7 @@ VALUES
 ('user-cust-002', 'noor@example.com', 'Noor Jahan', '+8801700000102', '$2b$10$bwKw7jbXL1DEmFckWLhM5uCtbVghgRkq61NfL828KkR7wt6PNPqsO', 1, 'user', datetime('now'), datetime('now')),
 ('user-cust-003', 'sara@example.com', 'Sara Ahmed', '+8801700000103', '$2b$10$VZSrJ6C31npLpsbd0YKpj.4oacbmH0xYC5knPfOSKpsNGSFXvBy3u', 1, 'user', datetime('now'), datetime('now')),
 ('user-cust-004', 'zara@example.com', 'Zara Khan', '+8801700000104', '$2b$10$DTVovRdSzYGCI00JHg4/FOAdbGoPMYQCT7U39N1V0hY1v1IjFc.ha', 1, 'user', datetime('now'), datetime('now')),
-('user-cust-005', 'hana@example.com', 'Hana Begum', '+8801700000105', '$2b$10$x46GOCnmvpF9MRaIPNAoT.AWlu6kp6SkhIh33F328B7fhV6hcuxs', 1, 'user', datetime('now'), datetime('now'));
+('user-cust-005', 'hana@example.com', 'Hana Begum', '+8801700000105', '$2b$10$SjKZJpQhzyY.HWStJ9jThOffxwqcyf4b34X2/Jg4swVXz5AnQQxxK', 1, 'user', datetime('now'), datetime('now'));
 
 -- ============================================
 -- ADDRESSES

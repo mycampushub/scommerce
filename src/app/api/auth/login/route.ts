@@ -51,7 +51,16 @@ export async function POST(request: NextRequest) {
 
     const user = await UserRepository.findByEmail(env, email);
 
+    console.log('[login] Found user:', {
+      email: user?.email,
+      hasPassword: !!user?.password,
+      emailVerified: user?.emailVerified,
+      role: user?.role,
+      userId: user?.id
+    });
+
     if (!user) {
+      console.log('[login] User not found:', email);
       return NextResponse.json(
         { success: false, error: 'Invalid email or password' },
         { status: 401 }
@@ -73,6 +82,8 @@ export async function POST(request: NextRequest) {
     }
 
     const isValidPassword = await bcrypt.compare(password, user.password);
+    console.log('[login] Password validation:', { isValidPassword, email });
+
     if (!isValidPassword) {
       return NextResponse.json(
         { success: false, error: 'Invalid email or password' },

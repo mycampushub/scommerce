@@ -19,8 +19,8 @@ export class UserRepository {
    * Find user by email - works with both D1 and Prisma
    */
   static async findByEmail(env: Env | null, email: string): Promise<User | null> {
-    // If we have Prisma (local dev), use Prisma query
-    if (env && !env.DB) {
+    // If env is null or env.DB doesn't exist (local dev), use Prisma query
+    if (!env || !env.DB) {
       const user = await prisma.user.findUnique({
         where: { email }
       });
@@ -39,8 +39,8 @@ export class UserRepository {
    * Find user by ID
    */
   static async findById(env: Env | null, id: string): Promise<User | null> {
-    // Use Prisma if available
-    if (env && !env.DB) {
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
       const user = await prisma.user.findUnique({
         where: { id }
       });
@@ -60,8 +60,8 @@ export class UserRepository {
   static async findByResetToken(env: Env | null, token: string): Promise<User | null> {
     const currentTime = now();
 
-    // Use Prisma
-    if (env && !env.DB) {
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
       const user = await prisma.user.findFirst({
         where: {
           resetToken: token,
@@ -94,8 +94,8 @@ export class UserRepository {
     const id = generateId();
     const currentTime = now();
 
-    // Use Prisma
-    if (env && !env.DB) {
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
       const user = await prisma.user.create({
         data: {
           id,
@@ -137,8 +137,8 @@ export class UserRepository {
    * Update user
    */
   static async update(env: Env | null, id: string, data: Partial<User>): Promise<User | null> {
-    // Use Prisma
-    if (env && !env.DB) {
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
       const updateData: any = {};
       const prismaMapping = {
         name: 'name',
@@ -237,8 +237,8 @@ export class UserRepository {
    * Delete user
    */
   static async delete(env: Env | null, id: string): Promise<void> {
-    // Use Prisma
-    if (env && !env.DB) {
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
       await prisma.user.delete({
         where: { id }
       });
@@ -258,8 +258,8 @@ export class UserRepository {
   ): Promise<User[]> {
     const { limit = 50, offset = 0, role } = options;
 
-    // Use Prisma
-    if (env && !env.DB) {
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
       const where: any = {};
       if (role) where.role = role;
 
@@ -287,8 +287,8 @@ export class UserRepository {
    * Count users
    */
   static async count(env: Env | null, role?: UserRole): Promise<number> {
-    // Use Prisma
-    if (env && !env.DB) {
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
       const where: any = {};
       if (role) where.role = role;
 

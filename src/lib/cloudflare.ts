@@ -19,8 +19,8 @@ export function getDB(_request?: Request): any | null {
 
   // Fallback to Prisma for local development
   if (!isCloudflareEnv()) {
-    console.warn('[cloudflare.ts] Using Prisma client for local development');
-    return prisma as any;
+    console.warn('[cloudflare.ts] Local development mode - use Prisma client directly');
+    return null;
   }
 
   console.error('[cloudflare.ts] D1 binding not found and no Prisma fallback available');
@@ -47,14 +47,10 @@ export function getEnv(_request?: Request): any | null {
     console.error('[cloudflare.ts] Error getting env:', error);
   }
 
-  // Fallback for local development
+  // Fallback for local development - return null so repositories use Prisma directly
   if (!isCloudflareEnv()) {
-    console.warn('[cloudflare.ts] Creating mock env with Prisma for local development');
-    return {
-      DB: prisma as any,
-      KV: null,
-      BUCKET: null,
-    };
+    console.warn('[cloudflare.ts] Local development mode - returning null for Prisma direct usage');
+    return null;
   }
 
   console.error('[cloudflare.ts] Env not found and no fallback available');
