@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, ShoppingBag } from 'lucide-react'
-import Image from 'next/image'
 
 interface Category {
   id: string
@@ -12,11 +11,19 @@ interface Category {
   href?: string
 }
 
-interface FloatingCategoryCarouselProps {
-  categories: Category[]
+interface Product {
+  id: string
+  name: string
+  price: number
+  image: string
 }
 
-export function FloatingCategoryCarousel({ categories }: FloatingCategoryCarouselProps) {
+interface FloatingCategoryCarouselProps {
+  categories: Category[]
+  products?: Product[]
+}
+
+export function FloatingCategoryCarousel({ categories, products = [] }: FloatingCategoryCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
 
@@ -43,65 +50,76 @@ export function FloatingCategoryCarousel({ categories }: FloatingCategoryCarouse
     return null
   }
 
-  const visibleCategories: Category[] = []
-  for (let i = 0; i < 5; i++) {
-    visibleCategories.push(categories[(currentIndex + i) % categories.length])
-  }
+  const currentCategory = categories[currentIndex]
+  const categoryProducts = products.filter(p =>
+    currentCategory && p.name.toLowerCase().includes(currentCategory.name.toLowerCase())
+  ).slice(0, 4)
+
+  const href = currentCategory?.href || `/collections/${currentCategory?.slug}`
 
   return (
-    <div className="fixed bottom-24 left-0 right-0 z-40 md:hidden">
-      <div className="mx-auto px-4">
-        <div className="bg-gradient-to-r from-pink-600 via-pink-500 to-pink-600 rounded-2xl shadow-2xl p-3 max-w-md mx-auto">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-white font-bold text-sm">Shop Categories</h3>
-            <div className="flex gap-2">
-              <button
-                onClick={prevSlide}
-                className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-colors"
-              >
-                <ChevronLeft className="w-4 h-4 text-white" strokeWidth={2} />
-              </button>
-              <button
-                onClick={nextSlide}
-                className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-colors"
-              >
-                <ChevronRight className="w-4 h-4 text-white" strokeWidth={2} />
-              </button>
-            </div>
-          </div>
-          <div className="flex gap-3 overflow-hidden">
-            {visibleCategories.map((category, index) => {
-              const href = category.href || `/collections/${category.slug}`
-              return (
+    <div className="fixed bottom-20 left-0 right-0 z-40 md:hidden">
+      <div className="bg-white shadow-2xl border-t border-gray-200">
+        {/* Category Name Carousel with Controls */}
+        <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-pink-600 to-pink-500">
+          <button
+            onClick={prevSlide}
+            className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-lg flex items-center justify-center transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4 text-white" strokeWidth={2} />
+          </button>
+          
+          <h3 className="flex-1 text-center text-white font-bold text-base">
+            {currentCategory.name}
+          </h3>
+          
+          <button
+            onClick={nextSlide}
+            className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-lg flex items-center justify-center transition-colors"
+          >
+            <ChevronRight className="w-4 h-4 text-white" strokeWidth={2} />
+          </button>
+        </div>
+
+        {/* Active Category Products */}
+        {categoryProducts.length > 0 && (
+          <div className="p-3 bg-white">
+            <div className="grid grid-cols-4 gap-2">
+              {categoryProducts.map(product => (
                 <a
-                  key={category.id}
-                  href={href}
-                  className="flex-shrink-0 flex flex-col items-center gap-1.5 transition-transform active:scale-95"
+                  key={product.id}
+                  href={`/product/${product.id}`}
+                  className="flex flex-col items-center gap-1"
                 >
-                  <div className="relative w-12 h-12 flex-shrink-0 rounded-full overflow-hidden bg-white/20">
-                    <Image
-                      src={category.image}
-                      alt={category.name}
-                      fill
-                      className="object-cover"
+                  <div className="aspect-square w-full rounded-lg overflow-hidden bg-gray-100">
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
                     />
                   </div>
-                  <span className="text-white text-[10px] font-medium text-center whitespace-nowrap w-14 truncate">
-                    {category.name}
-                  </span>
+                  <p className="text-[10px] font-medium text-center text-gray-900 line-clamp-2">
+                    {product.name}
+                  </p>
+                  <p className="text-[10px] font-bold text-pink-600">
+                    ৳{product.price}
+                  </p>
                 </a>
-              )
-            })}
+              ))}
+            </div>
           </div>
-          <div className="flex justify-center mt-2">
-            <a
-              href="/shop"
-              className="inline-flex items-center gap-2 bg-white text-pink-600 px-4 py-2 rounded-full text-sm font-medium hover:bg-gray-100 transition-colors"
-            >
-              <ShoppingBag className="w-4 h-4" strokeWidth={2} />
-              View All
-            </a>
-          </div>
+        )}
+
+        {/* View All Button */}
+        <div className="px-4 py-2 bg-gray-50 border-t border-gray-100">
+          <a
+            href={href}
+            className="inline-flex items-center gap-2 bg-pink-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-pink-700 transition-colors w-full justify-center"
+          >
+            <ShoppingBag className="w-4 h-4" strokeWidth={2} />
+            View All {currentCategory.name}
+          </a>
         </div>
       </div>
     </div>

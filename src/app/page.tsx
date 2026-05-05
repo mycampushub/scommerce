@@ -8,6 +8,7 @@ import { useCartStore } from '@/lib/store/cart-store'
 import { useAuth } from '@/hooks/use-auth'
 import { QuickViewModal } from '@/components/quick-view-modal'
 import { MobileBottomNav } from '@/components/mobile-bottom-nav'
+import { FloatingCategoryCarousel } from '@/components/floating-category-carousel'
 
 
 // Types
@@ -1777,6 +1778,7 @@ export default function Home() {
       </main>
       <Footer />
       <MobileBottomNav />
+      <FloatingCategoryCarousel categories={categories} products={[...featuredProducts, ...saleProducts, ...newProducts, ...trendingProducts]} />
 
       {/* Quick View Modal */}
       <QuickViewModal

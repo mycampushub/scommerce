@@ -558,14 +558,13 @@ export default function ProductPage() {
                           <button
                             key={size}
                             onClick={() => handleVariantSelection(size, selectedColor as string, selectedMaterial as string)}
-                            className="min-h-[44px] w-20 px-3 py-3 rounded-lg border-2 font-medium transition-all focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2"
-                          >
-                            <span className={`transition-all ${
+                            className={`min-h-[44px] w-20 px-3 py-3 rounded-lg border-2 font-medium transition-all focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2 ${
                               selectedSize === size
-                                ? 'text-pink-600'
-                                : ''
+                                ? 'border-pink-600 bg-pink-50 text-pink-600'
+                                : 'border-gray-300 text-gray-700 hover:border-pink-400 hover:bg-gray-50'
                             }`}
-                            >
+                          >
+                            <span className="transition-all">
                               {size}
                             </span>
                           </button>
@@ -583,14 +582,13 @@ export default function ProductPage() {
                           <button
                             key={color}
                             onClick={() => handleVariantSelection(selectedSize as string, color, selectedMaterial as string)}
-                            className="min-h-[44px] px-4 py-3 rounded-lg border-2 font-medium transition-all focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2"
-                          >
-                            <span className={`transition-all ${
+                            className={`min-h-[44px] px-4 py-3 rounded-lg border-2 font-medium transition-all focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2 ${
                               selectedColor === color
-                                ? 'text-pink-600'
-                                : ''
+                                ? 'border-pink-600 bg-pink-50 text-pink-600'
+                                : 'border-gray-300 text-gray-700 hover:border-pink-400 hover:bg-gray-50'
                             }`}
-                            >
+                          >
+                            <span className="transition-all">
                               {color}
                             </span>
                           </button>
@@ -608,14 +606,13 @@ export default function ProductPage() {
                           <button
                             key={material}
                             onClick={() => handleVariantSelection(selectedSize as string, selectedColor as string, material)}
-                            className="min-h-[44px] px-4 py-3 rounded-lg border-2 font-medium transition-all focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2"
-                          >
-                            <span className={`transition-all ${
+                            className={`min-h-[44px] px-4 py-3 rounded-lg border-2 font-medium transition-all focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2 ${
                               selectedMaterial === material
-                                ? 'text-pink-600'
-                                : ''
+                                ? 'border-pink-600 bg-pink-50 text-pink-600'
+                                : 'border-gray-300 text-gray-700 hover:border-pink-400 hover:bg-gray-50'
                             }`}
-                            >
+                          >
+                            <span className="transition-all">
                               {material}
                             </span>
                           </button>

@@ -12,24 +12,16 @@ async function main() {
   const db = new Database(dbPath)
   const sql = readFileSync(sqlPath, 'utf-8')
 
-  // Remove CREATE TABLE statements since tables already exist
-  const insertOnly = sql.split('-- ============================================')
-    .map(section => {
-      if (section.includes('-- INSERT')) {
-        return section
-      }
-      return null
-    })
-    .filter(Boolean)
-    .join('\n')
-
-  await db.exec(insertOnly)
+  // Execute the entire seed file
+  await db.exec(sql)
 
   console.log('Database seeded successfully!')
 
   // Get counts
-  const cats = await db.query('SELECT COUNT(*) as count FROM categories')
-  const prods = await db.query('SELECT COUNT(*) as count FROM products')
+  const cats = db.prepare('SELECT COUNT(*) as count FROM Category').all()
+  const prods = db.prepare('SELECT COUNT(*) as count FROM Product').all()
+  const users = db.prepare('SELECT COUNT(*) as count FROM User').all()
+  console.log(`Users: ${users[0]?.count}`)
   console.log(`Categories: ${cats[0]?.count}`)
   console.log(`Products: ${prods[0]?.count}`)
 }
