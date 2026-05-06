@@ -27,7 +27,7 @@ export async function verifyAdminAuth(
 
     // If no Authorization header, check session cookie
     if (!token) {
-      token = request.cookies.get('session')?.value
+      token = request.cookies.get('session')?.value ?? null
     }
 
     if (!token) {
