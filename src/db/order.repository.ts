@@ -1,5 +1,5 @@
-import { Env, Order, OrderItem, OrderStatus, PaymentStatus, TrackingStatus } from '@/db/types';
-import { generateId, generateOrderNumber, boolToNumber, now, queryFirst, queryAll, execute, buildPaginationClause } from '@/db/db';
+import { Env, Order, OrderItem, OrderStatus, PaymentStatus, TrackingStatus, D1Result } from '@/db/types';
+import { generateId, generateOrderNumber, boolToNumber, now, queryFirst, queryAll, execute, buildPaginationClause, transaction } from '@/db/db';
 
 export class OrderRepository {
   /**
@@ -98,6 +98,122 @@ export class OrderRepository {
     );
 
     return (await this.findById(env, id))!;
+  }
+
+  /**
+   * Create new order with items in a single transaction (data integrity)
+   * All operations succeed or all fail - no partial orders
+   *
+   * This ensures data integrity by using a database transaction.
+   * If any item fails to create, the entire order (order + all items) is rolled back.
+   *
+   * @param env - Cloudflare environment with DB binding
+   * @param orderData - Order details
+   * @param items - Array of order items to create
+   * @returns Promise<Order> - The created order
+   */
+  static async createWithItems(
+    env: Env | null,
+    orderData: {
+      userId?: string;
+      customerName: string;
+      customerEmail: string;
+      customerPhone?: string;
+      shippingAddress: string;
+      billingAddress?: string;
+      city?: string;
+      district?: string;
+      division?: string;
+      subtotal: number;
+      shipping?: number;
+      tax?: number;
+      discount?: number;
+      total: number;
+      paymentMethod?: string;
+    },
+    items: Array<{
+      productId: string;
+      variantId?: string;
+      quantity: number;
+      price: number;
+      productName: string;
+      productImage?: string;
+      variantSku?: string;
+      variantSize?: string;
+      variantColor?: string;
+      variantMaterial?: string;
+    }>
+  ): Promise<Order> {
+    const orderId = generateId();
+    const orderNumber = generateOrderNumber();
+    const currentTime = now();
+
+    // Build transaction statements
+    const statements: Array<{ sql: string; params: unknown[] }> = [];
+
+    // 1. Insert order
+    statements.push({
+      sql: `INSERT INTO orders (id, orderNumber, userId, customerName, customerEmail, customerPhone,
+             shippingAddress, billingAddress, city, district, division, subtotal, shipping,
+             tax, discount, total, status, paymentStatus, paymentMethod, trackingStatus,
+             createdAt, updatedAt)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      params: [
+        orderId,
+        orderNumber,
+        orderData.userId || null,
+        orderData.customerName,
+        orderData.customerEmail,
+        orderData.customerPhone || null,
+        orderData.shippingAddress,
+        orderData.billingAddress || null,
+        orderData.city || null,
+        orderData.district || null,
+        orderData.division || null,
+        orderData.subtotal,
+        orderData.shipping || 0,
+        orderData.tax || 0,
+        orderData.discount || 0,
+        orderData.total,
+        'PENDING',
+        'PENDING',
+        orderData.paymentMethod || null,
+        'PENDING',
+        currentTime,
+        currentTime
+      ]
+    });
+
+    // 2. Insert all order items
+    for (const item of items) {
+      const itemId = generateId();
+      statements.push({
+        sql: `INSERT INTO order_items (id, orderId, productId, variantId, quantity, price,
+               productName, productImage, variantSku, variantSize, variantColor, variantMaterial, createdAt)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        params: [
+          itemId,
+          orderId,
+          item.productId,
+          item.variantId || null,
+          item.quantity,
+          item.price,
+          item.productName,
+          item.productImage || null,
+          item.variantSku || null,
+          item.variantSize || null,
+          item.variantColor || null,
+          item.variantMaterial || null,
+          currentTime
+        ]
+      });
+    }
+
+    // Execute transaction - all statements succeed or all fail
+    await transaction(env, statements);
+
+    // Return the created order
+    return (await this.findById(env, orderId))!;
   }
 
   /**
@@ -295,5 +411,35 @@ export class OrderRepository {
       'SELECT * FROM order_items WHERE id = ? LIMIT 1',
       id
     ))!;
+  }
+
+  /**
+   * Delete order with items in a single transaction (data integrity)
+   * All operations succeed or all fail - no orphaned records
+   *
+   * This ensures data integrity by using a database transaction.
+   * If the order deletion fails, the items will NOT be deleted (no orphaned records).
+   *
+   * @param env - Cloudflare environment with DB binding
+   * @param id - Order ID to delete
+   * @returns Promise<void>
+   */
+  static async deleteWithItems(env: Env | null, id: string): Promise<void> {
+    const statements: Array<{ sql: string; params: unknown[] }> = [];
+
+    // 1. Delete order items first (referential integrity)
+    statements.push({
+      sql: 'DELETE FROM order_items WHERE orderId = ?',
+      params: [id]
+    });
+
+    // 2. Delete the order
+    statements.push({
+      sql: 'DELETE FROM orders WHERE id = ?',
+      params: [id]
+    });
+
+    // Execute transaction - both delete operations succeed or both fail
+    await transaction(env, statements);
   }
 }

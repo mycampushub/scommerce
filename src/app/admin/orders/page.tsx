@@ -88,9 +88,9 @@ interface Order {
 function StatusBadge({ status }: { status: string }) {
   const config = {
     PENDING: { icon: Clock, color: 'bg-orange-100 text-orange-700', label: 'Pending' },
-    CONFIRMED: { icon: CheckCircle, color: 'bg-blue-100 text-blue-700', label: 'Confirmed' },
+    CONFIRMED: { icon: CheckCircle, color: 'bg-purple-100 text-purple-700', label: 'Confirmed' },
     PROCESSING: { icon: Package, color: 'bg-purple-100 text-purple-700', label: 'Processing' },
-    SHIPPED: { icon: Truck, color: 'bg-indigo-100 text-indigo-700', label: 'Shipped' },
+    SHIPPED: { icon: Truck, color: 'bg-violet-100 text-violet-700', label: 'Shipped' },
     DELIVERED: { icon: CheckCircle, color: 'bg-green-100 text-green-700', label: 'Delivered' },
     CANCELLED: { icon: XCircle, color: 'bg-red-100 text-red-700', label: 'Cancelled' },
     REFUNDED: { icon: AlertCircle, color: 'bg-gray-100 text-gray-700', label: 'Refunded' },
@@ -286,7 +286,7 @@ export default function OrdersPage() {
           <h1 className="text-2xl font-bold text-gray-900">Orders</h1>
           <p className="text-sm text-gray-500 mt-1">Manage customer orders and shipments</p>
         </div>
-        <Button variant="outline" onClick={handleExportOrders}>
+        <Button variant="outline" onClick={handleExportOrders} aria-label="Export orders to CSV">
           <Download className="h-4 w-4 mr-2" />
           Export Orders (CSV)
         </Button>
@@ -325,10 +325,10 @@ export default function OrdersPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-gray-500">Processing</p>
-                <p className="text-2xl font-bold text-blue-600 mt-1">{stats.processing}</p>
+                <p className="text-2xl font-bold text-violet-600 mt-1">{stats.processing}</p>
               </div>
-              <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
-                <Package className="h-4 w-4 text-blue-600" />
+              <div className="h-8 w-8 rounded-full bg-violet-100 flex items-center justify-center">
+                <Package className="h-4 w-4 text-violet-600" />
               </div>
             </div>
           </CardContent>
@@ -360,6 +360,7 @@ export default function OrdersPage() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
+                aria-label="Search orders"
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -530,7 +531,7 @@ export default function OrdersPage() {
 
               {/* Tracking Information */}
               {(selectedOrder.trackingNumber || selectedOrder.trackingStatus || selectedOrder.estimatedDeliveryDate) && (
-                <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="bg-violet-50 p-4 rounded-lg">
                   <h3 className="font-semibold mb-3 text-gray-900">Tracking Information</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
                     {selectedOrder.trackingNumber && (

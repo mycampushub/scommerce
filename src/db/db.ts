@@ -1,4 +1,4 @@
-import { Env } from './types';
+import { Env, D1Result } from './types';
 import { secureRandomString, generateSecureId, secureRandomInt } from '@/lib/crypto-utils';
 
 // Re-export generateSecureId for use in other files
@@ -57,6 +57,47 @@ export async function execute(
 }
 
 /**
+ * Execute multiple SQL statements in a transaction (Cloudflare D1)
+ * All statements succeed or all fail - atomic operation
+ *
+ * @param env - Cloudflare environment with DB binding
+ * @param statements - Array of SQL statements with their parameters
+ * @returns Promise<D1Result[]> - Array of results from each statement
+ *
+ * @example
+ * ```typescript
+ * await transaction(env, [
+ *   { sql: 'INSERT INTO orders (...) VALUES (...)', params: [...] },
+ *   { sql: 'INSERT INTO order_items (...) VALUES (...)', params: [...] }
+ * ])
+ * ```
+ */
+export async function transaction(
+  env: Env | null,
+  statements: Array<{ sql: string; params: unknown[] }>
+): Promise<D1Result[]> {
+  if (!env || !env.DB) {
+    console.error('[db.ts] Database not available');
+    throw new Error('Database not available');
+  }
+
+  try {
+    // Prepare all statements
+    const preparedStatements = statements.map(stmt =>
+      env.DB!.prepare(stmt.sql).bind(...stmt.params)
+    );
+
+    // Execute all statements in a batch (atomic transaction)
+    const results = await env.DB.batch(preparedStatements);
+
+    return results;
+  } catch (error) {
+    console.error('[db.ts] Transaction failed:', error);
+    throw error;
+  }
+}
+
+/**
  * Count rows in a table
  */
 export async function count(env: Env | null, sql: string, ...params: unknown[]): Promise<number> {
@@ -88,12 +129,14 @@ export function generateId(): string {
 }
 
 /**
- * Generate an order number
+ * Generate a human-readable order number
+ * Format: ORD-YYYY-NNNNNN (e.g., ORD-2025-004521)
  */
 export function generateOrderNumber(): string {
-  const timestamp = Date.now();
-  const random = secureRandomInt(0, 10000).toString().padStart(4, '0');
-  return `ORD-${timestamp}-${random}`;
+  const year = new Date().getFullYear()
+  const sequence = secureRandomInt(1, 999999)
+  const paddedSequence = sequence.toString().padStart(6, '0')
+  return `ORD-${year}-${paddedSequence}`
 }
 
 /**

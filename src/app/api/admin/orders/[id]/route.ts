@@ -12,6 +12,12 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Verify admin authentication
+  const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
+
   try {
     const { id } = await params
     const env = getEnv()
@@ -226,11 +232,10 @@ export async function DELETE(
   try {
     const { id } = await params
 
-    // Delete order items first
-    await execute(env, 'DELETE FROM order_items WHERE orderId = ?', id)
-
-    // Then delete order
-    await execute(env, 'DELETE FROM orders WHERE id = ?', id)
+    // Use transaction-based deletion for data integrity
+    // This ensures both order items and order are deleted atomically
+    // If deletion fails, no orphaned records remain
+    await OrderRepository.deleteWithItems(env, id)
 
     return NextResponse.json({
       success: true,
@@ -242,6 +247,7 @@ export async function DELETE(
       {
         success: false,
         error: 'Failed to delete order',
+        details: error instanceof Error ? error.message : 'Unknown error occurred'
       },
       { status: 500 }
     )

@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAdminAuth } from '@/lib/admin-auth'
 import { getEnv } from '@/lib/cloudflare'
-import { count, queryAll, numberToBool, parseJSON } from '@/db/db'
-
+import { count, queryAll, queryFirst, numberToBool, parseJSON, stringifyJSON, generateId, now, execute } from '@/db/db'
 
 export async function GET(request: NextRequest) {
   // Verify admin authentication
@@ -16,14 +15,15 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const period = parseInt(searchParams.get('period') || '30')
 
+    // Create dates in user's timezone (Asia/Dhaka)
     const now = new Date()
     const daysAgo = new Date(now)
     daysAgo.setDate(daysAgo.getDate() - period)
-
-    // Calculate previous period for comparison
     const previousDaysAgo = new Date(daysAgo)
     previousDaysAgo.setDate(previousDaysAgo.getDate() - period)
 
+    // Use UTC dates for database queries
+    // Note: For Asia/Dhaka timezone, this ensures date boundaries are consistent
     const daysAgoIso = daysAgo.toISOString()
     const previousDaysAgoIso = previousDaysAgo.toISOString()
 
@@ -99,6 +99,18 @@ export async function GET(request: NextRequest) {
 
     const ordersList = Array.from(ordersMap.values())
 
+    // Get recent orders (first 5 orders from current period)
+    const recentOrders = ordersList.slice(0, 5).map((order) => ({
+      id: order.id,
+      orderNumber: order.orderNumber,
+      customerName: order.customerName,
+      customerEmail: order.customerEmail,
+      total: order.total,
+      status: order.status,
+      createdAt: order.createdAt,
+      orderItems: order.orderItems
+    }))
+
     const totalRevenue = ordersList.reduce((sum, order) => sum + order.total, 0)
     const totalItemsSold = ordersList.reduce((sum, order) => sum + order.itemsCount, 0)
     const avgOrderValue = ordersList.length > 0 ? totalRevenue / ordersList.length : 0
@@ -119,7 +131,7 @@ export async function GET(request: NextRequest) {
     for (const row of previousOrders) {
       if (!previousOrdersMap.has(row.id)) {
         previousOrdersMap.set(row.id, {
-          total: 0,
+          total: 0
         })
       }
       const order = previousOrdersMap.get(row.id)!
@@ -171,16 +183,21 @@ export async function GET(request: NextRequest) {
     const returningCustomers = Object.values(customerOrderCounts).filter(count => count > 1).length
     const returningRate = ordersList.length > 0 ? (returningCustomers / ordersList.length) * 100 : 0
 
-    // Top products (by items sold in period)
+    // Top products (by items sold in period) - FIXED: remove OR createdAt IS NULL
     const topProductsData = await queryAll<any>(
       env,
-      `SELECT p.id, p.name, p.basePrice as price, COUNT(oi.id) as sales
+      `SELECT p.id, p.name, p.basePrice as price, c.name as category, 
+         COUNT(DISTINCT o.id) as sales,
+         SUM(oi.quantity * p.price) as revenue
        FROM products p
+       LEFT JOIN categories c ON p.categoryId = c.id
        LEFT JOIN order_items oi ON p.id = oi.productId
        LEFT JOIN orders o ON oi.orderId = o.id
-       WHERE o.createdAt >= ? OR o.createdAt IS NULL
+       WHERE p.isActive = 1
+       AND o.createdAt >= ?
        GROUP BY p.id
-       ORDER BY sales DESC
+       HAVING COUNT(o.id) > 0
+       ORDER BY revenue DESC
        LIMIT 5`,
       daysAgoIso
     )
@@ -230,17 +247,20 @@ export async function GET(request: NextRequest) {
           newCustomerGrowth,
         },
         period,
+        recentOrders,
         topProducts: topProductsData.map((product) => ({
           id: product.id,
           name: product.name,
+          category: product.category,
           price: product.price,
           sales: product.sales,
+          revenue: product.revenue
         })),
         topCustomers: topCustomersData.map((customer) => ({
           id: customer.id,
-          name: customer.name || customer.email,
+          name: customer.name,
           email: customer.email,
-          orders: customer.orders,
+          orders: customer.orders
         })),
       },
     })

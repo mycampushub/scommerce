@@ -22,40 +22,106 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search') || ''
     const role = searchParams.get('role') || ''
+    const page = parseInt(searchParams.get('page') || '1', 10)
+    const limit = parseInt(searchParams.get('limit') || '50', 10)
+    const offset = (page - 1) * limit
+    const sortBy = searchParams.get('sortBy') || 'createdAt'
+    const sortOrder = searchParams.get('sortOrder') || 'DESC'
 
-    let users = await queryAll<any>(
-      env,
-      'SELECT * FROM users ORDER BY createdAt DESC'
-    )
+    // Validate sortBy to prevent SQL injection
+    const allowedSortFields = ['createdAt', 'name', 'email', 'role', 'orders']
+    const validSortBy = allowedSortFields.includes(sortBy) ? sortBy : 'createdAt'
+    const validSortOrder = sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC'
 
-    // Filter by role (admin/staff)
+    // Build WHERE clause for filters
+    const conditions: string[] = []
+    const params: unknown[] = []
+
+    // Apply search to SQL WHERE clause
+    if (search) {
+      conditions.push('(name LIKE ? OR email LIKE ?)')
+      params.push(`%${search}%`, `%${search}%`)
+    }
+
+    // Apply role filter to SQL WHERE clause
     if (role) {
-      users = users.filter((user) => user.role === role)
+      conditions.push('role = ?')
+      params.push(role)
     } else {
       // Only show admin and staff users by default
-      users = users.filter((user) => user.role !== 'user')
+      conditions.push("role != 'user'")
     }
 
-    // Search functionality
-    if (search) {
-      users = users.filter(
-        (user) =>
-          user.name?.toLowerCase().includes(search.toLowerCase()) ||
-          user.email.toLowerCase().includes(search.toLowerCase())
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
+
+    // Fetch staff with pagination and sorting
+    let users = await queryAll<any>(
+      env,
+      `SELECT * FROM users ${whereClause} ORDER BY ${validSortBy} ${validSortOrder} LIMIT ? OFFSET ?`,
+      ...params,
+      limit,
+      offset
+    )
+
+    // Fetch order counts for all staff in a single query (fixes N+1 query issue)
+    if (users.length > 0) {
+      const userIds = users.map((u: any) => u.id)
+      const placeholders = userIds.map(() => '?').join(',')
+
+      const orderCounts = await queryAll<any>(
+        env,
+        `SELECT userId, COUNT(*) as orderCount
+         FROM orders
+         WHERE userId IN (${placeholders})
+         GROUP BY userId`,
+        ...userIds
       )
+
+      // Create a map of userId -> orderCount
+      const orderCountMap = new Map<string, number>()
+      for (const oc of orderCounts) {
+        orderCountMap.set(oc.userId, oc.orderCount)
+      }
+
+      // Add order counts to users
+      users = users.map((user: any) => ({
+        ...user,
+        _count: { orders: orderCountMap.get(user.id) || 0 },
+        emailVerified: numberToBool(user.emailVerified)
+      }))
+    } else {
+      // No staff, just convert booleans
+      users = users.map((user: any) => ({
+        ...user,
+        _count: { orders: 0 },
+        emailVerified: numberToBool(user.emailVerified)
+      }))
     }
 
-    // Add order counts for each user
-    for (const user of users) {
-      const orderCount = await count(env, 'SELECT COUNT(*) as count FROM orders WHERE userId = ?', user.id)
-      user._count = { orders: orderCount }
-      user.emailVerified = numberToBool(user.emailVerified)
-    }
+    // Get total count for pagination
+    const totalStaff = await count(
+      env,
+      `SELECT COUNT(*) FROM users ${whereClause}`,
+      ...params
+    )
+
+    const totalPages = Math.ceil(totalStaff / limit)
 
     return NextResponse.json({
       success: true,
       data: users,
-      total: users.length,
+      pagination: {
+        page,
+        limit,
+        total: totalStaff,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
+      sort: {
+        sortBy: validSortBy,
+        sortOrder: validSortOrder,
+      },
     })
   } catch (error) {
     console.error('Error fetching staff:', error)
@@ -63,6 +129,7 @@ export async function GET(request: NextRequest) {
       {
         success: false,
         error: 'Failed to fetch staff',
+        details: error instanceof Error ? error.message : 'Unknown error occurred'
       },
       { status: 500 }
     )
@@ -154,6 +221,7 @@ export async function POST(request: NextRequest) {
       {
         success: false,
         error: 'Failed to create staff member',
+        details: error instanceof Error ? error.message : 'Unknown error occurred'
       },
       { status: 500 }
     )

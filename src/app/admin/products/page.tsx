@@ -258,7 +258,13 @@ export default function ProductsPage() {
       price: product.price.toString(),
       comparePrice: product.comparePrice?.toString() || '',
       categoryId: product.categoryId || '',
-      images: product.images ? JSON.parse(product.images) : [],
+      images: (() => {
+        try {
+          return product.images ? JSON.parse(product.images) : []
+        } catch {
+          return []
+        }
+      })(),
       stock: product.stock.toString(),
       isActive: product.isActive,
       isFeatured: product.isFeatured,
@@ -704,6 +710,7 @@ export default function ProductsPage() {
         <Button
           onClick={() => setIsAddModalOpen(true)}
           className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
+          aria-label="Add new product"
         >
           <Plus className="h-4 w-4 mr-2" />
           Add Product
@@ -778,6 +785,7 @@ export default function ProductsPage() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
+                aria-label="Search products"
               />
             </div>
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
@@ -850,19 +858,28 @@ export default function ProductsPage() {
                     <TableRow key={product.id} className="hover:bg-gray-50">
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          {product.images ? (
-                            <div className="h-12 w-12 rounded-lg overflow-hidden flex-shrink-0">
-                              <img
-                                src={JSON.parse(product.images)[0] || '/placeholder.svg'}
-                                alt={product.name}
-                                className="h-full w-full object-cover"
-                              />
-                            </div>
-                          ) : (
-                            <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-violet-100 to-indigo-100 flex items-center justify-center text-xs font-bold text-violet-600 flex-shrink-0">
-                              {product.name.substring(0, 2).toUpperCase()}
-                            </div>
-                          )}
+                          {(() => {
+                            try {
+                              const images = product.images ? JSON.parse(product.images) : []
+                              const imageSrc = images[0] || '/placeholder.svg'
+                              return (
+                                <div className="h-12 w-12 rounded-lg overflow-hidden flex-shrink-0">
+                                  <img
+                                    src={imageSrc}
+                                    alt={product.name}
+                                    onError={(e) => { e.currentTarget.src = '/placeholder.svg' }}
+                                    className="h-full w-full object-cover"
+                                  />
+                                </div>
+                              )
+                            } catch {
+                              return (
+                                <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-violet-100 to-indigo-100 flex items-center justify-center text-xs font-bold text-violet-600 flex-shrink-0">
+                                  {product.name.substring(0, 2).toUpperCase()}
+                                </div>
+                              )
+                            }
+                          })()}
                           <div>
                             <p className="font-medium text-sm text-gray-900">{product.name}</p>
                             <p className="text-xs text-gray-500">SKU: {product.slug}</p>
@@ -876,7 +893,7 @@ export default function ProductsPage() {
                       </TableCell>
                       <TableCell>
                         <div>
-                          <p className="font-semibold text-gray-900">${product.price.toFixed(2)}</p>
+                          <p className="font-semibold text-gray-900">${typeof product.price === 'number' ? product.price.toFixed(2) : '0.00'}</p>
                           {product.comparePrice && (
                             <p className="text-xs text-gray-500 line-through">${product.comparePrice.toFixed(2)}</p>
                           )}
@@ -1283,7 +1300,7 @@ export default function ProductsPage() {
                               <div className="flex gap-1 flex-wrap">
                                 {variant.size && <Badge variant="outline" className="text-xs">{variant.size}</Badge>}
                                 {variant.color && <Badge variant="outline" className="text-xs bg-purple-50">{variant.color}</Badge>}
-                                {variant.material && <Badge variant="outline" className="text-xs bg-blue-50">{variant.material}</Badge>}
+                                {variant.material && <Badge variant="outline" className="text-xs bg-violet-50">{variant.material}</Badge>}
                               </div>
                               {variant.isDefault && (
                                 <Badge className="text-xs bg-green-100 text-green-700">Default</Badge>
@@ -1297,7 +1314,7 @@ export default function ProductsPage() {
                           </TableCell>
                           <TableCell>
                             <div>
-                              <p className="font-semibold">${variant.price.toFixed(2)}</p>
+                              <p className="font-semibold">${typeof variant.price === 'number' ? variant.price.toFixed(2) : '0.00'}</p>
                               {variant.comparePrice && (
                                 <p className="text-xs text-gray-500 line-through">${variant.comparePrice.toFixed(2)}</p>
                               )}

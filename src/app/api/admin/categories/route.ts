@@ -18,16 +18,37 @@ export async function GET(request: NextRequest) {
     const env = getEnv()
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search') || ''
+    const page = parseInt(searchParams.get('page') || '1', 10)
+    const limit = parseInt(searchParams.get('limit') || '50', 10)
+    const offset = (page - 1) * limit
+    const sortBy = searchParams.get('sortBy') || 'orderNum'
+    const sortOrder = searchParams.get('sortOrder') || 'ASC'
 
-    let categories = await CategoryRepository.findAll(env)
+    // Validate sortBy to prevent SQL injection
+    const allowedSortFields = ['createdAt', 'name', 'slug', 'orderNum']
+    const validSortBy = allowedSortFields.includes(sortBy) ? sortBy : 'orderNum'
+    const validSortOrder = sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC'
 
+    // Build WHERE clause for filters
+    const conditions: string[] = []
+    const params: unknown[] = []
+
+    // Apply search to SQL WHERE clause
     if (search) {
-      categories = categories.filter(
-        (category) =>
-          category.name.toLowerCase().includes(search.toLowerCase()) ||
-          category.slug.toLowerCase().includes(search.toLowerCase())
-      )
+      conditions.push('(name LIKE ? OR slug LIKE ?)')
+      params.push(`%${search}%`, `%${search}%`)
     }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
+
+    // Fetch categories with pagination and sorting
+    const categories = await queryAll<any>(
+      env,
+      `SELECT * FROM categories ${whereClause} ORDER BY ${validSortBy} ${validSortOrder} LIMIT ? OFFSET ?`,
+      ...params,
+      limit,
+      offset
+    )
 
     // Add product counts - Fix N+1 query by using a single GROUP BY query
     const categoriesWithCounts: any[] = []
@@ -55,10 +76,30 @@ export async function GET(request: NextRequest) {
       })
     }
 
+    // Get total count for pagination
+    const totalCategories = await count(
+      env,
+      `SELECT COUNT(*) FROM categories ${whereClause}`,
+      ...params
+    )
+
+    const totalPages = Math.ceil(totalCategories / limit)
+
     return NextResponse.json({
       success: true,
       data: categoriesWithCounts,
-      total: categoriesWithCounts.length,
+      pagination: {
+        page,
+        limit,
+        total: totalCategories,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
+      sort: {
+        sortBy: validSortBy,
+        sortOrder: validSortOrder,
+      },
     })
   } catch (error) {
     console.error('Error fetching categories:', error)
@@ -66,6 +107,7 @@ export async function GET(request: NextRequest) {
       {
         success: false,
         error: 'Failed to fetch categories',
+        details: error instanceof Error ? error.message : 'Unknown error occurred'
       },
       { status: 500 }
     )
@@ -118,6 +160,7 @@ export async function POST(request: NextRequest) {
       {
         success: false,
         error: 'Failed to create category',
+        details: error instanceof Error ? error.message : 'Unknown error occurred'
       },
       { status: 500 }
     )

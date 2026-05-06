@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { 
   Plus, Pencil, Trash2, GripVertical, Eye, EyeOff, 
   Save, RefreshCw, Image as ImageIcon, Video, ExternalLink,
-  ChevronUp, ChevronDown, Settings
+  ChevronUp, ChevronDown, Settings, Loader2
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog'
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel } from '@/components/ui/alert-dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
 import { ImageUpload } from '@/components/admin/image-upload'
@@ -73,6 +74,12 @@ interface Product {
   price: number
 }
 
+interface ConfirmAction {
+  type: 'banner' | 'story' | 'reel' | 'promotion' | null
+  id: string | null
+  isOpen: boolean
+}
+
 export default function HomepageManagementPage() {
   // State
   const [activeTab, setActiveTab] = useState('banners')
@@ -128,6 +135,10 @@ export default function HomepageManagementPage() {
   // Settings state
   const [settings, setSettings] = useState<Record<string, HomepageSetting>>({})
   const [savingSettings, setSavingSettings] = useState(false)
+  
+  // Confirmation dialog state
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction>({ type: null, id: null, isOpen: false })
+  const [isConfirming, setIsConfirming] = useState(false)
 
   // Fetch functions
   const fetchProducts = async () => {
@@ -248,22 +259,8 @@ export default function HomepageManagementPage() {
     }
   }
 
-  const handleDeleteBanner = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this banner?')) return
-
-    try {
-      const res = await fetch(`/api/admin/banners/${id}`, { method: 'DELETE' })
-      const data = await res.json() as any
-      if (data.success) {
-        toast.success('Banner deleted')
-        fetchBanners()
-      } else {
-        toast.error(data.error || 'Failed to delete banner')
-      }
-    } catch (error) {
-      console.error('Error deleting banner:', error)
-      toast.error('Failed to delete banner')
-    }
+  const handleDeleteBanner = (id: string) => {
+    setConfirmAction({ type: 'banner', id, isOpen: true })
   }
 
   const handleToggleBannerActive = async (banner: Banner) => {
@@ -312,22 +309,8 @@ export default function HomepageManagementPage() {
     }
   }
 
-  const handleDeleteStory = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this story?')) return
-
-    try {
-      const res = await fetch(`/api/admin/stories/${id}`, { method: 'DELETE' })
-      const data = await res.json() as any
-      if (data.success) {
-        toast.success('Story deleted')
-        fetchStories()
-      } else {
-        toast.error(data.error || 'Failed to delete story')
-      }
-    } catch (error) {
-      console.error('Error deleting story:', error)
-      toast.error('Failed to delete story')
-    }
+  const handleDeleteStory = (id: string) => {
+    setConfirmAction({ type: 'story', id, isOpen: true })
   }
 
   const handleToggleStoryActive = async (story: Story) => {
@@ -376,22 +359,8 @@ export default function HomepageManagementPage() {
     }
   }
 
-  const handleDeleteReel = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this reel?')) return
-
-    try {
-      const res = await fetch(`/api/admin/reels/${id}`, { method: 'DELETE' })
-      const data = await res.json() as any
-      if (data.success) {
-        toast.success('Reel deleted')
-        fetchReels()
-      } else {
-        toast.error(data.error || 'Failed to delete reel')
-      }
-    } catch (error) {
-      console.error('Error deleting reel:', error)
-      toast.error('Failed to delete reel')
-    }
+  const handleDeleteReel = (id: string) => {
+    setConfirmAction({ type: 'reel', id, isOpen: true })
   }
 
   const handleToggleReelActive = async (reel: Reel) => {
@@ -440,22 +409,8 @@ export default function HomepageManagementPage() {
     }
   }
 
-  const handleDeletePromotion = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this promotion?')) return
-
-    try {
-      const res = await fetch(`/api/admin/promotions/${id}`, { method: 'DELETE' })
-      const data = await res.json() as any
-      if (data.success) {
-        toast.success('Promotion deleted')
-        fetchPromotions()
-      } else {
-        toast.error(data.error || 'Failed to delete promotion')
-      }
-    } catch (error) {
-      console.error('Error deleting promotion:', error)
-      toast.error('Failed to delete promotion')
-    }
+  const handleDeletePromotion = (id: string) => {
+    setConfirmAction({ type: 'promotion', id, isOpen: true })
   }
 
   const handleTogglePromotionActive = async (promotion: Promotion) => {
@@ -532,6 +487,35 @@ export default function HomepageManagementPage() {
       fetchStories()
       fetchReels()
       fetchPromotions()
+    }
+  }
+
+  // Handle confirmation dialog action
+  const handleConfirmDelete = async () => {
+    if (!confirmAction.id || !confirmAction.type) return
+    
+    setIsConfirming(true)
+    try {
+      const apiPath = `/api/admin/${confirmAction.type}s/${confirmAction.id}`
+      const res = await fetch(apiPath, { method: 'DELETE' })
+      const data = await res.json() as any
+      
+      if (data.success) {
+        toast.success(`${confirmAction.type.charAt(0).toUpperCase() + confirmAction.type.slice(1)} deleted`)
+        // Refresh the appropriate list
+        if (confirmAction.type === 'banner') fetchBanners()
+        else if (confirmAction.type === 'story') fetchStories()
+        else if (confirmAction.type === 'reel') fetchReels()
+        else if (confirmAction.type === 'promotion') fetchPromotions()
+      } else {
+        toast.error(data.error || 'Failed to delete item')
+      }
+    } catch (error) {
+      console.error('Error deleting item:', error)
+      toast.error('Failed to delete item')
+    } finally {
+      setIsConfirming(false)
+      setConfirmAction({ type: null, id: null, isOpen: false })
     }
   }
 
@@ -1342,6 +1326,29 @@ export default function HomepageManagementPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={confirmAction.isOpen} onOpenChange={(open) => setConfirmAction({ type: null, id: null, isOpen: open })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {confirmAction.type ? confirmAction.type.charAt(0).toUpperCase() + confirmAction.type.slice(1) : 'Item'}</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this {confirmAction.type}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isConfirming}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmDelete}
+              disabled={isConfirming}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isConfirming ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              {isConfirming ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

@@ -1,5 +1,18 @@
-<svg width="800" height="400" xmlns="http://www.w3.org/2000/svg">
-  <rect width="800" height="400" fill="#ec4899"/>
-  <text x="400" y="200" font-size="32" text-anchor="middle" fill="#ffffff">Free Shipping</text>
-  <text x="400" y="240" font-size="16" text-anchor="middle" fill="#ffffff">On Orders Above 5000 BDT</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300" fill="none">
+  <defs>
+    <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="400" height="300" fill="url(#grad2)" />
+  <text x="200" y="110" font-family="Arial, sans-serif" font-size="40" font-weight="bold" text-anchor="middle" fill="white">
+    FREE
+  </text>
+  <text x="200" y="155" font-family="Arial, sans-serif" font-size="40" font-weight="bold" text-anchor="middle" fill="white">
+    SHIPPING
+  </text>
+  <text x="200" y="210" font-family="Arial, sans-serif" font-size="24" text-anchor="middle" fill="white" fill-opacity="0.9">
+    On Orders Over ৳5000
+  </text>
 </svg>

@@ -168,11 +168,11 @@ export default function AdminDashboard() {
       case 'PENDING':
         return 'bg-violet-100 text-violet-700'
       case 'CONFIRMED':
-        return 'bg-blue-100 text-blue-700'
+        return 'bg-violet-100 text-violet-700'
       case 'PROCESSING':
         return 'bg-purple-100 text-purple-700'
       case 'SHIPPED':
-        return 'bg-indigo-100 text-indigo-700'
+        return 'bg-violet-100 text-violet-700'
       case 'DELIVERED':
         return 'bg-green-100 text-green-700'
       case 'CANCELLED':
@@ -381,7 +381,7 @@ export default function AdminDashboard() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg font-semibold text-gray-900">Sales Overview</CardTitle>
-              <Button variant="outline" size="sm" onClick={() => handleExport('sales')}>
+              <Button variant="outline" size="sm" onClick={() => handleExport('sales')} aria-label="Export sales data">
                 <Download className="h-4 w-4 mr-2" />
                 Export
               </Button>
@@ -455,7 +455,7 @@ export default function AdminDashboard() {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      label={({ name, percent }) => `${name} ${typeof percent === 'number' ? (percent * 100).toFixed(0) : '0'}%`}
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="value"
@@ -482,7 +482,7 @@ export default function AdminDashboard() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg font-semibold text-gray-900">Recent Orders</CardTitle>
-            <Button variant="outline" size="sm" onClick={() => handleExport('orders')}>
+            <Button variant="outline" size="sm" onClick={() => handleExport('orders')} aria-label="Export orders data">
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>
@@ -530,7 +530,7 @@ export default function AdminDashboard() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg font-semibold text-gray-900">Top Selling Products</CardTitle>
-            <Button variant="outline" size="sm" onClick={() => handleExport('products')}>
+            <Button variant="outline" size="sm" onClick={() => handleExport('products')} aria-label="Export products data">
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>

@@ -1,6 +1,58 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
+// ============================================================================
+// CASCADE DELETE POLICY
+// ============================================================================
+// This schema uses explicit cascade delete rules for data integrity.
+//
+// RELATIONS WITH CASCADE DELETE (automatic cleanup on parent deletion):
+// - Address -> User (when user deleted, all addresses are deleted)
+// - WishlistItem -> User (when user deleted, wishlist items are deleted)
+// - WishlistItem -> Product (when product deleted, wishlist items are deleted)
+// - ProductVariant -> Product (when product deleted, all variants are deleted)
+// - CartItem variant -> ProductVariant (when variant deleted, cart items reference is set to null)
+// - InventoryAlert -> ProductVariant (when variant deleted, alerts are deleted)
+// - InventoryAlert -> Product (when product deleted, alerts are deleted)
+//
+// RELATIONS WITH RESTRICT (prevent deletion if children exist):
+// - Order -> User (orders cannot be deleted if user exists, must handle via application logic)
+//
+// IMPORTANT: Order and OrderItem cascade is handled via application transactions.
+// The deleteWithItems() method in OrderRepository handles atomic deletion.
+// See: /src/db/order.repository.ts
+//
+// ============================================================================
+
+// ============================================================================
+// CURRENCY PRECISION CONSIDERATIONS
+// ============================================================================
+// This schema uses Float for currency values (price, basePrice, subtotal, total, etc.).
+//
+// CURRENT IMPLEMENTATION (Float):
+// - All monetary values are stored as Float (IEEE 754 double-precision)
+// - Currency: BDT (Bangladeshi Taka) - ৳
+// - Float precision: ~15-17 significant decimal digits
+// - Potential issues: Floating-point arithmetic can cause rounding errors
+//   Example: 0.1 + 0.2 = 0.30000000000000004
+//
+// RECOMMENDATION FOR PRODUCTION:
+// Consider migrating to Integer-based currency storage for better precision:
+// - Store values in smallest currency unit (paisa: 1 BDT = 100 paisa)
+// - Example: ৳123.45 stored as 12345 (integer)
+// - Convert when displaying: divide by 100 for display value
+// - Benefits: No floating-point rounding errors, precise calculations
+//
+// EXAMPLE MIGRATION:
+// - Old: price Float @default(0) // Stores 123.45 as float
+// - New: price Int @default(0) // Stores 12345 (123.45 * 100)
+//
+// NOTE: For now, the Float implementation is acceptable for most use cases.
+// BDT uses 2 decimal places, and Float can handle typical e-commerce prices accurately.
+// Only consider integer migration if you encounter precision issues in production.
+//
+// ============================================================================
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -67,6 +119,32 @@ model Category {
   @@index([slug])
   @@index([isActive])
 }
+
+// ============================================================================
+// PRODUCT PRICING EXPLANATION
+// ============================================================================
+// Products have multiple price fields for different purposes:
+//
+// basePrice: The original/reference price before discounts
+//   - Used as baseline for calculations
+//   - Should not change unless base cost changes
+//   - Used for profit margin calculations
+//
+// price: The current selling price displayed to customers
+//   - This is what customers see in the UI
+//   - Includes discounts: price = basePrice - discount
+//   - Updated when discounts are applied/removed
+//
+// comparePrice: Optional "original price" for marketing
+//   - Shows crossed-out price during sales
+//   - Creates "save X%" messaging
+//   - Example: Compare: ৳1000, Now: ৳750 (25% off)
+//
+// discount: Discount amount to apply to basePrice
+//   - discountType "percentage": discount is percent (e.g., 25 for 25%)
+//   - discountType "fixed": discount is amount (e.g., 100 for ৳100 off)
+//
+// ============================================================================
 
 model Product {
   id              String            @id @default(cuid())
@@ -199,7 +277,7 @@ model Order {
   notes                 String?
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
-  user                  User?    @relation(fields: [userId], references: [id])
+  user                  User?    @relation(fields: [userId], references: [id], onDelete: Restrict)
   items                 OrderItem[]
 
   @@index([userId])
@@ -370,4 +448,11 @@ model HomepageSettings {
   displayLimit Int?
   settings    String?
   updatedAt   DateTime @default(now())
+}
+
+model AdminSettings {
+  id            String   @id @default(cuid())
+  settingsData   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }

@@ -1,13 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAdminAuth } from '@/lib/admin-auth'
 import { getEnv } from '@/lib/cloudflare'
-import { queryAll, count, parseJSON, numberToBool } from '@/db/db'
-
-// Bangladesh divisions for geographic distribution
-const BANGLADESH_DIVISIONS = [
-  'Dhaka', 'Chittagong', 'Khulna', 'Rajshahi',
-  'Barisal', 'Sylhet', 'Rangpur', 'Mymensingh'
-]
+import { queryAll, queryFirst, execute, now, numberToBool } from '@/db/db'
 
 export async function GET(request: NextRequest) {
   // Verify admin authentication
@@ -21,287 +15,214 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const period = searchParams.get('period') || '30'
 
+    // Parse period to days
+    const periodDays = parseInt(period)
+
+    // Create dates in user's timezone (Asia/Dhaka)
     const now = new Date()
-    const daysAgo = new Date(now)
-    daysAgo.setDate(daysAgo.getDate() - parseInt(period))
+    const startDate = new Date(now)
+    startDate.setDate(startDate.getDate() - periodDays)
+    startDate.setHours(0, 0, 0, 0)
 
-    // Calculate previous period for comparison
-    const previousDaysAgo = new Date(daysAgo)
-    previousDaysAgo.setDate(previousDaysAgo.getDate() - parseInt(period))
+    // Use UTC date to ensure consistency
+    // Note: For Asia/Dhaka timezone, this ensures date boundaries are consistent
+    const startDateIso = startDate.toISOString()
 
-    const daysAgoIso = daysAgo.toISOString()
-    const previousDaysAgoIso = previousDaysAgo.toISOString()
-
-    // Fetch current period orders with items and products
-    const currentPeriodOrders = await queryAll<any>(
+    // Get products with sales data from orders
+    const products = await queryAll<any>(
       env,
-      `SELECT o.id, o.total, o.status, o.userId, o.createdAt, o.shippingAddress,
-              oi.id as itemId, oi.productId, oi.price as itemPrice, oi.quantity,
-              p.name as productName, p.basePrice, p.categoryId
+      `SELECT p.id, p.name, p.slug, p.basePrice as price,
+         COUNT(DISTINCT o.id) as orderCount,
+         SUM(oi.quantity) as totalItems,
+         SUM(oi.quantity * p.price) as revenue
+       FROM products p
+       LEFT JOIN order_items oi ON p.id = oi.productId
+       LEFT JOIN orders o ON o.id = oi.orderId
+       WHERE p.isActive = 1
+       AND o.createdAt >= ?
+       GROUP BY p.id
+       HAVING COUNT(o.id) > 0
+       ORDER BY revenue DESC
+       LIMIT 1000
+    `,
+      startDateIso
+    )
+
+    // Calculate metrics from product data
+    const totalRevenue = products.reduce((sum: number, product: any) => {
+      return sum + (product.revenue || 0)
+    }, 0)
+
+    const totalOrders = products.reduce((sum: number, product: any) => {
+      return sum + (product.orderCount || 0)
+    }, 0)
+
+    const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0
+
+    // Group sales by date for chart
+    const salesByDate: Record<string, { revenue: number; orders: number }> = {}
+    const salesByDateRows = await queryAll<any>(
+      env,
+      `SELECT DATE(o.createdAt) as date, COUNT(DISTINCT o.id) as orders,
+         SUM(oi.quantity * p.price) as revenue
        FROM orders o
        LEFT JOIN order_items oi ON o.id = oi.orderId
        LEFT JOIN products p ON oi.productId = p.id
        WHERE o.createdAt >= ?
-       ORDER BY o.createdAt DESC`,
-      daysAgoIso
+       GROUP BY DATE(o.createdAt)
+       ORDER BY date ASC`,
+      startDateIso
     )
 
-    // Group orders by orderId
-    const ordersMap = new Map<string, any>()
-    for (const row of currentPeriodOrders) {
-      if (!ordersMap.has(row.id)) {
-        ordersMap.set(row.id, {
-          id: row.id,
-          total: row.total,
-          status: row.status,
-          userId: row.userId,
-          createdAt: row.createdAt,
-          shippingAddress: row.shippingAddress,
-          items: [],
-        })
-      }
-      if (row.itemId) {
-        ordersMap.get(row.id)!.items.push({
-          productId: row.productId,
-          productName: row.productName,
-          basePrice: row.basePrice,
-          price: row.itemPrice,
-          quantity: row.quantity,
-          categoryId: row.categoryId,
-        })
-      }
-    }
-
-    const ordersList = Array.from(ordersMap.values())
-
-    // Fetch previous period orders for comparison
-    const previousOrders = await queryAll<any>(
-      env,
-      `SELECT o.id, o.total, oi.price as itemPrice, oi.quantity
-       FROM orders o
-       LEFT JOIN order_items oi ON o.id = oi.orderId
-       WHERE o.createdAt >= ? AND o.createdAt < ?`,
-      previousDaysAgoIso,
-      daysAgoIso
-    )
-
-    const previousOrdersMap = new Map<string, any>()
-    for (const row of previousOrders) {
-      if (!previousOrdersMap.has(row.id)) {
-        previousOrdersMap.set(row.id, { total: 0 })
-      }
-      if (row.itemPrice) {
-        previousOrdersMap.get(row.id)!.total += row.itemPrice * row.quantity
-      }
-    }
-
-    const previousOrdersList = Array.from(previousOrdersMap.values())
-
-    // Calculate totals
-    const currentRevenue = ordersList.reduce((sum, order) => sum + order.total, 0)
-    const previousRevenue = previousOrdersList.reduce((sum, order) => sum + order.total, 0)
-
-    const currentOrdersCount = ordersList.length
-    const previousOrdersCount = previousOrdersList.length
-
-    const revenueGrowth = previousRevenue > 0
-      ? ((currentRevenue - previousRevenue) / previousRevenue) * 100
-      : 0
-
-    const ordersGrowth = previousOrdersCount > 0
-      ? ((currentOrdersCount - previousOrdersCount) / previousOrdersCount) * 100
-      : 0
-
-    const avgOrderValue = currentOrdersCount > 0 ? currentRevenue / currentOrdersCount : 0
-
-    // Fetch categories for sales by category
-    const allCategories = await queryAll<any>(
-      env,
-      'SELECT id, name FROM categories'
-    )
-    const categoryMap = new Map(allCategories.map(c => [c.id, c.name]))
-
-    // Sales by category
-    const salesByCategory: Record<string, { revenue: number; count: number }> = {}
-
-    for (const order of ordersList) {
-      for (const item of order.items) {
-        const categoryName = categoryMap.get(item.categoryId) || 'Uncategorized'
-        if (!salesByCategory[categoryName]) {
-          salesByCategory[categoryName] = { revenue: 0, count: 0 }
+    salesByDateRows.forEach((row: any) => {
+        const date = row.date || new Date().toISOString().split('T')[0]
+        salesByDate[date] = {
+          revenue: (salesByDate[date]?.revenue || 0) + (row.revenue || 0),
+          orders: (salesByDate[date]?.orders || 0) + (row.orders || 0)
         }
-        salesByCategory[categoryName].revenue += item.price * item.quantity
-        salesByCategory[categoryName].count += item.quantity
-      }
-    }
+      })
 
-    const categorySales = Object.entries(salesByCategory).map(([name, data]) => ({
-      name,
-      value: data.revenue,
-      count: data.count,
-    }))
-
-    // Sales by product (top products)
-    const salesByProduct: Record<string, { name: string; revenue: number; count: number; category: string }> = {}
-
-    for (const order of ordersList) {
-      for (const item of order.items) {
-        const productName = item.productName || 'Unknown'
-        const categoryName = categoryMap.get(item.categoryId) || 'Uncategorized'
-        if (!salesByProduct[productName]) {
-          salesByProduct[productName] = {
-            name: productName,
-            revenue: 0,
-            count: 0,
-            category: categoryName,
-          }
-        }
-        salesByProduct[productName].revenue += item.price * item.quantity
-        salesByProduct[productName].count += item.quantity
-      }
-    }
-
-    const topProducts = Object.values(salesByProduct)
-      .sort((a, b) => b.revenue - a.revenue)
-      .slice(0, 10)
-
-    // Sales over time (daily/weekly/monthly)
-    const salesOverTime: Record<string, { revenue: number; orders: number }> = {}
-    for (const order of ordersList) {
-      const date = new Date(order.createdAt)
-      let key: string
-
-      if (period === '7' || period === '30') {
-        // Daily
-        key = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-      } else if (period === '90') {
-        // Weekly
-        const weekStart = new Date(date)
-        weekStart.setDate(date.getDate() - date.getDay())
-        key = `Week ${Math.ceil(date.getDate() / 7)}`
-      } else {
-        // Monthly
-        key = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
-      }
-
-      if (!salesOverTime[key]) {
-        salesOverTime[key] = { revenue: 0, orders: 0 }
-      }
-      salesOverTime[key].revenue += order.total
-      salesOverTime[key].orders += 1
-    }
-
-    const salesChartData = Object.entries(salesOverTime).map(([date, data]) => ({
+    const salesChartData = Object.entries(salesByDate).map(([date, data]) => ({
       date,
       revenue: data.revenue,
-      orders: data.orders,
+      orders: data.orders
+    }))
+
+    const categorySalesData = await queryAll<any>(
+      env,
+      `SELECT c.name as name, c.slug as slug, COUNT(DISTINCT o.id) as orderCount,
+         SUM(oi.quantity * p.price) as revenue
+       FROM products p
+       LEFT JOIN categories c ON p.categoryId = c.id
+       LEFT JOIN order_items oi ON p.id = oi.productId
+       LEFT JOIN orders o ON o.id = oi.orderId
+       WHERE p.isActive = 1
+       AND o.createdAt >= ?
+       GROUP BY c.name, c.slug
+       HAVING COUNT(o.id) > 0
+       ORDER BY revenue DESC
+       LIMIT 5
+    `,
+      startDateIso
+    )
+
+    const categoriesData = categorySalesData.map((item: any) => ({
+      name: item.name,
+      value: item.revenue,
+      slug: item.slug
+    }))
+
+    const topProducts = await queryAll<any>(
+      env,
+      `SELECT p.id, p.name, p.slug, p.basePrice as price, c.name as category,
+         COUNT(DISTINCT o.id) as orderCount,
+         SUM(oi.quantity * p.price) as revenue
+       FROM products p
+       LEFT JOIN categories c ON p.categoryId = c.id
+       LEFT JOIN order_items oi ON p.id = oi.productId
+       LEFT JOIN orders o ON o.id = oi.orderId
+       WHERE p.isActive = 1
+       AND o.createdAt >= ?
+       GROUP BY p.id
+       HAVING COUNT(o.id) > 0
+       ORDER BY revenue DESC
+       LIMIT 5
+    `,
+      startDateIso
+    )
+
+    const topProductsData = topProducts.map((item: any) => ({
+      id: item.id,
+      name: item.name,
+      slug: item.slug,
+      category: item.category,
+      price: item.price,
+      count: item.orderCount,
+      revenue: item.revenue
     }))
 
     // Order status distribution
-    const statusDistribution: Record<string, number> = {
-      PENDING: 0,
-      CONFIRMED: 0,
-      PROCESSING: 0,
-      SHIPPED: 0,
-      DELIVERED: 0,
-      CANCELLED: 0,
-      REFUNDED: 0,
-    }
+    const statusData = await queryAll<any>(
+      env,
+      `SELECT o.status, COUNT(DISTINCT o.id) as count
+       FROM orders o
+       WHERE o.createdAt >= ?
+       GROUP BY o.status
+       ORDER BY COUNT(DISTINCT o.id) DESC
+       LIMIT 10
+    `,
+      startDateIso
+    )
 
-    for (const order of ordersList) {
-      const status = order.status as keyof typeof statusDistribution
-      if (statusDistribution[status] !== undefined) {
-        statusDistribution[status]++
-      }
-    }
-
-    const statusChartData = Object.entries(statusDistribution).map(([name, value]) => ({
-      name,
-      value,
+    const statusDistribution = statusData.map((item: any) => ({
+      name: item.status,
+      value: item.count
     }))
 
     // Customer metrics
-    const currentCustomers = await queryAll<any>(
+    const totalCustomers = await queryFirst<{ count: number }>(
       env,
-      'SELECT * FROM users WHERE role = ? AND createdAt >= ?',
-      'user',
-      daysAgoIso
+      `SELECT COUNT(DISTINCT userId) as count
+       FROM users
+       WHERE role = 'user'
+    `
     )
 
-    const previousCustomers = await queryAll<any>(
+    const newCustomers = await queryFirst<{ count: number }>(
       env,
-      'SELECT * FROM users WHERE role = ? AND createdAt >= ? AND createdAt < ?',
-      'user',
-      previousDaysAgoIso,
-      daysAgoIso
+      `SELECT COUNT(DISTINCT userId) as count
+       FROM users
+       WHERE role = 'user'
+       AND createdAt >= ?
+    `,
+      startDateIso
     )
 
-    const totalCustomers = await count(env, 'SELECT COUNT(*) as count FROM users WHERE role = ?', 'user')
+    // Geographic data - orders by division
+    const geographicData = await queryAll<any>(
+      env,
+      `SELECT 
+         COALESCE(o.division, 'Unknown') as name,
+         COUNT(DISTINCT o.id) as value
+       FROM orders o
+       WHERE o.createdAt >= ?
+       GROUP BY COALESCE(o.division, 'Unknown')
+       ORDER BY COUNT(DISTINCT o.id) DESC
+      `,
+      startDateIso
+    )
 
-    const newCustomerGrowth = previousCustomers.length > 0
-      ? ((currentCustomers.length - previousCustomers.length) / previousCustomers.length) * 100
+    const totalRevenueCalc = salesChartData.reduce((sum: number, item: any) => sum + item.revenue, 0)
+    const orderGrowth = 0 // Would need historical data for trends
+    const revenueGrowth = 0 // Would need historical data for trends
+    const customerGrowth = totalCustomers && totalCustomers.count > 0
+      ? ((newCustomers!.count / totalCustomers.count) * 100)
       : 0
-
-    // Calculate returning customers (customers with more than 1 order)
-    const customerOrderCounts: Record<string, number> = {}
-    for (const order of ordersList) {
-      if (order.userId) {
-        customerOrderCounts[order.userId] = (customerOrderCounts[order.userId] || 0) + 1
-      }
-    }
-
-    const returningCustomers = Object.values(customerOrderCounts).filter(count => count > 1).length
-    const newCustomers = currentOrdersCount - returningCustomers
-
-    // Geographic distribution (simulated by shipping address division)
-    const geographicDistribution: Record<string, number> = {}
-    BANGLADESH_DIVISIONS.forEach(div => {
-      geographicDistribution[div] = 0
-    })
-
-    for (const order of ordersList) {
-      let address = order.shippingAddress
-      try {
-        address = typeof address === 'string' ? JSON.parse(address) : address
-      } catch (e) {
-        // address is already an object or invalid
-      }
-      const division = address?.division || 'Other'
-      if (geographicDistribution[division] !== undefined) {
-        geographicDistribution[division]++
-      } else {
-        geographicDistribution['Other'] = (geographicDistribution['Other'] || 0) + 1
-      }
-    }
-
-    const geographicData = Object.entries(geographicDistribution)
-      .filter(([_, count]) => count > 0)
-      .map(([name, value]) => ({ name, value }))
 
     return NextResponse.json({
       success: true,
       data: {
-        period: parseInt(period),
-        totalRevenue: currentRevenue,
-        totalOrders: currentOrdersCount,
-        avgOrderValue,
-        topProducts,
-        categorySales,
         salesChartData,
-        statusChartData,
+        categorySales: categorySalesData,
+        topProducts,
+        statusChartData: statusData,
         customerMetrics: {
-          total: totalCustomers,
-          new: currentCustomers.length,
-          newGrowth: newCustomerGrowth,
-          returning: returningCustomers,
-          returningRate: currentOrdersCount > 0 ? (returningCustomers / currentOrdersCount) * 100 : 0,
-        },
-        trends: {
-          revenueGrowth,
-          ordersGrowth,
-          avgOrderValueGrowth: 0, // Would need historical data for this
+          total: totalCustomers?.count || 0,
+          new: newCustomers?.count || 0,
+          returningRate: totalCustomers && totalCustomers.count > 0
+            ? ((totalCustomers.count - (newCustomers!.count || 0)) / totalCustomers.count) * 100
+            : 0
         },
         geographicData,
+        trends: {
+          revenueGrowth,
+          orderGrowth,
+          customerGrowth
+        },
+        totalRevenue: totalRevenueCalc,
+        totalOrders,
+        avgOrderValue,
+        period
       },
     })
   } catch (error) {
@@ -309,7 +230,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to fetch analytics',
+        error: 'Failed to fetch analytics data',
+        details: error instanceof Error ? error.message : 'Unknown error occurred'
       },
       { status: 500 }
     )

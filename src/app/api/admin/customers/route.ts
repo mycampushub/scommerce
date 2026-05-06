@@ -18,44 +18,109 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search') || ''
     const status = searchParams.get('status') || ''
+    const page = parseInt(searchParams.get('page') || '1', 10)
+    const limit = parseInt(searchParams.get('limit') || '50', 10)
+    const offset = (page - 1) * limit
+    const sortBy = searchParams.get('sortBy') || 'createdAt'
+    const sortOrder = searchParams.get('sortOrder') || 'DESC'
 
+    // Validate sortBy to prevent SQL injection
+    const allowedSortFields = ['createdAt', 'name', 'email', 'orders']
+    const validSortBy = allowedSortFields.includes(sortBy) ? sortBy : 'createdAt'
+    const validSortOrder = sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC'
+
+    // Build WHERE clause for filters
+    const conditions: string[] = []
+    const params: unknown[] = []
+
+    // Apply search to SQL WHERE clause
+    if (search) {
+      conditions.push('(name LIKE ? OR email LIKE ?)')
+      params.push(`%${search}%`, `%${search}%`)
+    }
+
+    // Apply status filter to SQL WHERE clause
+    if (status === 'active') {
+      conditions.push("role = 'user'")
+    } else if (status === 'banned') {
+      conditions.push("role = 'banned'")
+    } else if (status === 'inactive') {
+      conditions.push("role = 'inactive'")
+    }
+
+    // Exclude admin users
+    conditions.push("role != 'admin'")
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
+
+    // Fetch customers with pagination and sorting
     let users = await queryAll<any>(
       env,
-      'SELECT * FROM users ORDER BY createdAt DESC'
+      `SELECT * FROM users ${whereClause} ORDER BY ${validSortBy} ${validSortOrder} LIMIT ? OFFSET ?`,
+      ...params,
+      limit,
+      offset
     )
 
-    if (search) {
-      users = users.filter(
-        (user) =>
-          user.name?.toLowerCase().includes(search.toLowerCase()) ||
-          user.email.toLowerCase().includes(search.toLowerCase())
+    // Fetch order counts for all customers in a single query (fixes N+1 query issue)
+    if (users.length > 0) {
+      const userIds = users.map((u: any) => u.id)
+      const placeholders = userIds.map(() => '?').join(',')
+
+      const orderCounts = await queryAll<any>(
+        env,
+        `SELECT userId, COUNT(*) as orderCount
+         FROM orders
+         WHERE userId IN (${placeholders})
+         GROUP BY userId`,
+        ...userIds
       )
+
+      // Create a map of userId -> orderCount
+      const orderCountMap = new Map<string, number>()
+      for (const oc of orderCounts) {
+        orderCountMap.set(oc.userId, oc.orderCount)
+      }
+
+      // Add order counts to customers
+      users = users.map((user: any) => ({
+        ...user,
+        _count: { orders: orderCountMap.get(user.id) || 0 },
+        emailVerified: numberToBool(user.emailVerified as number)
+      }))
+    } else {
+      // No customers, just convert booleans
+      users = users.map((user: any) => ({
+        ...user,
+        _count: { orders: 0 },
+        emailVerified: numberToBool(user.emailVerified as number)
+      }))
     }
 
-    if (status === 'active') {
-      users = users.filter((user) => user.role === 'user')
-    } else if (status === 'banned') {
-      users = users.filter((user) => user.role === 'banned')
-    }
-
-    const customers = users.filter((user) => user.role !== 'admin')
-
-    // Add order counts and convert booleans
-    const customersWithCounts = await Promise.all(
-      customers.map(async (customer) => {
-        const orderCount = await count(env, 'SELECT COUNT(*) as count FROM orders WHERE userId = ?', customer.id)
-        return {
-          ...customer,
-          _count: { orders: orderCount },
-          emailVerified: numberToBool(customer.emailVerified as number)
-        }
-      })
+    // Get total count for pagination
+    const totalUsers = await count(
+      env,
+      `SELECT COUNT(*) FROM users ${whereClause}`,
+      ...params
     )
+
+    const totalPages = Math.ceil(totalUsers / limit)
 
     return NextResponse.json({
       success: true,
-      data: customersWithCounts,
-      total: customersWithCounts.length,
+      data: users,
+      pagination: {
+        page,
+        limit,
+        total: totalUsers,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
+      sort: {
+        sortBy: validSortBy,
+        sortOrder: validSortOrder,
+      },
     })
   } catch (error) {
     console.error('Error fetching customers:', error)
@@ -63,6 +128,7 @@ export async function GET(request: NextRequest) {
       {
         success: false,
         error: 'Failed to fetch customers',
+        details: error instanceof Error ? error.message : 'Unknown error occurred'
       },
       { status: 500 }
     )
@@ -150,6 +216,7 @@ export async function POST(request: NextRequest) {
       {
         success: false,
         error: 'Failed to create customer',
+        details: error instanceof Error ? error.message : 'Unknown error occurred'
       },
       { status: 500 }
     )

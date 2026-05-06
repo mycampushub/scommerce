@@ -436,7 +436,7 @@ export default function InventoryPage() {
                           <div className="flex items-center gap-2 mb-1">
                             <p className="font-semibold text-sm text-gray-900">{alert.product.name}</p>
                             {!alert.isRead && (
-                              <Badge variant="secondary" className="bg-blue-100 text-blue-700 text-xs">New</Badge>
+                              <Badge variant="secondary" className="bg-violet-100 text-violet-700 text-xs">New</Badge>
                             )}
                           </div>
                           <p className="text-xs text-gray-600 mb-1">

@@ -1,8 +1,18 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -52,6 +62,7 @@ import {
   Unlock,
   RefreshCw,
   User,
+  Loader2,
 } from 'lucide-react'
 
 interface Staff {
@@ -78,6 +89,8 @@ export default function StaffPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null)
+  const [confirmAction, setConfirmAction] = useState<{ type: 'delete' | null; staff: Staff | null; isOpen: boolean }>({ type: null, staff: null, isOpen: false })
+  const [isConfirming, setIsConfirming] = useState(false)
 
   // Form state
   const [addFormData, setAddFormData] = useState({
@@ -229,10 +242,14 @@ export default function StaffPage() {
     }
   }
 
-  const handleDeleteStaff = async (member: Staff) => {
-    if (!confirm(`Are you sure you want to delete ${member.name}? This action cannot be undone.`)) {
-      return
-    }
+  const confirmDeleteStaff = (member: Staff) => {
+    setConfirmAction({ type: 'delete', staff: member, isOpen: true })
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!confirmAction.staff || confirmAction.type !== 'delete') return
+
+    const member = confirmAction.staff
 
     if (member.role === 'admin') {
       toast({
@@ -240,10 +257,12 @@ export default function StaffPage() {
         description: 'Cannot delete admin users',
         variant: 'destructive',
       })
+      setConfirmAction({ type: null, staff: null, isOpen: false })
       return
     }
 
     try {
+      setIsConfirming(true)
       const response = await fetch(`/api/admin/staff/${member.id}`, {
         method: 'DELETE',
       })
@@ -266,6 +285,9 @@ export default function StaffPage() {
         description: err.message || 'Failed to delete staff member',
         variant: 'destructive',
       })
+    } finally {
+      setIsConfirming(false)
+      setConfirmAction({ type: null, staff: null, isOpen: false })
     }
   }
 
@@ -305,11 +327,11 @@ export default function StaffPage() {
           <p className="text-sm text-gray-500 mt-1">Manage admin and staff accounts with role-based access</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={fetchStaff} disabled={loading}>
+          <Button variant="outline" onClick={fetchStaff} disabled={loading} aria-label="Refresh staff list">
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <Button className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700">
+          <Button className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700" aria-label="Add new staff member">
             <Plus className="h-4 w-4 mr-2" />
             Add Staff
           </Button>
@@ -347,10 +369,10 @@ export default function StaffPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-gray-500">Staff</p>
-                <p className="text-2xl font-bold mt-1 text-indigo-600">{stats.staff}</p>
+                <p className="text-2xl font-bold mt-1 text-violet-600">{stats.staff}</p>
               </div>
-              <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
-                <User className="h-4 w-4 text-indigo-600" />
+              <div className="h-8 w-8 rounded-full bg-violet-100 flex items-center justify-center">
+                <User className="h-4 w-4 text-violet-600" />
               </div>
             </div>
           </CardContent>
@@ -438,7 +460,7 @@ export default function StaffPage() {
                     <TableCell>
                       <Badge
                         variant={member.role === 'admin' ? 'default' : 'secondary'}
-                        className={member.role === 'admin' ? 'bg-violet-100 text-violet-700' : 'bg-blue-100 text-blue-700'}
+                        className={member.role === 'admin' ? 'bg-violet-100 text-violet-700' : 'bg-violet-100 text-violet-700'}
                       >
                         {member.role === 'admin' ? (
                           <>
@@ -486,7 +508,7 @@ export default function StaffPage() {
                             Edit
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() => handleDeleteStaff(member)}
+                            onClick={() => confirmDeleteStaff(member)}
                             className="text-red-600"
                             disabled={member.role === 'admin'}
                           >
@@ -712,6 +734,35 @@ export default function StaffPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={confirmAction.isOpen} onOpenChange={(open) => setConfirmAction({ type: null, staff: null, isOpen: open })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Staff Member</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {confirmAction.staff?.name}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isConfirming}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={isConfirming || confirmAction.staff?.role === 'admin'}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isConfirming ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

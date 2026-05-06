@@ -45,20 +45,27 @@ const COLORS = ['#8b5cf6', '#6366f1', '#a855f7', '#d946ef', '#ec4899', '#f43f5e'
 
 export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [analytics, setAnalytics] = useState<any>(null)
   const [period, setPeriod] = useState('30')
 
   const fetchAnalytics = async () => {
     try {
       setLoading(true)
+      setError(null)
       const response = await fetch(`/api/admin/analytics?period=${period}`)
       const result = await response.json() as any
 
       if (result.success) {
         setAnalytics(result.data)
+      } else {
+        throw new Error(result.error || 'Failed to fetch analytics')
       }
-    } catch (err) {
+    } catch (err: any) {
+      const errorMessage = err.message || 'Failed to fetch analytics'
+      setError(errorMessage)
       console.error('Error fetching analytics:', err)
+      toast.error(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -154,6 +161,24 @@ export default function AnalyticsPage() {
     )
   }
 
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[600px]">
+        <div className="text-center">
+          <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+            <span className="text-2xl font-bold text-red-600">!</span>
+          </div>
+          <p className="text-red-600 font-medium mb-2">Error loading analytics</p>
+          <p className="text-gray-500 mb-4">{error}</p>
+          <Button onClick={fetchAnalytics} className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700">
+            <Loader2 className="h-4 w-4 mr-2" />
+            Try Again
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -174,15 +199,15 @@ export default function AnalyticsPage() {
               <SelectItem value="365">Last year</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" onClick={() => handleExport('json')} disabled={!analytics}>
+          <Button variant="outline" onClick={() => handleExport('json')} disabled={!analytics} aria-label="Export analytics to JSON">
             <Download className="h-4 w-4 mr-2" />
             Export JSON
           </Button>
-          <Button variant="outline" onClick={() => handleExport('csv')} disabled={!analytics}>
+          <Button variant="outline" onClick={() => handleExport('csv')} disabled={!analytics} aria-label="Export analytics to CSV">
             <Download className="h-4 w-4 mr-2" />
             Export CSV
           </Button>
-          <Button variant="outline" onClick={handlePrint} disabled={!analytics}>
+          <Button variant="outline" onClick={handlePrint} disabled={!analytics} aria-label="Print analytics report">
             Print Report
           </Button>
         </div>
@@ -198,13 +223,17 @@ export default function AnalyticsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{formatCurrency(analytics?.totalRevenue || 0)}</div>
+            <div className="text-2xl font-bold text-gray-900">{formatCurrency(analytics?.totalRevenue ?? 0)}</div>
             <div className="flex items-center gap-1 mt-2">
-              {analytics?.trends?.revenueGrowth >= 0 ? (
-                <><ArrowUpRight className="h-4 w-4 text-green-500" /><span className="text-sm font-medium text-green-600">+{analytics?.trends?.revenueGrowth.toFixed(1)}%</span></>
-              ) : (
-                <><ArrowDownRight className="h-4 w-4 text-red-500" /><span className="text-sm font-medium text-red-600">{analytics?.trends?.revenueGrowth.toFixed(1)}%</span></>
-              )}
+              {(() => {
+                const revenueGrowth = analytics?.trends?.revenueGrowth ?? 0;
+                const revenueGrowthStr = typeof revenueGrowth === 'number' ? revenueGrowth.toFixed(1) : '0.0';
+                return revenueGrowth >= 0 ? (
+                  <><ArrowUpRight className="h-4 w-4 text-green-500" /><span className="text-sm font-medium text-green-600">+{revenueGrowthStr}%</span></>
+                ) : (
+                  <><ArrowDownRight className="h-4 w-4 text-red-500" /><span className="text-sm font-medium text-red-600">{revenueGrowthStr}%</span></>
+                );
+              })()}
               <span className="text-xs text-gray-500 ml-1">vs previous period</span>
             </div>
           </CardContent>
@@ -220,11 +249,15 @@ export default function AnalyticsPage() {
           <CardContent>
             <div className="text-2xl font-bold text-gray-900">{analytics?.totalOrders || 0}</div>
             <div className="flex items-center gap-1 mt-2">
-              {analytics?.trends?.ordersGrowth >= 0 ? (
-                <><ArrowUpRight className="h-4 w-4 text-green-500" /><span className="text-sm font-medium text-green-600">+{analytics?.trends?.ordersGrowth.toFixed(1)}%</span></>
-              ) : (
-                <><ArrowDownRight className="h-4 w-4 text-red-500" /><span className="text-sm font-medium text-red-600">{analytics?.trends?.ordersGrowth.toFixed(1)}%</span></>
-              )}
+              {(() => {
+                const ordersGrowth = analytics?.trends?.ordersGrowth ?? 0;
+                const ordersGrowthStr = typeof ordersGrowth === 'number' ? ordersGrowth.toFixed(1) : '0.0';
+                return ordersGrowth >= 0 ? (
+                  <><ArrowUpRight className="h-4 w-4 text-green-500" /><span className="text-sm font-medium text-green-600">+{ordersGrowthStr}%</span></>
+                ) : (
+                  <><ArrowDownRight className="h-4 w-4 text-red-500" /><span className="text-sm font-medium text-red-600">{ordersGrowthStr}%</span></>
+                );
+              })()}
               <span className="text-xs text-gray-500 ml-1">vs previous period</span>
             </div>
           </CardContent>
@@ -255,11 +288,15 @@ export default function AnalyticsPage() {
           <CardContent>
             <div className="text-2xl font-bold text-gray-900">{analytics?.customerMetrics?.new || 0}</div>
             <div className="flex items-center gap-1 mt-2">
-              {analytics?.customerMetrics?.newGrowth >= 0 ? (
-                <><ArrowUpRight className="h-4 w-4 text-green-500" /><span className="text-sm font-medium text-green-600">+{analytics?.customerMetrics?.newGrowth.toFixed(1)}%</span></>
-              ) : (
-                <><ArrowDownRight className="h-4 w-4 text-red-500" /><span className="text-sm font-medium text-red-600">{analytics?.customerMetrics?.newGrowth.toFixed(1)}%</span></>
-              )}
+              {(() => {
+                const newGrowth = analytics?.customerMetrics?.newGrowth ?? 0;
+                const newGrowthStr = typeof newGrowth === 'number' ? newGrowth.toFixed(1) : '0.0';
+                return newGrowth >= 0 ? (
+                  <><ArrowUpRight className="h-4 w-4 text-green-500" /><span className="text-sm font-medium text-green-600">+{newGrowthStr}%</span></>
+                ) : (
+                  <><ArrowDownRight className="h-4 w-4 text-red-500" /><span className="text-sm font-medium text-red-600">{newGrowthStr}%</span></>
+                );
+              })()}
               <span className="text-xs text-gray-500 ml-1">vs previous period</span>
             </div>
           </CardContent>
@@ -368,7 +405,7 @@ export default function AnalyticsPage() {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      label={({ name, percent }) => `${name} ${typeof percent === 'number' ? (percent * 100).toFixed(0) : '0'}%`}
                       outerRadius={100}
                       fill="#8884d8"
                       dataKey="value"
@@ -466,7 +503,7 @@ export default function AnalyticsPage() {
                       </div>
                       <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-gradient-to-r from-violet-500 to-indigo-500 rounded-full transition-all duration-500"
+                          className="h-full bg-gradient-to-r from-violet-500 to-purple-500 rounded-full transition-all duration-500"
                           style={{ width: `${percentage}%` }}
                         />
                       </div>
@@ -499,7 +536,13 @@ export default function AnalyticsPage() {
               <p className="text-sm text-gray-600 mt-2">New Customers</p>
             </div>
             <div className="text-center p-6 bg-gray-50 rounded-lg">
-              <div className="text-3xl font-bold text-green-600">{analytics?.customerMetrics?.returningRate.toFixed(1)}%</div>
+              <div className="text-3xl font-bold text-green-600">
+                {(() => {
+                  const returningRate = analytics?.customerMetrics?.returningRate ?? 0;
+                  const returningRateStr = typeof returningRate === 'number' ? returningRate.toFixed(1) : '0.0';
+                  return `${returningRateStr}%`;
+                })()}
+              </div>
               <p className="text-sm text-gray-600 mt-2">Returning Rate</p>
             </div>
           </div>
