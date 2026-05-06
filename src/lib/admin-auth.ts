@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyToken, extractTokenFromHeader } from './auth'
+import { verifyToken, extractTokenFromHeader } from '@/lib/auth'
 import { getEnv } from '@/lib/cloudflare'
 import { UserRepository } from '@/db/user.repository'
 
@@ -21,16 +21,21 @@ export async function verifyAdminAuth(
   allowedRoles: string[] = ['admin']
 ): Promise<AdminUser | NextResponse> {
   try {
+    console.log('[verifyAdminAuth] Checking admin auth, allowedRoles:', allowedRoles);
+
     // First check Authorization header (for API calls)
     const authHeader = request.headers.get('authorization')
     let token = extractTokenFromHeader(authHeader)
+    console.log('[verifyAdminAuth] Token from auth header:', !!token);
 
     // If no Authorization header, check session cookie
     if (!token) {
       token = request.cookies.get('session')?.value ?? null
+      console.log('[verifyAdminAuth] Token from session cookie:', !!token);
     }
 
     if (!token) {
+      console.log('[verifyAdminAuth] No token found');
       return NextResponse.json(
         { success: false, error: 'Authentication required' },
         { status: 401 }
@@ -39,17 +44,21 @@ export async function verifyAdminAuth(
 
     const payload = await verifyToken(token)
     if (!payload) {
+      console.log('[verifyAdminAuth] Token verification failed');
       return NextResponse.json(
         { success: false, error: 'Invalid or expired token' },
         { status: 401 }
       )
     }
 
+    console.log('[verifyAdminAuth] Token verified, userId:', payload.userId, 'role:', payload.role);
+
     // Verify user exists and has valid role
     const env = getEnv()
     const user = await UserRepository.findById(env, payload.userId)
 
     if (!user) {
+      console.log('[verifyAdminAuth] User not found:', payload.userId);
       return NextResponse.json(
         { success: false, error: 'User not found' },
         { status: 401 }
@@ -58,6 +67,7 @@ export async function verifyAdminAuth(
 
     // Check if user has required role
     if (!allowedRoles.includes(user.role)) {
+      console.log('[verifyAdminAuth] User role not allowed:', user.role, 'allowed:', allowedRoles);
       return NextResponse.json(
         {
           success: false,
@@ -67,6 +77,8 @@ export async function verifyAdminAuth(
       )
     }
 
+    console.log('[verifyAdminAuth] Admin auth verified successfully:', user.id, user.role);
+
     return {
       id: user.id,
       email: user.email,
@@ -74,7 +86,7 @@ export async function verifyAdminAuth(
       name: user.name || undefined,
     }
   } catch (error) {
-    console.error('Admin auth verification error:', error)
+    console.error('[verifyAdminAuth] Admin auth verification error:', error)
     return NextResponse.json(
       { success: false, error: 'Authentication failed' },
       { status: 401 }

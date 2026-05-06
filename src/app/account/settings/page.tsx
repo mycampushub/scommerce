@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { AlertCircle, CheckCircle2, Eye, EyeOff, Lock, Mail, User as UserIcon, Loader2, LogOut } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Eye, EyeOff, Lock, Mail, User as UserIcon, Loader2, LogOut, LayoutDashboard } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { toast } from 'sonner'
 import { Suspense } from 'react'
@@ -150,6 +150,19 @@ export default function AccountSettingsPage() {
                       <p className="text-xs text-gray-500">{user.email}</p>
                     </div>
                   </div>
+
+                  {/* Admin Dashboard Button - Only for admin users */}
+                  {user.role === 'admin' && (
+                    <Button
+                      variant="default"
+                      className="w-full mt-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
+                      onClick={() => router.push('/admin')}
+                    >
+                      <LayoutDashboard className="w-4 h-4 mr-2" />
+                      Admin Dashboard
+                    </Button>
+                  )}
+
                   <Button
                     variant="outline"
                     className="w-full mt-2"

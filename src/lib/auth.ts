@@ -34,6 +34,7 @@ function getJWTSecret(): Uint8Array {
     // Return the secret anyway but log error
   }
 
+  console.log('[auth.ts] JWT_SECRET configured, length:', secret.length, 'is production:', process.env.NODE_ENV === 'production');
   return new TextEncoder().encode(secret);
 }
 
@@ -68,6 +69,7 @@ export async function generateToken(payload: JWTPayload): Promise<string> {
     .setExpirationTime(getJWTExpiresIn())
     .sign(JWT_SECRET);
 
+  console.log('[auth.ts] Token generated successfully for user:', payload.userId, payload.email, 'role:', payload.role);
   return token;
 }
 
@@ -78,9 +80,10 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
   try {
     const JWT_SECRET = getJWTSecret();
     const { payload } = await jwtVerify(token, JWT_SECRET);
+    console.log('[auth.ts] Token verified successfully, userId:', (payload as any).userId, 'email:', (payload as any).email);
     return payload as JWTPayload;
   } catch (error) {
-    console.error('Token verification failed:', error);
+    console.error('[auth.ts] Token verification failed:', error);
     return null;
   }
 }

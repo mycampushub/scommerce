@@ -103,12 +103,14 @@ export async function POST(request: NextRequest) {
       data: { user: { id: user.id, email: user.email, name: user.name, role: user.role }, token },
     });
 
+    // Set session cookie with settings compatible with Cloudflare Workers
     response.cookies.set('session', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
-      maxAge: 60 * 60 * 24 * 7,
+      sameSite: 'lax', // Changed from 'strict' to 'lax' for Cloudflare Workers compatibility
+      maxAge: 60 * 60 * 24 * 7, // 7 days
       path: '/',
+      domain: process.env.NODE_ENV === 'production' ? undefined : undefined, // Let browser handle domain automatically
     });
 
     return response;

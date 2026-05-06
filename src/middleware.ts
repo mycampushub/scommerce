@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { verifyToken } from '@/lib/jwt'
+import { verifyToken } from '@/lib/auth'
 
 // Paths that require authentication
 const protectedPaths = ['/admin', '/admin/']
@@ -85,6 +85,7 @@ export async function middleware(request: NextRequest) {
   if (isApiRoute && isSensitiveRoute) {
     // Check authentication for sensitive routes
     if (!sessionToken) {
+      console.log('[middleware] No session token for sensitive API route:', pathname);
       const response = new Response(
         JSON.stringify({ error: 'Authentication required' }),
         {
@@ -105,8 +106,10 @@ export async function middleware(request: NextRequest) {
     }
 
     // Verify token
+    console.log('[middleware] Verifying token for sensitive API route:', pathname);
     const payload = await verifyToken(sessionToken)
     if (!payload) {
+      console.log('[middleware] Token verification failed for sensitive API route:', pathname);
       const response = new Response(
         JSON.stringify({ error: 'Invalid session' }),
         {
@@ -125,6 +128,7 @@ export async function middleware(request: NextRequest) {
       }
       return response
     }
+    console.log('[middleware] Token verified for sensitive API route:', pathname, 'userId:', payload.userId);
   }
 
   // If path is protected and no session, redirect to login
@@ -150,10 +154,12 @@ export async function middleware(request: NextRequest) {
 
   // If path is protected and has session, verify the token
   if (isProtectedPath && sessionToken) {
+    console.log('[middleware] Verifying session for protected path:', pathname);
     const payload = await verifyToken(sessionToken)
 
     // If token is invalid or expired, redirect to login
     if (!payload) {
+      console.log('[middleware] Token verification failed for protected path:', pathname);
       // Don't redirect if already on login page
       if (pathname === '/login' || pathname === '/login/') {
         return createSecureResponse(NextResponse.next())
@@ -165,11 +171,16 @@ export async function middleware(request: NextRequest) {
       return createSecureResponse(NextResponse.redirect(loginUrl))
     }
 
+    console.log('[middleware] Token verified for protected path:', pathname, 'userId:', payload.userId, 'role:', payload.role);
+
     // Check if user has admin role for admin paths
     if (pathname.startsWith('/admin') && payload.role !== 'admin') {
+      console.log('[middleware] Access denied to admin path - role:', payload.role);
       const homeUrl = new URL('/', request.url)
       return createSecureResponse(NextResponse.redirect(homeUrl))
     }
+
+    console.log('[middleware] Access granted to protected path:', pathname);
   }
 
   // If user is on login page and has a valid session, redirect appropriately
