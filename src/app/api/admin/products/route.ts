@@ -75,13 +75,17 @@ export async function GET(request: NextRequest) {
       offset
     )
 
-    // Parse images JSON field
+    // Parse images JSON field and alias basePrice to price for frontend compatibility
     const productsWithImages = products.map((p: any) => ({
       ...p,
       images: parseJSON<string[]>(p.images) || [],
       isActive: numberToBool(p.isActive),
       isFeatured: numberToBool(p.isFeatured),
       hasVariants: numberToBool(p.hasVariants),
+      // Alias basePrice to price for frontend compatibility
+      price: p.basePrice || 0,
+      // Alias price field if it exists (for compatibility)
+      comparePrice: p.comparePrice || null,
     }))
 
     // Get total count for pagination

@@ -440,7 +440,7 @@ export default function CustomersPage() {
         customer.phone || '',
         customer.address || '',
         customer.orders || 0,
-        customer.totalSpent.toFixed(2),
+        customer.totalSpent ? (customer.totalSpent || 0).toFixed(2) : 0,
         customer.status,
         customer.isVIP ? 'Yes' : 'No',
         formatDate(customer.joined),
@@ -679,7 +679,7 @@ export default function CustomersPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="font-semibold text-gray-900">${customer.totalSpent.toFixed(2)}</div>
+                        <div className="font-semibold text-gray-900">${(customer.totalSpent || 0).toFixed(2)}</div>
                       </TableCell>
                       <TableCell>
                         <p className="text-sm text-gray-900">{formatDate(customer.joined)}</p>
@@ -944,7 +944,7 @@ export default function CustomersPage() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-500">Total Spent</p>
-                    <p className="text-sm font-medium text-gray-900">${selectedCustomer.totalSpent.toFixed(2)}</p>
+                    <p className="text-sm font-medium text-gray-900">${(selectedCustomer.totalSpent || 0).toFixed(2)}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-500">Joined Date</p>
