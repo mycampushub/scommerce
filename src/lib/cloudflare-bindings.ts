@@ -5,6 +5,9 @@
 
 let cachedBindings: any = null;
 
+// This is the same Symbol used by @opennextjs/cloudflare
+const cloudflareContextSymbol = Symbol.for('__cloudflare-context__');
+
 /**
  * Get Cloudflare bindings with multiple fallback strategies
  */
@@ -16,20 +19,47 @@ export function getCloudflareBindings(): any {
 
   let bindings: any = null;
 
-  // Strategy 1: Try global Cloudflare workers runtime
+  // Strategy 1: Try OpenNext.js Symbol-based approach (most reliable)
   if (typeof globalThis !== 'undefined') {
     try {
-      // Some Cloudflare runtimes expose bindings through globalThis
-      if ((globalThis as any).env && ((globalThis as any).env['DB'] || (globalThis as any).env['KV'] || (globalThis as any).env['BUCKET'])) {
-        console.log('[cloudflare-bindings] Found bindings via globalThis.env');
-        bindings = (globalThis as any).env;
+      const cloudflareContext = (globalThis as any)[cloudflareContextSymbol];
+      
+      if (cloudflareContext && cloudflareContext.env) {
+        const env = cloudflareContext.env;
+        if (env['DB'] || env['KV'] || env['BUCKET']) {
+          console.log('[cloudflare-bindings] Found bindings via Symbol.for("__cloudflare-context__")');
+          bindings = env;
+        }
       }
     } catch (error) {
-      console.debug('[cloudflare-bindings] globalThis.env not available:', error);
+      console.debug('[cloudflare-bindings] Symbol access error:', error);
     }
   }
 
-  // Strategy 2: Try process.env (for some deployment scenarios)
+  // Strategy 2: Try global Cloudflare workers runtime
+  if (!bindings && typeof globalThis !== 'undefined') {
+    try {
+      // In OpenNext.js on Cloudflare, bindings are often attached to globalThis
+      const globalEnv = (globalThis as any).env;
+      if (globalEnv && (globalEnv['DB'] || globalEnv['KV'] || globalEnv['BUCKET'])) {
+        console.log('[cloudflare-bindings] Found bindings via globalThis.env');
+        bindings = globalEnv;
+      }
+
+      // Try alternative paths on globalThis
+      if (!bindings && (globalThis as any).cloudflare && (globalThis as any).cloudflare.env) {
+        const cfEnv = (globalThis as any).cloudflare.env;
+        if (cfEnv['DB'] || cfEnv['KV'] || cfEnv['BUCKET']) {
+          console.log('[cloudflare-bindings] Found bindings via globalThis.cloudflare.env');
+          bindings = cfEnv;
+        }
+      }
+    } catch (error) {
+      console.debug('[cloudflare-bindings] globalThis access error:', error);
+    }
+  }
+
+  // Strategy 3: Try process.env (for some deployment scenarios)
   if (!bindings && typeof process !== 'undefined' && process.env) {
     // Check if bindings are passed through environment
     const hasDB = process.env.CLOUDFLARE_D1_DATABASE;

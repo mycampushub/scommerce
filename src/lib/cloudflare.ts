@@ -5,6 +5,7 @@ import {
   isCloudflareEnv as isBindingsCloudflareEnv,
 } from './cloudflare-bindings';
 import { getEnvFromRequest } from './get-request-env';
+import { getOpenNextBindings } from './opennext-bindings';
 
 /**
  * Get D1 database from Cloudflare context
@@ -47,7 +48,7 @@ export function getDB(request?: Request): any | null {
  */
 export function getEnv(request?: Request): any | null {
   try {
-    // First, try the request-scoped bindings (most reliable for API routes)
+    // Strategy 1: Try the request-scoped bindings (most reliable for API routes)
     if (request) {
       const requestEnv = getEnvFromRequest(request);
       if (requestEnv && (requestEnv['DB'] || requestEnv['KV'] || requestEnv['BUCKET'])) {
@@ -60,7 +61,18 @@ export function getEnv(request?: Request): any | null {
       }
     }
 
-    // Second, try the robust Cloudflare bindings access
+    // Strategy 2: Try OpenNext.js-specific bindings
+    const openNextEnv = getOpenNextBindings();
+    if (openNextEnv && (openNextEnv['DB'] || openNextEnv['KV'] || openNextEnv['BUCKET'])) {
+      console.log('[getEnv] Using Cloudflare bindings from OpenNext.js', {
+        hasDB: !!openNextEnv['DB'],
+        hasKV: !!openNextEnv['KV'],
+        hasBUCKET: !!openNextEnv['BUCKET'],
+      });
+      return openNextEnv;
+    }
+
+    // Strategy 3: Try the robust Cloudflare bindings access
     const env = getCloudflareBindingsEnv();
     if (env && (env['DB'] || env['KV'] || env['BUCKET'])) {
       console.log('[getEnv] Using Cloudflare bindings (global)', {
