@@ -186,6 +186,14 @@ export async function POST(request: NextRequest) {
 
     const validatedData = validation.data
 
+    // Extract city, district, division from address (they're in the address object)
+    const shippingAddr = typeof validatedData.shippingAddress === 'string'
+      ? null
+      : validatedData.shippingAddress;
+    const billingAddr = typeof validatedData.billingAddress === 'string'
+      ? null
+      : validatedData.billingAddress;
+
     const orderNumber = generateOrderNumber()
 
     const order = await OrderRepository.create(env, {
@@ -201,9 +209,9 @@ export async function POST(request: NextRequest) {
             ? validatedData.billingAddress
             : JSON.stringify(validatedData.billingAddress))
         : undefined,
-      city: body.city,
-      district: body.district,
-      division: body.division,
+      city: shippingAddr?.city,
+      district: shippingAddr?.district,
+      division: shippingAddr?.division,
       subtotal: validatedData.subtotal,
       shipping: validatedData.shipping,
       tax: validatedData.tax,

@@ -48,6 +48,8 @@ export const addressSchema = z.object({
   addressLine2: z.string().optional(),
   city: z.string().min(1, 'City is required'),
   state: z.string().min(1, 'State is required'),
+  district: z.string().optional(),
+  division: z.string().optional(),
   zipCode: z.string().min(1, 'Zip code is required'),
   country: z.string().min(1, 'Country is required'),
   phone: z.string().min(10, 'Phone number must be at least 10 digits'),

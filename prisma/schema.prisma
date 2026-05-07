@@ -36,6 +36,8 @@ model User {
   productReviews  ProductReview[]
   posts           Post[]
   adminLogs       AdminLog[]
+
+  @@map("users")
 }
 
 model Address {
@@ -56,6 +58,7 @@ model Address {
 
   @@index([userId])
   @@index([isDefault])
+  @@map("addresses")
 }
 
 model Category {
@@ -71,6 +74,7 @@ model Category {
 
   @@index([slug])
   @@index([isActive])
+  @@map("categories")
 }
 
 model Product {
@@ -110,6 +114,7 @@ model Product {
   @@index([isActive, createdAt(sort: Desc)])
   @@index([slug])
   @@index([isActive, isFeatured])
+  @@map("products")
 }
 
 model ProductVariant {
@@ -140,6 +145,7 @@ model ProductVariant {
   @@index([sku])
   @@index([productId, isActive])
   @@index([productId, size, color])
+  @@map("product_variants")
 }
 
 model ProductReview {
@@ -162,6 +168,7 @@ model ProductReview {
   @@index([productId, rating(sort: Desc)])
   @@index([userId])
   @@index([isApproved, createdAt(sort: Desc)])
+  @@map("product_reviews")
 }
 
 model WishlistItem {
@@ -173,6 +180,7 @@ model WishlistItem {
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([userId, productId])
+  @@map("wishlist_items")
 }
 
 model Order {
@@ -220,6 +228,7 @@ model Order {
   @@index([status, createdAt(sort: Desc)])
   @@index([customerEmail, status])
   @@index([deletedAt])
+  @@map("orders")
 }
 
 model OrderItem {
@@ -243,6 +252,7 @@ model OrderItem {
   @@index([orderId])
   @@index([productId])
   @@index([variantId])
+  @@map("order_items")
 }
 
 model CartItem {
@@ -261,6 +271,7 @@ model CartItem {
   @@index([userId])
   @@index([userId, productId])
   @@index([variantId])
+  @@map("cart_items")
 }
 
 model AdminLog {
@@ -280,6 +291,7 @@ model AdminLog {
   @@index([action, createdAt(sort: Desc)])
   @@index([createdAt(sort: Desc)])
   @@index([entity, entityId])
+  @@map("admin_logs")
 }
 
 model InventoryAlert {
@@ -298,6 +310,7 @@ model InventoryAlert {
   @@index([variantId])
   @@index([productId])
   @@index([isRead, isResolved])
+  @@map("inventory_alerts")
 }
 
 model Post {
@@ -311,6 +324,7 @@ model Post {
   user      User     @relation(fields: [authorId], references: [id])
 
   @@index([authorId])
+  @@map("posts")
 }
 
 model Banner {

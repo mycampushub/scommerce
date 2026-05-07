@@ -201,9 +201,9 @@ export default function AnalyticsPage() {
             <div className="text-2xl font-bold text-gray-900">{formatCurrency(analytics?.totalRevenue || 0)}</div>
             <div className="flex items-center gap-1 mt-2">
               {analytics?.trends?.revenueGrowth >= 0 ? (
-                <><ArrowUpRight className="h-4 w-4 text-green-500" /><span className="text-sm font-medium text-green-600">+{analytics?.trends?.revenueGrowth.toFixed(1)}%</span></>
+                <><ArrowUpRight className="h-4 w-4 text-green-500" /><span className="text-sm font-medium text-green-600">+{(analytics?.trends?.revenueGrowth || 0).toFixed(1)}%</span></>
               ) : (
-                <><ArrowDownRight className="h-4 w-4 text-red-500" /><span className="text-sm font-medium text-red-600">{analytics?.trends?.revenueGrowth.toFixed(1)}%</span></>
+                <><ArrowDownRight className="h-4 w-4 text-red-500" /><span className="text-sm font-medium text-red-600">{(analytics?.trends?.revenueGrowth || 0).toFixed(1)}%</span></>
               )}
               <span className="text-xs text-gray-500 ml-1">vs previous period</span>
             </div>
@@ -221,9 +221,9 @@ export default function AnalyticsPage() {
             <div className="text-2xl font-bold text-gray-900">{analytics?.totalOrders || 0}</div>
             <div className="flex items-center gap-1 mt-2">
               {analytics?.trends?.ordersGrowth >= 0 ? (
-                <><ArrowUpRight className="h-4 w-4 text-green-500" /><span className="text-sm font-medium text-green-600">+{analytics?.trends?.ordersGrowth.toFixed(1)}%</span></>
+                <><ArrowUpRight className="h-4 w-4 text-green-500" /><span className="text-sm font-medium text-green-600">+{(analytics?.trends?.ordersGrowth || 0).toFixed(1)}%</span></>
               ) : (
-                <><ArrowDownRight className="h-4 w-4 text-red-500" /><span className="text-sm font-medium text-red-600">{analytics?.trends?.ordersGrowth.toFixed(1)}%</span></>
+                <><ArrowDownRight className="h-4 w-4 text-red-500" /><span className="text-sm font-medium text-red-600">{(analytics?.trends?.ordersGrowth || 0).toFixed(1)}%</span></>
               )}
               <span className="text-xs text-gray-500 ml-1">vs previous period</span>
             </div>
@@ -256,9 +256,9 @@ export default function AnalyticsPage() {
             <div className="text-2xl font-bold text-gray-900">{analytics?.customerMetrics?.new || 0}</div>
             <div className="flex items-center gap-1 mt-2">
               {analytics?.customerMetrics?.newGrowth >= 0 ? (
-                <><ArrowUpRight className="h-4 w-4 text-green-500" /><span className="text-sm font-medium text-green-600">+{analytics?.customerMetrics?.newGrowth.toFixed(1)}%</span></>
+                <><ArrowUpRight className="h-4 w-4 text-green-500" /><span className="text-sm font-medium text-green-600">+{(analytics?.customerMetrics?.newGrowth || 0).toFixed(1)}%</span></>
               ) : (
-                <><ArrowDownRight className="h-4 w-4 text-red-500" /><span className="text-sm font-medium text-red-600">{analytics?.customerMetrics?.newGrowth.toFixed(1)}%</span></>
+                <><ArrowDownRight className="h-4 w-4 text-red-500" /><span className="text-sm font-medium text-red-600">{(analytics?.customerMetrics?.newGrowth || 0).toFixed(1)}%</span></>
               )}
               <span className="text-xs text-gray-500 ml-1">vs previous period</span>
             </div>
@@ -368,7 +368,7 @@ export default function AnalyticsPage() {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
                       outerRadius={100}
                       fill="#8884d8"
                       dataKey="value"
@@ -499,7 +499,7 @@ export default function AnalyticsPage() {
               <p className="text-sm text-gray-600 mt-2">New Customers</p>
             </div>
             <div className="text-center p-6 bg-gray-50 rounded-lg">
-              <div className="text-3xl font-bold text-green-600">{analytics?.customerMetrics?.returningRate.toFixed(1)}%</div>
+              <div className="text-3xl font-bold text-green-600">{(analytics?.customerMetrics?.returningRate || 0).toFixed(1)}%</div>
               <p className="text-sm text-gray-600 mt-2">Returning Rate</p>
             </div>
           </div>

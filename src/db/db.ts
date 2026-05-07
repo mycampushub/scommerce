@@ -57,14 +57,41 @@ export async function execute(
 }
 
 /**
- * Count rows in a table
+ * Count rows in a table or execute a COUNT query
+ * Supports two calling patterns:
+ * 1. Full SELECT: count(env, 'SELECT COUNT(*) as count FROM table WHERE ...', ...params)
+ * 2. Table+WHERE: count(env, 'table', 'WHERE condition', ...params)
  */
-export async function count(env: Env | null, sql: string, ...params: unknown[]): Promise<number> {
+export async function count(
+  env: Env | null,
+  tableOrQuery: string,
+  whereClauseOrFirstParam?: string | unknown,
+  ...params: unknown[]
+): Promise<number> {
   if (!env || !env.DB) {
     console.error('[db.ts] Database not available');
     return 0;
   }
-  const result = await queryFirst<{ count: number }>(env, sql, ...params);
+
+  const isFullQuery = tableOrQuery.trim().toUpperCase().startsWith('SELECT');
+
+  let sql: string;
+  let queryParams: unknown[];
+
+  if (isFullQuery) {
+    // Mode 1: Full SELECT COUNT query - params are already part of the call
+    sql = tableOrQuery;
+    queryParams = [whereClauseOrFirstParam, ...params].filter(p => p !== undefined);
+  } else {
+    // Mode 2: Table name + WHERE clause
+    sql = `SELECT COUNT(*) as count FROM ${tableOrQuery}`;
+    if (whereClauseOrFirstParam) {
+      sql += ` ${whereClauseOrFirstParam as string}`;
+    }
+    queryParams = params;
+  }
+
+  const result = await queryFirst<{ count: number }>(env, sql, ...queryParams);
   return result?.count || 0;
 }
 
