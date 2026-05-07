@@ -8,7 +8,7 @@ import { getEnv } from '@/lib/cloudflare'
 
 
 export async function POST(request: NextRequest) {
-  const env = getEnv()
+  const env = getEnv(request)
   const clientIp = getClientIp(request)
   const rateLimitResult = await rateLimit(env, 'change-password:' + clientIp, {
     maxRequests: 5,

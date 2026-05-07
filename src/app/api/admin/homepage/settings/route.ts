@@ -35,7 +35,7 @@ const DEFAULT_SETTINGS = {
 
 export async function GET(request: NextRequest) {
   try {
-    const env = getEnv()
+    const env = getEnv(request)
     const settings = await queryAll<any>(
       env,
       'SELECT * FROM homepage_settings'
@@ -80,7 +80,7 @@ export async function PUT(request: NextRequest) {
   }
 
   // Check CSRF protection
-  const env = getEnv()
+  const env = getEnv(request)
   const csrfError = await csrfMiddleware(request, env)
   if (csrfError) {
     return csrfError

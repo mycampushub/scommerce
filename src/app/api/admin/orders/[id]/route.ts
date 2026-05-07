@@ -14,7 +14,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const env = getEnv()
+    const env = getEnv(request)
     const order = await OrderRepository.findById(env, id)
 
     if (!order) {
@@ -79,7 +79,7 @@ export async function PUT(
   }
 
   // Check CSRF protection
-  const env = getEnv()
+  const env = getEnv(request)
   const csrfError = await csrfMiddleware(request, env)
   if (csrfError) {
     return csrfError
@@ -217,7 +217,7 @@ export async function DELETE(
   }
 
   // Check CSRF protection
-  const env = getEnv()
+  const env = getEnv(request)
   const csrfError = await csrfMiddleware(request, env)
   if (csrfError) {
     return csrfError

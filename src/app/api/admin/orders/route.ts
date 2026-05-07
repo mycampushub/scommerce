@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const env = getEnv()
+    const env = getEnv(request)
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search') || ''
     const status = searchParams.get('status') || ''
@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
   }
   
   // Rate limiting: 100 orders per hour per admin
-  const env = getEnv()
+  const env = getEnv(request)
   if (userId) {
     const rateLimitKey = `admin-order-create:${userId}`
     const rateLimitResult = await rateLimit(env, rateLimitKey, {

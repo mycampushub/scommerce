@@ -5,7 +5,7 @@ import { queryFirst, numberToBool, boolToNumber } from '@/db/db'
 
 
 export async function GET(request: NextRequest) {
-  const env = getEnv()
+  const env = getEnv(request)
   try {
     const searchParams = request.nextUrl.searchParams
     const token = searchParams.get('token')

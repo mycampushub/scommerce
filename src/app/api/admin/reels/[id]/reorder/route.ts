@@ -16,7 +16,7 @@ export async function PUT(
   }
 
   // Check CSRF protection
-  const env = getEnv()
+  const env = getEnv(request)
   const csrfError = await csrfMiddleware(request, env)
   if (csrfError) {
     return csrfError

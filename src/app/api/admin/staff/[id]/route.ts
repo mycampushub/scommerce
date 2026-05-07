@@ -21,7 +21,7 @@ export async function GET(
       )
     }
 
-    const env = getEnv()
+    const env = getEnv(request)
     const user = await UserRepository.findById(env, (await params).id)
 
     if (!user) {
@@ -72,7 +72,7 @@ export async function PUT(
     }
 
     // Check CSRF protection
-    const env = getEnv()
+    const env = getEnv(request)
     const csrfError = await csrfMiddleware(request, env)
     if (csrfError) {
       return csrfError
@@ -189,7 +189,7 @@ export async function DELETE(
     }
 
     // Check CSRF protection
-    const env = getEnv()
+    const env = getEnv(request)
     const csrfError = await csrfMiddleware(request, env)
     if (csrfError) {
       return csrfError

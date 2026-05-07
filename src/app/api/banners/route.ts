@@ -6,7 +6,7 @@ import { addCacheHeaders, CachePresets } from '@/lib/http-cache';
 
 export async function GET(request: Request) {
   // Get D1 database from request context (Cloudflare Pages/Workers)
-  const env = getEnv();
+  const env = getEnv(request);
 
   try {
     const banners = await BannerRepository.findAllActive(env);

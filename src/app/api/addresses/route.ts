@@ -11,7 +11,7 @@ import { sanitizeAddressData, sanitizeForDB, sanitizePhone } from '@/lib/sanitiz
  */
 export async function GET(request: NextRequest) {
   // Get D1 database from request context
-  const env = getEnv()
+  const env = getEnv(request)
 
   try {
     const authHeader = request.headers.get('authorization')
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   // Get D1 database from request context
-  const env = getEnv()
+  const env = getEnv(request)
 
   // Check CSRF protection
   const csrfError = await csrfMiddleware(request, env)

@@ -6,7 +6,7 @@ import { ProductRepository } from '@/db/product.repository'
 
 export async function GET(request: NextRequest) {
   try {
-    const env = getEnv()
+    const env = getEnv(request)
     const searchParams = request.nextUrl.searchParams
     const alertType = searchParams.get('alertType')
     const isRead = searchParams.get('isRead')
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const env = getEnv()
+    const env = getEnv(request)
     const body: any = await request.json() as any
 
     if (!body.productId || !body.alertType) {

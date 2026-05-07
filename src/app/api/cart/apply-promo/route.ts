@@ -12,7 +12,7 @@ const PROMO_CODES: Record<string, { discount: number; type: 'percentage' | 'fixe
 }
 
 export async function POST(request: NextRequest) {
-  const env = getEnv()
+  const env = getEnv(request)
 
   // Check CSRF protection
   const csrfError = await csrfMiddleware(request, env)

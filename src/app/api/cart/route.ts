@@ -15,7 +15,7 @@ import { addCacheHeaders, CachePresets } from '@/lib/http-cache';
  */
 export async function GET(request: NextRequest) {
   // Get D1 database from request context (Cloudflare Pages/Workers)
-  const env = getEnv();
+  const env = getEnv(request);
 
   try {
     // Get token from Authorization header or cookie
@@ -121,7 +121,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   // Get D1 database from request context (Cloudflare Pages/Workers)
-  const env = getEnv();
+  const env = getEnv(request);
 
   // Check CSRF protection
   const csrfError = await csrfMiddleware(request, env);

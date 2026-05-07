@@ -11,7 +11,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const env = getEnv()
+    const env = getEnv(request)
     const { id } = await params
     const promotion = await queryFirst<any>(
       env,
@@ -62,7 +62,7 @@ export async function PUT(
   }
 
   // Check CSRF protection
-  const env = getEnv()
+  const env = getEnv(request)
   const csrfError = await csrfMiddleware(request, env)
   if (csrfError) {
     return csrfError
@@ -213,7 +213,7 @@ export async function DELETE(
   }
 
   // Check CSRF protection
-  const env = getEnv()
+  const env = getEnv(request)
   const csrfError = await csrfMiddleware(request, env)
   if (csrfError) {
     return csrfError

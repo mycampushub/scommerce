@@ -6,7 +6,7 @@ import { getEnv } from '@/lib/cloudflare';
 
 
 export async function POST(request: NextRequest) {
-  const env = getEnv()
+  const env = getEnv(request)
   try {
     const body = await request.json() as any;
 

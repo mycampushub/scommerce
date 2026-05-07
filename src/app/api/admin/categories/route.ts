@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const env = getEnv()
+    const env = getEnv(request)
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search') || ''
 
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Check CSRF protection
-  const env = getEnv()
+  const env = getEnv(request)
   const csrfError = await csrfMiddleware(request, env)
   if (csrfError) {
     return csrfError

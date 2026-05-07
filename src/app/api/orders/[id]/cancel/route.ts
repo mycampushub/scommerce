@@ -15,7 +15,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   // Get D1 database from request context
-  const env = getEnv();
+  const env = getEnv(request);
 
   // Check CSRF protection
   const csrfError = await csrfMiddleware(request, env);

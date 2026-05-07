@@ -11,7 +11,7 @@ import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   // Get D1 database from request context (Cloudflare Pages/Workers)
-  const env = getEnv();
+  const env = getEnv(request);
 
   // Apply rate limiting based on IP and email
   const clientIp = getClientIp(request);

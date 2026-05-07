@@ -11,7 +11,7 @@ import { logger } from '@/lib/logger';
 
 export async function GET(request: Request) {
   // Get D1 database from request context (Cloudflare Pages/Workers)
-  const env = getEnv();
+  const env = getEnv(request);
 
   // Initialize searchParams for catch block
   const { searchParams } = new URL(request.url);

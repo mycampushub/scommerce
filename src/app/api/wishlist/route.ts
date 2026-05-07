@@ -12,7 +12,7 @@ import { addCacheHeaders, CachePresets } from '@/lib/http-cache'
 // GET /api/wishlist - Get user's wishlist
 export async function GET(request: NextRequest) {
   // Get D1 database from request context
-  const env = getEnv()
+  const env = getEnv(request)
 
   try {
     // Verify authentication
@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
 // POST /api/wishlist - Add product to wishlist
 export async function POST(request: NextRequest) {
   // Get D1 database from request context
-  const env = getEnv()
+  const env = getEnv(request)
 
   // Check CSRF protection
   const csrfError = await csrfMiddleware(request, env)
@@ -179,7 +179,7 @@ export async function POST(request: NextRequest) {
 // DELETE /api/wishlist?productId={id} - Remove from wishlist
 export async function DELETE(request: NextRequest) {
   // Get D1 database from request context
-  const env = getEnv()
+  const env = getEnv(request)
 
   // Check CSRF protection
   const csrfError = await csrfMiddleware(request, env)

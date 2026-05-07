@@ -9,7 +9,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   // Get D1 database from request context
-  const env = getEnv()
+  const env = getEnv(request)
 
   try {
     const orderId = (await params).id

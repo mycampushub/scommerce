@@ -6,7 +6,7 @@ import { getEnv } from '@/lib/cloudflare';
  * Useful for debugging database and environment issues
  */
 export async function GET() {
-  const env = getEnv();
+  const env = getEnv(request);
 
   const health = {
     status: 'ok',

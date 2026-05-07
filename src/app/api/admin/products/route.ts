@@ -26,7 +26,28 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const env = getEnv()
+    const env = getEnv(request)
+
+    // Debug: Log binding status
+    console.log('[Products GET] Environment:', {
+      hasDB: !!env?.DB,
+      hasKV: !!env?.KV,
+      hasBUCKET: !!env?.BUCKET,
+      nodeEnv: process.env.NODE_ENV
+    })
+
+    if (!env?.DB) {
+      console.error('[Products GET] Database binding not available!')
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Database binding not available',
+          debug: { hasDB: false, env: !!env }
+        },
+        { status: 500 }
+      )
+    }
+
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search') || ''
     const categorySlug = searchParams.get('category') || ''
@@ -130,7 +151,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Check CSRF protection
-  const env = getEnv()
+  const env = getEnv(request)
   const csrfError = await csrfMiddleware(request, env)
   if (csrfError) {
     return csrfError

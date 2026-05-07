@@ -12,7 +12,7 @@ import type { Env } from '@/db/types';
 export async function POST(request: NextRequest) {
   let env: Env | null = null;
   try {
-    env = getEnv() as Env | null;
+    env = getEnv(request) as Env | null;
     if (!env || !env.DB) {
       logger.error('Database not available - env', { env: env ? 'defined' : 'undefined' }, new Error('Database not available'));
       return NextResponse.json(
