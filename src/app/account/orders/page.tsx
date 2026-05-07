@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { Package, Calendar, ArrowRight, X, RotateCcw, Search, Filter, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
@@ -12,88 +12,24 @@ import { Header } from '@/components/header'
 import { Footer } from '@/components/footer'
 import { MobileBottomNav } from '@/components/mobile-bottom-nav'
 import { useAuth } from '@/hooks/use-auth'
-
-interface OrderItem {
-  id: string
-  productName: string
-  productImage: string
-  quantity: number
-  price: number
-}
-
-interface Order {
-  id: string
-  orderNumber: string
-  customerName: string
-  customerEmail: string
-  subtotal: number
-  shipping: number
-  tax: number
-  discount: number
-  total: number
-  status: string
-  paymentStatus: string
-  paymentMethod: string
-  trackingNumber: string | null
-  trackingStatus: string | null
-  estimatedDeliveryDate: string | null
-  cancelledAt: string | null
-  cancelledBy: string | null
-  cancellationReason: string | null
-  refundedAt: string | null
-  refundedAmount: number | null
-  orderItems: OrderItem[]
-  createdAt: string
-}
-
-interface OrdersResponse {
-  success: boolean
-  data?: Order[]
-  error?: string
-}
+import { useOrders, useCancelOrder, type Order, type OrderItem } from '@/hooks/use-orders'
 
 function OrdersPage() {
-  const [orders, setOrders] = useState<Order[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const { user, loading: authLoading } = useAuth()
-
-  const fetchOrders = async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      // Get userId from authenticated user
-      if (!user || !user.id) {
-        setError('Please log in to view your orders')
-        setLoading(false)
-        return
-      }
-
-      const response = await fetch(`/api/orders?userId=${user.id}`)
-      const result: OrdersResponse = await response.json()
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Failed to fetch orders')
-      }
-
-      setOrders(result.data || [])
-    } catch (err: any) {
-      console.error('Error fetching orders:', err)
-      setError(err.message || 'Failed to load orders')
-      toast.error('Failed to load your orders')
-    } finally {
-      setLoading(false)
-    }
+  
+  // Fetch orders using React Query
+  const filters = {
+    userId: user?.id,
+    status: statusFilter === 'all' ? undefined : statusFilter,
+    search: searchTerm || undefined,
   }
-
-  useEffect(() => {
-    // Only fetch orders when auth is loaded and user is available
-    if (!authLoading) {
-      fetchOrders()
-    }
-  }, [user, authLoading])
+  
+  const { data: orders = [], isLoading, error } = useOrders(filters)
+  
+  // Cancel order mutation
+  const { mutate: cancelOrder } = useCancelOrder()
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-IN', {
@@ -126,53 +62,17 @@ function OrdersPage() {
   const canRequestRefund = (order: Order) =>
     order.status === 'DELIVERED' && !order.refundedAt
 
-  const handleCancelOrder = async (orderId: string, orderNumber: string) => {
+  const handleCancelOrder = (orderId: string, orderNumber: string) => {
     if (!confirm(`Are you sure you want to cancel order ${orderNumber}?`)) {
       return
     }
 
-    try {
-      const response = await fetch(`/api/orders/${orderId}/cancel`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          cancelledBy: 'user',
-          reason: 'Customer requested cancellation',
-        }),
-      })
-
-      const result = await response.json() as any
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Failed to cancel order')
-      }
-
-      toast.success('Order cancelled successfully')
-      fetchOrders() // Refresh orders
-    } catch (err: any) {
-      console.error('Error cancelling order:', err)
-      toast.error(err.message || 'Failed to cancel order')
-    }
+    cancelOrder({ orderId, reason: 'Customer requested cancellation' })
   }
 
-  // Filter orders
-  const filteredOrders = orders.filter((order) => {
-    const matchesSearch =
-      searchTerm === '' ||
-      order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.orderItems.some((item) =>
-        item.productName.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+  // Orders are already filtered by the server-side API
 
-    const matchesStatus =
-      statusFilter === 'all' || order.status === statusFilter
-
-    return matchesSearch && matchesStatus
-  })
-
-  if (loading) {
+  if (isLoading || authLoading) {
     return (
       <div className="min-h-screen flex flex-col bg-gray-50">
         <Header />
@@ -240,10 +140,10 @@ function OrdersPage() {
 
         {/* Orders List */}
         <div className="container mx-auto px-4 py-8">
-          {error && (
+          {error && !user && (
             <Card className="mb-6 border-red-200 bg-red-50">
               <CardContent className="pt-6">
-                <p className="text-red-700">{error}</p>
+                <p className="text-red-700">Please log in to view your orders</p>
                 <Link href="/login">
                   <Button className="mt-4 bg-red-600 hover:bg-red-700">
                     Go to Login
@@ -253,16 +153,14 @@ function OrdersPage() {
             </Card>
           )}
 
-          {!error && filteredOrders.length === 0 ? (
+          {!error && orders.length === 0 ? (
             <Card>
               <CardContent className="pt-12 pb-12 text-center">
                 <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">
                   {searchTerm || statusFilter !== 'all'
                     ? 'No orders found matching your criteria'
-                    : orders.length === 0
-                    ? "You haven't placed any orders yet"
-                    : 'No orders found'}
+                    : "You haven't placed any orders yet"}
                 </h3>
                 <p className="text-gray-600 mb-6">
                   {orders.length === 0
@@ -276,7 +174,7 @@ function OrdersPage() {
             </Card>
           ) : (
             <div className="space-y-4">
-              {filteredOrders.map((order) => (
+              {orders.map((order) => (
                 <Card key={order.id} className="hover:shadow-lg transition-shadow">
                   <CardHeader className="pb-4">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -335,7 +233,7 @@ function OrdersPage() {
                       <div className="flex items-center gap-4 text-sm text-gray-600">
                         <span>{order.orderItems.length} {order.orderItems.length === 1 ? 'item' : 'items'}</span>
                         <span>•</span>
-                        <span>{order.paymentMethod.replace('_', ' ')}</span>
+                        <span>{order.paymentMethod?.replace('_', ' ') || 'N/A'}</span>
                       </div>
                       <div className="text-right">
                         <p className="text-sm text-gray-500">Total</p>

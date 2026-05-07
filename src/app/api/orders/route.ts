@@ -9,6 +9,7 @@ import { sanitizeAddressData, sanitizeForDB, sanitizeEmail, sanitizePhone, sanit
 import { invalidateCache } from '@/lib/cache';
 import { rateLimit, getClientIp, createRateLimitResponse } from '@/lib/rate-limit';
 import { verifyToken, extractTokenFromHeader } from '@/lib/auth';
+import { addCacheHeaders, CachePresets } from '@/lib/http-cache';
 
 // Allowed payment methods - Cash on Delivery and Online Payment
 const ALLOWED_PAYMENT_METHODS = ['CASH_ON_DELIVERY', 'ONLINE_PAYMENT'] as const;
@@ -470,11 +471,14 @@ export async function GET(request: NextRequest) {
       };
     }));
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       data: ordersWithItems,
       total: ordersWithItems.length,
     });
+
+    // Add caching headers for orders (user-specific - 2 minutes, private)
+    return addCacheHeaders(response, CachePresets.PRIVATE);
   } catch (error) {
     console.error('Error fetching orders:', error);
     return NextResponse.json(

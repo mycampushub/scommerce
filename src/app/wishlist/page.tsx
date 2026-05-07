@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useCallback } from 'react'
 import { Heart, Trash2, ShoppingCart, ShoppingBag, ArrowRight, Loader2, CheckSquare, Square } from 'lucide-react'
 import Link from 'next/link'
 import { useCartStore } from '@/lib/store/cart-store'
@@ -8,86 +8,22 @@ import { useAuth } from '@/hooks/use-auth'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-
-interface WishlistItem {
-  id: string
-  productId: string
-  createdAt: string
-  product: {
-    id: string
-    name: string
-    slug: string
-    price: number
-    comparePrice?: number
-    images: string
-    stock: number
-    rating?: number
-    reviews?: number
-    category: {
-      name: string
-      slug: string
-    }
-  }
-}
+import { useWishlist, useRemoveFromWishlist, type WishlistItem } from '@/hooks/use-wishlist'
 
 export default function WishlistPage() {
   const { user, isAuthenticated } = useAuth()
   const { addItem } = useCartStore()
-  const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([])
-  const [loading, setLoading] = useState(true)
-  const [removing, setRemoving] = useState<string | null>(null)
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
   const [movingAll, setMovingAll] = useState(false)
-  const [bulkRemoving, setBulkRemoving] = useState(false)
-
-  const fetchWishlist = useCallback(async () => {
-    try {
-      setLoading(true)
-      const response = await fetch('/api/wishlist')
-      const data = await response.json() as any
-
-      if (data.success) {
-        setWishlistItems(data.data)
-      }
-    } catch (error) {
-      console.error('Error fetching wishlist:', error)
-      toast.error('Failed to load wishlist')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      fetchWishlist()
-    } else {
-      setLoading(false)
-    }
-  }, [isAuthenticated, user, fetchWishlist])
-
-  const handleRemoveFromWishlist = async (productId: string) => {
-    try {
-      setRemoving(productId)
-      const response = await fetch(`/api/wishlist?productId=${productId}`, {
-        method: 'DELETE',
-      })
-
-      const data = await response.json() as any
-
-      if (data.success) {
-        setWishlistItems((prev) => 
-          prev.filter((item) => item.productId !== productId)
-        )
-        toast.success('Removed from wishlist')
-      } else {
-        toast.error(data.error || 'Failed to remove from wishlist')
-      }
-    } catch (error) {
-      console.error('Error removing from wishlist:', error)
-      toast.error('Failed to remove from wishlist')
-    } finally {
-      setRemoving(null)
-    }
+  
+  // Fetch wishlist using React Query
+  const { data: wishlistItems = [], isLoading, refetch } = useWishlist()
+  
+  // Remove from wishlist mutation
+  const { mutate: removeFromWishlist, isPending: removing } = useRemoveFromWishlist()
+  
+  const handleRemoveFromWishlist = (productId: string) => {
+    removeFromWishlist(productId)
   }
 
   const handleMoveToCart = async (item: WishlistItem) => {
@@ -187,33 +123,25 @@ export default function WishlistPage() {
     }
 
     try {
-      setBulkRemoving(true)
       let removedCount = 0
 
       for (const itemId of selectedItems) {
         const item = wishlistItems.find(i => i.id === itemId)
         if (item) {
-          const response = await fetch(`/api/wishlist?productId=${item.productId}`, {
-            method: 'DELETE',
-          })
-          const data = await response.json() as any
-          if (data.success) {
-            removedCount++
-          }
+          removeFromWishlist(item.productId)
+          removedCount++
         }
       }
 
       if (removedCount > 0) {
         toast.success(`Removed ${removedCount} item${removedCount > 1 ? 's' : ''} from wishlist`)
-        await fetchWishlist()
+        await refetch()
       }
 
       setSelectedItems(new Set())
     } catch (error) {
       console.error('Error removing items:', error)
       toast.error('Failed to remove items')
-    } finally {
-      setBulkRemoving(false)
     }
   }
 
@@ -240,7 +168,7 @@ export default function WishlistPage() {
     )
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-12 sm:py-16">
@@ -299,15 +227,11 @@ export default function WishlistPage() {
               <Button
                 variant="destructive"
                 onClick={handleBulkRemove}
-                disabled={selectedItems.size === 0 || bulkRemoving}
+                disabled={selectedItems.size === 0}
                 size="sm"
                 className="flex-1 sm:flex-none h-10 sm:h-11 text-xs sm:text-sm"
               >
-                {bulkRemoving ? (
-                  <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2 animate-spin" />
-                ) : (
-                  <Trash2 className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
-                )}
+                <Trash2 className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
                 <span className="hidden xs:inline sm:inline">Remove Selected</span>
                 <span className="xs:hidden sm:hidden">Remove</span>
               </Button>
@@ -379,11 +303,11 @@ export default function WishlistPage() {
                       {/* Remove Button */}
                       <button
                         onClick={() => handleRemoveFromWishlist(item.productId)}
-                        disabled={removing === item.productId}
+                        disabled={removing}
                         className="absolute top-3 right-3 sm:top-4 sm:right-4 w-11 h-11 sm:w-12 sm:h-12 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-red-50 hover:text-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         aria-label="Remove from wishlist"
                       >
-                        {removing === item.productId ? (
+                        {removing ? (
                           <Loader2 className="w-5 h-5 sm:w-6 sm:h-6 animate-spin" />
                         ) : (
                           <Trash2 className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -435,7 +359,7 @@ export default function WishlistPage() {
                           size="icon"
                           className="h-10 sm:h-11 w-10 sm:w-11 flex-shrink-0"
                           onClick={() => handleRemoveFromWishlist(item.productId)}
-                          disabled={removing === item.productId}
+                          disabled={removing}
                           aria-label="Remove from wishlist"
                         >
                           <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />

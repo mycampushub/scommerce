@@ -16,8 +16,8 @@ export async function GET(request: Request) {
       data: banners
     });
 
-    // Add caching headers for banners
-    return addCacheHeaders(response, CachePresets.SEMI_STATIC);
+    // Add caching headers for banners (static content - 1 hour)
+    return addCacheHeaders(response, CachePresets.STATIC);
   } catch (error) {
     console.error('Error fetching banners:', error);
     // Return empty array on error instead of failing

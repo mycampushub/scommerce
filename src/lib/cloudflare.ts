@@ -9,9 +9,9 @@ export function getDB(_request?: Request): any | null {
   try {
     // First, try Cloudflare D1
     const { env } = getCloudflareContext();
-    if (env && env['DB']) {
+    if (env && (env as any)['DB']) {
       console.log('[cloudflare.ts] Using Cloudflare D1 database');
-      return env['DB'];
+      return (env as any)['DB'];
     }
   } catch (error) {
     console.error('[cloudflare.ts] Error getting D1 binding:', error);
@@ -35,11 +35,11 @@ export function getEnv(_request?: Request): any | null {
   try {
     // Try Cloudflare bindings first
     const { env } = getCloudflareContext();
-    if (env && (env['DB'] || env['KV'] || env['BUCKET'])) {
+    if (env && ((env as any)['DB'] || (env as any)['KV'] || (env as any)['BUCKET'])) {
       console.log('[cloudflare.ts] Using Cloudflare bindings', {
-        hasDB: !!env['DB'],
-        hasKV: !!env['KV'],
-        hasBUCKET: !!env['BUCKET'],
+        hasDB: !!(env as any)['DB'],
+        hasKV: !!(env as any)['KV'],
+        hasBUCKET: !!(env as any)['BUCKET'],
       });
       return env;
     }

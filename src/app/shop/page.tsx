@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { ChevronLeft, ChevronRight, SlidersHorizontal, Heart, ShoppingCart, Star, Filter, X, ChevronDown, Home as HomeIcon } from 'lucide-react'
 import Link from 'next/link'
 import { Header } from '@/components/header'
@@ -8,6 +8,7 @@ import { Footer } from '@/components/footer'
 import { MobileBottomNav } from '@/components/mobile-bottom-nav'
 import { QuickViewModal, Product } from '@/components/quick-view-modal'
 import { useCartStore } from '@/lib/store/cart-store'
+import { useProducts } from '@/hooks/use-products'
 import { toast } from 'sonner'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useDebounce } from '@/hooks/use-debounce'
@@ -64,10 +65,7 @@ export default function ShopPage() {
     }
   }, [mobileFiltersOpen])
 
-  // Dynamic data states
-  const [products, setProducts] = useState<Product[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  // Search query state
   const [searchQuery, setSearchQuery] = useState('')
   const debouncedSearchQuery = useDebounce(searchQuery, 500)
 
@@ -76,51 +74,13 @@ export default function ShopPage() {
   const categoryParam = searchParams.get('category')
   const searchParam = searchParams.get('search')
 
-  // Fetch products from API
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-
-        // Build query parameters
-        const params = new URLSearchParams()
-        
-        // Add category filter
-        if (categoryParam && categoryParam !== 'all') {
-          params.append('category', categoryParam)
-        } else if (selectedCategory !== 'All') {
-          params.append('category', selectedCategory.toLowerCase())
-        }
-        
-        // Add search filter
-        if (searchParam) {
-          setSearchQuery(searchParam)
-          params.append('search', searchParam)
-        } else if (debouncedSearchQuery) {
-          params.append('search', debouncedSearchQuery)
-        }
-
-        const url = `/api/products?${params.toString()}`
-        const response = await fetch(url)
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch products')
-        }
-
-        const data = await response.json() as any
-        const productsArray = Array.isArray(data.products) ? data.products : (Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []))
-        setProducts(productsArray)
-      } catch (err) {
-        console.error('Error fetching products:', err)
-        setError('Failed to load products. Please try again.')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchProducts()
-  }, [categoryParam, selectedCategory, searchParam, debouncedSearchQuery])
+  // Fetch products using React Query
+  const filters = {
+    category: (categoryParam && categoryParam !== 'all') ? categoryParam : (selectedCategory !== 'All' ? selectedCategory.toLowerCase() : undefined),
+    search: searchParam || debouncedSearchQuery || undefined,
+  }
+  
+  const { data: products = [], isLoading } = useProducts(filters)
 
   const openQuickView = (product: Product) => {
     setQuickViewProduct(product)
@@ -316,7 +276,7 @@ export default function ShopPage() {
               </div>
 
               {/* Product Grid */}
-              {loading ? (
+              {isLoading ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
                   {[...Array(6)].map((_, i) => (
                     <div key={i} className="space-y-3">
@@ -329,18 +289,6 @@ export default function ShopPage() {
                       </div>
                     </div>
                   ))}
-                </div>
-              ) : error ? (
-                <div className="col-span-full py-12">
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-                    <p className="text-red-800 mb-4">{error}</p>
-                    <button
-                      onClick={() => window.location.reload()}
-                      className="px-6 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors"
-                    >
-                      Retry
-                    </button>
-                  </div>
                 </div>
               ) : displayedProducts.length === 0 ? (
                 <div className="col-span-full py-12 text-center">
@@ -374,13 +322,13 @@ export default function ShopPage() {
                       </button>
                       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
                         <button
-                          onClick={() => openQuickView(product)}
+                          onClick={() => openQuickView(product as Product)}
                           className="bg-white text-gray-900 px-6 py-2 rounded-full text-sm font-medium hover:bg-pink-600 hover:text-white"
                         >
                           Quick View
                         </button>
                         <button
-                          onClick={() => addToCart(product)}
+                          onClick={() => addToCart(product as Product)}
                           className="bg-pink-600 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-pink-700"
                         >
                           Add to Cart

@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { CACHE_VERSION, isCurrentVersion } from '@/lib/cache-version';
 
 export interface CacheConfig {
   /** Cache duration in seconds */
@@ -81,6 +82,9 @@ export function addCacheHeaders(
   if (lastModified) {
     response.headers.set('Last-Modified', lastModified.toUTCString());
   }
+
+  // Add cache version header
+  response.headers.set('X-Cache-Version', CACHE_VERSION);
 
   return response;
 }
@@ -173,54 +177,64 @@ export function handleConditionalRequest(
 
 /**
  * Cache configuration presets for different resource types
+ * Optimized for Cloudflare CDN
  */
 export const CachePresets = {
-  /** Static content - cache for long time */
+  /** Static data - banners, stories, promotions (1 hour) */
   STATIC: {
+    maxAge: 3600, // 1 hour
+    sMaxAge: 3600,
+    isPublic: true,
+    mustRevalidate: false,
+  },
+
+  /** Semi-static content - categories, products list (10 minutes) */
+  SEMI_STATIC: {
+    maxAge: 600, // 10 minutes
+    sMaxAge: 600,
+    isPublic: true,
+    mustRevalidate: true,
+    staleWhileRevalidate: 300, // 5 minutes
+  },
+
+  /** User-specific content - cart, wishlist, orders (2 minutes) */
+  PRIVATE: {
+    maxAge: 120, // 2 minutes
+    isPublic: false,
+    mustRevalidate: true,
+  },
+
+  /** Real-time content - stock, price checks (30 seconds) */
+  REALTIME: {
+    maxAge: 30, // 30 seconds
+    sMaxAge: 30,
+    isPublic: true,
+    mustRevalidate: true,
+    staleWhileRevalidate: 10,
+  },
+
+  /** Long-term static - settings, very stable data (24 hours) */
+  LONG_TERM: {
     maxAge: 86400, // 24 hours
     sMaxAge: 86400,
     isPublic: true,
     mustRevalidate: false,
   },
 
-  /** Semi-static content - cache for moderate time */
-  SEMI_STATIC: {
-    maxAge: 3600, // 1 hour
-    sMaxAge: 3600,
-    isPublic: true,
-    mustRevalidate: true,
-  },
-
-  /** Dynamic content - short cache with stale support */
-  DYNAMIC: {
-    maxAge: 60, // 1 minute
-    sMaxAge: 60,
-    isPublic: true,
-    mustRevalidate: true,
-    staleWhileRevalidate: 300, // 5 minutes
-    staleIfError: 60,
-  },
-
-  /** User-specific content - private cache */
-  PRIVATE: {
-    maxAge: 300, // 5 minutes
-    isPublic: false,
-    mustRevalidate: true,
-  },
-
-  /** Real-time content - minimal cache */
-  REALTIME: {
-    maxAge: 10, // 10 seconds
-    sMaxAge: 10,
-    isPublic: true,
-    mustRevalidate: true,
-  },
-
-  /** No cache - always fresh */
+  /** No cache - always fresh (auth, sensitive data) */
   NO_CACHE: {
     maxAge: 0,
     isPublic: true,
     mustRevalidate: true,
+  },
+
+  /** Short cache - search results, autocomplete (1 minute) */
+  SHORT: {
+    maxAge: 60, // 1 minute
+    sMaxAge: 60,
+    isPublic: true,
+    mustRevalidate: true,
+    staleWhileRevalidate: 120,
   },
 } as const;
 

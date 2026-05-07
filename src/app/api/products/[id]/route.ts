@@ -3,6 +3,7 @@ import { getEnv } from '@/lib/cloudflare';
 import { ProductRepository } from '@/db/product.repository';
 import { CategoryRepository } from '@/db/category.repository';
 import { numberToBool, parseJSON, queryFirst } from '@/db/db';
+import { addCacheHeaders, CachePresets } from '@/lib/http-cache';
 
 
 export async function GET(
@@ -76,7 +77,10 @@ export async function GET(
       updatedAt: product.updatedAt,
     };
 
-    return NextResponse.json(transformedProduct);
+    const response = NextResponse.json(transformedProduct);
+
+    // Add caching headers for product detail (semi-static - 10 minutes)
+    return addCacheHeaders(response, CachePresets.SEMI_STATIC);
   } catch (error) {
     console.error('Error fetching product:', error);
     return NextResponse.json(

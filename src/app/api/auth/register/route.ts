@@ -6,6 +6,7 @@ import { UserRepository } from '@/db/user.repository';
 import { getEnv } from '@/lib/cloudflare';
 import { generateEmailToken } from '@/lib/crypto-utils';
 import { createToken } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 
 export async function POST(request: NextRequest) {
@@ -132,9 +133,17 @@ export async function POST(request: NextRequest) {
 
     // Log verification link (in production, this would send an email)
     const verificationLink = `${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/api/auth/verify-email?token=${emailToken}`;
-    console.log('Email Verification Link:', verificationLink);
-    console.log('Please send this link to user email:', email);
-    console.log(`User registered with role: ${user.role}`);
+    logger.info('Email verification link generated', {
+      verificationLink,
+      email,
+      emailToken,
+    });
+    logger.info('User registered', {
+      email,
+      name,
+      role: user.role,
+      userId: user.id,
+    });
 
     // Create response with session cookie for auto-login
     const response = NextResponse.json({
@@ -158,7 +167,11 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error: any) {
-    console.error('Registration error:', error);
+    logger.logApiError('POST', '/api/auth/register', error as Error, 500, undefined, undefined, {
+      email,
+      phone,
+      name,
+    });
     return NextResponse.json(
       { success: false, error: 'Failed to register user' },
       { status: 500 }

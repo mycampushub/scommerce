@@ -1,58 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// ============================================================================
-// CASCADE DELETE POLICY
-// ============================================================================
-// This schema uses explicit cascade delete rules for data integrity.
-//
-// RELATIONS WITH CASCADE DELETE (automatic cleanup on parent deletion):
-// - Address -> User (when user deleted, all addresses are deleted)
-// - WishlistItem -> User (when user deleted, wishlist items are deleted)
-// - WishlistItem -> Product (when product deleted, wishlist items are deleted)
-// - ProductVariant -> Product (when product deleted, all variants are deleted)
-// - CartItem variant -> ProductVariant (when variant deleted, cart items reference is set to null)
-// - InventoryAlert -> ProductVariant (when variant deleted, alerts are deleted)
-// - InventoryAlert -> Product (when product deleted, alerts are deleted)
-//
-// RELATIONS WITH RESTRICT (prevent deletion if children exist):
-// - Order -> User (orders cannot be deleted if user exists, must handle via application logic)
-//
-// IMPORTANT: Order and OrderItem cascade is handled via application transactions.
-// The deleteWithItems() method in OrderRepository handles atomic deletion.
-// See: /src/db/order.repository.ts
-//
-// ============================================================================
-
-// ============================================================================
-// CURRENCY PRECISION CONSIDERATIONS
-// ============================================================================
-// This schema uses Float for currency values (price, basePrice, subtotal, total, etc.).
-//
-// CURRENT IMPLEMENTATION (Float):
-// - All monetary values are stored as Float (IEEE 754 double-precision)
-// - Currency: BDT (Bangladeshi Taka) - ৳
-// - Float precision: ~15-17 significant decimal digits
-// - Potential issues: Floating-point arithmetic can cause rounding errors
-//   Example: 0.1 + 0.2 = 0.30000000000000004
-//
-// RECOMMENDATION FOR PRODUCTION:
-// Consider migrating to Integer-based currency storage for better precision:
-// - Store values in smallest currency unit (paisa: 1 BDT = 100 paisa)
-// - Example: ৳123.45 stored as 12345 (integer)
-// - Convert when displaying: divide by 100 for display value
-// - Benefits: No floating-point rounding errors, precise calculations
-//
-// EXAMPLE MIGRATION:
-// - Old: price Float @default(0) // Stores 123.45 as float
-// - New: price Int @default(0) // Stores 12345 (123.45 * 100)
-//
-// NOTE: For now, the Float implementation is acceptable for most use cases.
-// BDT uses 2 decimal places, and Float can handle typical e-commerce prices accurately.
-// Only consider integer migration if you encounter precision issues in production.
-//
-// ============================================================================
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -66,7 +14,7 @@ model User {
   id              String    @id @default(cuid())
   email           String    @unique
   name            String?
-  phone           String?
+  phone           String?   @unique
   address         String?
   password        String?
   emailVerified   Int       @default(0)
@@ -75,14 +23,19 @@ model User {
   resetToken      String?
   resetTokenExpiry String?
   role            String    @default("user")
+  avatar          String?
+  isBanned        Boolean   @default(false)
+  bannedAt        DateTime?
+  lastLoginAt     DateTime?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   addresses       Address[]
-  orders          Order[]
+  orders          Order[]     @relation("user_orders")
   cartItems       CartItem[]
   wishlistItems   WishlistItem[]
   productReviews  ProductReview[]
   posts           Post[]
+  adminLogs       AdminLog[]    @relation("user_admin_logs")
 }
 
 model Address {
@@ -101,7 +54,7 @@ model Address {
   updatedAt     DateTime @updatedAt
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
+  // Note: userId index automatically created by foreign key constraint
   @@index([isDefault])
 }
 
@@ -116,35 +69,9 @@ model Category {
   updatedAt   DateTime @updatedAt
   products    Product[]
 
-  @@index([slug])
+  // Note: slug index automatically created by unique constraint
   @@index([isActive])
 }
-
-// ============================================================================
-// PRODUCT PRICING EXPLANATION
-// ============================================================================
-// Products have multiple price fields for different purposes:
-//
-// basePrice: The original/reference price before discounts
-//   - Used as baseline for calculations
-//   - Should not change unless base cost changes
-//   - Used for profit margin calculations
-//
-// price: The current selling price displayed to customers
-//   - This is what customers see in the UI
-//   - Includes discounts: price = basePrice - discount
-//   - Updated when discounts are applied/removed
-//
-// comparePrice: Optional "original price" for marketing
-//   - Shows crossed-out price during sales
-//   - Creates "save X%" messaging
-//   - Example: Compare: ৳1000, Now: ৳750 (25% off)
-//
-// discount: Discount amount to apply to basePrice
-//   - discountType "percentage": discount is percent (e.g., 25 for 25%)
-//   - discountType "fixed": discount is amount (e.g., 100 for ৳100 off)
-//
-// ============================================================================
 
 model Product {
   id              String            @id @default(cuid())
@@ -165,6 +92,9 @@ model Product {
   isActive        Int               @default(1)
   isFeatured      Int               @default(0)
   hasVariants     Int               @default(0)
+  weight          Float?
+  dimensions      String?
+  tags            String?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
   category        Category          @relation(fields: [categoryId], references: [id])
@@ -175,10 +105,10 @@ model Product {
   orderItems      OrderItem[]
   inventoryAlerts InventoryAlert[]
 
-  @@index([categoryId])
+  // Note: categoryId index automatically created by foreign key constraint
+  // Note: slug index automatically created by unique constraint
   @@index([isFeatured])
   @@index([isActive, createdAt(sort: Desc)])
-  @@index([slug])
   @@index([isActive, isFeatured])
 }
 
@@ -206,10 +136,11 @@ model ProductVariant {
   orderItems    OrderItem[]
   inventoryAlerts InventoryAlert[]
 
-  @@index([productId])
-  @@index([sku])
+  // Note: productId index automatically created by foreign key constraint
+  // Note: sku index automatically created by unique constraint
+  @@index([isActive])
   @@index([productId, isActive])
-  @@index([productId, size, color])
+  @@index([size, color])
 }
 
 model ProductReview {
@@ -228,9 +159,10 @@ model ProductReview {
   user        User     @relation(fields: [userId], references: [id])
 
   @@unique([productId, userId])
-  @@index([productId])
+  @@index([productId, isApproved])
+  @@index([productId, rating(sort: Desc)])
   @@index([userId])
-  @@index([isApproved])
+  @@index([isApproved, createdAt(sort: Desc)])
 }
 
 model WishlistItem {
@@ -275,16 +207,20 @@ model Order {
   refundMethod          String?
   refundReason          String?
   notes                 String?
+  deletedAt             DateTime?
+  deletedBy             String?
+  deletedReason         String?
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
-  user                  User?    @relation(fields: [userId], references: [id], onDelete: Restrict)
+  user                  User?    @relation("user_orders", fields: [userId], references: [id], onDelete: SetNull)
   items                 OrderItem[]
 
-  @@index([userId])
+  // Note: userId index automatically created by foreign key constraint
   @@index([customerEmail])
   @@index([orderNumber])
   @@index([status, createdAt(sort: Desc)])
   @@index([customerEmail, status])
+  @@index([deletedAt])
 }
 
 model OrderItem {
@@ -305,9 +241,8 @@ model OrderItem {
   product         Product        @relation(fields: [productId], references: [id])
   variant         ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
 
-  @@index([orderId])
-  @@index([productId])
-  @@index([variantId])
+  // Note: orderId, productId, variantId indexes automatically created by foreign key constraints
+  // Note: productId cannot have onDelete: SetNull because it's required (not nullable)
 }
 
 model CartItem {
@@ -318,14 +253,13 @@ model CartItem {
   quantity  Int      @default(1)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  user      User            @relation(fields: [userId], references: [id])
-  product   Product         @relation(fields: [productId], references: [id])
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
   variant   ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, productId])
-  @@index([userId])
-  @@index([userId, productId])
-  @@index([variantId])
+  // Note: unique constraint creates index automatically
+  @@unique([userId, productId, variantId])
+  // Note: userId and productId indexes covered by unique constraint
 }
 
 model AdminLog {
@@ -335,11 +269,16 @@ model AdminLog {
   entityId  String?
   adminId   String
   details   String?
+  ipAddress String?
+  userAgent String?
   createdAt DateTime @default(now())
+  admin     User     @relation("user_admin_logs", fields: [adminId], references: [id], onDelete: Cascade)
 
-  @@index([adminId])
-  @@index([entity])
-  @@index([createdAt])
+  // Note: adminId index automatically created by foreign key constraint
+  @@index([entity, createdAt(sort: Desc)])
+  @@index([action, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+  @@index([entity, entityId])
 }
 
 model InventoryAlert {
@@ -448,11 +387,4 @@ model HomepageSettings {
   displayLimit Int?
   settings    String?
   updatedAt   DateTime @default(now())
-}
-
-model AdminSettings {
-  id            String   @id @default(cuid())
-  settingsData   String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
 }

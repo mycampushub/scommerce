@@ -1,13 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useDebounce } from '@/hooks/use-debounce'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { useToast } from '@/hooks/use-toast'
 import {
   Dialog,
   DialogContent,
@@ -39,6 +38,12 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import { Calendar } from '@/components/ui/calendar'
+import {
   Search,
   Eye,
   MoreVertical,
@@ -50,47 +55,24 @@ import {
   AlertCircle,
   Download,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  CalendarIcon,
+  Filter,
+  X,
+  ChevronDown
 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
-
-interface Order {
-  id: string
-  orderNumber: string
-  customerName: string
-  customerEmail: string
-  customerPhone: string | null
-  shippingAddress: any
-  billingAddress: any
-  subtotal: number
-  shipping: number
-  tax: number
-  discount: number
-  total: number
-  status: string
-  paymentStatus: string
-  paymentMethod: string | null
-  trackingNumber: string | null
-  trackingStatus: string | null
-  estimatedDeliveryDate: string | null
-  notes: string | null
-  createdAt: string
-  orderItems: {
-    id: string
-    quantity: number
-    price: number
-    productName: string
-    productImage: string | null
-  }[]
-}
+import { useAdminOrders, useUpdateOrderStatus, useExportOrders, type Order } from '@/hooks/use-admin-orders'
+import { format, addDays, subDays } from 'date-fns'
+import { cn } from '@/lib/utils'
 
 // Status Badge Component (defined outside component to avoid recreation on each render)
 function StatusBadge({ status }: { status: string }) {
   const config = {
     PENDING: { icon: Clock, color: 'bg-orange-100 text-orange-700', label: 'Pending' },
-    CONFIRMED: { icon: CheckCircle, color: 'bg-purple-100 text-purple-700', label: 'Confirmed' },
+    CONFIRMED: { icon: CheckCircle, color: 'bg-blue-100 text-blue-700', label: 'Confirmed' },
     PROCESSING: { icon: Package, color: 'bg-purple-100 text-purple-700', label: 'Processing' },
-    SHIPPED: { icon: Truck, color: 'bg-violet-100 text-violet-700', label: 'Shipped' },
+    SHIPPED: { icon: Truck, color: 'bg-indigo-100 text-indigo-700', label: 'Shipped' },
     DELIVERED: { icon: CheckCircle, color: 'bg-green-100 text-green-700', label: 'Delivered' },
     CANCELLED: { icon: XCircle, color: 'bg-red-100 text-red-700', label: 'Cancelled' },
     REFUNDED: { icon: AlertCircle, color: 'bg-gray-100 text-gray-700', label: 'Refunded' },
@@ -107,13 +89,13 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function OrdersPage() {
-  const { toast } = useToast()
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [orders, setOrders] = useState<Order[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const debouncedSearchTerm = useDebounce(searchTerm, 500)
   const [statusFilter, setStatusFilter] = useState('all')
+  const [dateFrom, setDateFrom] = useState<Date | undefined>()
+  const [dateTo, setDateTo] = useState<Date | undefined>()
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false)
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
 
   // Order details modal
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
@@ -127,41 +109,21 @@ export default function OrdersPage() {
   const [trackingStatus, setTrackingStatus] = useState('')
   const [estimatedDeliveryDate, setEstimatedDeliveryDate] = useState('')
 
-  const fetchOrders = async () => {
-    try {
-      setLoading(true)
-      const params = new URLSearchParams()
-      if (statusFilter !== 'all') params.append('status', statusFilter)
-      if (debouncedSearchTerm) params.append('search', debouncedSearchTerm)
-
-      const response = await fetch(`/api/admin/orders?${params.toString()}`)
-      const result = await response.json() as any
-
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to fetch orders')
-      }
-
-      setOrders(result.data || [])
-    } catch (err: any) {
-      setError(err.message)
-      console.error('Error fetching orders:', err)
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch orders',
-        variant: 'destructive',
-      })
-    } finally {
-      setLoading(false)
-    }
+  // Fetch orders using React Query
+  const filters = {
+    status: statusFilter === 'all' ? undefined : statusFilter,
+    search: debouncedSearchTerm || undefined,
+    dateFrom: dateFrom ? dateFrom.toISOString() : undefined,
+    dateTo: dateTo ? dateTo.toISOString() : undefined,
   }
+  
+  const { data: orders = [], isLoading, refetch } = useAdminOrders(filters) as { data: Order[], isLoading: boolean, refetch: () => void }
 
-  useEffect(() => {
-    fetchOrders()
-  }, [statusFilter, debouncedSearchTerm])
+  // Update order status mutation
+  const { mutate: updateOrderStatus } = useUpdateOrderStatus()
 
-  const handleSearch = () => {
-    fetchOrders()
-  }
+  // Export orders
+  const { export: exportOrders } = useExportOrders()
 
   const openDetailsModal = (order: Order) => {
     setSelectedOrder(order)
@@ -180,67 +142,19 @@ export default function OrdersPage() {
   const handleUpdateStatus = async () => {
     if (!updatingOrder) return
 
-    try {
-      const response = await fetch(`/api/admin/orders/${updatingOrder.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          status: newStatus,
-          trackingNumber: trackingNumber || null,
-          trackingStatus: trackingStatus || 'PENDING',
-          estimatedDeliveryDate: estimatedDeliveryDate ? new Date(estimatedDeliveryDate) : null,
-        }),
-      })
+    updateOrderStatus({
+      orderId: updatingOrder.id,
+      status: newStatus,
+      trackingNumber: trackingNumber || null,
+      trackingStatus: trackingStatus || 'PENDING',
+      estimatedDeliveryDate: estimatedDeliveryDate || null,
+    })
 
-      const result = await response.json() as any
-
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to update order status')
-      }
-
-      toast({
-        title: 'Success',
-        description: 'Order status updated successfully',
-      })
-
-      setIsStatusModalOpen(false)
-      fetchOrders()
-    } catch (err: any) {
-      console.error('Error updating order status:', err)
-      toast({
-        title: 'Error',
-        description: err.message || 'Failed to update order status',
-        variant: 'destructive',
-      })
-    }
+    setIsStatusModalOpen(false)
   }
 
   const handleExportOrders = async () => {
-    try {
-      // Build query parameters with current status filter
-      const params = new URLSearchParams()
-      if (statusFilter !== 'all') {
-        params.append('status', statusFilter)
-      }
-
-      // Open the export endpoint in a new tab to trigger download
-      const exportUrl = `/api/admin/orders/export${params.toString() ? '?' + params.toString() : ''}`
-      window.open(exportUrl, '_blank')
-
-      toast({
-        title: 'Export Started',
-        description: 'Your orders export is being downloaded',
-      })
-    } catch (error) {
-      console.error('Export error:', error)
-      toast({
-        title: 'Export Failed',
-        description: 'Failed to export orders. Please try again.',
-        variant: 'destructive',
-      })
-    }
+    exportOrders({ status: statusFilter === 'all' ? undefined : statusFilter })
   }
 
   const formatDate = (date: Date | string) => {
@@ -286,7 +200,7 @@ export default function OrdersPage() {
           <h1 className="text-2xl font-bold text-gray-900">Orders</h1>
           <p className="text-sm text-gray-500 mt-1">Manage customer orders and shipments</p>
         </div>
-        <Button variant="outline" onClick={handleExportOrders} aria-label="Export orders to CSV">
+        <Button variant="outline" onClick={handleExportOrders}>
           <Download className="h-4 w-4 mr-2" />
           Export Orders (CSV)
         </Button>
@@ -325,10 +239,10 @@ export default function OrdersPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-gray-500">Processing</p>
-                <p className="text-2xl font-bold text-violet-600 mt-1">{stats.processing}</p>
+                <p className="text-2xl font-bold text-blue-600 mt-1">{stats.processing}</p>
               </div>
-              <div className="h-8 w-8 rounded-full bg-violet-100 flex items-center justify-center">
-                <Package className="h-4 w-4 text-violet-600" />
+              <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                <Package className="h-4 w-4 text-blue-600" />
               </div>
             </div>
           </CardContent>
@@ -352,39 +266,179 @@ export default function OrdersPage() {
       {/* Orders Table */}
       <Card className="border-0 shadow-lg">
         <CardHeader className="space-y-4">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search orders..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-                aria-label="Search orders"
-              />
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search orders..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="PENDING">Pending</SelectItem>
+                  <SelectItem value="CONFIRMED">Confirmed</SelectItem>
+                  <SelectItem value="PROCESSING">Processing</SelectItem>
+                  <SelectItem value="SHIPPED">Shipped</SelectItem>
+                  <SelectItem value="DELIVERED">Delivered</SelectItem>
+                  <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                  <SelectItem value="REFUNDED">Refunded</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                className="w-full sm:w-auto"
+              >
+                <Filter className="h-4 w-4 mr-2" />
+                Filters
+                {showAdvancedFilters ? (
+                  <ChevronDown className="h-4 w-4 ml-2" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 ml-2 rotate-180" />
+                )}
+                {(dateFrom || dateTo) && (
+                  <Badge variant="secondary" className="ml-2 h-5">
+                    {dateFrom && dateTo ? '2' : '1'}
+                  </Badge>
+                )}
+              </Button>
+              <Button variant="outline" onClick={() => refetch()} disabled={isLoading}>
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              </Button>
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="PENDING">Pending</SelectItem>
-                <SelectItem value="CONFIRMED">Confirmed</SelectItem>
-                <SelectItem value="PROCESSING">Processing</SelectItem>
-                <SelectItem value="SHIPPED">Shipped</SelectItem>
-                <SelectItem value="DELIVERED">Delivered</SelectItem>
-                <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                <SelectItem value="REFUNDED">Refunded</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline" onClick={fetchOrders} disabled={loading}>
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            </Button>
+
+            {/* Advanced Date Range Filters */}
+            {showAdvancedFilters && (
+              <div className="flex flex-col sm:flex-row gap-4 p-4 bg-gray-50 rounded-lg">
+                <div className="flex-1">
+                  <label className="text-sm font-medium mb-2 block">Date Range</label>
+                  <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          'w-full justify-start text-left font-normal',
+                          !dateFrom && !dateTo && 'text-muted-foreground'
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dateFrom ? (
+                          dateTo ? (
+                            <>
+                              {format(dateFrom, 'LLL dd, y')} - {format(dateTo, 'LLL dd, y')}
+                            </>
+                          ) : (
+                            format(dateFrom, 'LLL dd, y')
+                          )
+                        ) : (
+                          <span>Pick a date range</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-3" align="start">
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setDateFrom(subDays(new Date(), 7))
+                              setDateTo(new Date())
+                            }}
+                          >
+                            Last 7 days
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setDateFrom(subDays(new Date(), 30))
+                              setDateTo(new Date())
+                            }}
+                          >
+                            Last 30 days
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setDateFrom(subDays(new Date(), 90))
+                              setDateTo(new Date())
+                            }}
+                          >
+                            Last 90 days
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const today = new Date()
+                              setDateFrom(new Date(today.getFullYear(), today.getMonth(), 1))
+                              setDateTo(new Date(today.getFullYear(), today.getMonth() + 1, 0))
+                            }}
+                          >
+                            This month
+                          </Button>
+                        </div>
+                        <Calendar
+                          mode="range"
+                          selected={{
+                            from: dateFrom,
+                            to: dateTo,
+                          }}
+                          onSelect={(range) => {
+                            setDateFrom(range?.from)
+                            setDateTo(range?.to)
+                          }}
+                          numberOfMonths={2}
+                        />
+                        {(dateFrom || dateTo) && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setDateFrom(undefined)
+                              setDateTo(undefined)
+                            }}
+                            className="w-full"
+                          >
+                            <X className="h-4 w-4 mr-2" />
+                            Clear date range
+                          </Button>
+                        )}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="flex items-end">
+                  {(dateFrom || dateTo) && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setDateFrom(undefined)
+                        setDateTo(undefined)
+                      }}
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Reset
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {isLoading ? (
             <div className="space-y-4">
               {[...Array(8)].map((_, i) => (
                 <div key={i} className="flex items-center gap-4 p-4 border-b">
@@ -531,7 +585,7 @@ export default function OrdersPage() {
 
               {/* Tracking Information */}
               {(selectedOrder.trackingNumber || selectedOrder.trackingStatus || selectedOrder.estimatedDeliveryDate) && (
-                <div className="bg-violet-50 p-4 rounded-lg">
+                <div className="bg-blue-50 p-4 rounded-lg">
                   <h3 className="font-semibold mb-3 text-gray-900">Tracking Information</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
                     {selectedOrder.trackingNumber && (

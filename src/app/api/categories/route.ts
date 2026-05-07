@@ -23,8 +23,8 @@ export async function GET(request: Request) {
 
     const response = NextResponse.json(transformedCategories);
 
-    // Add caching headers for categories (very long cache as they rarely change)
-    return addCacheHeaders(response, CachePresets.STATIC);
+    // Add caching headers for categories (semi-static - 10 minutes)
+    return addCacheHeaders(response, CachePresets.SEMI_STATIC);
   } catch (error) {
     console.error('Error fetching categories:', error);
     return NextResponse.json(

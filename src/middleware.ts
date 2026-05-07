@@ -244,13 +244,19 @@ export async function middleware(request: NextRequest) {
     return response
   }
 
-  // For API routes, prevent caching by default
+  // For API routes, let individual routes set their own cache headers
+  // Only set no-cache headers if the response doesn't already have Cache-Control
   if (isApiRoute) {
-    const response = createSecureResponse(NextResponse.next())
-    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
-    response.headers.set('Pragma', 'no-cache')
-    response.headers.set('Expires', '0')
-    return response
+    const response = createSecureResponse(NextResponse.next());
+    
+    // Only set no-cache headers if not already set by the API route
+    if (!response.headers.has('Cache-Control')) {
+      response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      response.headers.set('Pragma', 'no-cache');
+      response.headers.set('Expires', '0');
+    }
+    
+    return response;
   }
 
   return createSecureResponse(NextResponse.next())

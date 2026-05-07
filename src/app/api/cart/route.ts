@@ -6,6 +6,7 @@ import { CartRepository } from '@/db/cart.repository';
 import { parseJSON, queryFirst, queryAll } from '@/db/db';
 import { csrfMiddleware } from '@/lib/csrf';
 import { sanitizeForDB } from '@/lib/sanitize';
+import { addCacheHeaders, CachePresets } from '@/lib/http-cache';
 
 
 /**
@@ -85,20 +86,26 @@ export async function GET(request: NextRequest) {
 
         const validItems = formattedItems.filter(item => item !== null);
 
-        return NextResponse.json({
+        const response = NextResponse.json({
           success: true,
           items: validItems,
           source: 'database',
         });
+
+        // Add caching headers for cart (user-specific - 2 minutes, private)
+        return addCacheHeaders(response, CachePresets.PRIVATE);
       }
     }
 
     // For guest users, return empty cart (client-side uses localStorage)
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       items: [],
       source: 'guest',
     });
+
+    // Add caching headers for guest cart (no cache)
+    return addCacheHeaders(response, CachePresets.NO_CACHE);
   } catch (error) {
     console.error('Cart fetch error:', error);
     return NextResponse.json(

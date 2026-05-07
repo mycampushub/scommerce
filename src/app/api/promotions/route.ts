@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
 import { queryAll, numberToBool, parseJSON } from '@/db/db'
+import { addCacheHeaders, CachePresets } from '@/lib/http-cache'
 
 
 export async function GET() {
@@ -22,10 +23,13 @@ export async function GET() {
       ...(promo.applicableCategories ? { applicableCategories: parseJSON(promo.applicableCategories) } : {}),
     }))
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       data: transformedPromotions
     })
+
+    // Add caching headers for promotions (static content - 1 hour)
+    return addCacheHeaders(response, CachePresets.STATIC);
   } catch (error) {
     console.error('Error fetching promotions:', error)
     // Return empty array on error instead of failing

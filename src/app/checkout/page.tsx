@@ -132,7 +132,7 @@ export default function CheckoutPage() {
           
           if (item.variantId) {
             // Check variant stock
-            const variant = product.variants?.find(v => v.id === item.variantId)
+            const variant = product.variants?.find((v: any) => v.id === item.variantId)
             stock = variant?.stock || 0
           } else {
             // Check product stock

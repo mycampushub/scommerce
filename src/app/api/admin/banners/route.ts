@@ -7,12 +7,6 @@ import { csrfMiddleware } from '@/lib/csrf'
 
 
 export async function GET(request: NextRequest) {
-  // Verify admin authentication
-  const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff'])
-  if (userOrResponse instanceof NextResponse) {
-    return userOrResponse
-  }
-
   try {
     const env = getEnv()
     const searchParams = request.nextUrl.searchParams

@@ -65,8 +65,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to fetch homepage settings',
-        details: error instanceof Error ? error.message : 'Unknown error occurred'
+        error: 'Failed to fetch homepage settings'
       },
       { status: 500 }
     )
@@ -233,7 +232,7 @@ export async function PUT(request: NextRequest) {
     const settingsWithParsedData = updatedSettings.map((s: any) => ({
       ...s,
       settings: parseJSON<any>(s.settings) || null,
-      isEnabled: typeof s.isEnabled === 'boolean' ? s.isEnabled : numberToBool(s.isEnabled),
+      isEnabled: typeof s.isEnabled === 'boolean' ? s.isEnabled : numberToBool(s.isActive),
     }))
 
     return NextResponse.json({
@@ -245,8 +244,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to update homepage settings',
-        details: error instanceof Error ? error.message : 'Unknown error occurred'
+        error: 'Failed to update homepage settings'
       },
       { status: 500 }
     )

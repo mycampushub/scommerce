@@ -387,7 +387,6 @@ export default function CategoriesPage() {
         <Button
           className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
           onClick={() => setIsAddModalOpen(true)}
-          aria-label="Add new category"
         >
           <Plus className="h-4 w-4 mr-2" />
           Add Category
@@ -441,10 +440,10 @@ export default function CategoriesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-gray-500">Total Products</p>
-                <p className="text-2xl font-bold text-violet-600 mt-1">{stats.products}</p>
+                <p className="text-2xl font-bold text-blue-600 mt-1">{stats.products}</p>
               </div>
-              <div className="h-8 w-8 rounded-full bg-violet-100 flex items-center justify-center">
-                <TrendingUp className="h-4 w-4 text-violet-600" />
+              <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                <TrendingUp className="h-4 w-4 text-blue-600" />
               </div>
             </div>
           </CardContent>
@@ -464,7 +463,7 @@ export default function CategoriesPage() {
                 className="pl-10"
               />
             </div>
-            <Button variant="outline" onClick={fetchCategories} disabled={loading} aria-label="Refresh categories list">
+            <Button variant="outline" onClick={fetchCategories} disabled={loading}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             </Button>
           </div>

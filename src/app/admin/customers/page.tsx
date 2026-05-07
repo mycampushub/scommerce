@@ -18,16 +18,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogAction,
-  AlertDialogCancel,
-} from '@/components/ui/alert-dialog'
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -100,13 +90,6 @@ export default function CustomersPage() {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [customerOrders, setCustomerOrders] = useState<any[]>([])
   const [loadingOrders, setLoadingOrders] = useState(false)
-  const [isConfirming, setIsConfirming] = useState(false)
-  // Confirmation dialog state
-  const [confirmAction, setConfirmAction] = useState<{
-    type: 'ban' | 'unban' | 'delete' | null
-    customer: Customer | null
-    isOpen: boolean
-  }>({ type: null, customer: null, isOpen: false })
 
   // Form state
   const [addFormData, setAddFormData] = useState({
@@ -153,7 +136,7 @@ export default function CustomersPage() {
 
   useEffect(() => {
     fetchCustomers()
-  }, [statusFilter])
+  }, [])
 
   const openAddModal = () => {
     setAddFormData({
@@ -307,34 +290,9 @@ export default function CustomersPage() {
   }
 
   const handleBanCustomer = async (customer: Customer) => {
-    setConfirmAction({
-      type: 'ban',
-      customer,
-      isOpen: true,
-    })
-  }
-
-  const handleUnbanCustomer = async (customer: Customer) => {
-    setConfirmAction({
-      type: 'unban',
-      customer,
-      isOpen: true,
-    })
-  }
-
-  const handleDeleteCustomer = async (customer: Customer) => {
-    setConfirmAction({
-      type: 'delete',
-      customer,
-      isOpen: true,
-    })
-  }
-
-  // Confirmation Dialog Actions
-  const confirmBanAction = async () => {
-    if (!confirmAction || !confirmAction.customer) return
-    const { customer } = confirmAction
-    setIsConfirming(true)
+    if (!confirm(`Are you sure you want to ban ${customer.name}? This action will prevent them from placing orders.`)) {
+      return
+    }
 
     try {
       const response = await fetch(`/api/admin/customers/${customer.id}`, {
@@ -354,7 +312,6 @@ export default function CustomersPage() {
           title: 'Success',
           description: `${customer.name} has been banned`,
         })
-        setConfirmAction({ type: null, customer: null, isOpen: false })
         fetchCustomers()
       } else {
         toast({
@@ -370,16 +327,10 @@ export default function CustomersPage() {
         description: err.message || 'Failed to ban customer',
         variant: 'destructive',
       })
-    } finally {
-      setIsConfirming(false)
     }
   }
 
-  const confirmUnbanAction = async () => {
-    if (!confirmAction || !confirmAction.customer) return
-    const { customer } = confirmAction
-    setIsConfirming(true)
-
+  const handleUnbanCustomer = async (customer: Customer) => {
     try {
       const response = await fetch(`/api/admin/customers/${customer.id}`, {
         method: 'PUT',
@@ -398,7 +349,6 @@ export default function CustomersPage() {
           title: 'Success',
           description: `${customer.name} has been unbanned`,
         })
-        setConfirmAction({ type: null, customer: null, isOpen: false })
         fetchCustomers()
       } else {
         toast({
@@ -414,15 +364,13 @@ export default function CustomersPage() {
         description: err.message || 'Failed to unban customer',
         variant: 'destructive',
       })
-    } finally {
-      setIsConfirming(false)
     }
   }
 
-  const confirmDeleteAction = async () => {
-    if (!confirmAction || !confirmAction.customer) return
-    const { customer } = confirmAction
-    setIsConfirming(true)
+  const handleDeleteCustomer = async (customer: Customer) => {
+    if (!confirm(`Are you sure you want to delete ${customer.name}? This action cannot be undone.`)) {
+      return
+    }
 
     try {
       const response = await fetch(`/api/admin/customers/${customer.id}`, {
@@ -434,9 +382,8 @@ export default function CustomersPage() {
       if (result.success) {
         toast({
           title: 'Success',
-          description: `${customer.name} has been deleted`,
+          description: 'Customer deleted successfully',
         })
-        setConfirmAction({ type: null, customer: null, isOpen: false })
         fetchCustomers()
       } else {
         toast({
@@ -452,59 +399,6 @@ export default function CustomersPage() {
         description: err.message || 'Failed to delete customer',
         variant: 'destructive',
       })
-    } finally {
-      setIsConfirming(false)
-    }
-  }
-
-  const getConfirmDialogProps = () => {
-    if (!confirmAction || !confirmAction.isOpen || !confirmAction.customer) return null
-
-    const { type, customer } = confirmAction
-    let title = ''
-    let description = ''
-    let actionLabel = ''
-
-    switch (type) {
-      case 'ban':
-        title = 'Ban Customer'
-        description = `Are you sure you want to ban ${customer.name}? This action will prevent them from placing orders.`
-        actionLabel = 'Ban'
-        break
-      case 'unban':
-        title = 'Unban Customer'
-        description = `Are you sure you want to unban ${customer.name}? They will be able to place orders again.`
-        actionLabel = 'Unban'
-        break
-      case 'delete':
-        title = 'Delete Customer'
-        description = `Are you sure you want to delete ${customer.name}? This action cannot be undone.`
-        actionLabel = 'Delete'
-        break
-    }
-
-    return {
-      isOpen: confirmAction.isOpen,
-      onOpenChange: (open: boolean) => {
-        if (!open) setConfirmAction({ type: null, customer: null, isOpen: false })
-      },
-      title,
-      description,
-      onConfirm: () => {
-        switch (type) {
-          case 'ban':
-            confirmBanAction()
-            break
-          case 'unban':
-            confirmUnbanAction()
-            break
-          case 'delete':
-            confirmDeleteAction()
-            break
-        }
-      },
-      confirmButtonLabel: actionLabel,
-      variant: type === 'delete' ? 'destructive' : 'default',
     }
   }
 
@@ -546,7 +440,7 @@ export default function CustomersPage() {
         customer.phone || '',
         customer.address || '',
         customer.orders || 0,
-        customer.totalSpent && typeof customer.totalSpent === 'number' ? customer.totalSpent.toFixed(2) : '0.00',
+        customer.totalSpent.toFixed(2),
         customer.status,
         customer.isVIP ? 'Yes' : 'No',
         formatDate(customer.joined),
@@ -567,8 +461,6 @@ export default function CustomersPage() {
     })
   }
 
-  const dialogProps = getConfirmDialogProps()
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -578,11 +470,11 @@ export default function CustomersPage() {
           <p className="text-sm text-gray-500 mt-1">Manage customer accounts and relationships</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={exportCustomers} aria-label="Export customers to CSV">
+          <Button variant="outline">
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
-          <Button className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700" onClick={openAddModal} aria-label="Add new customer">
+          <Button className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700">
             <Plus className="h-4 w-4 mr-2" />
             Add Customer
           </Button>
@@ -694,7 +586,6 @@ export default function CustomersPage() {
                   <TableHead className="font-semibold text-gray-700">Contact</TableHead>
                   <TableHead className="font-semibold text-gray-700">Orders</TableHead>
                   <TableHead className="font-semibold text-gray-700">Total Spent</TableHead>
-                  <TableHead className="font-semibold text-gray-700">Joined</TableHead>
                   <TableHead className="font-semibold text-gray-700">Status</TableHead>
                   <TableHead className="font-semibold text-gray-700">VIP</TableHead>
                   <TableHead className="text-right font-semibold text-gray-700">Actions</TableHead>
@@ -729,9 +620,6 @@ export default function CustomersPage() {
                         <Skeleton className="h-6 w-20" />
                       </TableCell>
                       <TableCell>
-                        <Skeleton className="h-6 w-20" />
-                      </TableCell>
-                      <TableCell>
                         <Skeleton className="h-6 w-12" />
                       </TableCell>
                       <TableCell className="text-right">
@@ -741,7 +629,7 @@ export default function CustomersPage() {
                   ))
                 ) : filteredCustomers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="h-24">
+                    <TableCell colSpan={7} className="h-24">
                       <div className="text-center py-12">
                         <div className="flex flex-col items-center gap-3">
                           <Users className="h-12 w-12 text-gray-300 mx-auto mb-3" />
@@ -791,9 +679,7 @@ export default function CustomersPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="font-semibold text-gray-900">
-                          ${typeof customer.totalSpent === 'number' ? customer.totalSpent.toFixed(2) : '0.00'}
-                        </div>
+                        <div className="font-semibold text-gray-900">${customer.totalSpent.toFixed(2)}</div>
                       </TableCell>
                       <TableCell>
                         <p className="text-sm text-gray-900">{formatDate(customer.joined)}</p>
@@ -805,16 +691,6 @@ export default function CustomersPage() {
                         >
                           {customer.status.charAt(0).toUpperCase() + customer.status.slice(1)}
                         </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {customer.isVIP ? (
-                          <Badge variant="outline" className="bg-yellow-100 text-yellow-700 border-yellow-300">
-                            <Star className="h-3 w-3 mr-1 fill-current" />
-                            Yes
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary">No</Badge>
-                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
@@ -872,10 +748,16 @@ export default function CustomersPage() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Add New Customer</DialogTitle>
-            <DialogDescription>
-              Create a new customer account
-            </DialogDescription>
           </DialogHeader>
+          <DialogDescription>
+            Create a new customer account
+          </DialogDescription>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
+            <Button onClick={handleAddCustomer}>
+              Add Customer
+            </Button>
+          </DialogFooter>
           <form onSubmit={handleAddCustomer} className="space-y-4">
             <div>
               <Label htmlFor="name">Name *</Label>
@@ -918,12 +800,6 @@ export default function CustomersPage() {
                 rows={3}
               />
             </div>
-            <DialogFooter>
-              <Button variant="outline" type="button" onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
-              <Button type="submit">
-                Add Customer
-              </Button>
-            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
@@ -933,10 +809,16 @@ export default function CustomersPage() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Edit Customer</DialogTitle>
-            <DialogDescription>
-              Update customer information
-            </DialogDescription>
           </DialogHeader>
+          <DialogDescription>
+            Update customer information
+          </DialogDescription>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
+            <Button onClick={handleUpdateCustomer}>
+              Update Customer
+            </Button>
+          </DialogFooter>
           <form onSubmit={handleUpdateCustomer} className="space-y-4">
             <div>
               <Label htmlFor="edit-name">Name *</Label>
@@ -981,7 +863,7 @@ export default function CustomersPage() {
             </div>
             <div>
               <Label htmlFor="edit-status">Status</Label>
-              <Select value={editFormData.status} onValueChange={(value) => setEditFormData({ ...editFormData, status: value as 'active' | 'inactive' | 'banned' })}>
+              <Select value={editFormData.status} onValueChange={(value) => setEditFormData({ ...editFormData, status: value })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -1002,12 +884,6 @@ export default function CustomersPage() {
                 <span className="text-sm font-medium">Mark as VIP</span>
               </label>
             </div>
-            <DialogFooter>
-              <Button variant="outline" type="button" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
-              <Button type="submit">
-                Update Customer
-              </Button>
-            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
@@ -1017,39 +893,42 @@ export default function CustomersPage() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Customer Details</DialogTitle>
-            <DialogDescription>
-              View complete customer information and order history
-            </DialogDescription>
           </DialogHeader>
+          <DialogDescription>
+            View complete customer information and order history
+          </DialogDescription>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDetailModalOpen(false)}>Close</Button>
+            <Button onClick={() => openEditModal(selectedCustomer!)}>Edit</Button>
+          </DialogFooter>
           {selectedCustomer && (
             <div className="space-y-6">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="h-16 w-16 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center text-white font-semibold text-xl">
-                  {selectedCustomer.name.substring(0, 2)}
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="h-16 w-16 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center text-white font-semibold text-xl">
+                    {selectedCustomer.name.substring(0, 2)}
+                  </div>
+                  {selectedCustomer.isVIP && (
+                    <Badge variant="outline" className="bg-yellow-100 text-yellow-700 border-yellow-300">
+                      <Star className="h-3 w-3 mr-1 fill-current" />
+                      VIP Customer
+                    </Badge>
+                  )}
                 </div>
-                {selectedCustomer.isVIP && (
-                  <Badge variant="outline" className="bg-yellow-100 text-yellow-700 border-yellow-300">
-                    <Star className="h-3 w-3 mr-1 fill-current" />
-                    VIP Customer
-                  </Badge>
-                )}
-              </div>
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Email</p>
-                    <p className="text-sm text-gray-900">{selectedCustomer.email}</p>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Email</p>
+                      <p className="text-sm text-gray-900">{selectedCustomer.email}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Phone</p>
+                      <p className="text-sm text-gray-900">{selectedCustomer.phone || 'Not provided'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Address</p>
+                      <p className="text-sm text-gray-900 break-all-words">{selectedCustomer.address || 'Not provided'}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Phone</p>
-                    <p className="text-sm text-gray-900">{selectedCustomer.phone || 'Not provided'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Address</p>
-                    <p className="text-sm text-gray-900 break-all-words">{selectedCustomer.address || 'Not provided'}</p>
-                  </div>
-                </div>
-                <div className="space-y-4">
                   <div>
                     <p className="text-sm font-medium text-gray-500">Status</p>
                     <Badge
@@ -1065,9 +944,7 @@ export default function CustomersPage() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-500">Total Spent</p>
-                    <p className="text-sm font-medium text-gray-900">
-                      ${typeof selectedCustomer.totalSpent === 'number' ? selectedCustomer.totalSpent.toFixed(2) : '0.00'}
-                    </p>
+                    <p className="text-sm font-medium text-gray-900">${selectedCustomer.totalSpent.toFixed(2)}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-500">Joined Date</p>
@@ -1081,37 +958,9 @@ export default function CustomersPage() {
                   </div>
                 </div>
               </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDetailModalOpen(false)}>Close</Button>
-            <Button onClick={() => openEditModal(selectedCustomer!)}>Edit</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Confirmation AlertDialog */}
-      {dialogProps && (
-        <AlertDialog {...dialogProps}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{dialogProps.title}</AlertDialogTitle>
-              <AlertDialogDescription>{dialogProps.description}</AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={isConfirming}>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={dialogProps.onConfirm}
-                disabled={isConfirming}
-                className={dialogProps.variant === 'destructive' ? 'bg-red-600 hover:bg-red-700' : ''}
-              >
-                {isConfirming ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                {dialogProps.confirmButtonLabel}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      )}
+            )}
+          </DialogContent>
+        </Dialog>
     </div>
   )
 }

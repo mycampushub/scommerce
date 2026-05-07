@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
 import { queryAll } from '@/db/db'
 import { parseJSON } from '@/db/db'
+import { addCacheHeaders, CachePresets } from '@/lib/http-cache'
 
 
 /**
@@ -19,13 +20,16 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10')
 
     if (query.length < 2) {
-      return NextResponse.json({
+      const response = NextResponse.json({
         success: true,
         data: {
           products: [],
           categories: [],
         },
       })
+
+      // Add caching headers for empty autocomplete results (short cache)
+      return addCacheHeaders(response, CachePresets.SHORT);
     }
 
     // Search for products matching query
@@ -86,7 +90,7 @@ export async function GET(request: NextRequest) {
       ...formattedCategories.slice(0, 5),
     ].slice(0, limit)
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       data: {
         products: formattedProducts,
@@ -94,6 +98,9 @@ export async function GET(request: NextRequest) {
         combined: combinedResults,
       },
     })
+
+    // Add caching headers for search autocomplete (short cache - 1 minute)
+    return addCacheHeaders(response, CachePresets.SHORT);
   } catch (error) {
     console.error('Search autocomplete error:', error)
     return NextResponse.json(

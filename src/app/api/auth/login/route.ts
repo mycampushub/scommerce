@@ -6,6 +6,7 @@ import { loginSchema } from '@/lib/validations';
 import { UserRepository } from '@/db/user.repository';
 import { getEnv } from '@/lib/cloudflare';
 import { numberToBool } from '@/db/db';
+import { logger } from '@/lib/logger';
 import type { Env } from '@/db/types';
 
 export async function POST(request: NextRequest) {
@@ -13,14 +14,14 @@ export async function POST(request: NextRequest) {
   try {
     env = getEnv() as Env | null;
     if (!env || !env.DB) {
-      console.error('[login] Database not available - env:', env);
+      logger.error('Database not available - env', { env: env ? 'defined' : 'undefined' }, new Error('Database not available'));
       return NextResponse.json(
         { success: false, error: 'Database connection error. Please try again later.' },
         { status: 500 }
       );
     }
   } catch (error) {
-    console.error('[login] Error getting environment:', error);
+    logger.error('Error getting environment', { error: error?.toString() }, error as Error);
     return NextResponse.json(
       { success: false, error: 'Configuration error. Please contact support.' },
       { status: 500 }
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
 
     const user = await UserRepository.findByEmail(env, email);
 
-    console.log('[login] Found user:', {
+    logger.debug('Found user', {
       email: user?.email,
       hasPassword: !!user?.password,
       emailVerified: user?.emailVerified,
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user) {
-      console.log('[login] User not found:', email);
+      logger.warn('User not found', { email });
       return NextResponse.json(
         { success: false, error: 'Invalid email or password' },
         { status: 401 }
@@ -82,7 +83,7 @@ export async function POST(request: NextRequest) {
     }
 
     const isValidPassword = await bcrypt.compare(password, user.password);
-    console.log('[login] Password validation:', { isValidPassword, email });
+    logger.debug('Password validation', { isValidPassword, email });
 
     if (!isValidPassword) {
       return NextResponse.json(
@@ -115,7 +116,10 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error) {
-    console.error('Login error:', error);
+    logger.logApiError('POST', '/api/auth/login', error as Error, 500, undefined, undefined, {
+      email,
+      ip: clientIp
+    });
     return NextResponse.json(
       { success: false, error: 'Login failed. Please try again.' },
       { status: 500 }

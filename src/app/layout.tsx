@@ -7,6 +7,7 @@ import { OrganizationStructuredData } from "@/components/product-structured-data
 import { AnalyticsScripts, SearchConsoleVerification } from "@/components/analytics-scripts";
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
 import { CacheProvider } from "@/components/providers/CacheProvider";
+import { QueryProvider } from "@/components/providers/query-provider";
 
 const inter = Inter({
   variable: "--font-geist-sans",
@@ -86,13 +87,15 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} antialiased bg-background text-foreground`}
       >
-        <CacheProvider>
-          <AnalyticsScripts />
-          <ServiceWorkerRegistration />
-          {children}
-          <Toaster />
-          <SonnerToaster position="top-center" />
-        </CacheProvider>
+        <QueryProvider>
+          <CacheProvider>
+            <AnalyticsScripts />
+            <ServiceWorkerRegistration />
+            {children}
+            <Toaster />
+            <SonnerToaster position="top-center" />
+          </CacheProvider>
+        </QueryProvider>
       </body>
     </html>
   );

@@ -19,8 +19,8 @@ export async function GET(request: NextRequest) {
       data: settings
     });
 
-    // Add caching headers for settings
-    return addCacheHeaders(response, CachePresets.SEMI_STATIC);
+    // Add caching headers for settings (long-term static - 24 hours)
+    return addCacheHeaders(response, CachePresets.LONG_TERM);
   } catch (error) {
     console.error('Error fetching settings:', error);
     return NextResponse.json(

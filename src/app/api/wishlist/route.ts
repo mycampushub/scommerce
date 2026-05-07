@@ -6,6 +6,7 @@ import { CategoryRepository } from '@/db/category.repository'
 import { queryAll, queryFirst, execute, parseJSON, numberToBool, generateSecureId } from '@/db/db'
 import { csrfMiddleware } from '@/lib/csrf'
 import { sanitizeForDB } from '@/lib/sanitize'
+import { addCacheHeaders, CachePresets } from '@/lib/http-cache'
 
 
 // GET /api/wishlist - Get user's wishlist
@@ -66,7 +67,10 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    return NextResponse.json({ success: true, data: transformedItems })
+    const response = NextResponse.json({ success: true, data: transformedItems })
+
+    // Add caching headers for wishlist (user-specific - 2 minutes, private)
+    return addCacheHeaders(response, CachePresets.PRIVATE);
   } catch (error) {
     console.error('Error fetching wishlist:', error)
     return NextResponse.json(

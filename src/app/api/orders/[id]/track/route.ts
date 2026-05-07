@@ -148,7 +148,7 @@ function generateTrackingTimeline(order: any) {
   }
 
   if (['SHIPPED', 'DELIVERED'].includes(order.status) && order.trackingStatus) {
-    const trackingStatuses = {
+    const trackingStatuses: Record<string, string> = {
       PENDING: 'Awaiting pickup',
       IN_TRANSIT: 'In transit',
       OUT_FOR_DELIVERY: 'Out for delivery',

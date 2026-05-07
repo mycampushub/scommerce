@@ -21,32 +21,6 @@ export type AlertType = 'LOW_STOCK' | 'OUT_OF_STOCK' | 'REORDER_NEEDED';
 
 export type DiscountType = 'percentage' | 'fixed';
 
-// ============================================================================
-// PRODUCT PRICING TYPES DOCUMENTATION
-// ============================================================================
-// Products and variants use multiple price fields for different purposes:
-//
-// basePrice (number): The original/reference price before any discounts.
-//   - Baseline for internal calculations and profit margins
-//   - Should not change unless base cost changes
-//
-// price (number): The current selling price displayed to customers.
-//   - This is the price shown in the storefront UI
-//   - Formula: price = basePrice - discount
-//   - Updated when discounts are applied or removed
-//
-// comparePrice (number | null): Optional "original price" for marketing displays.
-//   - Shows crossed-out original price during sales
-//   - Used to create "save X%" messaging for customers
-//   - Example: Compare Price: ৳1000, Current Price: ৳750 (You save 25%)
-//
-// discount (number | null): Discount amount to subtract from basePrice.
-//   - Works with discountType to calculate final price
-//   - If discountType is "percentage": discount is percent (e.g., 25 for 25%)
-//   - If discountType is "fixed": discount is absolute amount (e.g., 100 for ৳100 off)
-//
-// ============================================================================
-
 export interface User {
   id: string;
   email: string;
@@ -308,22 +282,6 @@ export interface HomepageSettings {
   displayLimit: number | null;
   settings: string | null;
   updatedAt: string;
-}
-
-/**
- * Cloudflare D1 Result type
- * Used for batch/transaction operations
- */
-export interface D1Result {
-  success: boolean;
-  meta: {
-    duration: number;
-    last_row_id: number | null;
-    rows_read: number;
-    rows_written: number;
-    changes: number;
-    served_by: string;
-  };
 }
 
 // Database context type - use Cloudflare types from worker-configuration.d.ts
