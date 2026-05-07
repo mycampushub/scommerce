@@ -16,20 +16,8 @@ export function getCloudflareBindings(): any {
 
   let bindings: any = null;
 
-  // Strategy 1: Try @opennextjs/cloudflare context
-  try {
-    const { getCloudflareContext } = require('@opennextjs/cloudflare');
-    const { env } = getCloudflareContext();
-    if (env && (env['DB'] || env['KV'] || env['BUCKET'])) {
-      console.log('[cloudflare-bindings] Found bindings via getCloudflareContext');
-      bindings = env;
-    }
-  } catch (error) {
-    console.debug('[cloudflare-bindings] getCloudflareContext not available:', error);
-  }
-
-  // Strategy 2: Try global Cloudflare workers runtime (fallback)
-  if (!bindings && typeof globalThis !== 'undefined') {
+  // Strategy 1: Try global Cloudflare workers runtime
+  if (typeof globalThis !== 'undefined') {
     try {
       // Some Cloudflare runtimes expose bindings through globalThis
       if ((globalThis as any).env && ((globalThis as any).env['DB'] || (globalThis as any).env['KV'] || (globalThis as any).env['BUCKET'])) {
@@ -41,7 +29,7 @@ export function getCloudflareBindings(): any {
     }
   }
 
-  // Strategy 3: Try process.env (for some deployment scenarios)
+  // Strategy 2: Try process.env (for some deployment scenarios)
   if (!bindings && typeof process !== 'undefined' && process.env) {
     // Check if bindings are passed through environment
     const hasDB = process.env.CLOUDFLARE_D1_DATABASE;
@@ -58,7 +46,7 @@ export function getCloudflareBindings(): any {
     }
   }
 
-  // Cache the bindings
+  // Cache bindings
   if (bindings) {
     cachedBindings = bindings;
   }
@@ -67,7 +55,7 @@ export function getCloudflareBindings(): any {
 }
 
 /**
- * Get the D1 database binding
+ * Get D1 database binding
  */
 export function getDB(): any {
   const bindings = getCloudflareBindings();
@@ -75,7 +63,7 @@ export function getDB(): any {
 }
 
 /**
- * Get the KV namespace binding
+ * Get KV namespace binding
  */
 export function getKV(): any {
   const bindings = getCloudflareBindings();
@@ -83,7 +71,7 @@ export function getKV(): any {
 }
 
 /**
- * Get the R2 bucket binding
+ * Get R2 bucket binding
  */
 export function getR2Bucket(): any {
   const bindings = getCloudflareBindings();

@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
           list: 'failed',
           error: r2Error.message
         }
-        results.errors.push(`R2 operation error: ${r2.message}`)
+        results.errors.push(`R2 operation error: ${r2Error.message}`)
       }
     } else {
       results.bindings.BUCKET = 'NOT FOUND'

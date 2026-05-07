@@ -1,11 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getEnv } from '@/lib/cloudflare';
 
 /**
  * Health check endpoint
  * Useful for debugging database and environment issues
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   const env = getEnv(request);
 
   const health = {
