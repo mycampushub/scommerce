@@ -4,8 +4,7 @@ import {
   getEnv as getCloudflareBindingsEnv,
   isCloudflareEnv as isBindingsCloudflareEnv,
 } from './cloudflare-bindings';
-import { getEnvFromRequest } from './get-request-env';
-import { getOpenNextBindings } from './opennext-bindings';
+import { extractBindingsFromRequest } from './bindings-extractor';
 
 /**
  * Get D1 database from Cloudflare context
@@ -15,7 +14,7 @@ export function getDB(request?: Request): any | null {
   try {
     // First, try the request-scoped bindings (most reliable for API routes)
     if (request) {
-      const requestEnv = getEnvFromRequest(request);
+      const requestEnv = extractBindingsFromRequest(request);
       if (requestEnv && requestEnv['DB']) {
         console.log('[cloudflare.ts] Using Cloudflare D1 database from request');
         return requestEnv['DB'];
@@ -50,7 +49,7 @@ export function getEnv(request?: Request): any | null {
   try {
     // Strategy 1: Try the request-scoped bindings (most reliable for API routes)
     if (request) {
-      const requestEnv = getEnvFromRequest(request);
+      const requestEnv = extractBindingsFromRequest(request);
       if (requestEnv && (requestEnv['DB'] || requestEnv['KV'] || requestEnv['BUCKET'])) {
         console.log('[getEnv] Using Cloudflare bindings from request', {
           hasDB: !!requestEnv['DB'],
@@ -61,18 +60,7 @@ export function getEnv(request?: Request): any | null {
       }
     }
 
-    // Strategy 2: Try OpenNext.js-specific bindings
-    const openNextEnv = getOpenNextBindings();
-    if (openNextEnv && (openNextEnv['DB'] || openNextEnv['KV'] || openNextEnv['BUCKET'])) {
-      console.log('[getEnv] Using Cloudflare bindings from OpenNext.js', {
-        hasDB: !!openNextEnv['DB'],
-        hasKV: !!openNextEnv['KV'],
-        hasBUCKET: !!openNextEnv['BUCKET'],
-      });
-      return openNextEnv;
-    }
-
-    // Strategy 3: Try the robust Cloudflare bindings access
+    // Strategy 2: Try the robust Cloudflare bindings access
     const env = getCloudflareBindingsEnv();
     if (env && (env['DB'] || env['KV'] || env['BUCKET'])) {
       console.log('[getEnv] Using Cloudflare bindings (global)', {
