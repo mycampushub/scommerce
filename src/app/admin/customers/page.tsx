@@ -689,7 +689,7 @@ export default function CustomersPage() {
                           variant={customer.status === 'active' ? 'default' : customer.status === 'banned' ? 'destructive' : 'secondary'}
                           className={customer.status === 'active' ? 'bg-green-100 text-green-700' : customer.status === 'banned' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}
                         >
-                          {customer.status.charAt(0).toUpperCase() + customer.status.slice(1)}
+                          {(customer.status || 'unknown').charAt(0).toUpperCase() + (customer.status || 'unknown').slice(1)}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
@@ -935,7 +935,7 @@ export default function CustomersPage() {
                       variant={selectedCustomer.status === 'active' ? 'default' : selectedCustomer.status === 'banned' ? 'destructive' : 'secondary'}
                       className={selectedCustomer.status === 'active' ? 'bg-green-100 text-green-700' : selectedCustomer.status === 'banned' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}
                     >
-                      {selectedCustomer.status.charAt(0).toUpperCase() + selectedCustomer.status.slice(1)}
+                      {(selectedCustomer.status || 'unknown').charAt(0).toUpperCase() + (selectedCustomer.status || 'unknown').slice(1)}
                     </Badge>
                   </div>
                   <div>

@@ -44,10 +44,22 @@ export async function GET(request: NextRequest) {
     const customersWithCounts = await Promise.all(
       customers.map(async (customer) => {
         const orderCount = await count(env, 'SELECT COUNT(*) as count FROM orders WHERE userId = ?', customer.id)
+
+        // Compute status from isBanned and role
+        let status = 'active'
+        const isBanned = numberToBool(customer.isBanned as number)
+        if (isBanned) {
+          status = 'banned'
+        } else if (customer.role === 'admin' || customer.role === 'staff') {
+          status = 'admin'
+        }
+
         return {
           ...customer,
           _count: { orders: orderCount },
-          emailVerified: numberToBool(customer.emailVerified as number)
+          emailVerified: numberToBool(customer.emailVerified as number),
+          isBanned,
+          status, // Add computed status field
         }
       })
     )
