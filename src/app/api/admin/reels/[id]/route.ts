@@ -10,7 +10,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const env = getEnv(request)
+    const env = getEnv()
     const { id } = await params
     const reel = await ReelRepository.findById(env, id)
 
@@ -51,7 +51,7 @@ export async function PUT(
   }
 
   // Check CSRF protection
-  const env = getEnv(request)
+  const env = getEnv()
   const csrfError = await csrfMiddleware(request, env)
   if (csrfError) {
     return csrfError
@@ -159,7 +159,7 @@ export async function DELETE(
   }
 
   // Check CSRF protection
-  const env = getEnv(request)
+  const env = getEnv()
   const csrfError = await csrfMiddleware(request, env)
   if (csrfError) {
     return csrfError

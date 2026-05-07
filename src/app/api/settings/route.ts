@@ -9,7 +9,7 @@ import { addCacheHeaders, CachePresets } from '@/lib/http-cache';
  * Get site settings
  */
 export async function GET(request: NextRequest) {
-  const env = getEnv(request);
+  const env = getEnv();
 
   try {
     const settings = await SettingsRepository.getSettings(env);
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
  * Update site settings
  */
 export async function POST(request: NextRequest) {
-  const env = getEnv(request);
+  const env = getEnv();
 
   try {
     // Verify admin authentication

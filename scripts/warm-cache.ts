@@ -78,7 +78,7 @@ const PAGES_TO_WARM = {
 };
 
 // Popular product slugs to warm (can be extended or fetched from database)
-const POPULAR_PRODUCTS: string[] = [
+const POPULAR_PRODUCTS = [
   // Add your most popular product slugs here
   // Example: '/product/elegant-silk-saree-123',
 ];

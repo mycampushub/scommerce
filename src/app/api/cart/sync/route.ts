@@ -15,7 +15,7 @@ import { cartItemSchema } from '@/lib/validations'
  */
 export async function POST(request: NextRequest) {
   // Get D1 database from request context
-  const env = getEnv(request)
+  const env = getEnv()
 
   // Check CSRF protection
   const csrfError = await csrfMiddleware(request, env)

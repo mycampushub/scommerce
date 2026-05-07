@@ -8,7 +8,7 @@ import { csrfMiddleware } from '@/lib/csrf'
 // GET /api/admin/reviews - List all reviews with filtering
 export async function GET(request: NextRequest) {
   try {
-    const env = getEnv(request)
+    const env = getEnv()
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status') // pending, approved, all
     const page = parseInt(searchParams.get('page') || '1')

@@ -876,9 +876,9 @@ export default function ProductsPage() {
                       </TableCell>
                       <TableCell>
                         <div>
-                          <p className="font-semibold text-gray-900">${(product.price || 0).toFixed(2)}</p>
+                          <p className="font-semibold text-gray-900">${product.price.toFixed(2)}</p>
                           {product.comparePrice && (
-                            <p className="text-xs text-gray-500 line-through">${(product.comparePrice || 0).toFixed(2)}</p>
+                            <p className="text-xs text-gray-500 line-through">${product.comparePrice.toFixed(2)}</p>
                           )}
                         </div>
                       </TableCell>
@@ -1297,9 +1297,9 @@ export default function ProductsPage() {
                           </TableCell>
                           <TableCell>
                             <div>
-                              <p className="font-semibold">${(variant.price || 0).toFixed(2)}</p>
+                              <p className="font-semibold">${variant.price.toFixed(2)}</p>
                               {variant.comparePrice && (
-                                <p className="text-xs text-gray-500 line-through">${(variant.comparePrice || 0).toFixed(2)}</p>
+                                <p className="text-xs text-gray-500 line-through">${variant.comparePrice.toFixed(2)}</p>
                               )}
                             </div>
                           </TableCell>

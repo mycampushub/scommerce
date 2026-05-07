@@ -8,7 +8,6 @@ import { queryAll, execute, parseJSON, generateId, generateOrderNumber, now } fr
 import { csrfMiddleware } from '@/lib/csrf'
 import { rateLimit } from '@/lib/rate-limit'
 import { verifyToken, extractTokenFromHeader } from '@/lib/auth'
-import { logApiError } from '@/lib/api-logger'
 
 
 export async function GET(request: NextRequest) {
@@ -19,7 +18,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const env = getEnv(request)
+    const env = getEnv()
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search') || ''
     const status = searchParams.get('status') || ''
@@ -111,11 +110,6 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error('Error fetching orders:', error)
-
-    // Log error to KV
-    const env = getEnv(request)
-    await logApiError(env, 'GET', '/api/admin/orders', 500, error as Error, request)
-
     return NextResponse.json(
       {
         success: false,
@@ -147,7 +141,7 @@ export async function POST(request: NextRequest) {
   }
   
   // Rate limiting: 100 orders per hour per admin
-  const env = getEnv(request)
+  const env = getEnv()
   if (userId) {
     const rateLimitKey = `admin-order-create:${userId}`
     const rateLimitResult = await rateLimit(env, rateLimitKey, {
@@ -246,11 +240,6 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error('Error creating order:', error)
-
-    // Log error to KV
-    const env = getEnv(request)
-    await logApiError(env, 'POST', '/api/admin/orders', 500, error as Error, request)
-
     return NextResponse.json(
       {
         success: false,

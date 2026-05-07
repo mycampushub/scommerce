@@ -13,7 +13,7 @@ export async function PUT(
 ) {
   const params = await context.params
   // Get D1 database from request context
-  const env = getEnv(request)
+  const env = getEnv()
 
   try {
     const authHeader = request.headers.get('authorization')
@@ -148,7 +148,7 @@ export async function DELETE(
 ) {
   const params = await context.params
   // Get D1 database from request context
-  const env = getEnv(request)
+  const env = getEnv()
 
   try {
     const authHeader = request.headers.get('authorization')

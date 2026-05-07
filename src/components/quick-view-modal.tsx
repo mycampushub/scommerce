@@ -7,7 +7,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from '@/components/ui/dialog'
 import { useCartStore } from '@/lib/store/cart-store'
 import { formatCurrency } from '@/lib/format-currency'
@@ -185,7 +184,6 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0">
         <DialogHeader className="sr-only">
           <DialogTitle>Quick View - {product.name}</DialogTitle>
-          <DialogDescription>Quick product view with details and purchase options</DialogDescription>
         </DialogHeader>
 
         <button

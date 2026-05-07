@@ -15,7 +15,7 @@ import { getEnv } from '@/lib/cloudflare';
 export async function GET(request: NextRequest) {
   try {
     // Get Cloudflare environment
-    const env = getEnv(request);
+    const env = getEnv();
 
     // Get session ID
     const sessionId = getCSRFSessionId(request);

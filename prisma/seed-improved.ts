@@ -563,7 +563,7 @@ async function main() {
   const paymentStatuses = ['PENDING', 'COMPLETED', 'FAILED', 'REFUNDED']
   const trackingStatuses = ['PENDING', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'DELIVERED']
 
-  const orderPromises: Promise<any>[] = []
+  const orderPromises: any[] = []
   for (let i = 0; i < 25; i++) {
     const userIndex = i % 5 // Cycle through first 5 users
     const statusIndex = i % orderStatuses.length
@@ -661,7 +661,7 @@ async function main() {
 
   // Reviews
   console.log('⭐ Creating product reviews...')
-  const reviewPromises: Promise<any>[] = []
+  const reviewPromises: any[] = []
   const usedProductUserPairs = new Set<string>()
 
   for (let i = 0; i < 15; i++) {

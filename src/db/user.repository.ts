@@ -140,7 +140,7 @@ export class UserRepository {
     // Use Prisma if env is null or env.DB doesn't exist (local dev)
     if (!env || !env.DB) {
       const updateData: any = {};
-      const prismaMapping: Record<string, string> = {
+      const prismaMapping = {
         name: 'name',
         phone: 'phone',
         address: 'address',

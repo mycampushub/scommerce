@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const env = getEnv(request)
+    const env = getEnv()
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search') || ''
     const status = searchParams.get('status') || ''
@@ -44,22 +44,10 @@ export async function GET(request: NextRequest) {
     const customersWithCounts = await Promise.all(
       customers.map(async (customer) => {
         const orderCount = await count(env, 'SELECT COUNT(*) as count FROM orders WHERE userId = ?', customer.id)
-
-        // Compute status from isBanned and role
-        let status = 'active'
-        const isBanned = numberToBool(customer.isBanned as number)
-        if (isBanned) {
-          status = 'banned'
-        } else if (customer.role === 'admin' || customer.role === 'staff') {
-          status = 'admin'
-        }
-
         return {
           ...customer,
           _count: { orders: orderCount },
-          emailVerified: numberToBool(customer.emailVerified as number),
-          isBanned,
-          status, // Add computed status field
+          emailVerified: numberToBool(customer.emailVerified as number)
         }
       })
     )
@@ -89,7 +77,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Check CSRF protection
-  const env = getEnv(request)
+  const env = getEnv()
   const csrfError = await csrfMiddleware(request, env)
   if (csrfError) {
     return csrfError

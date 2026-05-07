@@ -4,7 +4,6 @@ import { OrderRepository } from '@/db/order.repository';
 import { ProductRepository } from '@/db/product.repository';
 import { execute, parseJSON, queryFirst } from '@/db/db';
 import { csrfMiddleware } from '@/lib/csrf';
-import { logger } from '@/lib/logger';
 
 
 // Order statuses that can be cancelled
@@ -15,7 +14,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   // Get D1 database from request context
-  const env = getEnv(request);
+  const env = getEnv();
 
   // Check CSRF protection
   const csrfError = await csrfMiddleware(request, env);
@@ -113,29 +112,10 @@ export async function POST(
       }
     }
 
-    // Update order status to cancelled
-    const now = new Date().toISOString();
-    await execute(
-      env,
-      'UPDATE orders SET status = ?, cancelledAt = ?, cancelledBy = ?, cancellationReason = ? WHERE id = ?',
-      ['CANCELLED', now, cancelledBy, reason || null, (await params).id]
-    );
-
-    // Fetch updated order
-    const updatedOrder = await OrderRepository.findById(env, (await params).id);
-
-    // Log cancellation
-    logger.logBusinessEvent('Order cancelled', {
-      orderId: (await params).id,
-      cancelledBy,
-      reason,
-    });
+    // Cancel order
+    const updatedOrder = await OrderRepository.cancel(env, (await params).id, cancelledBy, reason);
 
     // TODO: Send notification email to customer about cancellation
-    // Email service integration needed. Options:
-    // - Resend: https://resend.com
-    // - SendGrid: https://sendgrid.com
-    // - Cloudflare Email Routing: https://developers.cloudflare.com/email-routing
     // await sendOrderCancellationEmail(updatedOrder);
 
     return NextResponse.json({
@@ -144,9 +124,7 @@ export async function POST(
       data: updatedOrder,
     });
   } catch (error) {
-    logger.logApiError('POST', `/api/orders/${(await params).id}/cancel`, error as Error, 500, undefined, undefined, {
-      action: 'cancel_order',
-    });
+    console.error('Error cancelling order:', error);
     return NextResponse.json(
       {
         success: false,

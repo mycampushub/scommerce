@@ -132,7 +132,7 @@ export default function CheckoutPage() {
           
           if (item.variantId) {
             // Check variant stock
-            const variant = product.variants?.find((v: any) => v.id === item.variantId)
+            const variant = product.variants?.find(v => v.id === item.variantId)
             stock = variant?.stock || 0
           } else {
             // Check product stock
@@ -654,7 +654,7 @@ export default function CheckoutPage() {
                     </span>
                   </div>
                   <div className="flex justify-between text-sm md:text-base">
-                    <span className="text-gray-600">Tax ({((taxRate || 0) * 100).toFixed(0)}%)</span>
+                    <span className="text-gray-600">Tax ({(taxRate * 100).toFixed(0)}%)</span>
                     <span className="font-semibold">{formatCurrency(total * taxRate)}</span>
                   </div>
                   <div className="border-t border-gray-200 pt-3 flex justify-between">

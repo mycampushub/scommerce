@@ -10,7 +10,7 @@ const TOKEN_EXPIRY_HOURS = 1;
 
 
 export async function POST(request: NextRequest) {
-  const env = getEnv(request)
+  const env = getEnv()
   try {
     const body = await request.json() as any;
 

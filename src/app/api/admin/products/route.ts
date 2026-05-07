@@ -16,7 +16,6 @@ import {
 } from '@/db/db'
 import { csrfMiddleware } from '@/lib/csrf'
 import { generateUniqueSlug, isValidSlug } from '@/lib/slug'
-import { logApiError } from '@/lib/api-logger'
 
 
 export async function GET(request: NextRequest) {
@@ -27,28 +26,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const env = getEnv(request)
-
-    // Debug: Log binding status
-    console.log('[Products GET] Environment:', {
-      hasDB: !!env?.DB,
-      hasKV: !!env?.KV,
-      hasBUCKET: !!env?.BUCKET,
-      nodeEnv: process.env.NODE_ENV
-    })
-
-    if (!env?.DB) {
-      console.error('[Products GET] Database binding not available!')
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Database binding not available',
-          debug: { hasDB: false, env: !!env }
-        },
-        { status: 500 }
-      )
-    }
-
+    const env = getEnv()
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search') || ''
     const categorySlug = searchParams.get('category') || ''
@@ -97,17 +75,13 @@ export async function GET(request: NextRequest) {
       offset
     )
 
-    // Parse images JSON field and alias basePrice to price for frontend compatibility
+    // Parse images JSON field
     const productsWithImages = products.map((p: any) => ({
       ...p,
       images: parseJSON<string[]>(p.images) || [],
       isActive: numberToBool(p.isActive),
       isFeatured: numberToBool(p.isFeatured),
       hasVariants: numberToBool(p.hasVariants),
-      // Alias basePrice to price for frontend compatibility
-      price: p.basePrice || 0,
-      // Alias price field if it exists (for compatibility)
-      comparePrice: p.comparePrice || null,
     }))
 
     // Get total count for pagination
@@ -134,11 +108,6 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error('Error fetching products:', error)
-
-    // Log error to KV
-    const env = getEnv(request)
-    await logApiError(env, 'GET', '/api/admin/products', 500, error as Error, request)
-
     return NextResponse.json(
       {
         success: false,
@@ -157,7 +126,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Check CSRF protection
-  const env = getEnv(request)
+  const env = getEnv()
   const csrfError = await csrfMiddleware(request, env)
   if (csrfError) {
     return csrfError
@@ -359,11 +328,6 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error('Error creating product:', error)
-
-    // Log error to KV
-    const env = getEnv(request)
-    await logApiError(env, 'POST', '/api/admin/products', 500, error as Error, request)
-
     return NextResponse.json(
       {
         success: false,

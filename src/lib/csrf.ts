@@ -191,17 +191,6 @@ export async function csrfMiddleware(
     return null;
   }
 
-  // Skip CSRF for authenticated requests (with Authorization header or session cookie)
-  // CSRF is primarily needed for unauthenticated form submissions
-  const authHeader = request.headers.get('authorization');
-  const sessionCookie = request.headers.get('cookie');
-
-  if (authHeader || (sessionCookie && sessionCookie.includes('session='))) {
-    // Authenticated request - skip CSRF validation
-    console.log('[CSRF] Skipping CSRF validation for authenticated request');
-    return null;
-  }
-
   // Get CSRF token from request
   const token = getCSRFTokenFromRequest(request);
 

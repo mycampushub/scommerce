@@ -17,7 +17,7 @@ const ALLOWED_PAYMENT_METHODS = ['CASH_ON_DELIVERY', 'ONLINE_PAYMENT'] as const;
 
 export async function POST(request: NextRequest) {
   // Get D1 database from request context (Cloudflare Pages/Workers)
-  const env = getEnv(request);
+  const env = getEnv();
 
   // Check CSRF protection
   const csrfError = await csrfMiddleware(request, env);
@@ -427,7 +427,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   // Get D1 database from request context (Cloudflare Pages/Workers)
-  const env = getEnv(request);
+  const env = getEnv();
 
   try {
     const searchParams = request.nextUrl.searchParams;

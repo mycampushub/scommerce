@@ -13,7 +13,7 @@ import { addCacheHeaders, CachePresets } from '@/lib/http-cache'
  */
 
 export async function GET(request: NextRequest) {
-  const env = getEnv(request)
+  const env = getEnv()
   try {
     const searchParams = request.nextUrl.searchParams
     const query = searchParams.get('q') || ''

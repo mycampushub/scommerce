@@ -5,7 +5,6 @@ import { ProductRepository } from '@/db/product.repository';
 import { z } from 'zod';
 import { queryFirst } from '@/db/db';
 import { csrfMiddleware } from '@/lib/csrf';
-import { logger } from '@/lib/logger';
 
 
 // Validation schema for refund request
@@ -29,17 +28,13 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   // Get D1 database from request context
-  const env = getEnv(request);
+  const env = getEnv();
 
   // Check CSRF protection
   const csrfError = await csrfMiddleware(request, env);
   if (csrfError) {
     return csrfError;
   }
-
-  // Initialize variables for catch block
-  let amount: number | undefined;
-  let refundMethod: string | undefined;
 
   try {
     const body = await request.json() as any;
@@ -56,9 +51,7 @@ export async function POST(
       );
     }
 
-    const { userId, amount: reqAmount, reason, refundMethod: reqRefundMethod, initiatedBy } = validation.data;
-    amount = reqAmount;
-    refundMethod = reqRefundMethod;
+    const { userId, amount, reason, refundMethod, initiatedBy } = validation.data;
 
     // Fetch order
     const order = await OrderRepository.findById(env, (await params).id);
@@ -197,10 +190,6 @@ export async function POST(
     }
 
     // TODO: Send notification email to customer about refund
-    // Email service integration needed. Options:
-    // - Resend: https://resend.com
-    // - SendGrid: https://sendgrid.com
-    // - Cloudflare Email Routing: https://developers.cloudflare.com/email-routing
     // await sendRefundConfirmationEmail(updatedOrder);
 
     // TODO: If using a payment gateway, initiate actual refund
@@ -223,11 +212,7 @@ export async function POST(
       },
     });
   } catch (error) {
-    logger.logApiError('POST', `/api/orders/${(await params).id}/refund`, error as Error, 500, undefined, undefined, {
-      action: 'process_refund',
-      refundAmount: amount,
-      refundMethod,
-    });
+    console.error('Error processing refund:', error);
     return NextResponse.json(
       {
         success: false,

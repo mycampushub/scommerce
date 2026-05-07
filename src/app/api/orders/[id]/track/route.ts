@@ -9,7 +9,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   // Get D1 database from request context
-  const env = getEnv(request)
+  const env = getEnv()
 
   try {
     const orderId = (await params).id
@@ -148,7 +148,7 @@ function generateTrackingTimeline(order: any) {
   }
 
   if (['SHIPPED', 'DELIVERED'].includes(order.status) && order.trackingStatus) {
-    const trackingStatuses: Record<string, string> = {
+    const trackingStatuses = {
       PENDING: 'Awaiting pickup',
       IN_TRANSIT: 'In transit',
       OUT_FOR_DELIVERY: 'Out for delivery',

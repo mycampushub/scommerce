@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     return userOrResponse
   }
 
-  const env = getEnv(request)
+  const env = getEnv()
   const { searchParams } = new URL(request.url)
   const status = searchParams.get('status') || ''
 

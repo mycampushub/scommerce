@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CloudOff, RefreshCw, Wifi, AlertTriangle, Package, ShoppingBag, Heart } from 'lucide-react';
@@ -13,7 +12,6 @@ import { CloudOff, RefreshCw, Wifi, AlertTriangle, Package, ShoppingBag, Heart }
  */
 
 export default function OfflinePage() {
-  const router = useRouter();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   useEffect(() => {
@@ -37,12 +35,17 @@ export default function OfflinePage() {
   };
 
   const handleGoHome = () => {
-    router.push('/');
+    window.location.href = '/';
   };
 
+  // Redirect to home if we're back online
+  useEffect(() => {
+    if (isOnline) {
+      window.location.href = '/';
+    }
+  }, [isOnline]);
+
   if (isOnline) {
-    // Redirect to home if we're back online
-    router.push('/');
     return null;
   }
 

@@ -37,7 +37,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const env = getEnv(request)
+    const env = getEnv()
     const { id } = await params
 
     // Fetch product to check if it exists
@@ -128,7 +128,7 @@ export async function POST(
   }
 
   // Check CSRF protection
-  const env = getEnv(request)
+  const env = getEnv()
   const csrfError = await csrfMiddleware(request, env)
   if (csrfError) {
     return csrfError

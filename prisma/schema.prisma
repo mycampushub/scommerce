@@ -30,12 +30,12 @@ model User {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   addresses       Address[]
-  orders          Order[]     @relation("user_orders")
+  orders          Order[]
   cartItems       CartItem[]
   wishlistItems   WishlistItem[]
   productReviews  ProductReview[]
   posts           Post[]
-  adminLogs       AdminLog[]    @relation("user_admin_logs")
+  adminLogs       AdminLog[]
 }
 
 model Address {
@@ -54,7 +54,7 @@ model Address {
   updatedAt     DateTime @updatedAt
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Note: userId index automatically created by foreign key constraint
+  @@index([userId])
   @@index([isDefault])
 }
 
@@ -69,7 +69,7 @@ model Category {
   updatedAt   DateTime @updatedAt
   products    Product[]
 
-  // Note: slug index automatically created by unique constraint
+  @@index([slug])
   @@index([isActive])
 }
 
@@ -105,10 +105,10 @@ model Product {
   orderItems      OrderItem[]
   inventoryAlerts InventoryAlert[]
 
-  // Note: categoryId index automatically created by foreign key constraint
-  // Note: slug index automatically created by unique constraint
+  @@index([categoryId])
   @@index([isFeatured])
   @@index([isActive, createdAt(sort: Desc)])
+  @@index([slug])
   @@index([isActive, isFeatured])
 }
 
@@ -136,11 +136,10 @@ model ProductVariant {
   orderItems    OrderItem[]
   inventoryAlerts InventoryAlert[]
 
-  // Note: productId index automatically created by foreign key constraint
-  // Note: sku index automatically created by unique constraint
-  @@index([isActive])
+  @@index([productId])
+  @@index([sku])
   @@index([productId, isActive])
-  @@index([size, color])
+  @@index([productId, size, color])
 }
 
 model ProductReview {
@@ -212,10 +211,10 @@ model Order {
   deletedReason         String?
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
-  user                  User?    @relation("user_orders", fields: [userId], references: [id], onDelete: SetNull)
+  user                  User?    @relation(fields: [userId], references: [id])
   items                 OrderItem[]
 
-  // Note: userId index automatically created by foreign key constraint
+  @@index([userId])
   @@index([customerEmail])
   @@index([orderNumber])
   @@index([status, createdAt(sort: Desc)])
@@ -241,8 +240,9 @@ model OrderItem {
   product         Product        @relation(fields: [productId], references: [id])
   variant         ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
 
-  // Note: orderId, productId, variantId indexes automatically created by foreign key constraints
-  // Note: productId cannot have onDelete: SetNull because it's required (not nullable)
+  @@index([orderId])
+  @@index([productId])
+  @@index([variantId])
 }
 
 model CartItem {
@@ -253,13 +253,14 @@ model CartItem {
   quantity  Int      @default(1)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  product   Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User            @relation(fields: [userId], references: [id])
+  product   Product         @relation(fields: [productId], references: [id])
   variant   ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
 
-  // Note: unique constraint creates index automatically
-  @@unique([userId, productId, variantId])
-  // Note: userId and productId indexes covered by unique constraint
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([userId, productId])
+  @@index([variantId])
 }
 
 model AdminLog {
@@ -272,9 +273,9 @@ model AdminLog {
   ipAddress String?
   userAgent String?
   createdAt DateTime @default(now())
-  admin     User     @relation("user_admin_logs", fields: [adminId], references: [id], onDelete: Cascade)
+  admin     User     @relation(fields: [adminId], references: [id])
 
-  // Note: adminId index automatically created by foreign key constraint
+  @@index([adminId, createdAt(sort: Desc)])
   @@index([entity, createdAt(sort: Desc)])
   @@index([action, createdAt(sort: Desc)])
   @@index([createdAt(sort: Desc)])

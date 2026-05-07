@@ -1,7 +1,19 @@
-'use client';
+'use client'
 
-import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/hooks/use-auth';
+import React, { useState, useEffect } from 'react'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { toast } from 'sonner'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   Table,
   TableBody,
@@ -9,355 +21,424 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Filter, RefreshCw, Clock, User, Activity } from 'lucide-react';
-import type { AuditLogEntry, AuditEntity, AuditAction } from '@/types/audit';
+} from '@/components/ui/table'
+import {
+  Search,
+  Filter,
+  Download,
+  Trash2,
+  Eye,
+  EyeOff,
+  Loader2,
+  RefreshCw,
+  Shield,
+} from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Badge } from '@/components/ui/badge'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
 
-type AuditActionOption = AuditAction | 'ALL';
-type AuditEntityOption = AuditEntity | 'ALL';
-
-const ACTION_OPTIONS: { value: AuditActionOption; label: string }[] = [
-  { value: 'ALL', label: 'All Actions' },
-  { value: 'CREATE', label: 'Create' },
-  { value: 'UPDATE', label: 'Update' },
-  { value: 'DELETE', label: 'Delete' },
-  { value: 'BULK_CREATE', label: 'Bulk Create' },
-  { value: 'BULK_UPDATE', label: 'Bulk Update' },
-  { value: 'BULK_DELETE', label: 'Bulk Delete' },
-  { value: 'LOGIN', label: 'Login' },
-  { value: 'LOGOUT', label: 'Logout' },
-  { value: 'EXPORT', label: 'Export' },
-  { value: 'APPROVE', label: 'Approve' },
-  { value: 'REJECT', label: 'Reject' },
-  { value: 'CANCEL', label: 'Cancel' },
-  { value: 'SHIP', label: 'Ship' },
-  { value: 'REFUND', label: 'Refund' },
-];
-
-const ENTITY_OPTIONS: { value: AuditEntityOption; label: string }[] = [
-  { value: 'ALL', label: 'All Entities' },
-  { value: 'Product', label: 'Products' },
-  { value: 'ProductVariant', label: 'Product Variants' },
-  { value: 'Category', label: 'Categories' },
-  { value: 'User', label: 'Users' },
-  { value: 'Order', label: 'Orders' },
-  { value: 'Banner', label: 'Banners' },
-  { value: 'Story', label: 'Stories' },
-  { value: 'Reel', label: 'Reels' },
-  { value: 'Promotion', label: 'Promotions' },
-  { value: 'ProductReview', label: 'Reviews' },
-  { value: 'Settings', label: 'Settings' },
-];
+interface AuditLog {
+  id: string
+  action: string
+  entity: string
+  entityId?: string
+  adminName: string
+  adminEmail: string
+  adminId: string
+  ipAddress?: string
+  userAgent?: string
+  createdAt: string
+}
 
 export default function AuditLogsPage() {
-  const { user } = useAuth();
-  const [logs, setLogs] = useState<AuditLogEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [actionFilter, setActionFilter] = useState<AuditActionOption>('ALL');
-  const [entityFilter, setEntityFilter] = useState<AuditEntityOption>('ALL');
-  const [total, setTotal] = useState(0);
-  const [offset, setOffset] = useState(0);
-  const LIMIT = 50;
+  const [logs, setLogs] = useState<AuditLog[]>([])
+  const [total, setTotal] = useState(0)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [actionFilter, setActionFilter] = useState('ALL')
+  const [entityFilter, setEntityFilter] = useState('ALL')
+  const [limit, setLimit] = useState(50)
+  const [offset, setOffset] = useState(0)
+  const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null)
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
 
-  const fetchLogs = useCallback(async () => {
+  const fetchLogs = async () => {
     try {
-      setLoading(true);
-      const params = new URLSearchParams({
-        limit: LIMIT.toString(),
-        offset: offset.toString(),
-      });
+      setLoading(true)
+      const params = new URLSearchParams()
+      params.append('limit', limit.toString())
+      params.append('offset', offset.toString())
+      if (searchTerm) params.append('search', searchTerm)
+      if (actionFilter !== 'ALL') params.append('action', actionFilter)
+      if (entityFilter !== 'ALL') params.append('entity', entityFilter)
 
-      if (actionFilter !== 'ALL') params.append('action', actionFilter);
-      if (entityFilter !== 'ALL') params.append('entity', entityFilter);
-
-      const response = await fetch(`/api/admin/audit-logs?${params.toString()}`);
-      const result = await response.json();
+      const response = await fetch(`/api/admin/audit-logs?${params.toString()}`)
+      const result = await response.json() as any
 
       if (result.success) {
-        setLogs(result.data);
-        setTotal(result.meta.total);
+        setLogs(result.data || [])
+        setTotal(result.meta?.total || 0)
       } else {
-        console.error('Failed to fetch audit logs:', result.error);
+        throw new Error(result.error || 'Failed to fetch audit logs')
       }
-    } catch (error) {
-      console.error('Error fetching audit logs:', error);
+    } catch (err: any) {
+      setError(err.message)
+      console.error('Error fetching audit logs:', err)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, [actionFilter, entityFilter, offset]);
+  }
 
+  // Auto-refresh on page load
   useEffect(() => {
-    if (user?.role === 'admin') {
-      fetchLogs();
+    fetchLogs()
+  }, [actionFilter, entityFilter, searchTerm, limit, offset])
+
+  const handleSearch = () => {
+    setOffset(0)
+    fetchLogs()
+  }
+
+  const handleActionFilterChange = (value: string) => {
+    setOffset(0)
+    setActionFilter(value)
+  }
+
+  const handleEntityFilterChange = (value: string) => {
+    setOffset(0)
+    setEntityFilter(value)
+  }
+
+  const handleRefresh = () => {
+    setOffset(0)
+    fetchLogs()
+  }
+
+  const handleViewDetails = (log: AuditLog) => {
+    setSelectedLog(log)
+    setIsDetailModalOpen(true)
+  }
+
+  const exportLogs = async () => {
+    if (logs.length === 0) {
+      toast.info('No audit logs to export')
+      return
     }
-  }, [user, fetchLogs]);
 
-  const filteredLogs = logs.filter(
-    (log) =>
-      !search ||
-      log.adminName?.toLowerCase().includes(search.toLowerCase()) ||
-      log.adminEmail?.toLowerCase().includes(search.toLowerCase()) ||
-      log.details?.toLowerCase().includes(search.toLowerCase()) ||
-      log.entity?.toLowerCase().includes(search.toLowerCase())
-  );
+    const csvContent = [
+      ['Timestamp', 'Admin Name', 'Admin Email', 'Action', 'Entity', 'Entity ID', 'IP Address', 'User Agent', 'Admin ID'].join(','),
+      ...logs.map(log => [
+        log.createdAt,
+        log.adminName,
+        log.adminEmail,
+        log.action,
+        log.entity,
+        log.entityId || '-',
+        log.ipAddress || '-',
+        log.userAgent || '-',
+        log.adminId,
+      ]).join(',')
+    ].join('\n')
 
-  const getActionColor = (action: AuditAction) => {
-    switch (action) {
-      case 'CREATE':
-      case 'BULK_CREATE':
-        return 'bg-green-100 text-green-800 hover:bg-green-200';
-      case 'UPDATE':
-      case 'BULK_UPDATE':
-        return 'bg-blue-100 text-blue-800 hover:bg-blue-200';
-      case 'DELETE':
-      case 'BULK_DELETE':
-        return 'bg-red-100 text-red-800 hover:bg-red-200';
-      case 'LOGIN':
-        return 'bg-purple-100 text-purple-800 hover:bg-purple-200';
-      case 'APPROVE':
-        return 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200';
-      case 'REJECT':
-        return 'bg-orange-100 text-orange-800 hover:bg-orange-200';
-      case 'CANCEL':
-      case 'REFUND':
-        return 'bg-rose-100 text-rose-800 hover:bg-rose-200';
-      default:
-        return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
-    }
-  };
+    const blob = new Blob([csvContent], { type: 'text/csv' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `audit-logs-${new Date().toISOString().split('T')[0]}.csv`
+    a.click()
+    window.URL.revokeObjectURL(url)
 
-  const formatDate = (date: string | Date) => {
-    return new Date(date).toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  if (user?.role !== 'admin') {
-    return (
-      <div className="p-8">
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-center text-muted-foreground">Access denied. Admin only.</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    toast.success('Audit logs exported successfully')
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Audit Logs</h1>
-          <p className="text-muted-foreground mt-1">
-            Track all admin actions and system events
-          </p>
-        </div>
-        <Button onClick={fetchLogs} variant="outline" size="sm">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
+    <div className="container mx-auto p-6">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold mb-2">Audit Logs</h1>
+        <p className="text-gray-600">Track all admin actions and system events</p>
       </div>
 
       {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filters
-          </CardTitle>
-          <CardDescription>
-            Filter audit logs by action, entity, or search text
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-4">
-            {/* Search */}
-            <div className="flex-1 min-w-[200px]">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by admin, details, or entity..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
+      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div className="flex flex-1 gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Search logs..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Select value={actionFilter} onValueChange={handleActionFilterChange}>
+            <SelectTrigger className="w-[150px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Actions</SelectItem>
+              <SelectItem value="CREATE">Create</SelectItem>
+              <SelectItem value="UPDATE">Update</SelectItem>
+              <SelectItem value="DELETE">Delete</SelectItem>
+              <SelectItem value="LOGIN">Login</SelectItem>
+              <SelectItem value="LOGOUT">Logout</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={entityFilter} onValueChange={handleEntityFilterChange}>
+            <SelectTrigger className="w-[150px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Entities</SelectItem>
+              <SelectItem value="users">Users</SelectItem>
+              <SelectItem value="products">Products</SelectItem>
+              <SelectItem value="orders">Orders</SelectItem>
+              <SelectItem value="categories">Categories</SelectItem>
+              <SelectItem value="promotions">Promotions</SelectItem>
+              <SelectItem value="banners">Banners</SelectItem>
+              <SelectItem value="stories">Stories</SelectItem>
+              <SelectItem value="reels">Reels</SelectItem>
+              <SelectItem value="settings">Settings</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" onClick={handleRefresh} disabled={loading}>
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Refresh
+          </Button>
+          <Button variant="outline" onClick={exportLogs} disabled={logs.length === 0}>
+            <Download className="h-4 w-4 mr-2" />
+            Export CSV
+          </Button>
+        </div>
+      </div>
+
+      {/* Stats Card */}
+      <Card className="border-0 shadow-sm mb-6">
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <p className="text-sm text-gray-500">Total Logs</p>
+              <p className="text-2xl font-bold text-gray-900">{total}</p>
             </div>
-
-            {/* Action Filter */}
-            <Select value={actionFilter} onValueChange={(value: AuditActionOption) => setActionFilter(value)}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filter by action" />
-              </SelectTrigger>
-              <SelectContent>
-                {ACTION_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {/* Entity Filter */}
-            <Select value={entityFilter} onValueChange={(value: AuditEntityOption) => setEntityFilter(value)}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filter by entity" />
-              </SelectTrigger>
-              <SelectContent>
-                {ENTITY_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div>
+              <p className="text-sm text-gray-500">Actions Today</p>
+              <p className="text-2xl font-bold text-green-600">{logs.filter(l => {
+                const logDate = new Date(l.createdAt)
+                const today = new Date()
+                return logDate.toDateString() === today.toDateString() &&
+                       logDate.getMonth() === today.getMonth() &&
+                       logDate.getDate() === today.getDate()
+              }).length}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">By: {actionFilter}</p>
+              <p className="text-2xl font-bold text-violet-600">{logs.filter(l => l.action === actionFilter).length}</p>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Logs</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{total}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Filtered Results</CardTitle>
-            <Search className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{filteredLogs.length}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Actions Today</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {logs.filter(
-                (log) => new Date(log.createdAt).toDateString() === new Date().toDateString()
-              ).length}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Logs Table */}
-      <Card>
+      <Card className="border-0 shadow-lg">
         <CardHeader>
-          <CardTitle className="text-lg">Recent Activity</CardTitle>
+          <CardTitle>Audit Logs</CardTitle>
           <CardDescription>
-            Showing most recent {filteredLogs.length} of {total} total logs
+            View all admin actions and system events
           </CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+            <div className="space-y-4">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
             </div>
-          ) : filteredLogs.length === 0 ? (
+          ) : logs.length === 0 ? (
             <div className="text-center py-12">
-              <Activity className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">No audit logs found</p>
+              <EyeOff className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500">No audit logs found</p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-12">
+              <Shield className="h-12 w-12 text-red-300 mx-auto mb-3" />
+              <p className="text-gray-500">Failed to load audit logs</p>
             </div>
           ) : (
-            <div className="rounded-md border">
+            <ScrollArea className="h-[600px]">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Timestamp</TableHead>
-                    <TableHead>Admin</TableHead>
-                    <TableHead>Action</TableHead>
-                    <TableHead>Entity</TableHead>
-                    <TableHead>Details</TableHead>
-                    <TableHead className="hidden md:table-cell">IP Address</TableHead>
+                  <TableRow className="bg-gray-50 hover:bg-gray-50">
+                    <TableHead className="font-semibold text-gray-700">Timestamp</TableHead>
+                    <TableHead className="font-semibold text-gray-700">Admin</TableHead>
+                    <TableHead className="font-semibold text-gray-700">Action</TableHead>
+                    <TableHead className="font-semibold text-gray-700">Entity</TableHead>
+                    <TableHead className="font-semibold text-gray-700">Entity ID</TableHead>
+                    <TableHead className="font-semibold text-gray-700">IP Address</TableHead>
+                    <TableHead className="font-semibold text-gray-700">User Agent</TableHead>
+                    <TableHead className="font-semibold text-gray-700 text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredLogs.map((log) => (
-                    <TableRow key={log.id}>
-                      <TableCell className="whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-3 w-3 text-muted-foreground" />
-                          {formatDate(log.createdAt)}
+                  {logs.map((log) => (
+                    <TableRow key={log.id} className="hover:bg-gray-50">
+                      <TableCell>
+                        <div className="text-sm text-gray-900 whitespace-nowrap">
+                          {new Date(log.createdAt).toLocaleString()}
                         </div>
                       </TableCell>
+                      <TableCell>{log.adminName}</TableCell>
                       <TableCell>
-                        <div>
-                          <div className="font-medium">{log.adminName || 'Unknown'}</div>
-                          <div className="text-xs text-muted-foreground">{log.adminEmail}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getActionColor(log.action)} variant="secondary">
-                          {log.action.replace(/_/g, ' ')}
+                        <Badge
+                          variant={getBadgeVariant(log.action)}
+                          className={getBadgeColor(log.action)}
+                        >
+                          {log.action}
                         </Badge>
                       </TableCell>
+                      <TableCell>{log.entity}</TableCell>
                       <TableCell>
-                        <Badge variant="outline">{log.entity}</Badge>
+                        {log.entityId && (
+                          <span className="text-xs font-mono bg-gray-100 px-2 py-1 rounded">
+                            {log.entityId.slice(0, 8)}
+                          </span>
+                        )}
                       </TableCell>
-                      <TableCell className="max-w-md truncate" title={log.details}>
-                        {log.details || '-'}
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell text-muted-foreground text-sm">
+                      <TableCell>
                         {log.ipAddress || '-'}
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-xs text-gray-500 text-right max-w-[120px] truncate">
+                          {log.userAgent || '-'}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleViewDetails(log)}
+                        >
+                          <Eye className="h-4 w-4 text-gray-400" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-            </div>
-          )}
-
-          {/* Pagination */}
-          {total > LIMIT && (
-            <div className="flex items-center justify-between mt-4">
-              <div className="text-sm text-muted-foreground">
-                Showing {offset + 1} to {Math.min(offset + LIMIT, total)} of {total}
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setOffset(Math.max(0, offset - LIMIT))}
-                  disabled={offset === 0}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setOffset(offset + LIMIT)}
-                  disabled={offset + LIMIT >= total}
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
+            </ScrollArea>
           )}
         </CardContent>
       </Card>
+
+      {/* Log Detail Modal */}
+      {selectedLog && (
+        <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Log Details</DialogTitle>
+            </DialogHeader>
+            <DialogDescription>
+              View complete log information
+            </DialogDescription>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDetailModalOpen(false)}>
+                Close
+              </Button>
+            </DialogFooter>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Action</Label>
+                  <Input value={selectedLog.action} readOnly className="w-full" />
+                </div>
+                <div>
+                  <Label>Entity</Label>
+                  <Input value={selectedLog.entity || ''} readOnly className="w-full" />
+                </div>
+                <div>
+                  <Label>Entity ID</Label>
+                  <Input value={selectedLog.entityId || ''} readOnly className="w-full" />
+                </div>
+                <div>
+                  <Label>Admin Name</Label>
+                  <Input value={selectedLog.adminName} readOnly className="w-full" />
+                </div>
+                <div>
+                  <Label>Admin Email</Label>
+                  <Input value={selectedLog.adminEmail} readOnly className="w-full" />
+                </div>
+                <div>
+                  <Label>Admin ID</Label>
+                  <Input value={selectedLog.adminId} readOnly className="w-full" />
+                </div>
+                <div>
+                  <Label>IP Address</Label>
+                  <Input value={selectedLog.ipAddress || ''} readOnly className="w-full" />
+                </div>
+                <div>
+                  <Label>User Agent</Label>
+                  <textarea
+                    value={selectedLog.userAgent || ''}
+                    readOnly
+                    className="w-full font-mono text-xs p-2"
+                    rows={4}
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setIsDetailModalOpen(false)}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
-  );
+  )
+}
+
+// Helper functions
+function getBadgeVariant(action: string): 'default' | 'secondary' | 'destructive' | 'outline' {
+  switch (action) {
+    case 'CREATE':
+      return 'default'
+    case 'UPDATE':
+      return 'secondary'
+    case 'DELETE':
+      return 'destructive'
+    case 'LOGIN':
+      return 'outline'
+    case 'LOGOUT':
+      return 'outline'
+    default:
+      return 'default'
+  }
+}
+
+function getBadgeColor(action: string): string {
+  switch (action) {
+    case 'CREATE':
+      return 'bg-green-100 text-green-700'
+    case 'UPDATE':
+      return 'bg-blue-100 text-blue-700'
+    case 'DELETE':
+      return 'bg-red-100 text-red-700'
+    case 'LOGIN':
+      return 'bg-purple-100 text-purple-700'
+    case 'LOGOUT':
+      return 'bg-gray-100 text-gray-700'
+    default:
+      return 'bg-gray-100 text-gray-700'
+  }
 }

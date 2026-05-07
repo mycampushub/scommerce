@@ -6,17 +6,15 @@ import { CategoryRepository } from '@/db/category.repository';
 import { numberToBool, parseJSON, count } from '@/db/db';
 import { addCacheHeaders, CachePresets } from '@/lib/http-cache';
 import { errorResponse } from '@/lib/api-response';
-import { logger } from '@/lib/logger';
 
 
 export async function GET(request: Request) {
   // Get D1 database from request context (Cloudflare Pages/Workers)
-  const env = getEnv(request);
-
-  // Initialize searchParams for catch block
-  const { searchParams } = new URL(request.url);
+  const env = getEnv();
 
   try {
+    const { searchParams } = new URL(request.url);
+
     // Parse and validate query parameters
     const queryParams: any = {};
     for (const [key, value] of searchParams.entries()) {
@@ -215,9 +213,7 @@ export async function GET(request: Request) {
     // Add caching headers for products (semi-static - 10 minutes)
     return addCacheHeaders(response, CachePresets.SEMI_STATIC);
   } catch (error) {
-    logger.logApiError('GET', '/api/products', error as Error, 500, undefined, undefined, {
-      searchParams: Object.fromEntries(searchParams.entries()),
-    });
+    console.error('Error fetching products:', error);
     return errorResponse('Failed to fetch products', 500);
   }
 }

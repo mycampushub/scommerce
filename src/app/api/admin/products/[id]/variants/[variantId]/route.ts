@@ -37,7 +37,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string; variantId: string }> }
 ) {
   try {
-    const env = getEnv(request)
+    const env = getEnv()
     const { id, variantId } = await params
 
     // Fetch variant
@@ -104,7 +104,7 @@ export async function PUT(
   }
 
   // Check CSRF protection
-  const env = getEnv(request)
+  const env = getEnv()
   const csrfError = await csrfMiddleware(request, env)
   if (csrfError) {
     return csrfError
@@ -263,7 +263,7 @@ export async function DELETE(
   }
 
   // Check CSRF protection
-  const env = getEnv(request)
+  const env = getEnv()
   const csrfError = await csrfMiddleware(request, env)
   if (csrfError) {
     return csrfError
@@ -290,8 +290,7 @@ export async function DELETE(
     // Check if variant is used in active orders
     const activeOrders = await count(
       env,
-      'order_items oi JOIN orders o ON oi.orderId = o.id',
-      'WHERE oi.variantId = ? AND o.status NOT IN (?, ?)',
+      'order_items oi JOIN orders o ON oi.orderId = o.id WHERE oi.variantId = ? AND o.status NOT IN (?, ?)',
       variantId,
       'CANCELLED',
       'REFUNDED'
