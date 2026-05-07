@@ -16,6 +16,7 @@ import {
 } from '@/db/db'
 import { csrfMiddleware } from '@/lib/csrf'
 import { generateUniqueSlug, isValidSlug } from '@/lib/slug'
+import { logApiError } from '@/lib/api-logger'
 
 
 export async function GET(request: NextRequest) {
@@ -133,6 +134,11 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error('Error fetching products:', error)
+
+    // Log error to KV
+    const env = getEnv(request)
+    await logApiError(env, 'GET', '/api/admin/products', 500, error as Error, request)
+
     return NextResponse.json(
       {
         success: false,
@@ -353,6 +359,11 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error('Error creating product:', error)
+
+    // Log error to KV
+    const env = getEnv(request)
+    await logApiError(env, 'POST', '/api/admin/products', 500, error as Error, request)
+
     return NextResponse.json(
       {
         success: false,
