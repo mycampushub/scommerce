@@ -106,14 +106,14 @@ export async function PUT(
       const updatedProduct = await ProductRepository.update(env, productId, updateData)
 
       let category: any = null
-      if (product?.categoryId) {
-        category = await CategoryRepository.findById(env, product.categoryId)
+      if (updatedProduct?.categoryId) {
+        category = await CategoryRepository.findById(env, updatedProduct.categoryId)
       }
 
       return NextResponse.json({
         success: true,
         data: {
-          ...product,
+          ...updatedProduct,
           category,
         },
       })
@@ -131,8 +131,7 @@ export async function PUT(
         )
       }
 
-      const existingProduct = await ProductRepository.findById(env, productId)
-      const product = await ProductRepository.findById(env, id)
+      const product = await ProductRepository.findById(env, productId)
 
       if (!product) {
         return NextResponse.json(
@@ -160,7 +159,7 @@ export async function PUT(
       const currentImages: string[] = Array.isArray(product.images) ? [...product.images] : []
       currentImages.push(uploadResult.data.url)
 
-      const updatedProduct = await ProductRepository.update(env, id, {
+      const updatedProduct = await ProductRepository.update(env, productId, {
         images: JSON.stringify(currentImages),
       })
 

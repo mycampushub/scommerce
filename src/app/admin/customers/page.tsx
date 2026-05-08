@@ -470,11 +470,11 @@ export default function CustomersPage() {
           <p className="text-sm text-gray-500 mt-1">Manage customer accounts and relationships</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">
+          <Button variant="outline" onClick={exportCustomers}>
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>
-          <Button className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700">
+          <Button onClick={openAddModal} className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700">
             <Plus className="h-4 w-4 mr-2" />
             Add Customer
           </Button>
