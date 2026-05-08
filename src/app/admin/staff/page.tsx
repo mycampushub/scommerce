@@ -309,7 +309,10 @@ export default function StaffPage() {
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <Button className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700">
+          <Button
+            className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
+            onClick={openAddModal}
+          >
             <Plus className="h-4 w-4 mr-2" />
             Add Staff
           </Button>

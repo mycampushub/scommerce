@@ -135,6 +135,7 @@ function Navbar({ cartCount = 3 }: { cartCount?: number }) {
             <a href="/collections/lehengas" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Lehengas</a>
             <a href="/collections/kurtas" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Kurtas</a>
             <a href="/collections/menswear" className="text-gray-700 hover:text-pink-600 transition-colors font-medium">Menswear</a>
+            <a href="/stuff" className="text-pink-600 hover:text-pink-700 transition-colors font-bold">Stuff</a>
           </nav>
 
           {/* Right Icons */}
@@ -1557,6 +1558,7 @@ function Footer() {
               <li><a href="/shop?filter=best-sellers" className="text-gray-300 hover:text-white transition-colors">Best Sellers</a></li>
               <li><a href="/collections/wedding" className="text-gray-300 hover:text-white transition-colors">Wedding</a></li>
               <li><a href="/collections/festive" className="text-gray-300 hover:text-white transition-colors">Festive</a></li>
+              <li><a href="/stuff" className="text-gray-300 hover:text-white transition-colors font-semibold">Stuff</a></li>
             </ul>
           </div>
           

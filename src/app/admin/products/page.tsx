@@ -83,7 +83,7 @@ interface Product {
   comparePrice: number | null
   categoryId: string | null
   category: { name: string } | null
-  images: string | null
+  images: string[] | null
   stock: number
   lowStockAlert: number
   reorderLevel: number
@@ -258,7 +258,7 @@ export default function ProductsPage() {
       price: product.price.toString(),
       comparePrice: product.comparePrice?.toString() || '',
       categoryId: product.categoryId || '',
-      images: product.images ? JSON.parse(product.images) : [],
+      images: product.images || [],
       stock: product.stock.toString(),
       isActive: product.isActive,
       isFeatured: product.isFeatured,
@@ -850,10 +850,10 @@ export default function ProductsPage() {
                     <TableRow key={product.id} className="hover:bg-gray-50">
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          {product.images ? (
+                          {product.images && product.images.length > 0 ? (
                             <div className="h-12 w-12 rounded-lg overflow-hidden flex-shrink-0">
                               <img
-                                src={JSON.parse(product.images)[0] || '/placeholder.svg'}
+                                src={product.images[0] || '/placeholder.svg'}
                                 alt={product.name}
                                 className="h-full w-full object-cover"
                               />

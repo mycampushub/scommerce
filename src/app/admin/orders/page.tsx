@@ -497,7 +497,7 @@ export default function OrdersPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <p className="text-sm text-gray-900">{order.orderItems.length} items</p>
+                        <p className="text-sm text-gray-900">{order.orderItems?.length || 0} items</p>
                       </TableCell>
                       <TableCell>
                         <p className="font-semibold text-gray-900">{formatCurrency(order.total)}</p>
@@ -614,7 +614,7 @@ export default function OrdersPage() {
               <div>
                 <h3 className="font-semibold mb-3">Order Items</h3>
                 <div className="space-y-3">
-                  {selectedOrder.orderItems.map((item) => (
+                  {(selectedOrder.orderItems || []).map((item) => (
                     <div key={item.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                       <div className="h-12 w-12 rounded bg-gray-200 flex items-center justify-center">
                         <Package className="h-6 w-6 text-gray-400" />

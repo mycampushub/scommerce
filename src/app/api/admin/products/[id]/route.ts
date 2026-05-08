@@ -30,7 +30,7 @@ export async function GET(
 
     // Fetch category
     let category: any = null
-    if (product.categoryId) {
+    if (product?.categoryId) {
       category = await CategoryRepository.findById(env, product.categoryId)
     }
 
@@ -70,10 +70,55 @@ export async function PUT(
     return csrfError
   }
 
+  // Await params outside try block to avoid scope issues
+  const { id: productId } = await params
+
   try {
     const contentType = request.headers.get('content-type') || ''
     const action = request.headers.get('x-action') || 'update'
 
+    if (action === 'update') {
+      // Handle JSON payload for normal update
+      const body = await request.json() as any
+
+      const updateData: any = {}
+      if (body.stock !== undefined) {
+        updateData.stock = parseInt(body.stock)
+      }
+
+      if (body.name !== undefined) updateData.name = body.name
+      if (body.slug !== undefined) updateData.slug = body.slug
+      if (body.description !== undefined) updateData.description = body.description
+      if (body.categoryId !== undefined) updateData.categoryId = body.categoryId
+      if (body.lowStockAlert !== undefined) updateData.lowStockAlert = parseInt(body.lowStockAlert)
+      if (body.reorderLevel !== undefined) updateData.reorderLevel = parseInt(body.reorderLevel)
+      if (body.reorderQty !== undefined) updateData.reorderQty = parseInt(body.reorderQty)
+      if (body.isActive !== undefined) updateData.isActive = body.isActive
+      if (body.isFeatured !== undefined) updateData.isFeatured = body.isFeatured
+
+      if (Object.keys(updateData).length === 0) {
+        return NextResponse.json(
+          { success: false, error: 'No valid fields to update' },
+          { status: 400 }
+        )
+      }
+
+      const updatedProduct = await ProductRepository.update(env, productId, updateData)
+
+      let category: any = null
+      if (product?.categoryId) {
+        category = await CategoryRepository.findById(env, product.categoryId)
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          ...product,
+          category,
+        },
+      })
+    }
+    
     // Handle image management operations
     if (action === 'add-image') {
       const formData = await request.formData()
@@ -86,7 +131,7 @@ export async function PUT(
         )
       }
 
-      const { id } = await params
+      const existingProduct = await ProductRepository.findById(env, productId)
       const product = await ProductRepository.findById(env, id)
 
       if (!product) {

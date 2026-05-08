@@ -4,9 +4,18 @@ import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useToast } from '@/hooks/use-toast'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import {
   Select,
   SelectContent,
@@ -30,6 +39,8 @@ import {
   TrendingUp,
   TrendingDown,
   PackagePlus,
+  Plus,
+  Edit,
   CheckCircle,
   XCircle,
   Loader2,
@@ -74,6 +85,19 @@ export default function InventoryPage() {
   const [alertFilter, setAlertFilter] = useState('all')
   const [autoRefresh, setAutoRefresh] = useState(false)
   const [refreshInterval, setRefreshInterval] = useState(30000) // 30 seconds default
+
+  // Add Stock modal state
+  const [isAddStockOpen, setIsAddStockOpen] = useState(false)
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  const [addStockQty, setAddStockQty] = useState<number>(0)
+
+  // Edit Stock modal state
+  const [isEditStockOpen, setIsEditStockOpen] = useState(false)
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [editStockQty, setEditStockQty] = useState<number>(0)
+  const [editLowStockAlert, setEditLowStockAlert] = useState<number>(0)
+  const [editReorderLevel, setEditReorderLevel] = useState<number>(0)
+  const [editReorderQty, setEditReorderQty] = useState<number>(0)
 
   const fetchData = async () => {
     try {
@@ -228,6 +252,97 @@ export default function InventoryPage() {
     }
   }
 
+  const openAddStockModal = () => {
+    setAddStockQty(10)
+    setIsAddStockOpen(true)
+  }
+
+  const openEditStockModal = (product: Product) => {
+    setEditingProduct(product)
+    setEditStockQty(product.stock)
+    setEditLowStockAlert(product.lowStockAlert)
+    setEditReorderLevel(product.reorderLevel)
+    setEditReorderQty(product.reorderQty)
+    setIsEditStockOpen(true)
+  }
+
+  const handleEditStock = async () => {
+    if (!editingProduct) return
+
+    try {
+      const response = await fetch(`/api/admin/products/${editingProduct.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          stock: editStockQty,
+          lowStockAlert: editLowStockAlert,
+          reorderLevel: editReorderLevel,
+          reorderQty: editReorderQty,
+        }),
+      })
+
+      if (response.ok) {
+        toast({
+          title: 'Success',
+          description: `Updated stock settings for ${editingProduct.name}`,
+        })
+        setIsEditStockOpen(false)
+        setEditingProduct(null)
+        fetchData()
+      }
+    } catch (err) {
+      console.error('Error updating stock:', err)
+      toast({
+        title: 'Error',
+        description: 'Failed to update stock',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleAddStock = async () => {
+    if (!selectedProduct) {
+      toast({
+        title: 'Error',
+        description: 'Please select a product first',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/admin/products/${selectedProduct.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          stock: selectedProduct.stock + addStockQty,
+        }),
+      })
+
+      if (response.ok) {
+        toast({
+          title: 'Success',
+          description: `Added ${addStockQty} units to ${selectedProduct.name}`,
+        })
+        setIsAddStockOpen(false)
+        setSelectedProduct(null)
+        setAddStockQty(0)
+        fetchData()
+      }
+    } catch (err) {
+      console.error('Error adding stock:', err)
+      toast({
+        title: 'Error',
+        description: 'Failed to add stock',
+        variant: 'destructive',
+      })
+    }
+  }
+
   const getStockStatus = (product: Product) => {
     if (product.stock === 0) return 'out-of-stock'
     if (product.stock < product.lowStockAlert) return 'low-stock'
@@ -324,7 +439,10 @@ export default function InventoryPage() {
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             Refresh
           </Button>
-          <Button className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700">
+          <Button
+            className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
+            onClick={openAddStockModal}
+          >
             <PackagePlus className="h-4 w-4 mr-2" />
             Add Stock
           </Button>
@@ -556,13 +674,16 @@ export default function InventoryPage() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Package className="h-4 w-4 text-gray-400" />
-                        <span className={`font-semibold ${
-                          product.stock === 0 ? 'text-red-600' :
-                          product.stock < product.lowStockAlert ? 'text-orange-600' :
-                          'text-gray-900'
-                        }`}>
+                        <button
+                          onClick={() => openEditStockModal(product)}
+                          className={`font-semibold hover:underline cursor-pointer bg-transparent border-none p-0 ${
+                            product.stock === 0 ? 'text-red-600' :
+                            product.stock < product.lowStockAlert ? 'text-orange-600' :
+                            'text-gray-900'
+                          }`}
+                        >
                           {product.stock}
-                        </span>
+                        </button>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -597,6 +718,162 @@ export default function InventoryPage() {
           </ScrollArea>
         </CardContent>
       </Card>
+
+      {/* Add Stock Dialog */}
+      <Dialog open={isAddStockOpen} onOpenChange={setIsAddStockOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Stock</DialogTitle>
+            <DialogDescription>Select a product and add stock quantity</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label htmlFor="product-select">Select Product</Label>
+              <Select
+                value={selectedProduct?.id || ''}
+                onValueChange={(val) => {
+                  const product = products.find(p => p.id === val)
+                  setSelectedProduct(product || null)
+                }}
+              >
+                <SelectTrigger id="product-select">
+                  <SelectValue placeholder="Choose a product..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {products.map(product => (
+                    <SelectItem key={product.id} value={product.id}>
+                      {product.name} (Current: {product.stock} units)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="stock-qty">Quantity to Add</Label>
+              <Input
+                id="stock-qty"
+                type="number"
+                min="1"
+                value={addStockQty}
+                onChange={(e) => setAddStockQty(parseInt(e.target.value) || 0)}
+                placeholder="Enter quantity"
+              />
+            </div>
+            {selectedProduct && (
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-600">
+                  <strong>{selectedProduct.name}</strong>
+                </p>
+                <p className="text-sm text-gray-600">
+                  Current Stock: {selectedProduct.stock}
+                </p>
+                <p className="text-sm text-gray-600">
+                  New Stock: {selectedProduct.stock + addStockQty}
+                </p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddStockOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAddStock}
+              disabled={!selectedProduct}
+              className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Stock
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Stock Dialog */}
+      <Dialog open={isEditStockOpen} onOpenChange={setIsEditStockOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Stock Settings</DialogTitle>
+            <DialogDescription>Update stock levels and alert thresholds for {editingProduct?.name}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {editingProduct && (
+              <>
+                <div>
+                  <Label htmlFor="edit-stock-qty">Current Stock Level</Label>
+                  <Input
+                    id="edit-stock-qty"
+                    type="number"
+                    min="0"
+                    value={editStockQty}
+                    onChange={(e) => setEditStockQty(parseInt(e.target.value) || 0)}
+                    placeholder="Current stock quantity"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Enter the new stock quantity</p>
+                </div>
+                <div>
+                  <Label htmlFor="edit-low-stock">Low Stock Alert Level</Label>
+                  <Input
+                    id="edit-low-stock"
+                    type="number"
+                    min="0"
+                    value={editLowStockAlert}
+                    onChange={(e) => setEditLowStockAlert(parseInt(e.target.value) || 0)}
+                    placeholder="Alert when stock below this level"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Current: {editingProduct.lowStockAlert}</p>
+                </div>
+                <div>
+                  <Label htmlFor="edit-reorder-level">Reorder Level</Label>
+                  <Input
+                    id="edit-reorder-level"
+                    type="number"
+                    min="0"
+                    value={editReorderLevel}
+                    onChange={(e) => setEditReorderLevel(parseInt(e.target.value) || 0)}
+                    placeholder="Stock level to trigger reorder"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Current: {editingProduct.reorderLevel}</p>
+                </div>
+                <div>
+                  <Label htmlFor="edit-reorder-qty">Reorder Quantity</Label>
+                  <Input
+                    id="edit-reorder-qty"
+                    type="number"
+                    min="1"
+                    value={editReorderQty}
+                    onChange={(e) => setEditReorderQty(parseInt(e.target.value) || 0)}
+                    placeholder="Quantity to reorder when stock is low"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Current: {editingProduct.reorderQty}</p>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-600 mb-2">
+                    <strong>{editingProduct.name}</strong>
+                  </p>
+                  <div className="space-y-1 text-sm text-gray-600">
+                    <p>Current Stock: <span className="font-semibold">{editingProduct.stock}</span></p>
+                    <p>Will Update To: <span className="font-semibold text-violet-600">{editStockQty}</span></p>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditStockOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleEditStock}
+              disabled={!editingProduct}
+              className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Update Stock
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

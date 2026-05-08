@@ -19,7 +19,8 @@ import {
   LogOut,
   Menu,
   X,
-  Home
+  Home,
+  Layers
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/use-auth'
@@ -34,6 +35,7 @@ const navigation = [
   { name: 'Homepage', href: '/admin/homepage', icon: Home },
   { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
   { name: 'Inventory', href: '/admin/inventory', icon: Box },
+  { name: 'Stuff', href: '/admin/stuff', icon: Layers },
   { name: 'Settings', href: '/admin/settings', icon: Settings },
 ]
 
