@@ -102,7 +102,10 @@ export async function POST(request: NextRequest) {
       name,
       phone,
       password: hashedPassword,
-      emailVerified: true, // Auto-verify on registration
+      // NOTE: Email is auto-verified because email delivery infrastructure
+      // is not yet fully implemented. Change to 0 and implement proper
+      // email verification flow when email sending is operational.
+      emailVerified: true,
       role: isAdmin ? 'admin' : 'user',
     });
 
@@ -147,11 +150,11 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Set cookie with stricter security for auto-login
+    // Set cookie for auto-login
     response.cookies.set('session', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+      sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7, // 7 days
       path: '/',
     });

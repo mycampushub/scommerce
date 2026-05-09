@@ -35,8 +35,21 @@ export async function GET(request: NextRequest) {
     if (!env || !env.DB) {
       console.log('[orders API] Using Prisma for orders query')
 
-      // Build Prisma where clause
-      const where: any = {}
+      // Build Prisma where clause with filters
+      const where: any = { deletedAt: null }
+
+      if (search) {
+        where.OR = [
+          { orderNumber: { contains: search } },
+          { customerName: { contains: search } },
+          { customerEmail: { contains: search } },
+        ]
+      }
+
+      if (status && status !== 'all') {
+        where.status = status
+      }
+
       if (dateFrom) {
         where.createdAt = { gte: new Date(dateFrom) }
       }
@@ -47,9 +60,7 @@ export async function GET(request: NextRequest) {
         where.createdAt.lt = endDate
       }
 
-      console.log('[orders API] Prisma where clause:', where)
-
-      // Fetch orders
+      // Fetch orders with user details
       const prismaOrders = await prisma.order.findMany({
         where,
         orderBy: { createdAt: 'desc' },
@@ -61,34 +72,39 @@ export async function GET(request: NextRequest) {
               email: true,
               role: true
             }
-          }
+          },
+          items: true
         }
       })
 
-      console.log('[orders API] Fetched', prismaOrders.length, 'orders from Prisma')
-
-      // Fetch order items
-      const prismaOrderItems = await prisma.orderItem.findMany({
-        orderBy: { createdAt: 'desc' }
+      orders = prismaOrders.map(o => {
+        const { items, user, ...orderData } = o
+        return {
+          ...orderData,
+          userId: o.userId,
+          userName: user?.name || null,
+          userEmail: user?.email || null,
+          userRole: user?.role || null,
+          orderItems: items || []
+        }
       })
-
-      console.log('[orders API] Fetched', prismaOrderItems.length, 'order items from Prisma')
-
-      orders = prismaOrders.map(o => ({
-        ...o,
-        userId: o.userId,
-        userName: o.user?.name || null,
-        userEmail: o.user?.email || null,
-        userRole: o.user?.role || null
-      }))
-
-      orderItems = prismaOrderItems
     } else {
       console.log('[orders API] Using D1 for orders query')
 
-      // Build WHERE clause for date filtering
-      let whereClause = ''
+      // Build WHERE clause with all filters at DB level
+      let whereClause = ' AND o.deletedAt IS NULL'
       const whereParams: any[] = []
+
+      if (search) {
+        whereClause += ' AND (o.orderNumber LIKE ? OR o.customerName LIKE ? OR o.customerEmail LIKE ?)'
+        const searchPattern = `%${search}%`
+        whereParams.push(searchPattern, searchPattern, searchPattern)
+      }
+
+      if (status && status !== 'all') {
+        whereClause += ' AND o.status = ?'
+        whereParams.push(status)
+      }
 
       if (dateFrom) {
         whereClause += ' AND o.createdAt >= ?'
@@ -96,7 +112,6 @@ export async function GET(request: NextRequest) {
       }
 
       if (dateTo) {
-        // Add 1 day to include the end date fully
         const endDate = new Date(dateTo)
         endDate.setDate(endDate.getDate() + 1)
         whereClause += ' AND o.createdAt < ?'
@@ -119,14 +134,19 @@ export async function GET(request: NextRequest) {
         whereParams
       )
 
-      // Fetch all order items in a single query
-      orderItems = await queryAll<any>(
-        env,
-        `SELECT oi.*
-         FROM order_items oi
-         INNER JOIN orders o ON oi.orderId = o.id
-         ORDER BY o.createdAt DESC`
-      )
+      // Fetch order items only for the fetched orders
+      if (orders.length > 0) {
+        const orderIds = orders.map((o: any) => o.id)
+        const placeholders = orderIds.map(() => '?').join(',')
+        orderItems = await queryAll<any>(
+          env,
+          `SELECT oi.*
+           FROM order_items oi
+           WHERE oi.orderId IN (${placeholders})
+           ORDER BY oi.createdAt ASC`,
+          ...orderIds
+        )
+      }
     }
 
     // Group order items by orderId
@@ -147,28 +167,13 @@ export async function GET(request: NextRequest) {
         email: order.userEmail,
         role: order.userRole
       } : null,
-      orderItems: itemsByOrderId.get(order.id) || []
+      orderItems: order.orderItems || itemsByOrderId.get(order.id) || []
     }))
-
-    // Apply filters after fetching
-    let filteredOrders = enrichedOrders
-    if (search) {
-      filteredOrders = filteredOrders.filter(
-        (order) =>
-          order.orderNumber.toLowerCase().includes(search.toLowerCase()) ||
-          order.customerName.toLowerCase().includes(search.toLowerCase()) ||
-          order.customerEmail.toLowerCase().includes(search.toLowerCase())
-      )
-    }
-
-    if (status && status !== 'all') {
-      filteredOrders = filteredOrders.filter((order) => order.status === status)
-    }
 
     return NextResponse.json({
       success: true,
-      data: filteredOrders,
-      total: filteredOrders.length,
+      data: enrichedOrders,
+      total: enrichedOrders.length,
     })
   } catch (error) {
     console.error('[orders API] Error fetching orders:', error)

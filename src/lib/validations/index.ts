@@ -19,7 +19,7 @@ export const productSchema = z.object({
   description: z.string().min(1, 'Description is required'),
   price: z.number().positive('Price must be positive'),
   comparePrice: z.number().positive().optional(),
-  categoryId: z.string().uuid('Invalid category ID'),
+  categoryId: z.string().min(1, 'Category ID is required'),
   images: z.array(z.string()).min(1, 'At least one image is required'),
   stock: z.number().int().min(0, 'Stock must be a non-negative integer'),
   lowStockAlert: z.number().int().min(0).optional(),
@@ -35,7 +35,7 @@ export const categorySchema = z.object({
   name: z.string().min(1, 'Category name is required'),
   slug: z.string().min(1, 'Category slug is required'),
   description: z.string().optional(),
-  image: z.string().url('Invalid image URL').optional(),
+  image: z.string().optional(),
   isActive: z.boolean().optional(),
 });
 
@@ -66,7 +66,7 @@ export const orderItemSchema = z.object({
   quantity: z.number().int().min(1, 'Quantity must be at least 1').max(99, 'Quantity cannot exceed 99'),
   price: z.number().positive('Price must be positive'),
   productName: z.string().min(1, 'Product name is required'),
-  productImage: z.string().url('Invalid image URL'),
+  productImage: z.string().min(1, 'Product image is required'),
   variantId: z.string().optional(),
   variantSku: z.string().optional(),
   variantSize: z.string().optional(),
@@ -75,7 +75,7 @@ export const orderItemSchema = z.object({
 });
 
 export const createOrderSchema = z.object({
-  userId: z.string().uuid().optional(),
+  userId: z.string().optional(),
   customerName: z.string().min(1, 'Customer name is required'),
   customerEmail: z.string().email('Invalid email address'),
   customerPhone: z.string().min(10, 'Phone number must be at least 10 digits'),
@@ -92,7 +92,7 @@ export const createOrderSchema = z.object({
   tax: z.number().min(0, 'Tax must be non-negative'),
   discount: z.number().min(0, 'Discount must be non-negative').optional(),
   total: z.number().positive('Total must be positive'),
-  paymentMethod: z.enum(['CASH_ON_DELIVERY', 'CARD', 'UPI', 'BANK_TRANSFER']),
+  paymentMethod: z.enum(['CASH_ON_DELIVERY', 'ONLINE_PAYMENT', 'CARD', 'UPI', 'BANK_TRANSFER']),
   notes: z.string().optional(),
 });
 
@@ -114,7 +114,7 @@ export const updateTrackingSchema = z.object({
 
 // Cart Schemas
 export const cartItemSchema = z.object({
-  productId: z.string().uuid('Invalid product ID'),
+  productId: z.string().min(1, 'Product ID is required'),
   quantity: z.number().int().min(1, 'Quantity must be at least 1').max(99, 'Quantity cannot exceed 99'),
   size: z.string().optional(),
   color: z.string().optional(),
@@ -125,7 +125,7 @@ export const updateCartItemSchema = cartItemSchema.partial();
 // Search & Filter Schemas
 export const searchProductsSchema = z.object({
   search: z.string().optional(),
-  categoryId: z.string().uuid().optional(),
+  categoryId: z.string().optional(),
   minPrice: z.number().min(0).optional(),
   maxPrice: z.number().min(0).optional(),
   type: z.enum(['featured', 'new', 'sale', 'trending']).optional(),
@@ -148,8 +148,8 @@ export const bannerSchema = z.object({
   id: z.string(),
   title: z.string(),
   subtitle: z.string().optional(),
-  imageDesktop: z.string().url(),
-  imageMobile: z.string().url(),
+  imageDesktop: z.string(),
+  imageMobile: z.string(),
   ctaText: z.string().optional(),
   ctaLink: z.string().optional(),
   isActive: z.boolean().optional(),
@@ -158,8 +158,8 @@ export const bannerSchema = z.object({
 export const storySchema = z.object({
   id: z.string(),
   title: z.string(),
-  thumbnail: z.string().url(),
-  mediaUrls: z.array(z.string().url()),
+  thumbnail: z.string(),
+  mediaUrls: z.array(z.string()),
   type: z.enum(['image', 'video']),
   productId: z.string().optional(),
   duration: z.number().int().positive().optional(),
@@ -169,8 +169,8 @@ export const storySchema = z.object({
 export const reelSchema = z.object({
   id: z.string(),
   title: z.string(),
-  thumbnail: z.string().url(),
-  videoUrl: z.string().url(),
+  thumbnail: z.string(),
+  videoUrl: z.string(),
   productId: z.string().optional(),
   isActive: z.boolean().optional(),
 });
@@ -178,20 +178,20 @@ export const reelSchema = z.object({
 // Settings Schemas
 export const settingsSchema = z.object({
   siteName: z.string().optional(),
-  siteLogo: z.string().url().optional(),
+  siteLogo: z.string().optional(),
   contactEmail: z.string().email().optional(),
   contactPhone: z.string().optional(),
   currency: z.string().min(1).optional(),
   freeShippingThreshold: z.number().min(0).optional(),
   taxRate: z.number().min(0).optional(),
-  socialMedia: z.record(z.string(), z.string().url()).optional(),
+  socialMedia: z.record(z.string(), z.string()).optional(),
 })
 
 // Promotion Schemas
 export const promotionSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional(),
-  image: z.string().url('Invalid image URL'),
+  image: z.string().min(1, 'Image is required'),
   discountType: z.enum(['percentage', 'fixed']).optional().default('percentage'),
   discountValue: z.number().min(0, 'Discount value must be non-negative').optional().default(0),
   discountRules: z.record(z.string(), z.unknown()).optional(),
@@ -208,7 +208,7 @@ export const updatePromotionSchema = promotionSchema.partial();
 
 // Review Schemas
 export const reviewSchema = z.object({
-  productId: z.string().uuid('Invalid product ID'),
+  productId: z.string().min(1, 'Product ID is required'),
   rating: z.number().int().min(1).max(5, 'Rating must be between 1 and 5'),
   title: z.string().min(1, 'Review title is required'),
   content: z.string().min(10, 'Review content must be at least 10 characters'),

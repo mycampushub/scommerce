@@ -73,7 +73,7 @@ export default function LoginPage() {
 
       if (!response.ok || !data.success) {
         // Check if email verification is required
-        if (data.requiresVerification) {
+        if (data.error && data.error.toLowerCase().includes('verify your email')) {
           setRequiresVerification(true)
         }
         throw new Error(data.error || 'Login failed')

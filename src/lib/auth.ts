@@ -11,16 +11,13 @@ function getJWTSecret(): Uint8Array {
   const secret = process.env.JWT_SECRET;
 
   if (!secret) {
-    // In production, we must have JWT_SECRET
+    // Only use fallback in development with clear warning
     if (process.env.NODE_ENV === 'production') {
-      console.error(
+      throw new Error(
         'CRITICAL SECURITY: JWT_SECRET environment variable is required in production. '
         + 'Set JWT_SECRET in Cloudflare Dashboard or wrangler.toml with a secure, random string (at least 32 characters).'
       );
-      // Return a temporary fallback to allow the API to return a proper error
-      return new TextEncoder().encode('production-secret-must-be-configured-in-cf-dashboard');
     }
-    // Only use fallback in development with clear warning
     console.warn(
       'SECURITY WARNING: Using insecure JWT_SECRET fallback. '
       + 'This is only for development. Set JWT_SECRET environment variable!'

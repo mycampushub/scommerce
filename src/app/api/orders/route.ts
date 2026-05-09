@@ -11,8 +11,8 @@ import { rateLimit, getClientIp, createRateLimitResponse } from '@/lib/rate-limi
 import { verifyToken, extractTokenFromHeader } from '@/lib/auth';
 import { addCacheHeaders, CachePresets } from '@/lib/http-cache';
 
-// Allowed payment methods - Cash on Delivery and Online Payment
-const ALLOWED_PAYMENT_METHODS = ['CASH_ON_DELIVERY', 'ONLINE_PAYMENT'] as const;
+// Allowed payment methods - validated by Zod schema
+const ALLOWED_PAYMENT_METHODS = ['CASH_ON_DELIVERY', 'ONLINE_PAYMENT', 'CARD', 'UPI', 'BANK_TRANSFER'] as const;
 
 
 export async function POST(request: NextRequest) {
@@ -208,6 +208,14 @@ export async function POST(request: NextRequest) {
     const discount = validatedData.discount || 0;
     const total = validatedData.total;
 
+    // Extract structured address fields for order-level columns
+    const extractAddressField = (address: unknown, field: string): string | undefined => {
+      if (typeof address === 'object' && address !== null) {
+        return (address as Record<string, unknown>)[field] as string | undefined;
+      }
+      return undefined;
+    };
+
     // Create order with the selected payment method
     const order = await OrderRepository.create(env, {
       userId: validatedData.userId || undefined,
@@ -218,6 +226,9 @@ export async function POST(request: NextRequest) {
       billingAddress: validatedData.billingAddress
         ? stringifyJSON(validatedData.billingAddress)
         : stringifyJSON(validatedData.shippingAddress),
+      city: extractAddressField(validatedData.shippingAddress, 'city') || extractAddressField(validatedData.shippingAddress, 'district'),
+      district: extractAddressField(validatedData.shippingAddress, 'district'),
+      division: extractAddressField(validatedData.shippingAddress, 'division') || extractAddressField(validatedData.shippingAddress, 'state'),
       subtotal: parseFloat(subtotal.toFixed(2)),
       shipping: parseFloat(shipping.toFixed(2)),
       tax: parseFloat(tax.toFixed(2)),

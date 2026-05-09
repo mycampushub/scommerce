@@ -12,7 +12,7 @@ import { CloudOff, RefreshCw, Wifi, AlertTriangle, Package, ShoppingBag, Heart }
  */
 
 export default function OfflinePage() {
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isOnline, setIsOnline] = useState(false);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);

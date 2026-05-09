@@ -3,8 +3,7 @@ import type { NextRequest } from 'next/server'
 import { verifyToken } from '@/lib/auth'
 
 // Paths that require authentication
-const protectedPaths = ['/admin', '/admin/']
-const publicPaths = ['/login', '/register', '/api/auth']
+const protectedPaths = ['/admin']
 
 // Sensitive API routes that need extra protection
 const sensitiveApiRoutes = [
@@ -28,8 +27,6 @@ const cacheablePaths = [
   '/privacy',
   '/terms',
   '/returns',
-  '/login',
-  '/register',
 ]
 
 // Static assets cache duration (1 year)
@@ -45,25 +42,18 @@ export async function middleware(request: NextRequest) {
   // Create response with security headers helper
   const createSecureResponse = (baseResponse: NextResponse) => {
     const response = baseResponse
-    // Content Security Policy - Updated to allow YouTube videos
     response.headers.set(
       'Content-Security-Policy',
       "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.youtube.com https://www.youtube-nocookie.com https://s.ytimg.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; connect-src 'self' https:; frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com; frame-ancestors 'self'; form-action 'self'; base-uri 'self';"
     )
-    // X-Frame-Options - prevent clickjacking
     response.headers.set('X-Frame-Options', 'DENY')
-    // X-Content-Type-Options - prevent MIME sniffing
     response.headers.set('X-Content-Type-Options', 'nosniff')
-    // X-XSS-Protection
     response.headers.set('X-XSS-Protection', '1; mode=block')
-    // Referrer-Policy
     response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
-    // Permissions-Policy
     response.headers.set(
       'Permissions-Policy',
       'geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=()'
     )
-    // Strict-Transport-Security (only in production with HTTPS)
     if (request.url.startsWith('https://')) {
       response.headers.set(
         'Strict-Transport-Security',
@@ -73,19 +63,19 @@ export async function middleware(request: NextRequest) {
     return response
   }
 
+  const matchesPath = (path: string, pattern: string) =>
+    path === pattern || path.startsWith(pattern + '/')
+
   // Check if the path is protected
-  const isProtectedPath = protectedPaths.some(path => pathname.startsWith(path))
-  const isPublicPath = publicPaths.some(path => pathname.startsWith(path))
+  const isProtectedPath = protectedPaths.some(p => matchesPath(pathname, p))
   const isApiRoute = pathname.startsWith('/api/')
-  const isSensitiveRoute = sensitiveApiRoutes.some(route => pathname.startsWith(route))
-  const isCacheable = cacheablePaths.some(path => pathname.startsWith(path)) ||
+  const isSensitiveRoute = sensitiveApiRoutes.some(r => matchesPath(pathname, r))
+  const isCacheable = cacheablePaths.some(p => matchesPath(pathname, p)) ||
                        pathname.match(/\.(jpg|jpeg|png|gif|svg|webp|ico|css|js|woff|woff2|ttf|eot)$/)
 
-  // Handle sensitive API routes
+  // Handle sensitive API routes - require authentication
   if (isApiRoute && isSensitiveRoute) {
-    // Check authentication for sensitive routes
     if (!sessionToken) {
-      console.log('[middleware] No session token for sensitive API route:', pathname);
       const response = new Response(
         JSON.stringify({ error: 'Authentication required' }),
         {
@@ -93,7 +83,6 @@ export async function middleware(request: NextRequest) {
           headers: { 'Content-Type': 'application/json' },
         }
       )
-      // Apply security headers directly to Response
       response.headers.set('X-Frame-Options', 'DENY')
       response.headers.set('X-Content-Type-Options', 'nosniff')
       response.headers.set('X-XSS-Protection', '1; mode=block')
@@ -105,11 +94,8 @@ export async function middleware(request: NextRequest) {
       return response
     }
 
-    // Verify token
-    console.log('[middleware] Verifying token for sensitive API route:', pathname);
     const payload = await verifyToken(sessionToken)
     if (!payload) {
-      console.log('[middleware] Token verification failed for sensitive API route:', pathname);
       const response = new Response(
         JSON.stringify({ error: 'Invalid session' }),
         {
@@ -117,7 +103,6 @@ export async function middleware(request: NextRequest) {
           headers: { 'Content-Type': 'application/json' },
         }
       )
-      // Apply security headers directly to Response
       response.headers.set('X-Frame-Options', 'DENY')
       response.headers.set('X-Content-Type-Options', 'nosniff')
       response.headers.set('X-XSS-Protection', '1; mode=block')
@@ -128,102 +113,57 @@ export async function middleware(request: NextRequest) {
       }
       return response
     }
-    console.log('[middleware] Token verified for sensitive API route:', pathname, 'userId:', payload.userId);
   }
 
   // If path is protected and no session, redirect to login
   if (isProtectedPath && !sessionToken) {
-    // Don't redirect if already on login page (prevent loop)
-    if (pathname === '/login' || pathname === '/login/') {
-      return createSecureResponse(NextResponse.next())
-    }
-    // Don't redirect if we're already coming from login (prevent loop)
-    const from = request.nextUrl.searchParams.get('from')
-    if (from === 'login') {
-      return createSecureResponse(NextResponse.next())
-    }
     const loginUrl = new URL('/login', request.url)
-    // Only set redirect if not already coming from a redirect
-    const existingRedirect = request.nextUrl.searchParams.get('redirect')
-    if (!existingRedirect) {
-      loginUrl.searchParams.set('redirect', pathname)
-      loginUrl.searchParams.set('from', 'middleware')
-    }
+    loginUrl.searchParams.set('redirect', pathname)
     return createSecureResponse(NextResponse.redirect(loginUrl))
   }
 
   // If path is protected and has session, verify the token
   if (isProtectedPath && sessionToken) {
-    console.log('[middleware] Verifying session for protected path:', pathname);
     const payload = await verifyToken(sessionToken)
 
-    // If token is invalid or expired, redirect to login
     if (!payload) {
-      console.log('[middleware] Token verification failed for protected path:', pathname);
-      // Don't redirect if already on login page
-      if (pathname === '/login' || pathname === '/login/') {
-        return createSecureResponse(NextResponse.next())
-      }
       const loginUrl = new URL('/login', request.url)
       loginUrl.searchParams.set('redirect', pathname)
       loginUrl.searchParams.set('session', 'expired')
-      loginUrl.searchParams.set('from', 'middleware')
       return createSecureResponse(NextResponse.redirect(loginUrl))
     }
 
-    console.log('[middleware] Token verified for protected path:', pathname, 'userId:', payload.userId, 'role:', payload.role);
-
-    // Check if user has admin role for admin paths
-    if (pathname.startsWith('/admin') && payload.role !== 'admin') {
-      console.log('[middleware] Access denied to admin path - role:', payload.role);
+    // Allow both admin and staff roles for admin access
+    if (pathname.startsWith('/admin') && payload.role !== 'admin' && payload.role !== 'staff') {
       const homeUrl = new URL('/', request.url)
       return createSecureResponse(NextResponse.redirect(homeUrl))
     }
-
-    console.log('[middleware] Access granted to protected path:', pathname);
   }
 
   // If user is on login page and has a valid session, redirect appropriately
-  // BUT prevent redirect loops by checking if we're already redirected from login
   if (pathname === '/login' && sessionToken) {
     const payload = await verifyToken(sessionToken)
 
     if (payload) {
-      // Check if we have a valid redirect parameter and not already coming from login
       const redirectTo = request.nextUrl.searchParams.get('redirect')
-      const from = request.nextUrl.searchParams.get('from')
-      
-      // If we're already coming from a redirect (from=login), don't redirect again
-      if (from === 'login') {
-        return createSecureResponse(NextResponse.next())
-      }
-      
-      // If no redirect or redirect is to login page itself, redirect to appropriate page
-      if (!redirectTo || redirectTo === '/login' || redirectTo === '/login/' || redirectTo.includes('login')) {
-        if (payload.role === 'admin') {
+
+      if (!redirectTo || redirectTo === '/login' || redirectTo === '/login/') {
+        if (payload.role === 'admin' || payload.role === 'staff') {
           return createSecureResponse(NextResponse.redirect(new URL('/admin', request.url)))
-        } else {
-          return createSecureResponse(NextResponse.redirect(new URL('/', request.url)))
         }
-      } else {
-        // Validate redirect URL to prevent open redirects
-        // STRICT: Only allow relative URLs starting with single '/' (no absolute URLs, even same-origin)
-        if (redirectTo.startsWith('/') && !redirectTo.startsWith('//')) {
-          // Additional safety: ensure no suspicious patterns
-          // Reject if contains :// (absolute URL with protocol)
-          // Reject if contains \\ (backslash, path traversal attempt)
-          if (!redirectTo.includes('://') && !redirectTo.includes('\\')) {
-            const redirectUrl = new URL(redirectTo, request.url)
-            return createSecureResponse(NextResponse.redirect(redirectUrl))
-          }
-        }
-        // Invalid URL or suspicious pattern - redirect based on role
-        if (payload.role === 'admin') {
-          return createSecureResponse(NextResponse.redirect(new URL('/admin', request.url)))
-        } else {
-          return createSecureResponse(NextResponse.redirect(new URL('/', request.url)))
-        }
+        return createSecureResponse(NextResponse.redirect(new URL('/', request.url)))
       }
+
+      // Validate redirect URL to prevent open redirects
+      if (redirectTo.startsWith('/') && !redirectTo.startsWith('//') &&
+          !redirectTo.includes('://') && !redirectTo.includes('\\')) {
+        return createSecureResponse(NextResponse.redirect(new URL(redirectTo, request.url)))
+      }
+
+      if (payload.role === 'admin' || payload.role === 'staff') {
+        return createSecureResponse(NextResponse.redirect(new URL('/admin', request.url)))
+      }
+      return createSecureResponse(NextResponse.redirect(new URL('/', request.url)))
     }
   }
 
@@ -233,10 +173,8 @@ export async function middleware(request: NextRequest) {
     const isStaticAsset = pathname.match(/\.(jpg|jpeg|png|gif|svg|webp|ico|css|js|woff|woff2|ttf|eot)$/)
 
     if (isStaticAsset) {
-      // Long cache for static assets
       response.headers.set('Cache-Control', `public, max-age=${STATIC_CACHE_MAX_AGE}, immutable`)
     } else {
-      // Shorter cache for public pages (allow revalidation)
       response.headers.set('Cache-Control', `public, max-age=${PUBLIC_CACHE_MAX_AGE}, must-revalidate`)
       response.headers.set('Vary', 'Cookie')
     }
@@ -244,19 +182,13 @@ export async function middleware(request: NextRequest) {
     return response
   }
 
-  // For API routes, let individual routes set their own cache headers
-  // Only set no-cache headers if the response doesn't already have Cache-Control
+  // For API routes, prevent caching by default
   if (isApiRoute) {
-    const response = createSecureResponse(NextResponse.next());
-    
-    // Only set no-cache headers if not already set by the API route
-    if (!response.headers.has('Cache-Control')) {
-      response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-      response.headers.set('Pragma', 'no-cache');
-      response.headers.set('Expires', '0');
-    }
-    
-    return response;
+    const response = createSecureResponse(NextResponse.next())
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+    response.headers.set('Pragma', 'no-cache')
+    response.headers.set('Expires', '0')
+    return response
   }
 
   return createSecureResponse(NextResponse.next())
@@ -264,12 +196,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
     '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 }

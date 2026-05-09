@@ -35,9 +35,9 @@ export async function GET(request: NextRequest) {
     }
 
     if (status === 'active') {
-      users = users.filter((user) => user.role === 'user')
+      users = users.filter((user) => user.isBanned !== 1)
     } else if (status === 'banned') {
-      users = users.filter((user) => user.role === 'banned')
+      users = users.filter((user) => user.isBanned === 1)
     }
 
     const customers = users.filter((user) => user.role !== 'admin')

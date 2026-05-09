@@ -94,8 +94,8 @@ export async function validateCSRFToken(
       return false;
     }
 
-    // Token is valid - delete it to prevent reuse
-    await env.KV.delete(csrfKey);
+    // Token is valid - keep it for reuse within its TTL period
+    // The token remains valid until it expires naturally via KV expirationTtl
     return true;
   } catch (error) {
     console.error('Error validating CSRF token:', error);
@@ -149,14 +149,20 @@ export function getCSRFTokenFromBody(body: Record<string, unknown>): string | nu
  * @returns Session identifier
  */
 export function getCSRFSessionId(request: Request): string {
-  // Try to get session from JWT
+  // Try to get session from Authorization header
   const authHeader = request.headers.get('authorization');
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.substring(7);
-    // Use JWT as session ID (simplified - in production, extract user ID from JWT)
     if (token) {
       return `jwt:${token.substring(0, 32)}`;
     }
+  }
+
+  // Try to get session from cookie (for cookie-authed admin requests)
+  const cookieHeader = (request as any).cookies?.get?.('session')?.value ||
+                       extractCookie(request.headers.get('cookie'), 'session');
+  if (cookieHeader) {
+    return `session:${cookieHeader.substring(0, 32)}`;
   }
 
   // Fallback to IP address
@@ -166,6 +172,15 @@ export function getCSRFSessionId(request: Request): string {
              'anonymous';
 
   return `ip:${ip}`;
+}
+
+/**
+ * Extract a cookie value by name from a Cookie header string
+ */
+function extractCookie(cookieHeader: string | null, name: string): string | null {
+  if (!cookieHeader) return null;
+  const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`));
+  return match ? match[1] : null;
 }
 
 /**
@@ -194,8 +209,25 @@ export async function csrfMiddleware(
     return null;
   }
 
-  // Get CSRF token from request
-  const token = getCSRFTokenFromRequest(request);
+  // Get CSRF token from request (headers or body for multipart)
+  let token = getCSRFTokenFromRequest(request);
+
+  // For multipart/form-data, try to extract from form body
+  if (!token) {
+    const contentType = request.headers.get('content-type') || '';
+    if (contentType.includes('multipart/form-data')) {
+      try {
+        const clonedRequest = request.clone();
+        const formData = await clonedRequest.formData();
+        token = formData.get('_csrf') as string ||
+                formData.get('csrfToken') as string ||
+                formData.get('csrf') as string ||
+                null;
+      } catch {
+        // Failed to parse form data, continue with header check
+      }
+    }
+  }
 
   if (!token) {
     return new Response(

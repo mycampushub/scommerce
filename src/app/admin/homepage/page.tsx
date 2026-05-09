@@ -132,7 +132,7 @@ export default function HomepageManagementPage() {
   // Fetch functions
   const fetchProducts = async () => {
     try {
-      const res = await fetch('/api/products?limit=100')
+      const res = await fetch('/api/admin/products?limit=100')
       const data = await res.json() as any
       if (data.success) {
         setProducts(data.data)

@@ -119,7 +119,7 @@ export function generateId(): string {
  */
 export function generateOrderNumber(): string {
   const timestamp = Date.now();
-  const random = secureRandomInt(0, 10000).toString().padStart(4, '0');
+  const random = secureRandomInt(0, 99999999).toString().padStart(8, '0');
   return `ORD-${timestamp}-${random}`;
 }
 

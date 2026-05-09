@@ -179,11 +179,21 @@ export function ImageUpload({
       }
 
       try {
+        const csrfToken = typeof window !== 'undefined' ? localStorage.getItem('csrf_token') : null
         const formData = new FormData()
         formData.append('file', file)
+        if (csrfToken) {
+          formData.append('_csrf', csrfToken)
+        }
+
+        const headers: Record<string, string> = {}
+        if (csrfToken) {
+          headers['X-CSRF-Token'] = csrfToken
+        }
 
         const response = await fetch('/api/admin/upload', {
           method: 'POST',
+          headers,
           body: formData
         })
 
@@ -224,9 +234,15 @@ export function ImageUpload({
     // If it's a new image (uploaded via the new system), delete from server
     if (typeof imageToRemove === 'object' && imageToRemove.isNew) {
       try {
+        const csrfToken = typeof window !== 'undefined' ? localStorage.getItem('csrf_token') : null
+        const headers: Record<string, string> = {}
+        if (csrfToken) {
+          headers['X-CSRF-Token'] = csrfToken
+        }
         // Pass the full URL path (e.g., /uploads/uuid.jpg)
         await fetch(`/api/admin/upload?path=${encodeURIComponent(imageUrl)}`, {
-          method: 'DELETE'
+          method: 'DELETE',
+          headers
         })
       } catch (error) {
         console.error('Delete error:', error)

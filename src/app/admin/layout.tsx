@@ -23,6 +23,7 @@ import {
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/use-auth'
+import { useCSRF } from '@/hooks/use-csrf'
 
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
@@ -46,6 +47,42 @@ export default function AdminLayout({
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { user, loading } = useAuth()
+
+  // Initialize CSRF token for admin requests
+  const csrfState = useCSRF()
+
+  // Patch global fetch to auto-inject CSRF token for same-origin requests
+  useEffect(() => {
+    const originalFetch = window.fetch
+    window.fetch = async function csrfFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+      const method = (init?.method || 'GET').toUpperCase()
+      const isStateChanging = !['GET', 'HEAD', 'OPTIONS'].includes(method)
+      const isSameOrigin = url.startsWith('/') || url.startsWith(window.location.origin)
+
+      if (isStateChanging && isSameOrigin) {
+        const csrfToken = localStorage.getItem('csrf_token')
+        if (csrfToken) {
+          const headers: Record<string, string> = { ...(init?.headers as Record<string, string> || {}) }
+          headers['X-CSRF-Token'] = csrfToken
+
+          const newInit: RequestInit = { ...init, headers }
+
+          // For FormData, also append _csrf field
+          if (init?.body instanceof FormData && !init.body.has('_csrf')) {
+            init.body.append('_csrf', csrfToken)
+          }
+
+          return originalFetch.call(window, input, newInit)
+        }
+      }
+      return originalFetch.call(window, input, init)
+    }
+
+    return () => {
+      window.fetch = originalFetch
+    }
+  }, [csrfState.token])
 
   // Client-side auth check - redirect if not authenticated or not admin
   useEffect(() => {

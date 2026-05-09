@@ -16,7 +16,7 @@ export async function queryFirst<T = Record<string, unknown>>(
     // For now, this is a placeholder
     // In a full implementation, we'd convert SQL queries to Prisma queries
     // For development, we'll use raw queries through Prisma
-    const result = await prisma.$queryRawUnsafe<T[]>(sql, ...params);
+    const result = await prisma.$queryRawUnsafe(sql, ...params) as T[];
     return result && result.length > 0 ? result[0] : null;
   } catch (error) {
     console.error('[db-prisma.ts] queryFirst error:', error);
@@ -32,7 +32,7 @@ export async function queryAll<T = Record<string, unknown>>(
   ...params: unknown[]
 ): Promise<T[]> {
   try {
-    const result = await prisma.$queryRawUnsafe<T[]>(sql, ...params);
+    const result = await prisma.$queryRawUnsafe(sql, ...params) as T[];
     return result || [];
   } catch (error) {
     console.error('[db-prisma.ts] queryAll error:', error);

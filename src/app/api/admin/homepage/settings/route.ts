@@ -232,7 +232,7 @@ export async function PUT(request: NextRequest) {
     const settingsWithParsedData = updatedSettings.map((s: any) => ({
       ...s,
       settings: parseJSON<any>(s.settings) || null,
-      isEnabled: typeof s.isEnabled === 'boolean' ? s.isEnabled : numberToBool(s.isActive),
+      isEnabled: typeof s.isEnabled === 'boolean' ? s.isEnabled : numberToBool(s.isEnabled),
     }))
 
     return NextResponse.json({

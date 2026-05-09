@@ -18,9 +18,9 @@ async function main() {
   console.log('Database seeded successfully!')
 
   // Get counts
-  const cats = db.prepare('SELECT COUNT(*) as count FROM Category').all()
-  const prods = db.prepare('SELECT COUNT(*) as count FROM Product').all()
-  const users = db.prepare('SELECT COUNT(*) as count FROM User').all()
+  const cats = db.prepare('SELECT COUNT(*) as count FROM categories').all()
+  const prods = db.prepare('SELECT COUNT(*) as count FROM products').all()
+  const users = db.prepare('SELECT COUNT(*) as count FROM users').all()
   console.log(`Users: ${users[0]?.count}`)
   console.log(`Categories: ${cats[0]?.count}`)
   console.log(`Products: ${prods[0]?.count}`)

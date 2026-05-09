@@ -235,14 +235,12 @@ export default function AuditLogsPage() {
               <p className="text-2xl font-bold text-green-600">{logs.filter(l => {
                 const logDate = new Date(l.createdAt)
                 const today = new Date()
-                return logDate.toDateString() === today.toDateString() &&
-                       logDate.getMonth() === today.getMonth() &&
-                       logDate.getDate() === today.getDate()
+                return logDate.toDateString() === today.toDateString()
               }).length}</p>
             </div>
             <div>
               <p className="text-sm text-gray-500">By: {actionFilter}</p>
-              <p className="text-2xl font-bold text-violet-600">{logs.filter(l => l.action === actionFilter).length}</p>
+              <p className="text-2xl font-bold text-violet-600">{actionFilter === 'ALL' ? logs.length : logs.filter(l => l.action === actionFilter).length}</p>
             </div>
           </div>
         </CardContent>

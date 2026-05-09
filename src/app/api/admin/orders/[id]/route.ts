@@ -6,6 +6,7 @@ import { UserRepository } from '@/db/user.repository'
 import { execute, parseJSON } from '@/db/db'
 import { updateTrackingSchema } from '@/lib/validations'
 import { csrfMiddleware } from '@/lib/csrf'
+import prisma from '@/lib/database'
 
 
 export async function GET(
@@ -155,17 +156,23 @@ export async function PUT(
       }
     }
 
-    if (body.shipping !== undefined) {
-      await execute(env, 'UPDATE orders SET shipping = ?, updatedAt = ? WHERE id = ?', body.shipping, new Date().toISOString(), id)
-    }
-    if (body.tax !== undefined) {
-      await execute(env, 'UPDATE orders SET tax = ?, updatedAt = ? WHERE id = ?', body.tax, new Date().toISOString(), id)
-    }
-    if (body.discount !== undefined) {
-      await execute(env, 'UPDATE orders SET discount = ?, updatedAt = ? WHERE id = ?', body.discount, new Date().toISOString(), id)
-    }
-    if (body.notes !== undefined) {
-      await execute(env, 'UPDATE orders SET notes = ?, updatedAt = ? WHERE id = ?', body.notes, new Date().toISOString(), id)
+    const updateFields: Record<string, unknown> = {}
+    if (body.shipping !== undefined) updateFields.shipping = body.shipping
+    if (body.tax !== undefined) updateFields.tax = body.tax
+    if (body.discount !== undefined) updateFields.discount = body.discount
+    if (body.notes !== undefined) updateFields.notes = body.notes
+
+    if (Object.keys(updateFields).length > 0) {
+      if (!env || !env.DB) {
+        await prisma.order.update({
+          where: { id },
+          data: { ...updateFields, updatedAt: new Date().toISOString() }
+        })
+      } else {
+        for (const [field, value] of Object.entries(updateFields)) {
+          await execute(env, `UPDATE orders SET ${field} = ?, updatedAt = ? WHERE id = ?`, value as any, new Date().toISOString(), id)
+        }
+      }
     }
 
     // Fetch final order
@@ -225,12 +232,29 @@ export async function DELETE(
 
   try {
     const { id } = await params
+    const body = await request.json().catch(() => ({}))
 
-    // Delete order items first
-    await execute(env, 'DELETE FROM order_items WHERE orderId = ?', id)
-
-    // Then delete order
-    await execute(env, 'DELETE FROM orders WHERE id = ?', id)
+    // Soft delete: mark order as deleted instead of removing
+    if (!env || !env.DB) {
+      await prisma.order.update({
+        where: { id },
+        data: {
+          deletedAt: new Date().toISOString(),
+          deletedBy: userOrResponse.id || 'unknown',
+          deletedReason: body.reason || 'Manually deleted',
+          updatedAt: new Date().toISOString()
+        }
+      })
+    } else {
+      await execute(env,
+        `UPDATE orders SET deletedAt = ?, deletedBy = ?, deletedReason = ?, updatedAt = ? WHERE id = ?`,
+        new Date().toISOString(),
+        userOrResponse.id || 'unknown',
+        body.reason || 'Manually deleted',
+        new Date().toISOString(),
+        id
+      )
+    }
 
     return NextResponse.json({
       success: true,

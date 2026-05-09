@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
       activeCustomers,
     ] = await Promise.all([
       count(env, 'SELECT COUNT(*) as count FROM users WHERE role = ?', 'user'),
-      count(env, 'SELECT COUNT(*) as count FROM users WHERE role = ?', 'user'), // All users are active in this implementation
+      count(env, 'SELECT COUNT(*) as count FROM users WHERE role = ? AND (isBanned IS NULL OR isBanned = 0)', 'user'),
     ])
 
     // Get orders with items for the period

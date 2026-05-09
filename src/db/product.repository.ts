@@ -44,6 +44,7 @@ export class ProductRepository {
     slug: string;
     description?: string;
     categoryId: string;
+    price?: number;
     basePrice?: number;
     comparePrice?: number;
     discount?: number;
@@ -62,15 +63,16 @@ export class ProductRepository {
 
     await execute(
       env,
-      `INSERT INTO products (id, name, slug, description, categoryId, basePrice, comparePrice,
+      `INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice,
        discount, discountType, images, stock, lowStockAlert, reorderLevel, reorderQty,
        isActive, isFeatured, hasVariants, createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       id,
       data.name,
       data.slug,
       data.description || null,
       data.categoryId,
+      data.price ?? data.basePrice ?? 0,
       data.basePrice || 0,
       data.comparePrice || null,
       data.discount || 0,
@@ -113,6 +115,10 @@ export class ProductRepository {
       updates.push('categoryId = ?');
       values.push(data.categoryId);
     }
+    if (data.price !== undefined) {
+      updates.push('price = ?');
+      values.push(data.price);
+    }
     if (data.basePrice !== undefined) {
       updates.push('basePrice = ?');
       values.push(data.basePrice);
@@ -141,9 +147,9 @@ export class ProductRepository {
       updates.push('lowStockAlert = ?');
       values.push(data.lowStockAlert);
     }
-    if (data.reorderQty !== undefined) {
+    if (data.reorderLevel !== undefined) {
       updates.push('reorderLevel = ?');
-      values.push(data.reorderQty);
+      values.push(data.reorderLevel);
     }
     if (data.reorderQty !== undefined) {
       updates.push('reorderQty = ?');

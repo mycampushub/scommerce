@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAdminAuth } from '@/lib/admin-auth'
 import { getEnv } from '@/lib/cloudflare'
+import { csrfMiddleware } from '@/lib/csrf'
 
 /**
  * POST /api/admin/upload
@@ -15,6 +16,12 @@ export async function POST(request: NextRequest) {
   }
 
   const env = getEnv()
+
+  // Check CSRF protection
+  const csrfError = await csrfMiddleware(request, env)
+  if (csrfError) {
+    return csrfError
+  }
 
   try {
     const formData = await request.formData()
@@ -171,6 +178,12 @@ export async function DELETE(request: NextRequest) {
   }
 
   const env = getEnv()
+
+  // Check CSRF protection
+  const csrfError = await csrfMiddleware(request, env)
+  if (csrfError) {
+    return csrfError
+  }
 
   try {
     const searchParams = request.nextUrl.searchParams

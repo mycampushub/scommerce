@@ -12,6 +12,10 @@ CREATE TABLE IF NOT EXISTS users (
   resetToken TEXT,
   resetTokenExpiry TEXT,
   role TEXT DEFAULT 'user',
+  avatar TEXT,
+  isBanned INTEGER DEFAULT 0,
+  bannedAt TEXT,
+  lastLoginAt TEXT,
   createdAt TEXT DEFAULT (datetime('now')),
   updatedAt TEXT DEFAULT (datetime('now'))
 );
@@ -74,6 +78,9 @@ CREATE TABLE IF NOT EXISTS products (
   isActive INTEGER DEFAULT 1,
   isFeatured INTEGER DEFAULT 0,
   hasVariants INTEGER DEFAULT 0,
+  weight REAL,
+  dimensions TEXT,
+  tags TEXT,
   createdAt TEXT DEFAULT (datetime('now')),
   updatedAt TEXT DEFAULT (datetime('now')),
   FOREIGN KEY (categoryId) REFERENCES categories(id)
@@ -178,6 +185,9 @@ CREATE TABLE IF NOT EXISTS orders (
   refundMethod TEXT,
   refundReason TEXT,
   notes TEXT,
+  deletedAt TEXT,
+  deletedBy TEXT,
+  deletedReason TEXT,
   createdAt TEXT DEFAULT (datetime('now')),
   updatedAt TEXT DEFAULT (datetime('now')),
   FOREIGN KEY (userId) REFERENCES users(id)
@@ -188,6 +198,7 @@ CREATE INDEX IF NOT EXISTS idx_orders_customerEmail ON orders(customerEmail);
 CREATE INDEX IF NOT EXISTS idx_orders_orderNumber ON orders(orderNumber);
 CREATE INDEX IF NOT EXISTS idx_orders_status_createdAt ON orders(status, createdAt DESC);
 CREATE INDEX IF NOT EXISTS idx_orders_customerEmail_status ON orders(customerEmail, status);
+CREATE INDEX IF NOT EXISTS idx_orders_deletedAt ON orders(deletedAt);
 
 -- Order Items table
 CREATE TABLE IF NOT EXISTS order_items (
@@ -240,12 +251,16 @@ CREATE TABLE IF NOT EXISTS admin_logs (
   entityId TEXT,
   adminId TEXT NOT NULL,
   details TEXT,
+  ipAddress TEXT,
+  userAgent TEXT,
   createdAt TEXT DEFAULT (datetime('now'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_admin_logs_adminId ON admin_logs(adminId);
-CREATE INDEX IF NOT EXISTS idx_admin_logs_entity ON admin_logs(entity);
-CREATE INDEX IF NOT EXISTS idx_admin_logs_createdAt ON admin_logs(createdAt);
+CREATE INDEX IF NOT EXISTS idx_admin_logs_entity_createdAt ON admin_logs(entity, createdAt DESC);
+CREATE INDEX IF NOT EXISTS idx_admin_logs_action_createdAt ON admin_logs(action, createdAt DESC);
+CREATE INDEX IF NOT EXISTS idx_admin_logs_entity_entityId ON admin_logs(entity, entityId);
+CREATE INDEX IF NOT EXISTS idx_admin_logs_createdAt ON admin_logs(createdAt DESC);
 
 -- Inventory Alerts table
 CREATE TABLE IF NOT EXISTS inventory_alerts (
@@ -354,5 +369,87 @@ CREATE TABLE IF NOT EXISTS homepage_settings (
   autoPlay INTEGER DEFAULT 5000,
   displayLimit INTEGER,
   settings TEXT,
+  updatedAt TEXT DEFAULT (datetime('now'))
+);
+
+-- Site Settings table
+CREATE TABLE IF NOT EXISTS site_settings (
+  id TEXT PRIMARY KEY,
+  siteName TEXT,
+  siteLogo TEXT,
+  contactEmail TEXT,
+  contactPhone TEXT,
+  currency TEXT DEFAULT 'USD',
+  freeShippingThreshold REAL DEFAULT 5000,
+  baseShippingCost REAL DEFAULT 150,
+  taxRate REAL DEFAULT 0,
+  socialMedia TEXT,
+  enableStore INTEGER DEFAULT 1,
+  maintenanceMode INTEGER DEFAULT 0,
+  updatedAt TEXT DEFAULT (datetime('now'))
+);
+
+-- Payment Gateways table
+CREATE TABLE IF NOT EXISTS payment_gateways (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  provider TEXT NOT NULL,
+  isActive INTEGER DEFAULT 1,
+  isDefault INTEGER DEFAULT 0,
+  apiKey TEXT,
+  apiSecret TEXT,
+  webhookSecret TEXT,
+  sandboxMode INTEGER DEFAULT 1,
+  supportedCurrencies TEXT,
+  settings TEXT,
+  createdAt TEXT DEFAULT (datetime('now')),
+  updatedAt TEXT DEFAULT (datetime('now'))
+);
+
+-- Shipping Carriers table
+CREATE TABLE IF NOT EXISTS shipping_carriers (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  provider TEXT NOT NULL,
+  isActive INTEGER DEFAULT 1,
+  isDefault INTEGER DEFAULT 0,
+  apiKey TEXT,
+  apiSecret TEXT,
+  accountNumber TEXT,
+  sandboxMode INTEGER DEFAULT 1,
+  shippingMethods TEXT,
+  settings TEXT,
+  createdAt TEXT DEFAULT (datetime('now')),
+  updatedAt TEXT DEFAULT (datetime('now'))
+);
+
+-- Analytics Integrations table
+CREATE TABLE IF NOT EXISTS analytics_integrations (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  provider TEXT NOT NULL,
+  isActive INTEGER DEFAULT 1,
+  trackingId TEXT,
+  apiKey TEXT,
+  measurementId TEXT,
+  settings TEXT,
+  createdAt TEXT DEFAULT (datetime('now')),
+  updatedAt TEXT DEFAULT (datetime('now'))
+);
+
+-- Email Services table
+CREATE TABLE IF NOT EXISTS email_services (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  provider TEXT NOT NULL,
+  isActive INTEGER DEFAULT 1,
+  isDefault INTEGER DEFAULT 0,
+  apiKey TEXT,
+  apiSecret TEXT,
+  fromEmail TEXT,
+  fromName TEXT,
+  sandboxMode INTEGER DEFAULT 1,
+  settings TEXT,
+  createdAt TEXT DEFAULT (datetime('now')),
   updatedAt TEXT DEFAULT (datetime('now'))
 );

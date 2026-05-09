@@ -480,7 +480,7 @@ export default function SettingsPage() {
                     <p className="text-xs text-gray-500">Allow customers to browse and purchase</p>
                   </div>
                   <Switch
-                    defaultChecked={generalSettings.enableStore}
+                    checked={generalSettings.enableStore}
                     onCheckedChange={(checked) => setGeneralSettings({ ...generalSettings, enableStore: checked })}
                   />
                 </div>
@@ -490,14 +490,14 @@ export default function SettingsPage() {
                     <p className="text-xs text-gray-500">Temporarily disable store access</p>
                   </div>
                   <Switch
-                    defaultChecked={generalSettings.maintenanceMode}
+                    checked={generalSettings.maintenanceMode}
                     onCheckedChange={(checked) => setGeneralSettings({ ...generalSettings, maintenanceMode: checked })}
                     />
                 </div>
               </div>
 
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => handleSave()} disabled={saving}>
+                <Button variant="outline" onClick={() => loadSettings()} disabled={saving}>
                   Cancel
                 </Button>
                 <Button className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700">
