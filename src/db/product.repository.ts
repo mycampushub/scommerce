@@ -311,6 +311,9 @@ export class ProductRepository {
     material?: string;
     isActive?: boolean;
     isDefault?: boolean;
+    lowStockAlert?: number;
+    reorderLevel?: number;
+    reorderQty?: number;
   }): Promise<ProductVariant> {
     const id = generateId();
     const currentTime = now();
@@ -318,8 +321,8 @@ export class ProductRepository {
     await execute(
       env,
       `INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock,
-       images, size, color, material, isActive, isDefault, createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       images, size, color, material, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       id,
       data.productId,
       data.sku,
@@ -333,6 +336,9 @@ export class ProductRepository {
       data.material || null,
       boolToNumber(data.isActive ?? true),
       boolToNumber(data.isDefault || false),
+      data.lowStockAlert || 10,
+      data.reorderLevel || 5,
+      data.reorderQty || 20,
       currentTime,
       currentTime
     );
@@ -402,6 +408,18 @@ export class ProductRepository {
     if (data.isDefault !== undefined) {
       updates.push('isDefault = ?');
       values.push(typeof data.isDefault === 'boolean' ? boolToNumber(data.isDefault) : data.isDefault);
+    }
+    if (data.lowStockAlert !== undefined) {
+      updates.push('lowStockAlert = ?');
+      values.push(data.lowStockAlert);
+    }
+    if (data.reorderLevel !== undefined) {
+      updates.push('reorderLevel = ?');
+      values.push(data.reorderLevel);
+    }
+    if (data.reorderQty !== undefined) {
+      updates.push('reorderQty = ?');
+      values.push(data.reorderQty);
     }
 
     if (updates.length === 0) return this.findVariantById(env, id);

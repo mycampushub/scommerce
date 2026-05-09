@@ -4,6 +4,7 @@ import { getEnv } from '@/lib/cloudflare'
 import { UserRepository } from '@/db/user.repository'
 import { queryAll, count, numberToBool, generateId } from '@/db/db'
 import { csrfMiddleware } from '@/lib/csrf'
+import { hashPassword } from '@/lib/bcrypt-wrapper'
 
 
 export async function GET(request: NextRequest) {
@@ -100,10 +101,7 @@ export async function POST(request: NextRequest) {
 
     // Generate strong temporary password and hash it
     const tempPassword = generateSecurePassword()
-
-    // Import bcrypt to hash the password
-    const bcrypt = (await import('bcryptjs')).default
-    const hashedPassword = await bcrypt.hash(tempPassword, 10)
+    const hashedPassword = await hashPassword(tempPassword)
 
     // Create customer with hashed password
     const customer = await UserRepository.create(env, {

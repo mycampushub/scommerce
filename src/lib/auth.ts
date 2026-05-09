@@ -3,7 +3,9 @@
  */
 
 import { SignJWT, jwtVerify } from 'jose';
-import bcrypt from 'bcryptjs';
+
+// Note: Password hashing functions (hashPassword, verifyPassword) are in bcrypt-wrapper.ts
+// Import them directly when needed, not here to keep this file Edge Runtime compatible
 
 function getJWTSecret(): Uint8Array {
   const secret = process.env.JWT_SECRET;
@@ -47,18 +49,6 @@ export interface JWTPayload {
   email: string;
   role?: string;
   [key: string]: unknown;
-}
-
-export async function hashPassword(password: string): Promise<string> {
-  const salt = await bcrypt.genSalt(10);
-  return bcrypt.hash(password, salt);
-}
-
-export async function verifyPassword(
-  password: string,
-  hashedPassword: string
-): Promise<boolean> {
-  return bcrypt.compare(password, hashedPassword);
 }
 
 export async function generateToken(payload: JWTPayload): Promise<string> {

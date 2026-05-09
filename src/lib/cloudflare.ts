@@ -1,6 +1,9 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { prisma, isCloudflareEnv } from './database';
 
+// Re-export isCloudflareEnv for use in API routes
+export { isCloudflareEnv };
+
 /**
  * Get D1 database from Cloudflare context
  * Falls back to Prisma for local development

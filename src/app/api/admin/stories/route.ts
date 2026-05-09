@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getEnv } from '@/lib/cloudflare'
+import { getEnv, isCloudflareEnv } from '@/lib/cloudflare'
 import { verifyAdminAuth } from '@/lib/admin-auth'
+import { StoryRepositoryPrisma } from '@/db/story-prisma.repository'
 import { StoryRepository } from '@/db/story.repository'
 import { queryFirst } from '@/db/db'
 import { csrfMiddleware } from '@/lib/csrf'
@@ -12,14 +13,25 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const activeOnly = searchParams.get('activeOnly') === 'true'
 
-    const stories = activeOnly
-      ? await StoryRepository.findAllActive(env)
-      : await StoryRepository.findAll(env)
+    if (isCloudflareEnv()) {
+      const stories = activeOnly
+        ? await StoryRepository.findAllActive(env)
+        : await StoryRepository.findAll(env)
 
-    return NextResponse.json({
-      success: true,
-      data: stories
-    })
+      return NextResponse.json({
+        success: true,
+        data: stories
+      })
+    } else {
+      const stories = activeOnly
+        ? await StoryRepositoryPrisma.findAllActive(env)
+        : await StoryRepositoryPrisma.findAll(env)
+
+      return NextResponse.json({
+        success: true,
+        data: stories
+      })
+    }
   } catch (error) {
     console.error('Error fetching stories:', error)
     return NextResponse.json(
@@ -112,20 +124,33 @@ export async function POST(request: NextRequest) {
     // Get highest order value if not provided
     let storyOrder = order
     if (storyOrder === undefined) {
-      const maxOrder = await queryFirst<{ orderNum: number }>(
-        env,
-        'SELECT orderNum FROM stories ORDER BY orderNum DESC LIMIT 1'
-      )
-      storyOrder = maxOrder ? maxOrder.orderNum + 1 : 0
+      if (isCloudflareEnv()) {
+        const maxOrder = await queryFirst<{ orderNum: number }>(
+          env,
+          'SELECT orderNum FROM stories ORDER BY orderNum DESC LIMIT 1'
+        )
+        storyOrder = maxOrder ? maxOrder.orderNum + 1 : 0
+      } else {
+        const maxStory = await StoryRepositoryPrisma.findAll(env)
+        storyOrder = maxStory.length > 0 ? Math.max(...maxStory.map(s => s.orderNum)) + 1 : 0
+      }
     }
 
-    const story = await StoryRepository.create(env, {
-      title,
-      thumbnail,
-      images: Array.isArray(images) ? images : [],
-      isActive: isActive !== undefined ? isActive : true,
-      orderNum: storyOrder
-    })
+    const story = isCloudflareEnv()
+      ? await StoryRepository.create(env, {
+          title,
+          thumbnail,
+          images: Array.isArray(images) ? images : [],
+          isActive: isActive !== undefined ? isActive : true,
+          orderNum: storyOrder
+        })
+      : await StoryRepositoryPrisma.create(env, {
+          title,
+          thumbnail,
+          images: Array.isArray(images) ? images : [],
+          isActive: isActive !== undefined ? isActive : true,
+          orderNum: storyOrder
+        })
 
     return NextResponse.json({
       success: true,

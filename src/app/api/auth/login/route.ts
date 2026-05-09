@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
+import { verifyPassword } from '@/lib/bcrypt-wrapper';
 import { createToken } from '@/lib/auth';
 import { rateLimit, createRateLimitResponse, getClientIp } from '@/lib/rate-limit';
 import { loginSchema } from '@/lib/validations';
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const isValidPassword = await bcrypt.compare(password, user.password);
+    const isValidPassword = await verifyPassword(password, user.password);
     console.log('[login] Password validation:', { isValidPassword, email });
 
     if (!isValidPassword) {

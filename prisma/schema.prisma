@@ -336,7 +336,7 @@ model Banner {
   buttonText  String?
   buttonLink  String?
   isActive    Int      @default(1)
-  order       Int      @default(0) @map("displayOrder")
+  order       Int      @default(0) @map("order")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -402,4 +402,96 @@ model HomepageSettings {
   displayLimit Int?
   settings    String?
   updatedAt   DateTime @default(now())
+}
+
+model SiteSettings {
+  id                    String   @id @default(cuid())
+  siteName              String   @default("SCommerce")
+  siteLogo              String?
+  currency              String   @default("BDT")
+  currencySymbol        String   @default("৳")
+  taxRate               Float    @default(0.18)
+  freeShippingThreshold Float    @default(5000)
+  baseShippingCost      Float    @default(150)
+  contactEmail          String?
+  contactPhone          String?
+  socialMedia           String?
+  seo                   String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@map("site_settings")
+}
+
+// Integration Types
+model PaymentGateway {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  provider    String   @default("custom") // stripe, paypal, custom
+  apiKey      String?
+  apiSecret   String?
+  webhookUrl  String?
+  isActive    Boolean  @default(true)
+  isDefault   Boolean  @default(false)
+  settings    String?  // JSON for additional settings
+  lastTested  DateTime?
+  testStatus  String?  // success, failed, pending
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("payment_gateways")
+}
+
+model ShippingCarrier {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  provider    String   @default("custom") // fedex, ups, dhl, custom
+  apiKey      String?
+  apiSecret   String?
+  accountNumber String?
+  webhookUrl  String?
+  isActive    Boolean  @default(true)
+  isDefault   Boolean  @default(false)
+  settings    String?  // JSON for additional settings
+  lastTested  DateTime?
+  testStatus  String?  // success, failed, pending
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("shipping_carriers")
+}
+
+model AnalyticsIntegration {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  provider    String   @default("custom") // google, facebook, custom
+  trackingId  String?
+  apiKey      String?
+  pixelId     String?
+  isActive    Boolean  @default(true)
+  settings    String?  // JSON for additional settings
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("analytics_integrations")
+}
+
+model EmailService {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  provider    String   @default("custom") // sendgrid, mailgun, ses, custom
+  apiKey      String?
+  apiSecret   String?
+  fromEmail   String?
+  fromName    String?
+  webhookUrl  String?
+  isActive    Boolean  @default(true)
+  isDefault   Boolean  @default(false)
+  settings    String?  // JSON for additional settings
+  lastTested  DateTime?
+  testStatus  String?  // success, failed, pending
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("email_services")
 }

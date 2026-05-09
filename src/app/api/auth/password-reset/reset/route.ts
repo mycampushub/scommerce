@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { resetPasswordSchema } from '@/lib/validations';
-import bcrypt from 'bcryptjs';
+import { hashPassword } from '@/lib/bcrypt-wrapper';
 import { UserRepository } from '@/db/user.repository';
 import { getEnv } from '@/lib/cloudflare';
 
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Hash new password
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const hashedPassword = await hashPassword(newPassword);
 
     // Update user password and clear reset token
     await UserRepository.update(env, user.id, {

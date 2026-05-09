@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getEnv } from '@/lib/cloudflare'
+import { getEnv, isCloudflareEnv } from '@/lib/cloudflare'
 import { verifyAdminAuth } from '@/lib/admin-auth'
+import { StoryRepositoryPrisma } from '@/db/story-prisma.repository'
 import { StoryRepository } from '@/db/story.repository'
 import { csrfMiddleware } from '@/lib/csrf'
 
@@ -12,7 +13,9 @@ export async function GET(
   try {
     const { id } = await params
     const env = getEnv()
-    const story = await StoryRepository.findById(env, id)
+    const story = isCloudflareEnv()
+      ? await StoryRepository.findById(env, id)
+      : await StoryRepositoryPrisma.findById(env, id)
 
     if (!story) {
       return NextResponse.json(
@@ -127,13 +130,21 @@ export async function PUT(
       }
     }
 
-    const story = await StoryRepository.update(env, id, {
-      ...(title !== undefined && { title }),
-      ...(thumbnail !== undefined && { thumbnail }),
-      ...(images !== undefined && { images: Array.isArray(images) ? JSON.stringify(images) : '[]' }),
-      ...(isActive !== undefined && { isActive }),
-      ...(orderNum !== undefined && { orderNum })
-    })
+    const story = isCloudflareEnv()
+      ? await StoryRepository.update(env, id, {
+          ...(title !== undefined && { title }),
+          ...(thumbnail !== undefined && { thumbnail }),
+          ...(images !== undefined && { images: Array.isArray(images) ? JSON.stringify(images) : '[]' }),
+          ...(isActive !== undefined && { isActive }),
+          ...(orderNum !== undefined && { orderNum })
+        })
+      : await StoryRepositoryPrisma.update(env, id, {
+          ...(title !== undefined && { title }),
+          ...(thumbnail !== undefined && { thumbnail }),
+          ...(images !== undefined && { images }),
+          ...(isActive !== undefined && { isActive }),
+          ...(orderNum !== undefined && { orderNum })
+        })
 
     if (!story) {
       return NextResponse.json(
@@ -180,7 +191,11 @@ export async function DELETE(
 
   try {
     const { id } = await params
-    await StoryRepository.delete(env, id)
+    if (isCloudflareEnv()) {
+      await StoryRepository.delete(env, id)
+    } else {
+      await StoryRepositoryPrisma.delete(env, id)
+    }
 
     return NextResponse.json({
       success: true,

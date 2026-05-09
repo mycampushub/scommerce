@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getEnv } from '@/lib/cloudflare'
+import { getEnv, isCloudflareEnv } from '@/lib/cloudflare'
 import { verifyAdminAuth } from '@/lib/admin-auth'
+import { ReelRepositoryPrisma } from '@/db/reel-prisma.repository'
 import { ReelRepository } from '@/db/reel.repository'
-import { queryFirst, generateId, now } from '@/db/db'
+import { queryFirst } from '@/db/db'
 import { csrfMiddleware } from '@/lib/csrf'
 
 
@@ -12,14 +13,25 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const activeOnly = searchParams.get('activeOnly') === 'true'
 
-    const reels = activeOnly
-      ? await ReelRepository.findAllActive(env)
-      : await ReelRepository.findAll(env)
+    if (isCloudflareEnv()) {
+      const reels = activeOnly
+        ? await ReelRepository.findAllActive(env)
+        : await ReelRepository.findAll(env)
 
-    return NextResponse.json({
-      success: true,
-      data: reels
-    })
+      return NextResponse.json({
+        success: true,
+        data: reels
+      })
+    } else {
+      const reels = activeOnly
+        ? await ReelRepositoryPrisma.findAllActive(env)
+        : await ReelRepositoryPrisma.findAll(env)
+
+      return NextResponse.json({
+        success: true,
+        data: reels
+      })
+    }
   } catch (error) {
     console.error('Error fetching reels:', error)
     return NextResponse.json(
@@ -110,21 +122,35 @@ export async function POST(request: NextRequest) {
     // Get highest order value if not provided
     let reelOrder = order
     if (reelOrder === undefined || reelOrder === null) {
-      const maxOrder = await queryFirst<{ orderNum: number }>(
-        env,
-        'SELECT orderNum FROM reels ORDER BY orderNum DESC LIMIT 1'
-      )
-      reelOrder = maxOrder ? maxOrder.orderNum + 1 : 0
+      if (isCloudflareEnv()) {
+        const maxOrder = await queryFirst<{ orderNum: number }>(
+          env,
+          'SELECT orderNum FROM reels ORDER BY orderNum DESC LIMIT 1'
+        )
+        reelOrder = maxOrder ? maxOrder.orderNum + 1 : 0
+      } else {
+        const maxReel = await ReelRepositoryPrisma.findAll(env)
+        reelOrder = maxReel.length > 0 ? Math.max(...maxReel.map(r => r.orderNum)) + 1 : 0
+      }
     }
 
-    const reel = await ReelRepository.create(env, {
-      title,
-      thumbnail,
-      videoUrl,
-      productIds: productIds || [],
-      isActive: isActive !== undefined ? isActive : true,
-      orderNum: reelOrder
-    })
+    const reel = isCloudflareEnv()
+      ? await ReelRepository.create(env, {
+          title,
+          thumbnail,
+          videoUrl,
+          productIds: productIds || [],
+          isActive: isActive !== undefined ? isActive : true,
+          orderNum: reelOrder
+        })
+      : await ReelRepositoryPrisma.create(env, {
+          title,
+          thumbnail,
+          videoUrl,
+          productIds: productIds || [],
+          isActive: isActive !== undefined ? isActive : true,
+          orderNum: reelOrder
+        })
 
     return NextResponse.json({
       success: true,

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import bcrypt from 'bcryptjs'
+import { hashPassword, verifyPassword } from '@/lib/bcrypt-wrapper'
 import { verifyToken } from '@/lib/auth'
 import { changePasswordSchema } from '@/lib/validations'
 import { rateLimit, createRateLimitResponse, getClientIp } from '@/lib/rate-limit'
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password)
+    const isCurrentPasswordValid = await verifyPassword(currentPassword, user.password)
     if (!isCurrentPasswordValid) {
       return NextResponse.json(
         { success: false, error: 'Current password is incorrect' },
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const hashedNewPassword = await bcrypt.hash(newPassword, 10)
+    const hashedNewPassword = await hashPassword(newPassword)
 
     await UserRepository.update(env, user.id, { password: hashedNewPassword })
 

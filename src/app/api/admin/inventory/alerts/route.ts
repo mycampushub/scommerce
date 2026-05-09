@@ -2,9 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
 import { queryAll, queryFirst, execute, generateId, now, numberToBool, boolToNumber } from '@/db/db'
 import { ProductRepository } from '@/db/product.repository'
+import { verifyAdminAuth } from '@/lib/admin-auth'
 
 
 export async function GET(request: NextRequest) {
+  // Verify admin authentication
+  const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
+
   try {
     const env = getEnv()
     const searchParams = request.nextUrl.searchParams
@@ -81,15 +88,34 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  // Verify admin authentication (admin only)
+  const userOrResponse = await verifyAdminAuth(request, ['admin'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
+
   try {
     const env = getEnv()
     const body: any = await request.json() as any
 
+    // Validate required fields
     if (!body.productId || !body.alertType) {
       return NextResponse.json(
         {
           success: false,
           error: 'Missing required fields',
+        },
+        { status: 400 }
+      )
+    }
+
+    // Validate alertType
+    const validAlertTypes = ['LOW_STOCK', 'OUT_OF_STOCK', 'REORDER_NEEDED']
+    if (!validAlertTypes.includes(body.alertType)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Invalid alert type',
         },
         { status: 400 }
       )

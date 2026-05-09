@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
 import { verifyAdmin } from '@/lib/auth-utils'
 import { UserRepository } from '@/db/user.repository'
-import bcrypt from 'bcryptjs'
+import { hashPassword } from '@/lib/bcrypt-wrapper'
 import { queryAll, count, numberToBool } from '@/db/db'
 import { csrfMiddleware } from '@/lib/csrf'
 
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10)
+    const hashedPassword = await hashPassword(password)
 
     // Create user
     const user = await UserRepository.create(env, {

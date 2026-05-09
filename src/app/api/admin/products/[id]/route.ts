@@ -207,7 +207,7 @@ export async function PUT(
       })
 
       // Delete file from server
-      await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/admin/upload?path=${encodeURIComponent(imageUrl.replace('/', ''))}`, {
+      await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/admin/upload?path=${encodeURIComponent(imageUrl)}`, {
         method: 'DELETE',
       })
 

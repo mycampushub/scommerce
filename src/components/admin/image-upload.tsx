@@ -221,10 +221,11 @@ export function ImageUpload({
     const imageToRemove = images[index]
     const imageUrl = typeof imageToRemove === 'string' ? imageToRemove : imageToRemove.url
 
-    // If it's a new image, delete from server
+    // If it's a new image (uploaded via the new system), delete from server
     if (typeof imageToRemove === 'object' && imageToRemove.isNew) {
       try {
-        await fetch(`/api/admin/upload?path=${encodeURIComponent(imageUrl.replace('/', ''))}`, {
+        // Pass the full URL path (e.g., /uploads/uuid.jpg)
+        await fetch(`/api/admin/upload?path=${encodeURIComponent(imageUrl)}`, {
           method: 'DELETE'
         })
       } catch (error) {

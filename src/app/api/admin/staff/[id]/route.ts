@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
 import { verifyAdmin } from '@/lib/auth-utils'
 import { UserRepository } from '@/db/user.repository'
-import bcrypt from 'bcryptjs'
+import { hashPassword } from '@/lib/bcrypt-wrapper'
 import { count, numberToBool } from '@/db/db'
 import { csrfMiddleware } from '@/lib/csrf'
 
@@ -133,7 +133,7 @@ export async function PUT(
 
     // Update password if provided
     if (password && password.length > 0) {
-      updateData.password = await bcrypt.hash(password, 10)
+      updateData.password = await hashPassword(password)
     }
 
     // Update user

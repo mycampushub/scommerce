@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import bcrypt from 'bcryptjs'
 import { verifyToken } from '@/lib/auth'
+import { verifyPassword } from '@/lib/bcrypt-wrapper'
 import { changeEmailSchema } from '@/lib/validations'
 import { rateLimit, createRateLimitResponse, getClientIp } from '@/lib/rate-limit'
 import { UserRepository } from '@/db/user.repository'
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password)
+    const isPasswordValid = await verifyPassword(password, user.password)
     if (!isPasswordValid) {
       return NextResponse.json(
         { success: false, error: 'Current password is incorrect' },

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
+import { hashPassword } from '@/lib/bcrypt-wrapper';
 import { rateLimit, createRateLimitResponse, getClientIp } from '@/lib/rate-limit';
 import { registerSchema } from '@/lib/validations';
 import { UserRepository } from '@/db/user.repository';
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await hashPassword(password);
 
     // Determine user role
     // Allow admin registration if adminSecret matches (from environment)

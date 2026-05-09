@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getEnv } from '@/lib/cloudflare'
+import { getEnv, isCloudflareEnv } from '@/lib/cloudflare'
 import { verifyAdminAuth } from '@/lib/admin-auth'
+import { ReelRepositoryPrisma } from '@/db/reel-prisma.repository'
 import { ReelRepository } from '@/db/reel.repository'
 import { csrfMiddleware } from '@/lib/csrf'
 
@@ -12,7 +13,9 @@ export async function GET(
   try {
     const env = getEnv()
     const { id } = await params
-    const reel = await ReelRepository.findById(env, id)
+    const reel = isCloudflareEnv()
+      ? await ReelRepository.findById(env, id)
+      : await ReelRepositoryPrisma.findById(env, id)
 
     if (!reel) {
       return NextResponse.json(
@@ -123,14 +126,23 @@ export async function PUT(
       }
     }
 
-    const reel = await ReelRepository.update(env, id, {
-      title,
-      thumbnail,
-      videoUrl,
-      productIds,
-      isActive,
-      orderNum
-    })
+    const reel = isCloudflareEnv()
+      ? await ReelRepository.update(env, id, {
+          title,
+          thumbnail,
+          videoUrl,
+          productIds,
+          isActive,
+          orderNum
+        })
+      : await ReelRepositoryPrisma.update(env, id, {
+          ...(title !== undefined && { title }),
+          ...(thumbnail !== undefined && { thumbnail }),
+          ...(videoUrl !== undefined && { videoUrl }),
+          ...(productIds !== undefined && { productIds }),
+          ...(isActive !== undefined && { isActive }),
+          ...(orderNum !== undefined && { orderNum })
+        })
 
     return NextResponse.json({
       success: true,
@@ -167,7 +179,11 @@ export async function DELETE(
 
   try {
     const { id } = await params
-    await ReelRepository.delete(env, id)
+    if (isCloudflareEnv()) {
+      await ReelRepository.delete(env, id)
+    } else {
+      await ReelRepositoryPrisma.delete(env, id)
+    }
 
     return NextResponse.json({
       success: true,
