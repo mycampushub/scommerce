@@ -43,9 +43,7 @@ export function getDatabase(env: Env | null): any | PrismaClient {
  * Check if we're running in a Cloudflare environment
  */
 export function isCloudflareEnv(): boolean {
-  // Check if we have Cloudflare bindings
   try {
-    // In a real Cloudflare environment, these would be available
     return typeof process !== 'undefined' && process.env.CLOUDFLARE_ENV === 'true';
   } catch {
     return false;

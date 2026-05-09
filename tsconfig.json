@@ -41,7 +41,7 @@
     "node_modules",
     "examples",
     "skills",
-    "prisma/seed-bun.ts",
+    "prisma/*.ts",
     "scripts"
   ]
 }
