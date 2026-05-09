@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
          u.role as userRole
        FROM orders o
        LEFT JOIN users u ON o.userId = u.id
-       WHERE 1=1 ${whereClause}
+       WHERE 1=1${whereClause}
        ORDER BY o.createdAt DESC`,
       whereParams
     )

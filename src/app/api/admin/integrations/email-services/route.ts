@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const { verifyToken } = await import('@/lib/jwt');
     const payload = await verifyToken(token);
 
-    if (!payload || payload.role !== 'admin') return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 });
+    if (!payload || payload.role !== 'admin' && payload.role !== 'staff') return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 });
 
     const services = await IntegrationRepository.getEmailServices();
     const safeServices = services.map(s => ({ ...s, apiSecret: s.apiSecret ? '********' : undefined }));
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     const { verifyToken } = await import('@/lib/jwt');
     const payload = await verifyToken(token);
 
-    if (!payload || payload.role !== 'admin') return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 });
+    if (!payload || payload.role !== 'admin' && payload.role !== 'staff') return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 });
 
     const body = await request.json();
 

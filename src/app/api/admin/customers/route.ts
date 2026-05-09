@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   // Verify admin authentication
-  const userOrResponse = await verifyAdminAuth(request, ['admin'])
+  const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff'])
   if (userOrResponse instanceof NextResponse) {
     return userOrResponse
   }

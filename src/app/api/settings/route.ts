@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     const { verifyToken } = await import('@/lib/jwt');
     const payload = await verifyToken(token);
 
-    if (!payload || payload.role !== 'admin') {
+    if (!payload || (payload.role !== 'admin' && payload.role !== 'staff')) {
       return NextResponse.json(
         { success: false, error: 'Admin access required' },
         { status: 403 }
