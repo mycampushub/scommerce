@@ -1,11 +1,20 @@
 import { Env, Order, OrderItem, OrderStatus, PaymentStatus, TrackingStatus } from '@/db/types';
 import { generateId, generateOrderNumber, boolToNumber, now, queryFirst, queryAll, execute, buildPaginationClause } from '@/db/db';
+import prisma from '@/lib/database';
 
 export class OrderRepository {
   /**
    * Find order by order number
    */
   static async findByOrderNumber(env: Env | null, orderNumber: string): Promise<Order | null> {
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
+      const order = await prisma.order.findUnique({
+        where: { orderNumber }
+      });
+      return order as Order | null;
+    }
+
     return queryFirst<Order>(
       env,
       'SELECT * FROM orders WHERE orderNumber = ? LIMIT 1',
@@ -17,6 +26,14 @@ export class OrderRepository {
    * Find order by ID
    */
   static async findById(env: Env | null, id: string): Promise<Order | null> {
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
+      const order = await prisma.order.findUnique({
+        where: { id }
+      });
+      return order as Order | null;
+    }
+
     return queryFirst<Order>(
       env,
       'SELECT * FROM orders WHERE id = ? LIMIT 1',
@@ -28,11 +45,23 @@ export class OrderRepository {
    * Get orders by user ID
    */
   static async findByUserId(
-    env: Env,
+    env: Env | null,
     userId: string,
     options: { limit?: number; offset?: number } = {}
   ): Promise<Order[]> {
     const { limit = 20, offset = 0 } = options;
+
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
+      const orders = await prisma.order.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        skip: offset
+      });
+      return orders as unknown as Order[];
+    }
+
     return queryAll<Order>(
       env,
       'SELECT * FROM orders WHERE userId = ? ORDER BY createdAt DESC LIMIT ? OFFSET ?',
@@ -65,6 +94,37 @@ export class OrderRepository {
     const id = generateId();
     const orderNumber = generateOrderNumber();
     const currentTime = now();
+
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
+      const order = await prisma.order.create({
+        data: {
+          id,
+          orderNumber,
+          userId: data.userId || null,
+          customerName: data.customerName,
+          customerEmail: data.customerEmail,
+          customerPhone: data.customerPhone || null,
+          shippingAddress: data.shippingAddress,
+          billingAddress: data.billingAddress || null,
+          city: data.city || null,
+          district: data.district || null,
+          division: data.division || null,
+          subtotal: data.subtotal,
+          shipping: data.shipping || 0,
+          tax: data.tax || 0,
+          discount: data.discount || 0,
+          total: data.total,
+          status: 'PENDING' as OrderStatus,
+          paymentStatus: 'PENDING' as PaymentStatus,
+          paymentMethod: data.paymentMethod || null,
+          trackingStatus: 'PENDING' as TrackingStatus,
+          createdAt: currentTime,
+          updatedAt: currentTime
+        }
+      });
+      return order as unknown as Order;
+    }
 
     await execute(
       env,
@@ -104,6 +164,15 @@ export class OrderRepository {
    * Update order status
    */
   static async updateStatus(env: Env | null, id: string, status: OrderStatus): Promise<Order | null> {
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
+      await prisma.order.update({
+        where: { id },
+        data: { status, updatedAt: now() }
+      });
+      return this.findById(env, id);
+    }
+
     await execute(
       env,
       'UPDATE orders SET status = ?, updatedAt = ? WHERE id = ?',
@@ -118,6 +187,15 @@ export class OrderRepository {
    * Update payment status
    */
   static async updatePaymentStatus(env: Env | null, id: string, paymentStatus: PaymentStatus): Promise<Order | null> {
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
+      await prisma.order.update({
+        where: { id },
+        data: { paymentStatus, updatedAt: now() }
+      });
+      return this.findById(env, id);
+    }
+
     await execute(
       env,
       'UPDATE orders SET paymentStatus = ?, updatedAt = ? WHERE id = ?',
@@ -137,6 +215,15 @@ export class OrderRepository {
     trackingNumber: string,
     trackingStatus: TrackingStatus
   ): Promise<Order | null> {
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
+      await prisma.order.update({
+        where: { id },
+        data: { trackingNumber, trackingStatus, updatedAt: now() }
+      });
+      return this.findById(env, id);
+    }
+
     await execute(
       env,
       'UPDATE orders SET trackingNumber = ?, trackingStatus = ?, updatedAt = ? WHERE id = ?',
@@ -152,6 +239,21 @@ export class OrderRepository {
    * Cancel order
    */
   static async cancel(env: Env | null, id: string, cancelledBy: string, reason?: string): Promise<Order | null> {
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
+      await prisma.order.update({
+        where: { id },
+        data: {
+          status: 'CANCELLED' as OrderStatus,
+          cancelledAt: now(),
+          cancelledBy,
+          cancellationReason: reason || null,
+          updatedAt: now()
+        }
+      });
+      return this.findById(env, id);
+    }
+
     await execute(
       env,
       `UPDATE orders SET status = 'CANCELLED', cancelledAt = ?, cancelledBy = ?,
@@ -175,6 +277,23 @@ export class OrderRepository {
     method: string,
     reason?: string
   ): Promise<Order | null> {
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
+      await prisma.order.update({
+        where: { id },
+        data: {
+          status: 'REFUNDED' as OrderStatus,
+          paymentStatus: 'REFUNDED' as PaymentStatus,
+          refundedAt: now(),
+          refundedAmount: amount,
+          refundMethod: method,
+          refundReason: reason || null,
+          updatedAt: now()
+        }
+      });
+      return this.findById(env, id);
+    }
+
     await execute(
       env,
       `UPDATE orders SET status = 'REFUNDED', paymentStatus = 'REFUNDED',
@@ -203,6 +322,22 @@ export class OrderRepository {
     } = {}
   ): Promise<Order[]> {
     const { limit = 50, offset = 0, status, email } = options;
+
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
+      const where: any = {};
+      if (status) where.status = status;
+      if (email) where.customerEmail = email;
+
+      const orders = await prisma.order.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        skip: offset
+      });
+      return orders as unknown as Order[];
+    }
+
     const conditions: string[] = [];
     const params: unknown[] = [];
 
@@ -230,6 +365,14 @@ export class OrderRepository {
    * Count orders
    */
   static async count(env: Env | null, status?: OrderStatus): Promise<number> {
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
+      const where: any = {};
+      if (status) where.status = status;
+
+      return await prisma.order.count({ where });
+    }
+
     const whereClause = status ? 'WHERE status = ?' : '';
     const result = await queryFirst<{ count: number }>(
       env,
@@ -244,6 +387,15 @@ export class OrderRepository {
    * Get items for an order
    */
   static async getItems(env: Env | null, orderId: string): Promise<OrderItem[]> {
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
+      const items = await prisma.orderItem.findMany({
+        where: { orderId },
+        orderBy: { createdAt: 'asc' }
+      });
+      return items as unknown as OrderItem[];
+    }
+
     return queryAll<OrderItem>(
       env,
       'SELECT * FROM order_items WHERE orderId = ? ORDER BY createdAt ASC',
@@ -269,6 +421,28 @@ export class OrderRepository {
   }): Promise<OrderItem> {
     const id = generateId();
     const currentTime = now();
+
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
+      const item = await prisma.orderItem.create({
+        data: {
+          id,
+          orderId: data.orderId,
+          productId: data.productId,
+          variantId: data.variantId || null,
+          quantity: data.quantity,
+          price: data.price,
+          productName: data.productName,
+          productImage: data.productImage || null,
+          variantSku: data.variantSku || null,
+          variantSize: data.variantSize || null,
+          variantColor: data.variantColor || null,
+          variantMaterial: data.variantMaterial || null,
+          createdAt: currentTime
+        }
+      });
+      return item as unknown as OrderItem;
+    }
 
     await execute(
       env,

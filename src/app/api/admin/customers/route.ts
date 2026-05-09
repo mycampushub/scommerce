@@ -5,6 +5,7 @@ import { UserRepository } from '@/db/user.repository'
 import { queryAll, count, numberToBool, generateId } from '@/db/db'
 import { csrfMiddleware } from '@/lib/csrf'
 import { hashPassword } from '@/lib/bcrypt-wrapper'
+import prisma from '@/lib/database'
 
 
 export async function GET(request: NextRequest) {
@@ -44,7 +45,16 @@ export async function GET(request: NextRequest) {
     // Add order counts and convert booleans
     const customersWithCounts = await Promise.all(
       customers.map(async (customer) => {
-        const orderCount = await count(env, 'SELECT COUNT(*) as count FROM orders WHERE userId = ?', customer.id)
+        // Use Prisma if env is null or env.DB doesn't exist (local dev)
+        let orderCount = 0
+        if (!env || !env.DB) {
+          orderCount = await prisma.order.count({
+            where: { userId: customer.id }
+          })
+        } else {
+          orderCount = await count(env, 'SELECT COUNT(*) as count FROM orders WHERE userId = ?', customer.id)
+        }
+
         return {
           ...customer,
           _count: { orders: orderCount },

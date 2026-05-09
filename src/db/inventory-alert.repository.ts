@@ -10,12 +10,21 @@ import {
   count,
   numberToBool,
 } from '@/db/db';
+import prisma from '@/lib/database';
 
 export class InventoryAlertRepository {
   /**
    * Find inventory alert by ID
    */
   static async findById(env: Env | null, id: string): Promise<InventoryAlert | null> {
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
+      const alert = await prisma.inventoryAlert.findUnique({
+        where: { id }
+      });
+      return alert as InventoryAlert | null;
+    }
+
     const alert = await queryFirst<InventoryAlert>(
       env,
       'SELECT * FROM inventory_alerts WHERE id = ? LIMIT 1',
@@ -36,10 +45,27 @@ export class InventoryAlertRepository {
     const id = generateId();
     const currentTime = now();
 
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
+      const alert = await prisma.inventoryAlert.create({
+        data: {
+          id,
+          variantId: data.variantId || null,
+          productId: data.productId || null,
+          alertType: data.alertType,
+          quantity: data.quantity,
+          isRead: 0,
+          isResolved: 0,
+          createdAt: currentTime
+        }
+      });
+      return alert as unknown as InventoryAlert;
+    }
+
     await execute(
       env,
       `INSERT INTO inventory_alerts (id, variantId, productId, alertType, quantity, isRead, isResolved, createdAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       id,
       data.variantId || null,
       data.productId || null,
@@ -57,6 +83,22 @@ export class InventoryAlertRepository {
    * Update inventory alert
    */
   static async update(env: Env | null, id: string, data: Partial<InventoryAlert>): Promise<InventoryAlert | null> {
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
+      const updateData: any = {};
+      if (data.isRead !== undefined) updateData.isRead = data.isRead;
+      if (data.isResolved !== undefined) {
+        updateData.isResolved = data.isResolved;
+        if (data.isResolved) updateData.resolvedAt = now();
+      }
+
+      await prisma.inventoryAlert.update({
+        where: { id },
+        data: updateData
+      });
+      return this.findById(env, id);
+    }
+
     const updates: string[] = [];
     const values: unknown[] = [];
 
@@ -90,6 +132,15 @@ export class InventoryAlertRepository {
    * Mark alert as read
    */
   static async markAsRead(env: Env | null, id: string): Promise<void> {
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
+      await prisma.inventoryAlert.update({
+        where: { id },
+        data: { isRead: 1 }
+      });
+      return;
+    }
+
     await execute(
       env,
       'UPDATE inventory_alerts SET isRead = 1 WHERE id = ?',
@@ -101,6 +152,15 @@ export class InventoryAlertRepository {
    * Mark alert as resolved
    */
   static async markAsResolved(env: Env | null, id: string): Promise<void> {
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
+      await prisma.inventoryAlert.update({
+        where: { id },
+        data: { isResolved: 1, resolvedAt: now() }
+      });
+      return;
+    }
+
     await execute(
       env,
       'UPDATE inventory_alerts SET isResolved = 1, resolvedAt = ? WHERE id = ?',
@@ -113,6 +173,14 @@ export class InventoryAlertRepository {
    * Delete inventory alert
    */
   static async delete(env: Env | null, id: string): Promise<void> {
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
+      await prisma.inventoryAlert.delete({
+        where: { id }
+      });
+      return;
+    }
+
     await execute(env, 'DELETE FROM inventory_alerts WHERE id = ?', id);
   }
 
@@ -120,6 +188,15 @@ export class InventoryAlertRepository {
    * Get all unread alerts
    */
   static async findUnread(env : Env | null): Promise<InventoryAlert[]> {
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
+      const alerts = await prisma.inventoryAlert.findMany({
+        where: { isRead: 0 },
+        orderBy: { createdAt: 'desc' }
+      });
+      return alerts as unknown as InventoryAlert[];
+    }
+
     const alerts = await queryAll<InventoryAlert>(
       env,
       'SELECT * FROM inventory_alerts WHERE isRead = 0 ORDER BY createdAt DESC'
@@ -131,6 +208,15 @@ export class InventoryAlertRepository {
    * Get all unresolved alerts
    */
   static async findUnresolved(env : Env | null): Promise<InventoryAlert[]> {
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
+      const alerts = await prisma.inventoryAlert.findMany({
+        where: { isResolved: 0 },
+        orderBy: { createdAt: 'desc' }
+      });
+      return alerts as unknown as InventoryAlert[];
+    }
+
     const alerts = await queryAll<InventoryAlert>(
       env,
       'SELECT * FROM inventory_alerts WHERE isResolved = 0 ORDER BY createdAt DESC'
@@ -142,7 +228,7 @@ export class InventoryAlertRepository {
    * Get all alerts (with pagination)
    */
   static async findAll(
-    env: Env,
+    env: Env | null,
     options: {
       limit?: number;
       offset?: number;
@@ -154,6 +240,25 @@ export class InventoryAlertRepository {
     } = {}
   ): Promise<InventoryAlert[]> {
     const { limit = 50, offset = 0, alertType, isRead, isResolved, variantId, productId } = options;
+
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
+      const where: any = {};
+      if (alertType) where.alertType = alertType;
+      if (isRead !== undefined) where.isRead = isRead ? 1 : 0;
+      if (isResolved !== undefined) where.isResolved = isResolved ? 1 : 0;
+      if (variantId) where.variantId = variantId;
+      if (productId) where.productId = productId;
+
+      const alerts = await prisma.inventoryAlert.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        skip: offset
+      });
+      return alerts as unknown as InventoryAlert[];
+    }
+
     const whereClause: string[] = [];
     const params: unknown[] = [];
 
@@ -200,6 +305,17 @@ export class InventoryAlertRepository {
     isResolved?: boolean;
   } = {}): Promise<number> {
     const { alertType, isRead, isResolved } = options;
+
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
+      const where: any = {};
+      if (alertType) where.alertType = alertType;
+      if (isRead !== undefined) where.isRead = isRead ? 1 : 0;
+      if (isResolved !== undefined) where.isResolved = isResolved ? 1 : 0;
+
+      return await prisma.inventoryAlert.count({ where });
+    }
+
     const whereClause: string[] = [];
     const params: unknown[] = [];
 
@@ -225,6 +341,15 @@ export class InventoryAlertRepository {
    * Mark all alerts as read
    */
   static async markAllAsRead(env : Env | null): Promise<void> {
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
+      await prisma.inventoryAlert.updateMany({
+        where: { isRead: 0 },
+        data: { isRead: 1 }
+      });
+      return;
+    }
+
     await execute(env, 'UPDATE inventory_alerts SET isRead = 1 WHERE isRead = 0');
   }
 
@@ -233,6 +358,15 @@ export class InventoryAlertRepository {
    */
   static async resolveMany(env: Env | null, ids: string[]): Promise<void> {
     if (ids.length === 0) return;
+
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
+      await prisma.inventoryAlert.updateMany({
+        where: { id: { in: ids } },
+        data: { isResolved: 1, resolvedAt: now() }
+      });
+      return;
+    }
 
     const placeholders = ids.map(() => '?').join(',');
     await execute(
@@ -249,6 +383,14 @@ export class InventoryAlertRepository {
   static async deleteMany(env: Env | null, ids: string[]): Promise<void> {
     if (ids.length === 0) return;
 
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
+      await prisma.inventoryAlert.deleteMany({
+        where: { id: { in: ids } }
+      });
+      return;
+    }
+
     const placeholders = ids.map(() => '?').join(',');
     await execute(
       env,
@@ -264,6 +406,20 @@ export class InventoryAlertRepository {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysOld);
     const cutoffISO = cutoffDate.toISOString();
+
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
+      const result = await prisma.inventoryAlert.deleteMany({
+        where: {
+          isResolved: 1,
+          AND: [
+            { resolvedAt: { lt: cutoffISO } },
+            { resolvedAt: { not: null } }
+          ]
+        }
+      });
+      return result.count;
+    }
 
     const result = await execute(
       env,

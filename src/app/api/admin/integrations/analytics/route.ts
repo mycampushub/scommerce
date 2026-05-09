@@ -1,27 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { IntegrationRepository } from '@/db/integration.repository';
+import { verifyAdminAuth } from '@/lib/admin-auth';
 
 /**
  * GET /api/admin/integrations/analytics
  * Get all analytics integrations (Admin only)
  */
 export async function GET(request: NextRequest) {
+  // Verify admin authentication
+  const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
+
   try {
-    const authHeader = request.headers.get('authorization');
-    const token = authHeader?.replace('Bearer ', '');
+    const analytics = await IntegrationRepository.getAnalyticsIntegrations();
 
-    if (!token) return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 });
+    // Mask API keys for security
+    const safeAnalytics = analytics.map(integration => ({
+      ...integration,
+      apiKey: integration.apiKey ? '********' : undefined
+    }));
 
-    const { verifyToken } = await import('@/lib/jwt');
-    const payload = await verifyToken(token);
-
-    if (!payload || payload.role !== 'admin' && payload.role !== 'staff') return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 });
-
-    const integrations = await IntegrationRepository.getAnalyticsIntegrations();
-    return NextResponse.json({ success: true, data: integrations });
+    return NextResponse.json({
+      success: true,
+      data: safeAnalytics
+    });
   } catch (error) {
     console.error('Error fetching analytics integrations:', error);
-    return NextResponse.json({ success: false, error: 'Failed to fetch analytics integrations' }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Failed to fetch analytics integrations'
+      },
+      { status: 500 }
+    );
   }
 }
 
@@ -30,36 +43,46 @@ export async function GET(request: NextRequest) {
  * Create a new analytics integration (Admin only)
  */
 export async function POST(request: NextRequest) {
+  // Verify admin authentication
+  const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
+
   try {
-    const authHeader = request.headers.get('authorization');
-    const token = authHeader?.replace('Bearer ', '');
-
-    if (!token) return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 });
-
-    const { verifyToken } = await import('@/lib/jwt');
-    const payload = await verifyToken(token);
-
-    if (!payload || payload.role !== 'admin' && payload.role !== 'staff') return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 });
-
     const body = await request.json();
 
+    // Validate required fields
     if (!body.name || !body.provider) {
-      return NextResponse.json({ success: false, error: 'Name and provider are required' }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: 'Name and provider are required' },
+        { status: 400 }
+      );
     }
 
-    const integration = await IntegrationRepository.createAnalyticsIntegration({
+    const analytics = await IntegrationRepository.createAnalyticsIntegration({
       name: body.name,
       provider: body.provider,
-      trackingId: body.trackingId,
       apiKey: body.apiKey,
+      trackingId: body.trackingId,
       pixelId: body.pixelId,
       isActive: body.isActive !== undefined ? body.isActive : true,
       settings: body.settings
     });
 
-    return NextResponse.json({ success: true, data: integration, message: 'Analytics integration created successfully' }, { status: 201 });
+    return NextResponse.json({
+      success: true,
+      data: analytics,
+      message: 'Analytics integration created successfully'
+    }, { status: 201 });
   } catch (error) {
     console.error('Error creating analytics integration:', error);
-    return NextResponse.json({ success: false, error: 'Failed to create analytics integration' }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Failed to create analytics integration'
+      },
+      { status: 500 }
+    );
   }
 }

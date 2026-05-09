@@ -1,22 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { IntegrationRepository } from '@/db/integration.repository';
+import { verifyAdminAuth } from '@/lib/admin-auth';
 
 /**
  * GET /api/admin/integrations/email-services
  * Get all email services (Admin only)
  */
 export async function GET(request: NextRequest) {
+  // Verify admin authentication
+  const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
+
   try {
-    const authHeader = request.headers.get('authorization');
-    const token = authHeader?.replace('Bearer ', '');
-
-    if (!token) return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 });
-
-    const { verifyToken } = await import('@/lib/jwt');
-    const payload = await verifyToken(token);
-
-    if (!payload || payload.role !== 'admin' && payload.role !== 'staff') return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 });
-
     const services = await IntegrationRepository.getEmailServices();
     const safeServices = services.map(s => ({ ...s, apiSecret: s.apiSecret ? '********' : undefined }));
 
@@ -32,17 +29,13 @@ export async function GET(request: NextRequest) {
  * Create a new email service (Admin only)
  */
 export async function POST(request: NextRequest) {
+  // Verify admin authentication
+  const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
+
   try {
-    const authHeader = request.headers.get('authorization');
-    const token = authHeader?.replace('Bearer ', '');
-
-    if (!token) return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 });
-
-    const { verifyToken } = await import('@/lib/jwt');
-    const payload = await verifyToken(token);
-
-    if (!payload || payload.role !== 'admin' && payload.role !== 'staff') return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 });
-
     const body = await request.json();
 
     if (!body.name || !body.provider) {

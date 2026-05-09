@@ -8,6 +8,7 @@ import { queryAll, execute, parseJSON, generateId, generateOrderNumber, now } fr
 import { csrfMiddleware } from '@/lib/csrf'
 import { rateLimit } from '@/lib/rate-limit'
 import { verifyToken, extractTokenFromHeader } from '@/lib/auth'
+import prisma from '@/lib/database'
 
 
 export async function GET(request: NextRequest) {
@@ -25,47 +26,100 @@ export async function GET(request: NextRequest) {
     const dateFrom = searchParams.get('dateFrom')
     const dateTo = searchParams.get('dateTo')
 
-    // Build WHERE clause for date filtering
-    let whereClause = ''
-    const whereParams: any[] = []
+    let orders: any[] = []
+    let orderItems: any[] = []
 
-    if (dateFrom) {
-      whereClause += ' AND o.createdAt >= ?'
-      whereParams.push(dateFrom)
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
+      console.log('[orders API] Using Prisma for orders query')
+
+      // Build Prisma where clause
+      const where: any = {}
+      if (dateFrom) {
+        where.createdAt = { gte: dateFrom }
+      }
+      if (dateTo) {
+        const endDate = new Date(dateTo)
+        endDate.setDate(endDate.getDate() + 1)
+        if (!where.createdAt) where.createdAt = {}
+        where.createdAt.lt = endDate.toISOString()
+      }
+
+      // Fetch orders
+      const prismaOrders = await prisma.order.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true
+            }
+          }
+        }
+      })
+
+      // Fetch order items
+      const prismaOrderItems = await prisma.orderItem.findMany({
+        orderBy: { createdAt: 'desc' }
+      })
+
+      orders = prismaOrders.map(o => ({
+        ...o,
+        userId: o.userId,
+        userName: o.user?.name || null,
+        userEmail: o.user?.email || null,
+        userRole: o.user?.role || null
+      }))
+
+      orderItems = prismaOrderItems
+    } else {
+      console.log('[orders API] Using D1 for orders query')
+
+      // Build WHERE clause for date filtering
+      let whereClause = ''
+      const whereParams: any[] = []
+
+      if (dateFrom) {
+        whereClause += ' AND o.createdAt >= ?'
+        whereParams.push(dateFrom)
+      }
+
+      if (dateTo) {
+        // Add 1 day to include the end date fully
+        const endDate = new Date(dateTo)
+        endDate.setDate(endDate.getDate() + 1)
+        whereClause += ' AND o.createdAt < ?'
+        whereParams.push(endDate.toISOString())
+      }
+
+      // Fetch orders with user details in a single query using JOIN
+      orders = await queryAll<any>(
+        env,
+        `SELECT
+           o.*,
+           u.id as userId,
+           u.name as userName,
+           u.email as userEmail,
+           u.role as userRole
+         FROM orders o
+         LEFT JOIN users u ON o.userId = u.id
+         WHERE 1=1${whereClause}
+         ORDER BY o.createdAt DESC`,
+        whereParams
+      )
+
+      // Fetch all order items in a single query
+      orderItems = await queryAll<any>(
+        env,
+        `SELECT oi.*
+         FROM order_items oi
+         INNER JOIN orders o ON oi.orderId = o.id
+         ORDER BY o.createdAt DESC`
+      )
     }
-
-    if (dateTo) {
-      // Add 1 day to include the end date fully
-      const endDate = new Date(dateTo)
-      endDate.setDate(endDate.getDate() + 1)
-      whereClause += ' AND o.createdAt < ?'
-      whereParams.push(endDate.toISOString())
-    }
-
-    // Fetch orders with user details in a single query using JOIN
-    const orders = await queryAll<any>(
-      env,
-      `SELECT
-         o.*,
-         u.id as userId,
-         u.name as userName,
-         u.email as userEmail,
-         u.role as userRole
-       FROM orders o
-       LEFT JOIN users u ON o.userId = u.id
-       WHERE 1=1${whereClause}
-       ORDER BY o.createdAt DESC`,
-      whereParams
-    )
-
-    // Fetch all order items in a single query
-    const orderItems = await queryAll<any>(
-      env,
-      `SELECT oi.*
-       FROM order_items oi
-       INNER JOIN orders o ON oi.orderId = o.id
-       ORDER BY o.createdAt DESC`
-    )
 
     // Group order items by orderId
     const itemsByOrderId = new Map<string, any[]>()

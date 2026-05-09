@@ -1,33 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { IntegrationRepository } from '@/db/integration.repository';
+import { verifyAdminAuth } from '@/lib/admin-auth';
 
 /**
  * GET /api/admin/integrations/shipping-carriers
  * Get all shipping carriers (Admin only)
  */
 export async function GET(request: NextRequest) {
+  // Verify admin authentication
+  const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
+
   try {
-    const authHeader = request.headers.get('authorization');
-    const token = authHeader?.replace('Bearer ', '');
-
-    if (!token) {
-      return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 });
-    }
-
-    const { verifyToken } = await import('@/lib/jwt');
-    const payload = await verifyToken(token);
-
-    if (!payload || payload.role !== 'admin' && payload.role !== 'staff') {
-      return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 });
-    }
-
     const carriers = await IntegrationRepository.getShippingCarriers();
-    const safeCarriers = carriers.map(c => ({ ...c, apiSecret: c.apiSecret ? '********' : undefined }));
 
-    return NextResponse.json({ success: true, data: safeCarriers });
+    // Mask API secrets for security
+    const safeCarriers = carriers.map(carrier => ({
+      ...carrier,
+      apiSecret: carrier.apiSecret ? '********' : undefined
+    }));
+
+    return NextResponse.json({
+      success: true,
+      data: safeCarriers
+    });
   } catch (error) {
     console.error('Error fetching shipping carriers:', error);
-    return NextResponse.json({ success: false, error: 'Failed to fetch shipping carriers' }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Failed to fetch shipping carriers'
+      },
+      { status: 500 }
+    );
   }
 }
 
@@ -36,29 +43,26 @@ export async function GET(request: NextRequest) {
  * Create a new shipping carrier (Admin only)
  */
 export async function POST(request: NextRequest) {
+  // Verify admin authentication
+  const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
+
   try {
-    const authHeader = request.headers.get('authorization');
-    const token = authHeader?.replace('Bearer ', '');
-
-    if (!token) {
-      return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 });
-    }
-
-    const { verifyToken } = await import('@/lib/jwt');
-    const payload = await verifyToken(token);
-
-    if (!payload || payload.role !== 'admin' && payload.role !== 'staff') {
-      return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 });
-    }
-
     const body = await request.json();
 
+    // Validate required fields
     if (!body.name || !body.provider) {
-      return NextResponse.json({ success: false, error: 'Name and provider are required' }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: 'Name and provider are required' },
+        { status: 400 }
+      );
     }
 
-    const existing = await IntegrationRepository.getShippingCarriers();
-    const isFirst = existing.length === 0;
+    // If this is first carrier, make it default
+    const existingCarriers = await IntegrationRepository.getShippingCarriers();
+    const isFirstCarrier = existingCarriers.length === 0;
 
     const carrier = await IntegrationRepository.createShippingCarrier({
       name: body.name,
@@ -68,13 +72,23 @@ export async function POST(request: NextRequest) {
       accountNumber: body.accountNumber,
       webhookUrl: body.webhookUrl,
       isActive: body.isActive !== undefined ? body.isActive : true,
-      isDefault: body.isDefault !== undefined ? body.isDefault : isFirst,
+      isDefault: body.isDefault !== undefined ? body.isDefault : isFirstCarrier,
       settings: body.settings
     });
 
-    return NextResponse.json({ success: true, data: carrier, message: 'Shipping carrier created successfully' }, { status: 201 });
+    return NextResponse.json({
+      success: true,
+      data: carrier,
+      message: 'Shipping carrier created successfully'
+    }, { status: 201 });
   } catch (error) {
     console.error('Error creating shipping carrier:', error);
-    return NextResponse.json({ success: false, error: 'Failed to create shipping carrier' }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Failed to create shipping carrier'
+      },
+      { status: 500 }
+    );
   }
 }

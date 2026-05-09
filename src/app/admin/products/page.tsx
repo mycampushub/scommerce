@@ -157,6 +157,9 @@ export default function ProductsPage() {
     categoryId: '',
     images: [] as string[],
     stock: '0',
+    size: '',
+    color: '',
+    material: '',
     isActive: true,
     isFeatured: false,
   })
@@ -334,6 +337,9 @@ export default function ProductsPage() {
           stock: parseInt(addFormData.stock),
           basePrice: parseFloat(addFormData.price),
           hasVariants: false,
+          size: addFormData.size || null,
+          color: addFormData.color || null,
+          material: addFormData.material || null,
           isActive: addFormData.isActive,
           isFeatured: addFormData.isFeatured,
         }),
@@ -360,6 +366,9 @@ export default function ProductsPage() {
         categoryId: '',
         images: [],
         stock: '0',
+        size: '',
+        color: '',
+        material: '',
         isActive: true,
         isFeatured: false,
       })
@@ -1162,6 +1171,33 @@ export default function ProductsPage() {
                   value={addFormData.stock}
                   onChange={(e) => setAddFormData({ ...addFormData, stock: e.target.value })}
                   required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Color</label>
+                <Input
+                  value={addFormData.color}
+                  onChange={(e) => setAddFormData({ ...addFormData, color: e.target.value })}
+                  placeholder="e.g., Red, Blue"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Size</label>
+                <Input
+                  value={addFormData.size}
+                  onChange={(e) => setAddFormData({ ...addFormData, size: e.target.value })}
+                  placeholder="e.g., S, M, L, XL"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Material</label>
+                <Input
+                  value={addFormData.material}
+                  onChange={(e) => setAddFormData({ ...addFormData, material: e.target.value })}
+                  placeholder="e.g., Cotton, Silk"
                 />
               </div>
             </div>

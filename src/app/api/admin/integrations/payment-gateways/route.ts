@@ -1,33 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { IntegrationRepository } from '@/db/integration.repository';
+import { verifyAdminAuth } from '@/lib/admin-auth';
 
 /**
  * GET /api/admin/integrations/payment-gateways
  * Get all payment gateways (Admin only)
  */
 export async function GET(request: NextRequest) {
+  // Verify admin authentication
+  const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
+
   try {
-    // Verify admin authentication
-    const authHeader = request.headers.get('authorization');
-    const token = authHeader?.replace('Bearer ', '');
-
-    if (!token) {
-      return NextResponse.json(
-        { success: false, error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    const { verifyToken } = await import('@/lib/jwt');
-    const payload = await verifyToken(token);
-
-    if (!payload || payload.role !== 'admin' && payload.role !== 'staff') {
-      return NextResponse.json(
-        { success: false, error: 'Admin access required' },
-        { status: 403 }
-      );
-    }
-
     const gateways = await IntegrationRepository.getPaymentGateways();
 
     // Mask API secrets for security
@@ -57,28 +43,13 @@ export async function GET(request: NextRequest) {
  * Create a new payment gateway (Admin only)
  */
 export async function POST(request: NextRequest) {
+  // Verify admin authentication
+  const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
+
   try {
-    // Verify admin authentication
-    const authHeader = request.headers.get('authorization');
-    const token = authHeader?.replace('Bearer ', '');
-
-    if (!token) {
-      return NextResponse.json(
-        { success: false, error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    const { verifyToken } = await import('@/lib/jwt');
-    const payload = await verifyToken(token);
-
-    if (!payload || payload.role !== 'admin' && payload.role !== 'staff') {
-      return NextResponse.json(
-        { success: false, error: 'Admin access required' },
-        { status: 403 }
-      );
-    }
-
     const body = await request.json();
 
     // Validate required fields
@@ -89,7 +60,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // If this is the first gateway, make it default
+    // If this is first gateway, make it default
     const existingGateways = await IntegrationRepository.getPaymentGateways();
     const isFirstGateway = existingGateways.length === 0;
 

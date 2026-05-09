@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { IntegrationRepository } from '@/db/integration.repository';
+import { verifyAdminAuth } from '@/lib/admin-auth';
 
 /**
  * GET /api/admin/integrations/payment-gateways/[id]
@@ -9,29 +10,14 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Verify admin authentication
+  const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
+
   try {
     const { id } = await params;
-    // Verify admin authentication
-    const authHeader = request.headers.get('authorization');
-    const token = authHeader?.replace('Bearer ', '');
-
-    if (!token) {
-      return NextResponse.json(
-        { success: false, error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    const { verifyToken } = await import('@/lib/jwt');
-    const payload = await verifyToken(token);
-
-    if (!payload || payload.role !== 'admin') {
-      return NextResponse.json(
-        { success: false, error: 'Admin access required' },
-        { status: 403 }
-      );
-    }
-
     const gateway = await IntegrationRepository.getPaymentGatewayById(id);
 
     if (!gateway) {
@@ -71,29 +57,14 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Verify admin authentication
+  const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
+
   try {
     const { id } = await params;
-    // Verify admin authentication
-    const authHeader = request.headers.get('authorization');
-    const token = authHeader?.replace('Bearer ', '');
-
-    if (!token) {
-      return NextResponse.json(
-        { success: false, error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    const { verifyToken } = await import('@/lib/jwt');
-    const payload = await verifyToken(token);
-
-    if (!payload || payload.role !== 'admin') {
-      return NextResponse.json(
-        { success: false, error: 'Admin access required' },
-        { status: 403 }
-      );
-    }
-
     const body = await request.json();
 
     const gateway = await IntegrationRepository.updatePaymentGateway(id, body);
@@ -136,29 +107,14 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Verify admin authentication
+  const userOrResponse = await verifyAdminAuth(request, ['admin'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
+
   try {
     const { id } = await params;
-    // Verify admin authentication
-    const authHeader = request.headers.get('authorization');
-    const token = authHeader?.replace('Bearer ', '');
-
-    if (!token) {
-      return NextResponse.json(
-        { success: false, error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    const { verifyToken } = await import('@/lib/jwt');
-    const payload = await verifyToken(token);
-
-    if (!payload || payload.role !== 'admin') {
-      return NextResponse.json(
-        { success: false, error: 'Admin access required' },
-        { status: 403 }
-      );
-    }
-
     await IntegrationRepository.deletePaymentGateway(id);
 
     return NextResponse.json({
