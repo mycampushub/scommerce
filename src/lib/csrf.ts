@@ -185,9 +185,12 @@ export async function csrfMiddleware(
     return null;
   }
 
-  // Skip CSRF validation if KV is not available (local development)
-  if (!env?.KV) {
-    console.warn('CSRF protection: KV not available (local development), skipping CSRF validation');
+  // Check if we're in development/production mode
+  const isCloudflareEnv = env && env.KV;
+
+  // Skip CSRF validation if KV is not available (local development) or in production without KV
+  if (!isCloudflareEnv) {
+    console.warn('[CSRF] KV not available (local development), skipping CSRF validation');
     return null;
   }
 

@@ -3,6 +3,7 @@ import { getEnv } from '@/lib/cloudflare'
 import { queryAll, queryFirst, execute, generateId, now, numberToBool, boolToNumber } from '@/db/db'
 import { ProductRepository } from '@/db/product.repository'
 import { verifyAdminAuth } from '@/lib/admin-auth'
+import prisma from '@/lib/database'
 
 
 export async function GET(request: NextRequest) {
@@ -19,33 +20,67 @@ export async function GET(request: NextRequest) {
     const isRead = searchParams.get('isRead')
     const isResolved = searchParams.get('isResolved')
 
-    // Build WHERE clause
-    const conditions: string[] = []
-    const params: any[] = []
+    console.log('[inventory alerts API] Fetching alerts with filters:', { alertType, isRead, isResolved })
 
-    if (alertType && ['LOW_STOCK', 'OUT_OF_STOCK', 'REORDER_NEEDED'].includes(alertType)) {
-      conditions.push('alertType = ?')
-      params.push(alertType)
+    let alerts: any[] = []
+
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
+      console.log('[inventory alerts API] Using Prisma for alerts query')
+
+      // Build Prisma where clause
+      const where: any = {}
+      if (alertType && ['LOW_STOCK', 'OUT_OF_STOCK', 'REORDER_NEEDED'].includes(alertType)) {
+        where.alertType = alertType
+      }
+      if (isRead !== null && isRead !== '') {
+        where.isRead = boolToNumber(isRead === 'true')
+      }
+      if (isResolved !== null && isResolved !== '') {
+        where.isResolved = boolToNumber(isResolved === 'true')
+      }
+
+      console.log('[inventory alerts API] Prisma where clause:', where)
+
+      const prismaAlerts = await prisma.inventoryAlert.findMany({
+        where,
+        orderBy: { createdAt: 'desc' }
+      })
+
+      console.log('[inventory alerts API] Fetched', prismaAlerts.length, 'alerts from Prisma')
+
+      alerts = prismaAlerts
+    } else {
+      console.log('[inventory alerts API] Using D1 for alerts query')
+
+      // Build WHERE clause
+      const conditions: string[] = []
+      const params: any[] = []
+
+      if (alertType && ['LOW_STOCK', 'OUT_OF_STOCK', 'REORDER_NEEDED'].includes(alertType)) {
+        conditions.push('alertType = ?')
+        params.push(alertType)
+      }
+
+      if (isRead !== null && isRead !== '') {
+        conditions.push('isRead = ?')
+        params.push(boolToNumber(isRead === 'true'))
+      }
+
+      if (isResolved !== null && isResolved !== '') {
+        conditions.push('isResolved = ?')
+        params.push(boolToNumber(isResolved === 'true'))
+      }
+
+      const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
+
+      // Fetch alerts
+      alerts = await queryAll<any>(
+        env,
+        `SELECT * FROM inventory_alerts ${whereClause} ORDER BY createdAt DESC`,
+        ...params
+      )
     }
-
-    if (isRead !== null && isRead !== '') {
-      conditions.push('isRead = ?')
-      params.push(boolToNumber(isRead === 'true'))
-    }
-
-    if (isResolved !== null && isResolved !== '') {
-      conditions.push('isResolved = ?')
-      params.push(boolToNumber(isResolved === 'true'))
-    }
-
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
-
-    // Fetch alerts
-    const alerts = await queryAll<any>(
-      env,
-      `SELECT * FROM inventory_alerts ${whereClause} ORDER BY createdAt DESC`,
-      ...params
-    )
 
     // Enrich with product data - Fix N+1 query by batching
     // Collect unique product IDs
@@ -54,13 +89,23 @@ export async function GET(request: NextRequest) {
     // Batch fetch all products in a single query
     const productsMap = new Map<string, any>()
     if (productIds.length > 0) {
-      const placeholders = productIds.map(() => '?').join(',')
-      const products = await queryAll<any>(
-        env,
-        `SELECT id, name, slug, image FROM products WHERE id IN (${placeholders})`,
-        ...productIds
-      )
-      products.forEach(p => productsMap.set(p.id, p))
+      if (!env || !env.DB) {
+        console.log('[inventory alerts API] Using Prisma to fetch products')
+        const products = await prisma.product.findMany({
+          where: { id: { in: productIds } },
+          select: { id: true, name: true, slug: true, images: true }
+        })
+        products.forEach(p => productsMap.set(p.id, p))
+      } else {
+        console.log('[inventory alerts API] Using D1 to fetch products')
+        const placeholders = productIds.map(() => '?').join(',')
+        const products = await queryAll<any>(
+          env,
+          `SELECT id, name, slug, images FROM products WHERE id IN (${placeholders})`,
+          ...productIds
+        )
+        products.forEach(p => productsMap.set(p.id, p))
+      }
     }
 
     // Attach product data to alerts
@@ -98,6 +143,8 @@ export async function POST(request: NextRequest) {
     const env = getEnv()
     const body: any = await request.json() as any
 
+    console.log('[inventory alerts API] Creating alert:', body)
+
     // Validate required fields
     if (!body.productId || !body.alertType) {
       return NextResponse.json(
@@ -121,50 +168,96 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if alert already exists for this product and type
-    const existingAlert = await queryFirst<any>(
-      env,
-      'SELECT * FROM inventory_alerts WHERE productId = ? AND alertType = ? AND isResolved = 0 LIMIT 1',
-      body.productId,
-      body.alertType
-    )
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    let alert: any
+    if (!env || !env.DB) {
+      console.log('[inventory alerts API] Using Prisma to create alert')
 
-    if (existingAlert) {
-      return NextResponse.json({
-        success: false,
-        error: 'Alert already exists for this product',
+      // Check if alert already exists for this product and type
+      const existingAlert = await prisma.inventoryAlert.findFirst({
+        where: {
+          productId: body.productId,
+          alertType: body.alertType,
+          isResolved: 0
+        }
       })
+
+      if (existingAlert) {
+        return NextResponse.json({
+          success: false,
+          error: 'Alert already exists for this product',
+        })
+      }
+
+      // Create alert using Prisma
+      alert = await prisma.inventoryAlert.create({
+        data: {
+          productId: body.productId,
+          alertType: body.alertType,
+          quantity: body.quantity || 0,
+          isRead: 0,
+          isResolved: 0
+        }
+      })
+    } else {
+      console.log('[inventory alerts API] Using D1 to create alert')
+
+      // Check if alert already exists for this product and type
+      const existingAlert = await queryFirst<any>(
+        env,
+        'SELECT * FROM inventory_alerts WHERE productId = ? AND alertType = ? AND isResolved = 0 LIMIT 1',
+        body.productId,
+        body.alertType
+      )
+
+      if (existingAlert) {
+        return NextResponse.json({
+          success: false,
+          error: 'Alert already exists for this product',
+        })
+      }
+
+      // Create alert using D1
+      const id = generateId()
+      const currentTime = now()
+
+      await execute(
+        env,
+        `INSERT INTO inventory_alerts (id, productId, alertType, quantity, isRead, isResolved, createdAt, updatedAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        id,
+        body.productId,
+        body.alertType,
+        body.quantity || 0,
+        boolToNumber(false),
+        boolToNumber(false),
+        currentTime,
+        currentTime
+      )
+
+      alert = await queryFirst<any>(
+        env,
+        'SELECT * FROM inventory_alerts WHERE id = ? LIMIT 1',
+        id
+      )
     }
 
-    // Create alert
-    const id = generateId()
-    const currentTime = now()
-
-    await execute(
-      env,
-      `INSERT INTO inventory_alerts (id, productId, alertType, quantity, isRead, isResolved, createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      id,
-      body.productId,
-      body.alertType,
-      body.quantity || 0,
-      boolToNumber(false),
-      boolToNumber(false),
-      currentTime,
-      currentTime
-    )
-
-    const alert = await queryFirst<any>(
-      env,
-      'SELECT * FROM inventory_alerts WHERE id = ? LIMIT 1',
-      id
-    )
-
     // Enrich with product data
-    const product = await ProductRepository.findById(env, alert.productId)
+    let product
+    if (!env || !env.DB) {
+      product = await prisma.product.findUnique({
+        where: { id: alert.productId },
+        select: { id: true, name: true, slug: true, images: true }
+      })
+    } else {
+      product = await ProductRepository.findById(env, alert.productId)
+    }
+
     ;(alert as any).product = product
     alert.isRead = numberToBool(alert.isRead)
     alert.isResolved = numberToBool(alert.isResolved)
+
+    console.log('[inventory alerts API] Alert created successfully:', alert.id)
 
     return NextResponse.json({
       success: true,
@@ -172,11 +265,16 @@ export async function POST(request: NextRequest) {
       message: 'Alert created successfully',
     })
   } catch (error) {
-    console.error('Error creating inventory alert:', error)
+    console.error('[inventory alerts API] Error creating inventory alert:', error)
+    console.error('[inventory alerts API] Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    })
     return NextResponse.json(
       {
         success: false,
         error: 'Failed to create inventory alert',
+        details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     )

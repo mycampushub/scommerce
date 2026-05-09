@@ -982,10 +982,10 @@ export default function ProductsPage() {
 
       {/* Edit Product Modal */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby="edit-product-description">
           <DialogHeader>
             <DialogTitle>Edit Product</DialogTitle>
-            <DialogDescription>Update product information</DialogDescription>
+            <DialogDescription id="edit-product-description">Update product information</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleUpdateProduct} className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
@@ -1109,10 +1109,10 @@ export default function ProductsPage() {
 
       {/* Add Product Modal */}
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby="add-product-description">
           <DialogHeader>
             <DialogTitle>Add New Product</DialogTitle>
-            <DialogDescription>Create a new product for your store</DialogDescription>
+            <DialogDescription id="add-product-description">Create a new product for your store</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAddProduct} className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">

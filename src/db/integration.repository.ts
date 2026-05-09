@@ -1,6 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '@/lib/database';
 
 // Integration Types
 export type IntegrationType = 'payment' | 'shipping' | 'analytics' | 'email';

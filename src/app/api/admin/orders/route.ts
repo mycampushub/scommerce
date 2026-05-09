@@ -26,6 +26,8 @@ export async function GET(request: NextRequest) {
     const dateFrom = searchParams.get('dateFrom')
     const dateTo = searchParams.get('dateTo')
 
+    console.log('[orders API] Fetching orders with filters:', { search, status, dateFrom, dateTo })
+
     let orders: any[] = []
     let orderItems: any[] = []
 
@@ -36,14 +38,16 @@ export async function GET(request: NextRequest) {
       // Build Prisma where clause
       const where: any = {}
       if (dateFrom) {
-        where.createdAt = { gte: dateFrom }
+        where.createdAt = { gte: new Date(dateFrom) }
       }
       if (dateTo) {
         const endDate = new Date(dateTo)
         endDate.setDate(endDate.getDate() + 1)
         if (!where.createdAt) where.createdAt = {}
-        where.createdAt.lt = endDate.toISOString()
+        where.createdAt.lt = endDate
       }
+
+      console.log('[orders API] Prisma where clause:', where)
 
       // Fetch orders
       const prismaOrders = await prisma.order.findMany({
@@ -61,10 +65,14 @@ export async function GET(request: NextRequest) {
         }
       })
 
+      console.log('[orders API] Fetched', prismaOrders.length, 'orders from Prisma')
+
       // Fetch order items
       const prismaOrderItems = await prisma.orderItem.findMany({
         orderBy: { createdAt: 'desc' }
       })
+
+      console.log('[orders API] Fetched', prismaOrderItems.length, 'order items from Prisma')
 
       orders = prismaOrders.map(o => ({
         ...o,
@@ -163,11 +171,17 @@ export async function GET(request: NextRequest) {
       total: filteredOrders.length,
     })
   } catch (error) {
-    console.error('Error fetching orders:', error)
+    console.error('[orders API] Error fetching orders:', error)
+    console.error('[orders API] Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined
+    })
     return NextResponse.json(
       {
         success: false,
         error: 'Failed to fetch orders',
+        details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     )
