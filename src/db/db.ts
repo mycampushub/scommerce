@@ -1,4 +1,5 @@
 import { Env } from './types';
+import { getDatabase } from './unified-db';
 import { secureRandomString, generateSecureId, secureRandomInt } from '@/lib/crypto-utils';
 
 // Re-export generateSecureId for use in other files
@@ -12,11 +13,12 @@ export async function queryFirst<T = Record<string, unknown>>(
   sql: string,
   ...params: unknown[]
 ): Promise<T | null> {
-  if (!env || !env.DB) {
+  const db = getDatabase(env);
+  if (!db) {
     console.error('[db.ts] Database not available');
     return null;
   }
-  const stmt = env.DB.prepare(sql);
+  const stmt = db.prepare(sql);
   const result = await stmt.bind(...params).first() as T | null;
 
   return result;
@@ -30,11 +32,12 @@ export async function queryAll<T = Record<string, unknown>>(
   sql: string,
   ...params: unknown[]
 ): Promise<T[]> {
-  if (!env || !env.DB) {
+  const db = getDatabase(env);
+  if (!db) {
     console.error('[db.ts] Database not available');
     return [];
   }
-  const stmt = env.DB.prepare(sql);
+  const stmt = db.prepare(sql);
   const result = await stmt.bind(...params).all() as { results: T[] };
 
   return result?.results || [];
@@ -48,11 +51,12 @@ export async function execute(
   sql: string,
   ...params: unknown[]
 ): Promise<void> {
-  if (!env || !env.DB) {
+  const db = getDatabase(env);
+  if (!db) {
     console.error('[db.ts] Database not available');
     return;
   }
-  const stmt = env.DB.prepare(sql);
+  const stmt = db.prepare(sql);
   await stmt.bind(...params).run();
 }
 
@@ -68,7 +72,8 @@ export async function count(
   whereClauseOrFirstParam?: string | unknown,
   ...params: unknown[]
 ): Promise<number> {
-  if (!env || !env.DB) {
+  const db = getDatabase(env);
+  if (!db) {
     console.error('[db.ts] Database not available');
     return 0;
   }

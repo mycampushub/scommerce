@@ -5,7 +5,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "sonner";
 import { OrganizationStructuredData } from "@/components/product-structured-data";
 import { AnalyticsScripts, SearchConsoleVerification } from "@/components/analytics-scripts";
-import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
+import { ServiceWorkerHandler } from "@/components/service-worker-handler";
+
 import { CacheProvider } from "@/components/providers/CacheProvider";
 import { QueryProvider } from "@/components/providers/query-provider";
 
@@ -90,7 +91,7 @@ export default function RootLayout({
         <QueryProvider>
           <CacheProvider>
             <AnalyticsScripts />
-            <ServiceWorkerRegistration />
+            <ServiceWorkerHandler />
             {children}
             <Toaster />
             <SonnerToaster position="top-center" />
