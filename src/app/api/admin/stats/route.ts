@@ -174,11 +174,11 @@ export async function GET(request: NextRequest) {
     // Top products (by items sold in period)
     const topProductsData = await queryAll<any>(
       env,
-      `SELECT p.id, p.name, p.basePrice as price, COUNT(oi.id) as sales
+      `SELECT p.id, p.name, p.basePrice as price,
+              COUNT(CASE WHEN o.createdAt >= ? THEN oi.id END) as sales
        FROM products p
        LEFT JOIN order_items oi ON p.id = oi.productId
        LEFT JOIN orders o ON oi.orderId = o.id
-       WHERE o.createdAt >= ? OR o.createdAt IS NULL
        GROUP BY p.id
        ORDER BY sales DESC
        LIMIT 5`,

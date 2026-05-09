@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { IntegrationRepository } from '@/db/integration.repository';
+import { IntegrationRepository } from '@/db/integration';
 import { verifyAdminAuth } from '@/lib/admin-auth';
 
 /**

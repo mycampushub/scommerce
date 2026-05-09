@@ -54,7 +54,14 @@ export default function AdminDashboard() {
   const [recentOrders, setRecentOrders] = useState<any[]>([])
   const [topProducts, setTopProducts] = useState<any[]>([])
   const [analytics, setAnalytics] = useState<any>(null)
+  const [analyticsError, setAnalyticsError] = useState<string | null>(null)
   const [period, setPeriod] = useState('30')
+
+  const formatGrowth = (val: number | undefined | null) => {
+    if (val === undefined || val === null) return 'N/A'
+    const prefix = val >= 0 ? '+' : ''
+    return `${prefix}${val.toFixed(1)}%`
+  }
 
   const fetchDashboardData = async () => {
     try {
@@ -79,13 +86,17 @@ export default function AdminDashboard() {
 
   const fetchAnalyticsData = async () => {
     try {
+      setAnalyticsError(null)
       const response = await fetch(`/api/admin/analytics?period=${period}`)
       const result = await response.json() as any
 
       if (result.success) {
         setAnalytics(result.data)
+      } else {
+        setAnalyticsError(result.error || 'Failed to fetch analytics')
       }
     } catch (err) {
+      setAnalyticsError('Failed to fetch analytics')
       console.error('Error fetching analytics:', err)
     }
   }
@@ -313,8 +324,8 @@ export default function AdminDashboard() {
             <div className="text-3xl font-bold">{formatCurrency(stats?.orders?.revenue || 0)}</div>
             <p className="text-xs text-white/80 mt-1 flex items-center gap-1">
               <ArrowUpRight className="h-3 w-3" />
-              <span>+20.1%</span>
-              <span className="text-white/60 ml-1">vs last month</span>
+              <span>{formatGrowth(stats?.trends?.revenueGrowth)}</span>
+              <span className="text-white/60 ml-1">vs last period</span>
             </p>
           </CardContent>
         </Card>
@@ -331,8 +342,8 @@ export default function AdminDashboard() {
             <div className="text-3xl font-bold text-gray-900">{stats?.orders?.total || 0}</div>
             <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
               <TrendingUp className="h-3 w-3 text-green-500" />
-              <span className="text-green-600 font-medium">+12.5%</span>
-              <span className="text-gray-400 ml-1">vs last month</span>
+              <span className="text-green-600 font-medium">{formatGrowth(stats?.trends?.ordersGrowth)}</span>
+              <span className="text-gray-400 ml-1">vs last period</span>
             </p>
           </CardContent>
         </Card>
@@ -349,8 +360,8 @@ export default function AdminDashboard() {
             <div className="text-3xl font-bold text-gray-900">{stats?.products?.total || 0}</div>
             <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
               <ArrowUpRight className="h-3 w-3 text-green-500" />
-              <span className="text-green-600 font-medium">+8.2%</span>
-              <span className="text-gray-400 ml-1">new this month</span>
+              <span className="text-green-600 font-medium">{stats?.products?.active || 0}/{stats?.products?.total || 0}</span>
+              <span className="text-gray-400 ml-1">active</span>
             </p>
           </CardContent>
         </Card>
@@ -367,8 +378,8 @@ export default function AdminDashboard() {
             <div className="text-3xl font-bold text-gray-900">{stats?.customers?.total || 0}</div>
             <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
               <TrendingUp className="h-3 w-3 text-green-500" />
-              <span className="text-green-600 font-medium">+15.3%</span>
-              <span className="text-gray-400 ml-1">vs last month</span>
+              <span className="text-green-600 font-medium">{formatGrowth(stats?.trends?.newCustomerGrowth)}</span>
+              <span className="text-gray-400 ml-1">vs last period</span>
             </p>
           </CardContent>
         </Card>

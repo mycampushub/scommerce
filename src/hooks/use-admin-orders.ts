@@ -18,7 +18,15 @@ export async function fetchAdminOrders(filters?: OrderFilters): Promise<Order[]>
   if (filters?.search) {
     params.append('search', filters.search)
   }
-  
+
+  if (filters?.dateFrom) {
+    params.append('dateFrom', filters.dateFrom)
+  }
+
+  if (filters?.dateTo) {
+    params.append('dateTo', filters.dateTo)
+  }
+
   const url = `/api/admin/orders${params.toString() ? '?' + params.toString() : ''}`
   const response = await fetch(url)
   
@@ -184,13 +192,27 @@ export function useExportOrders() {
           params.append('status', filters.status)
         }
         
-        // Open export endpoint in a new tab to trigger download
         const exportUrl = `/api/admin/orders/export${params.toString() ? '?' + params.toString() : ''}`
-        window.open(exportUrl, '_blank')
+        const response = await fetch(exportUrl)
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}))
+          throw new Error(errorData.error || 'Export failed')
+        }
+        
+        const blob = await response.blob()
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `orders-export-${new Date().toISOString().split('T')[0]}.csv`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
         
         toast({
-          title: 'Export Started',
-          description: 'Your orders export is being downloaded',
+          title: 'Export Complete',
+          description: 'Your orders export has been downloaded',
         })
       } catch (error) {
         console.error('Export error:', error)

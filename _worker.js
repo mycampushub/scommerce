@@ -20,11 +20,15 @@ export default {
       pathname.startsWith('/_next/static/media/') ||
       pathname.startsWith('/_next/static/css/') ||
       pathname.startsWith('/_next/static/chunks/') ||
-      pathname.startsWith('/uploads/')
+      pathname.startsWith('/uploads/') ||
+      pathname.startsWith('/images/')
     ) {
       // Try to serve from R2 bucket first
       try {
-        const object = await env.BUCKET.get(pathname.substring(1) || pathname);
+        const r2Key = pathname.startsWith('/images/')
+          ? `uploads${pathname.replace('/images', '')}`
+          : pathname.substring(1);
+        const object = await env.BUCKET.get(r2Key);
         if (object) {
           const headers = new Headers();
 

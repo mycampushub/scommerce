@@ -14,6 +14,7 @@ import { MobileBottomNav } from '@/components/mobile-bottom-nav'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
+import { fetchWithCSRF, useCSRF } from '@/hooks/use-csrf'
 
 interface OrderResponse {
   success: boolean
@@ -58,6 +59,9 @@ export default function CheckoutPage() {
   const [freeShippingThreshold, setFreeShippingThreshold] = useState(5000) // Default fallback
 
   const total = getTotal()
+
+  // Fetch CSRF token for order placement
+  useCSRF()
 
   // Fetch site settings for tax rate and shipping threshold
   useEffect(() => {
@@ -272,8 +276,8 @@ export default function CheckoutPage() {
         total
       }
       
-      // Call the orders API
-      const response = await fetch('/api/orders', {
+      // Call the orders API with CSRF protection
+      const response = await fetchWithCSRF('/api/orders', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

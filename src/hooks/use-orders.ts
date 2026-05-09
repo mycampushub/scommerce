@@ -46,6 +46,8 @@ export interface OrderFilters {
   userId?: string
   status?: string
   search?: string
+  dateFrom?: string
+  dateTo?: string
 }
 
 // Fetch orders
