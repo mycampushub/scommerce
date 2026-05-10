@@ -110,9 +110,10 @@ export default function ProductPage() {
     try {
       const response = await fetch(`/api/products?limit=8`)
       if (response.ok) {
-        const products = await response.json() as any
+        const result = await response.json() as any
         // Filter products from same category, excluding current product
-        const related = (products as any)
+        const products = result.success ? result.data || [] : []
+        const related = products
           .filter((p: Product) => p.categoryId === categoryId && p.id !== currentProductId)
           .slice(0, 4)
         setRelatedProducts(related)

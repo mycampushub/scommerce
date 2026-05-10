@@ -3,7 +3,7 @@ import { verifyAdminAuth } from '@/lib/admin-auth'
 import { getEnv } from '@/lib/cloudflare'
 import { OrderRepository } from '@/db/order.repository'
 import { UserRepository } from '@/db/user.repository'
-import { createOrderSchema } from '@/lib/validations'
+import { createOrderSchema } from '@/lib/validations/index'
 import { queryAll, execute, generateId, generateOrderNumber, now } from '@/db/db'
 import { csrfMiddleware } from '@/lib/csrf'
 import { rateLimit } from '@/lib/rate-limit'
@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const env = getEnv()
+
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search') || ''
     const status = searchParams.get('status') || ''
@@ -70,22 +71,27 @@ export async function GET(request: NextRequest) {
        LEFT JOIN users u ON o.userId = u.id
        WHERE 1=1${whereClause}
        ORDER BY o.createdAt DESC`,
-      whereParams
+      ...whereParams
     )
 
-      // Fetch order items only for the fetched orders
-      if (orders.length > 0) {
-        const orderIds = orders.map((o: any) => o.id)
-        const placeholders = orderIds.map(() => '?').join(',')
-        orderItems = await queryAll<any>(
-          env,
-          `SELECT oi.*
-           FROM order_items oi
-           WHERE oi.orderId IN ($${placeholders})
-           ORDER BY oi.createdAt ASC`,
-          ...orderIds
-        )
-      }
+    console.log('[orders API] Fetched orders:', orders.length)
+
+    // Fetch order items only for the fetched orders
+    if (orders.length > 0) {
+      const orderIds = orders.map((o: any) => o.id)
+      const placeholders = orderIds.map(() => '?').join(',')
+
+      orderItems = await queryAll<any>(
+        env,
+        `SELECT oi.*
+         FROM order_items oi
+         WHERE oi.orderId IN (${placeholders})
+         ORDER BY oi.createdAt ASC`,
+        ...orderIds
+      )
+
+      console.log('[orders API] Fetched order items:', orderItems.length)
+    }
 
     // Group order items by orderId
     const itemsByOrderId = new Map<string, any[]>()
@@ -105,7 +111,7 @@ export async function GET(request: NextRequest) {
         email: order.userEmail,
         role: order.userRole
       } : null,
-      orderItems: order.orderItems || itemsByOrderId.get(order.id) || []
+      orderItems: itemsByOrderId.get(order.id) || []
     }))
 
     return NextResponse.json({

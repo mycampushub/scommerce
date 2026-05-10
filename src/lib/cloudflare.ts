@@ -35,8 +35,14 @@ export function getDB(_request?: Request): any | null {
  * Falls back to a mock env with Prisma for local development
  */
 export function getEnv(_request?: Request): any | null {
+  // First check if we're in local development mode
+  if (!isCloudflareEnv()) {
+    console.warn('[cloudflare.ts] Local development mode - returning null for Prisma direct usage');
+    return null;
+  }
+
+  // Then try Cloudflare bindings
   try {
-    // Try Cloudflare bindings first
     const { env } = getCloudflareContext();
     if (env && (env['DB'] || env['KV'] || env['BUCKET'])) {
       console.log('[cloudflare.ts] Using Cloudflare bindings', {
@@ -48,12 +54,6 @@ export function getEnv(_request?: Request): any | null {
     }
   } catch (error) {
     console.error('[cloudflare.ts] Error getting env:', error);
-  }
-
-  // Fallback for local development - return null so repositories use Prisma directly
-  if (!isCloudflareEnv()) {
-    console.warn('[cloudflare.ts] Local development mode - returning null for Prisma direct usage');
-    return null;
   }
 
   console.error('[cloudflare.ts] Env not found and no fallback available');

@@ -842,7 +842,9 @@ export default function CheckoutPage() {
                     }
 
                     // Use shipping info from checkout form for address fields
+                    // Combine firstName and lastName into name for API compatibility
                     const registerData = {
+                      name: `${firstName} ${lastName}`,
                       firstName,
                       lastName,
                       email,

@@ -74,7 +74,9 @@ export async function middleware(request: NextRequest) {
                        pathname.match(/\.(jpg|jpeg|png|gif|svg|webp|ico|css|js|woff|woff2|ttf|eot)$/)
 
   // Handle sensitive API routes - require authentication
-  if (isApiRoute && isSensitiveRoute) {
+  // Note: GET requests to /api/reviews should be public (anyone can read reviews)
+  const requiresAuth = isApiRoute && isSensitiveRoute && !(pathname === '/api/reviews' && request.method === 'GET')
+  if (requiresAuth) {
     if (!sessionToken) {
       const response = new Response(
         JSON.stringify({ error: 'Authentication required' }),
