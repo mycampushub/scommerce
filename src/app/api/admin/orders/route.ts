@@ -30,15 +30,6 @@ export async function GET(request: NextRequest) {
     let orders: any[] = []
     let orderItems: any[] = []
 
-    const env = getEnv()
-    const searchParams = request.nextUrl.searchParams
-    const search = searchParams.get('search') || ''
-    const status = searchParams.get('status') || ''
-    const dateFrom = searchParams.get('dateFrom')
-    const dateTo = searchParams.get('dateTo')
-
-    console.log('[orders API] Fetching orders with filters:', { search, status, dateFrom, dateTo })
-
     // Build WHERE clause with all filters
     let whereClause = ' AND o.deletedAt IS NULL'
     const whereParams: any[] = []
@@ -95,7 +86,6 @@ export async function GET(request: NextRequest) {
           ...orderIds
         )
       }
-    }
 
     // Group order items by orderId
     const itemsByOrderId = new Map<string, any[]>()
