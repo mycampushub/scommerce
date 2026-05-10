@@ -96,68 +96,82 @@ export class OrderRepository {
     const currentTime = now();
 
     // Use Prisma if env is null or env.DB doesn't exist (local dev)
-    if (!env || !env.DB) {
-      const order = await prisma.order.create({
-        data: {
-          id,
-          orderNumber,
-          userId: data.userId || null,
-          customerName: data.customerName,
-          customerEmail: data.customerEmail,
-          customerPhone: data.customerPhone || null,
-          shippingAddress: data.shippingAddress,
-          billingAddress: data.billingAddress || null,
-          city: data.city || null,
-          district: data.district || null,
-          division: data.division || null,
-          subtotal: data.subtotal,
-          shipping: data.shipping || 0,
-          tax: data.tax || 0,
-          discount: data.discount || 0,
-          total: data.total,
-          status: 'PENDING' as OrderStatus,
-          paymentStatus: 'PENDING' as PaymentStatus,
-          paymentMethod: data.paymentMethod || null,
-          trackingStatus: 'PENDING' as TrackingStatus,
-          createdAt: currentTime,
-          updatedAt: currentTime
-        }
-      });
-      return order as unknown as Order;
+    try {
+      if (!env || !env.DB) {
+        const order = await prisma.order.create({
+          data: {
+            id,
+            orderNumber,
+            userId: data.userId || null,
+            customerName: data.customerName,
+            customerEmail: data.customerEmail,
+            customerPhone: data.customerPhone || null,
+            shippingAddress: data.shippingAddress,
+            billingAddress: data.billingAddress || null,
+            city: data.city || null,
+            district: data.district || null,
+            division: data.division || null,
+            subtotal: data.subtotal,
+            shipping: data.shipping || 0,
+            tax: data.tax || 0,
+            discount: data.discount || 0,
+            total: data.total,
+            status: 'PENDING' as OrderStatus,
+            paymentStatus: 'PENDING' as PaymentStatus,
+            paymentMethod: data.paymentMethod || null,
+            trackingStatus: 'PENDING' as TrackingStatus,
+            createdAt: currentTime,
+            updatedAt: currentTime
+          }
+        });
+        return order as unknown as Order;
+      }
+
+      // Build SQL dynamically with correct number of placeholders
+      const columns = [
+        'id', 'orderNumber', 'userId', 'customerName', 'customerEmail', 'customerPhone',
+        'shippingAddress', 'billingAddress', 'city', 'district', 'division',
+        'subtotal', 'shipping', 'tax', 'discount', 'total',
+        'status', 'paymentStatus', 'paymentMethod', 'trackingStatus',
+        'createdAt', 'updatedAt'
+      ];
+
+      const placeholders = columns.map(() => '?').join(', ');
+      const values = [
+        id,
+        orderNumber,
+        data.userId || null,
+        data.customerName,
+        data.customerEmail,
+        data.customerPhone || null,
+        data.shippingAddress,
+        data.billingAddress || null,
+        data.city || null,
+        data.district || null,
+        data.division || null,
+        data.subtotal,
+        data.shipping || 0,
+        data.tax || 0,
+        data.discount || 0,
+        data.total,
+        'PENDING',
+        'PENDING',
+        data.paymentMethod || null,
+        'PENDING',
+        currentTime,
+        currentTime
+      ];
+
+      const sql = `INSERT INTO orders (${columns.join(', ')}) VALUES (${placeholders})`;
+
+      await execute(env, sql, ...values);
+
+      return (await this.findById(env, id))!;
+    } catch (error) {
+      console.error('[OrderRepository.create] Error:', error);
+      console.error('[OrderRepository.create] Error message:', error instanceof Error ? error.message : String(error));
+      throw error;
     }
-
-    await execute(
-      env,
-      `INSERT INTO orders (id, orderNumber, userId, customerName, customerEmail, customerPhone,
-       shippingAddress, billingAddress, city, district, division, subtotal, shipping,
-       tax, discount, total, status, paymentStatus, paymentMethod, trackingStatus,
-       createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      id,
-      orderNumber,
-      data.userId || null,
-      data.customerName,
-      data.customerEmail,
-      data.customerPhone || null,
-      data.shippingAddress,
-      data.billingAddress || null,
-      data.city || null,
-      data.district || null,
-      data.division || null,
-      data.subtotal,
-      data.shipping || 0,
-      data.tax || 0,
-      data.discount || 0,
-      data.total,
-      'PENDING',
-      'PENDING',
-      data.paymentMethod || null,
-      'PENDING',
-      currentTime,
-      currentTime
-    );
-
-    return (await this.findById(env, id))!;
   }
 
   /**

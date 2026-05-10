@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { Star, X, Loader2, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
@@ -104,6 +104,9 @@ export function ReviewForm({
         <DialogHeader className="sticky top-0 bg-background z-10 pb-4">
           <div className="flex items-center justify-between pr-10">
             <DialogTitle className="text-xl font-bold">Write a Review</DialogTitle>
+            <DialogDescription className="sr-only">
+              Write a review for {productName}
+            </DialogDescription>
             <button
               onClick={onClose}
               className="absolute right-4 top-4 flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"

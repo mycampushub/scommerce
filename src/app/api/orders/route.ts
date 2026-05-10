@@ -426,10 +426,19 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error creating order:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    console.error('Error message:', error instanceof Error ? error.message : String(error));
+
+    // Return detailed error in development
+    const errorMessage = error instanceof Error
+      ? error.message
+      : 'Unknown error occurred';
+
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to create order',
+        error: `Failed to create order: ${errorMessage}`,
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
       },
       { status: 500 }
     );
