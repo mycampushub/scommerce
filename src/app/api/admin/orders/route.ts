@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
           env,
           `SELECT oi.*
            FROM order_items oi
-           WHERE oi.orderId IN (${placeholders})
+           WHERE oi.orderId IN ($${placeholders})
            ORDER BY oi.createdAt ASC`,
           ...orderIds
         )
