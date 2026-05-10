@@ -14,7 +14,7 @@ import {
   parseJSON,
   stringifyJSON
 } from '@/db/db'
-import { csrfMiddleware } from '@/lib/csrf'
+import { csrfMiddleware, getCSRFTokenFromRequest } from '@/lib/csrf'
 import { generateUniqueSlug, isValidSlug } from '@/lib/slug'
 
 
@@ -170,6 +170,7 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         )
       }
+      const costPrice = formData.get('costPrice') as string | null
       const price = parseFloat(basePrice)
       if (isNaN(price) || price <= 0) {
         return NextResponse.json(
@@ -221,13 +222,25 @@ export async function POST(request: NextRequest) {
 
       // Handle file uploads
       const files = formData.getAll('files') as File[]
+      // Extract CSRF token from the original request for internal upload calls
+      const csrfToken = getCSRFTokenFromRequest(request)
+
       for (const file of files) {
         if (file && file.size > 0) {
           const uploadFormData = new FormData()
           uploadFormData.append('file', file)
+          if (csrfToken) {
+            uploadFormData.append('_csrf', csrfToken)
+          }
+
+          const headers: HeadersInit = {}
+          if (csrfToken) {
+            headers['X-CSRF-Token'] = csrfToken
+          }
 
           const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/admin/upload`, {
             method: 'POST',
+            headers,
             body: uploadFormData,
           })
 
@@ -245,6 +258,7 @@ export async function POST(request: NextRequest) {
         categoryId: categoryId || '',
         basePrice: parseFloat(basePrice),
         comparePrice: comparePrice ? parseFloat(comparePrice) : undefined,
+        costPrice: costPrice ? parseFloat(costPrice) : undefined,
         images,
         stock: parseInt(stock),
         lowStockAlert: lowStockAlert ? parseInt(lowStockAlert) : undefined,
@@ -305,6 +319,7 @@ export async function POST(request: NextRequest) {
       categoryId: validatedData.categoryId,
       basePrice: validatedData.price,
       comparePrice: validatedData.comparePrice,
+      costPrice: validatedData.costPrice,
       images: validatedData.images,
       stock: validatedData.stock,
       lowStockAlert: validatedData.lowStockAlert,

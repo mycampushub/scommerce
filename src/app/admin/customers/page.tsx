@@ -579,18 +579,19 @@ export default function CustomersPage() {
         </CardHeader>
         <CardContent>
           <ScrollArea className="h-[600px]">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-gray-50 hover:bg-gray-50">
-                  <TableHead className="font-semibold text-gray-700">Customer</TableHead>
-                  <TableHead className="font-semibold text-gray-700">Contact</TableHead>
-                  <TableHead className="font-semibold text-gray-700">Orders</TableHead>
-                  <TableHead className="font-semibold text-gray-700">Total Spent</TableHead>
-                  <TableHead className="font-semibold text-gray-700">Status</TableHead>
-                  <TableHead className="font-semibold text-gray-700">VIP</TableHead>
-                  <TableHead className="text-right font-semibold text-gray-700">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gray-50 hover:bg-gray-50">
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Customer</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Contact</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Orders</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Total Spent</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Status</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap">VIP</TableHead>
+                    <TableHead className="text-right font-semibold text-gray-700 whitespace-nowrap">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
               <TableBody>
                 {loading ? (
                   [...Array(8)].map((_, i) => (
@@ -739,13 +740,14 @@ export default function CustomersPage() {
                   ))}
               </TableBody>
             </Table>
+            </div>
           </ScrollArea>
         </CardContent>
       </Card>
 
       {/* Add Customer Dialog */}
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md w-full sm:rounded-lg">
           <DialogHeader>
             <DialogTitle>Add New Customer</DialogTitle>
           </DialogHeader>
@@ -806,7 +808,7 @@ export default function CustomersPage() {
 
       {/* Edit Customer Dialog */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md w-full sm:rounded-lg">
           <DialogHeader>
             <DialogTitle>Edit Customer</DialogTitle>
           </DialogHeader>
@@ -890,7 +892,7 @@ export default function CustomersPage() {
 
       {/* Customer Detail Dialog */}
       <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md w-full sm:rounded-lg">
           <DialogHeader>
             <DialogTitle>Customer Details</DialogTitle>
           </DialogHeader>

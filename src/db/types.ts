@@ -74,6 +74,7 @@ export interface Product {
   price: number;
   basePrice: number;
   comparePrice: number | null;
+  costPrice: number | null;
   discount: number | null;
   discountType: DiscountType | null;
   images: string | null;
@@ -95,6 +96,7 @@ export interface ProductVariant {
   name: string;
   price: number;
   comparePrice: number | null;
+  costPrice: number | null;
   stock: number;
   images: string | null;
   size: string | null;

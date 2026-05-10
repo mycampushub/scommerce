@@ -19,6 +19,7 @@ export const productSchema = z.object({
   description: z.string().min(1, 'Description is required'),
   price: z.number().positive('Price must be positive'),
   comparePrice: z.number().positive().optional(),
+  costPrice: z.number().min(0).optional(),
   categoryId: z.string().min(1, 'Category ID is required'),
   images: z.array(z.string()).min(1, 'At least one image is required'),
   stock: z.number().int().min(0, 'Stock must be a non-negative integer'),

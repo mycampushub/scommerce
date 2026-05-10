@@ -65,6 +65,7 @@ export class ProductRepository {
     price?: number;
     basePrice?: number;
     comparePrice?: number;
+    costPrice?: number;
     discount?: number;
     discountType?: string;
     images?: string[];
@@ -81,7 +82,7 @@ export class ProductRepository {
 
     await execute(
       env,
-      `INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice,
+      `INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, costPrice,
        discount, discountType, images, stock, lowStockAlert, reorderLevel, reorderQty,
        isActive, isFeatured, hasVariants, createdAt, updatedAt)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -93,6 +94,7 @@ export class ProductRepository {
       data.price ?? data.basePrice ?? 0,
       data.basePrice || 0,
       data.comparePrice || null,
+      data.costPrice || null,
       data.discount || 0,
       data.discountType || 'percentage',
       data.images ? stringifyJSON(data.images) : null,
@@ -144,6 +146,10 @@ export class ProductRepository {
     if (data.comparePrice !== undefined) {
       updates.push('comparePrice = ?');
       values.push(data.comparePrice);
+    }
+    if (data.costPrice !== undefined) {
+      updates.push('costPrice = ?');
+      values.push(data.costPrice);
     }
     if (data.discount !== undefined) {
       updates.push('discount = ?');
@@ -377,6 +383,7 @@ export class ProductRepository {
     name: string;
     price: number;
     comparePrice?: number;
+    costPrice?: number;
     stock?: number;
     images?: string[];
     size?: string;
@@ -393,15 +400,16 @@ export class ProductRepository {
 
     await execute(
       env,
-      `INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock,
+      `INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, costPrice, stock,
        images, size, color, material, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       id,
       data.productId,
       data.sku,
       data.name,
       data.price,
       data.comparePrice || null,
+      data.costPrice || null,
       data.stock || 0,
       data.images ? stringifyJSON(data.images) : null,
       data.size || null,

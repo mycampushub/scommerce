@@ -640,19 +640,20 @@ export default function InventoryPage() {
         </CardHeader>
         <CardContent>
           <ScrollArea className="h-[600px]">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-gray-50 hover:bg-gray-50">
-                  <TableHead className="font-semibold text-gray-700">Product</TableHead>
-                  <TableHead className="font-semibold text-gray-700">Category</TableHead>
-                  <TableHead className="font-semibold text-gray-700">Stock</TableHead>
-                  <TableHead className="font-semibold text-gray-700">Low Stock Alert</TableHead>
-                  <TableHead className="font-semibold text-gray-700">Reorder Level</TableHead>
-                  <TableHead className="font-semibold text-gray-700">Reorder Qty</TableHead>
-                  <TableHead className="font-semibold text-gray-700">Status</TableHead>
-                  <TableHead className="text-right font-semibold text-gray-700">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gray-50 hover:bg-gray-50">
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Product</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Category</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Stock</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Low Stock Alert</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Reorder Level</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Reorder Qty</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Status</TableHead>
+                    <TableHead className="text-right font-semibold text-gray-700 whitespace-nowrap">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
               <TableBody>
                 {filteredProducts.map((product) => (
                   <TableRow key={product.id} className="hover:bg-gray-50">
@@ -715,13 +716,14 @@ export default function InventoryPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           </ScrollArea>
         </CardContent>
       </Card>
 
       {/* Add Stock Dialog */}
       <Dialog open={isAddStockOpen} onOpenChange={setIsAddStockOpen}>
-        <DialogContent>
+        <DialogContent className="sm:rounded-lg">
           <DialogHeader>
             <DialogTitle>Add Stock</DialogTitle>
             <DialogDescription>Select a product and add stock quantity</DialogDescription>
@@ -791,7 +793,7 @@ export default function InventoryPage() {
 
       {/* Edit Stock Dialog */}
       <Dialog open={isEditStockOpen} onOpenChange={setIsEditStockOpen}>
-        <DialogContent>
+        <DialogContent className="sm:rounded-lg">
           <DialogHeader>
             <DialogTitle>Edit Stock Settings</DialogTitle>
             <DialogDescription>Update stock levels and alert thresholds for {editingProduct?.name}</DialogDescription>

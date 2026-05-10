@@ -5,7 +5,7 @@ import { ProductRepository } from '@/db/product.repository'
 import { CategoryRepository } from '@/db/category.repository'
 import { updateProductSchema } from '@/lib/validations'
 import { queryFirst, queryAll, execute, parseJSON, stringifyJSON, boolToNumber, numberToBool, now } from '@/db/db'
-import { csrfMiddleware } from '@/lib/csrf'
+import { csrfMiddleware, getCSRFTokenFromRequest } from '@/lib/csrf'
 import { isValidSlug } from '@/lib/slug'
 
 
@@ -89,6 +89,9 @@ export async function PUT(
       if (body.name !== undefined) updateData.name = body.name
       if (body.slug !== undefined) updateData.slug = body.slug
       if (body.description !== undefined) updateData.description = body.description
+      if (body.price !== undefined) updateData.basePrice = parseFloat(body.price)
+      if (body.comparePrice !== undefined) updateData.comparePrice = body.comparePrice
+      if (body.costPrice !== undefined) updateData.costPrice = body.costPrice
       if (body.categoryId !== undefined) updateData.categoryId = body.categoryId
       if (body.lowStockAlert !== undefined) updateData.lowStockAlert = parseInt(body.lowStockAlert)
       if (body.reorderLevel !== undefined) updateData.reorderLevel = parseInt(body.reorderLevel)
@@ -140,11 +143,22 @@ export async function PUT(
         )
       }
 
+      // Extract CSRF token from the original request for internal upload calls
+      const csrfToken = getCSRFTokenFromRequest(request)
       const uploadFormData = new FormData()
       uploadFormData.append('file', file)
+      if (csrfToken) {
+        uploadFormData.append('_csrf', csrfToken)
+      }
+
+      const headers: HeadersInit = {}
+      if (csrfToken) {
+        headers['X-CSRF-Token'] = csrfToken
+      }
 
       const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/admin/upload`, {
         method: 'POST',
+        headers,
         body: uploadFormData,
       })
       const uploadResult = await uploadResponse.json() as any
@@ -207,8 +221,15 @@ export async function PUT(
       })
 
       // Delete file from server
+      const csrfToken = getCSRFTokenFromRequest(request)
+      const deleteHeaders: HeadersInit = {}
+      if (csrfToken) {
+        deleteHeaders['X-CSRF-Token'] = csrfToken
+      }
+
       await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/admin/upload?path=${encodeURIComponent(imageUrl)}`, {
         method: 'DELETE',
+        headers: deleteHeaders,
       })
 
       // Fetch category for response
@@ -267,6 +288,7 @@ export async function PUT(
       const description = formData.get('description') as string | null
       const basePrice = formData.get('price') as string
       const comparePrice = formData.get('comparePrice') as string | null
+      const costPrice = formData.get('costPrice') as string | null
       const categoryId = formData.get('categoryId') as string | null
       const stock = formData.get('stock') as string
       const lowStockAlert = formData.get('lowStockAlert') as string | null
@@ -315,13 +337,25 @@ export async function PUT(
 
       // Handle file uploads
       const files = formData.getAll('files') as File[]
+      // Extract CSRF token from the original request for internal upload calls
+      const csrfToken = getCSRFTokenFromRequest(request)
+
       for (const file of files) {
         if (file && file.size > 0) {
           const uploadFormData = new FormData()
           uploadFormData.append('file', file)
+          if (csrfToken) {
+            uploadFormData.append('_csrf', csrfToken)
+          }
+
+          const headers: HeadersInit = {}
+          if (csrfToken) {
+            headers['X-CSRF-Token'] = csrfToken
+          }
 
           const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/admin/upload`, {
             method: 'POST',
+            headers,
             body: uploadFormData,
           })
 
@@ -339,6 +373,7 @@ export async function PUT(
       if (description !== undefined) updateData.description = description
       if (basePrice !== undefined) updateData.basePrice = parseFloat(basePrice)
       if (comparePrice !== undefined) updateData.comparePrice = comparePrice ? parseFloat(comparePrice) : null
+      if (costPrice !== undefined) updateData.costPrice = costPrice ? parseFloat(costPrice) : null
       if (categoryId) updateData.categoryId = categoryId
       if (images.length > 0) updateData.images = JSON.stringify(images)
       if (stock !== undefined) updateData.stock = parseInt(stock)
@@ -403,6 +438,7 @@ export async function PUT(
     if (validatedData.description !== undefined) updateData.description = validatedData.description
     if (validatedData.price !== undefined) updateData.basePrice = validatedData.price
     if (validatedData.comparePrice !== undefined) updateData.comparePrice = validatedData.comparePrice
+    if (validatedData.costPrice !== undefined) updateData.costPrice = validatedData.costPrice
     if (validatedData.categoryId !== undefined) updateData.categoryId = validatedData.categoryId
     if (validatedData.images !== undefined) updateData.images = typeof validatedData.images === 'string' ? validatedData.images : JSON.stringify(validatedData.images)
     if (validatedData.stock !== undefined) updateData.stock = validatedData.stock

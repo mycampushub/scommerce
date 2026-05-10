@@ -82,6 +82,7 @@ interface Product {
   description: string | null
   price: number
   comparePrice: number | null
+  costPrice: number | null
   categoryId: string | null
   category: { name: string } | null
   images: string[] | null
@@ -92,6 +93,7 @@ interface Product {
   isActive: boolean
   isFeatured: boolean
   createdAt: string
+  hasVariants?: boolean
   _count?: {
     orderItems: number
   }
@@ -109,6 +111,7 @@ interface ProductVariant {
   name: string
   price: number
   comparePrice: number | null
+  costPrice: number | null
   stock: number
   images: string[] | null
   size: string | null
@@ -118,6 +121,9 @@ interface ProductVariant {
   isActive: boolean
   createdAt: string
   updatedAt: string
+  lowStockAlert?: number
+  reorderLevel?: number
+  reorderQty?: number
 }
 
 export default function ProductsPage() {
@@ -126,6 +132,7 @@ export default function ProductsPage() {
   const [error, setError] = useState<string | null>(null)
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
+  const [showAddVariantForm, setShowAddVariantForm] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const debouncedSearchTerm = useDebounce(searchTerm, 500)
   const [categoryFilter, setCategoryFilter] = useState('all')
@@ -140,6 +147,7 @@ export default function ProductsPage() {
     description: '',
     price: '',
     comparePrice: '',
+    costPrice: '',
     categoryId: '',
     images: [] as string[],
     stock: '',
@@ -155,6 +163,7 @@ export default function ProductsPage() {
     description: '',
     price: '',
     comparePrice: '',
+    costPrice: '',
     categoryId: '',
     images: [] as string[],
     stock: '0',
@@ -182,6 +191,7 @@ export default function ProductsPage() {
     name: '',
     price: '',
     comparePrice: '',
+    costPrice: '',
     stock: '',
     size: '',
     color: '',
@@ -189,6 +199,28 @@ export default function ProductsPage() {
     images: [] as string[],
     isDefault: false,
     isActive: true,
+    lowStockAlert: '10',
+    reorderLevel: '5',
+    reorderQty: '20',
+  })
+
+  // Helper function to reset variant form
+  const resetVariantForm = () => ({
+    sku: '',
+    name: '',
+    price: '',
+    comparePrice: '',
+    costPrice: '',
+    stock: '',
+    size: '',
+    color: '',
+    material: '',
+    images: [] as string[],
+    isDefault: false,
+    isActive: true,
+    lowStockAlert: '10',
+    reorderLevel: '5',
+    reorderQty: '20',
   })
 
   // Matrix builder state
@@ -213,7 +245,17 @@ export default function ProductsPage() {
         throw new Error(result.error || 'Failed to fetch products')
       }
 
-      setProducts(result.data || [])
+      // Map category fields to match frontend expectations
+      const productsWithCategory = (result.data || []).map((p: any) => ({
+        ...p,
+        category: {
+          id: p.categoryId,
+          name: p.categoryName || null,
+          slug: p.categorySlug || null,
+        },
+      }))
+
+      setProducts(productsWithCategory)
     } catch (err: any) {
       setError(err.message)
       console.error('Error fetching products:', err)
@@ -261,6 +303,7 @@ export default function ProductsPage() {
       description: product.description || '',
       price: product.price.toString(),
       comparePrice: product.comparePrice?.toString() || '',
+      costPrice: product.costPrice?.toString() || '',
       categoryId: product.categoryId || '',
       images: product.images || [],
       stock: product.stock.toString(),
@@ -287,6 +330,7 @@ export default function ProductsPage() {
           description: editFormData.description,
           price: parseFloat(editFormData.price),
           comparePrice: editFormData.comparePrice ? parseFloat(editFormData.comparePrice) : null,
+          costPrice: editFormData.costPrice ? parseFloat(editFormData.costPrice) : null,
           categoryId: editFormData.categoryId || null,
           images: editFormData.images,
           stock: parseInt(editFormData.stock),
@@ -333,6 +377,7 @@ export default function ProductsPage() {
           description: addFormData.description,
           price: parseFloat(addFormData.price),
           comparePrice: addFormData.comparePrice ? parseFloat(addFormData.comparePrice) : null,
+          costPrice: addFormData.costPrice ? parseFloat(addFormData.costPrice) : null,
           categoryId: addFormData.categoryId || null,
           images: addFormData.images,
           stock: parseInt(addFormData.stock),
@@ -364,6 +409,7 @@ export default function ProductsPage() {
         description: '',
         price: '',
         comparePrice: '',
+        costPrice: '',
         categoryId: '',
         images: [],
         stock: '0',
@@ -479,19 +525,12 @@ export default function ProductsPage() {
 
   const openAddVariantModal = () => {
     setEditingVariant(null)
-    setVariantFormData({
-      sku: '',
-      name: '',
-      price: '',
-      comparePrice: '',
-      stock: '',
-      size: '',
-      color: '',
-      material: '',
-      images: [],
+    setVariantFormData(resetVariantForm())
+    setVariantFormData(prev => ({
+      ...prev,
       isDefault: variants.length === 0,
-      isActive: true,
-    })
+    }))
+    setShowAddVariantForm(true)
   }
 
   const openEditVariantModal = (variant: ProductVariant) => {
@@ -501,6 +540,7 @@ export default function ProductsPage() {
       name: variant.name,
       price: variant.price.toString(),
       comparePrice: variant.comparePrice?.toString() || '',
+      costPrice: variant.costPrice?.toString() || '',
       stock: variant.stock.toString(),
       size: variant.size || '',
       color: variant.color || '',
@@ -508,7 +548,11 @@ export default function ProductsPage() {
       images: variant.images || [],
       isDefault: variant.isDefault,
       isActive: variant.isActive,
+      lowStockAlert: variant.lowStockAlert?.toString() || '10',
+      reorderLevel: variant.reorderLevel?.toString() || '5',
+      reorderQty: variant.reorderQty?.toString() || '20',
     })
+    setShowAddVariantForm(true)
   }
 
   const handleSaveVariant = async () => {
@@ -519,6 +563,7 @@ export default function ProductsPage() {
         name: variantFormData.name || `${variantFormData.size} / ${variantFormData.color}`,
         price: parseFloat(variantFormData.price),
         comparePrice: variantFormData.comparePrice ? parseFloat(variantFormData.comparePrice) : null,
+        costPrice: variantFormData.costPrice ? parseFloat(variantFormData.costPrice) : null,
         stock: parseInt(variantFormData.stock),
         size: variantFormData.size || null,
         color: variantFormData.color || null,
@@ -526,6 +571,9 @@ export default function ProductsPage() {
         images: variantFormData.images,
         isDefault: variantFormData.isDefault,
         isActive: variantFormData.isActive,
+        lowStockAlert: variantFormData.lowStockAlert ? parseInt(variantFormData.lowStockAlert) : 10,
+        reorderLevel: variantFormData.reorderLevel ? parseInt(variantFormData.reorderLevel) : 5,
+        reorderQty: variantFormData.reorderQty ? parseInt(variantFormData.reorderQty) : 20,
       }
 
       let response
@@ -557,19 +605,8 @@ export default function ProductsPage() {
       })
 
       await fetchVariants(selectedProductForVariants.id)
-      setVariantFormData({
-        sku: '',
-        name: '',
-        price: '',
-        comparePrice: '',
-        stock: '',
-        size: '',
-        color: '',
-        material: '',
-        images: [],
-        isDefault: false,
-        isActive: true,
-      })
+      setShowAddVariantForm(false)
+      setVariantFormData(resetVariantForm())
     } catch (err: any) {
       console.error('Error saving variant:', err)
       toast({
@@ -599,12 +636,52 @@ export default function ProductsPage() {
         description: 'Variant deleted successfully',
       })
 
+      // Close form if deleting the variant being edited
+      if (editingVariant && editingVariant.id === variantId) {
+        setShowAddVariantForm(false)
+        setEditingVariant(null)
+      }
+
       await fetchVariants(selectedProductForVariants.id)
     } catch (err: any) {
       console.error('Error deleting variant:', err)
       toast({
         title: 'Error',
         description: err.message || 'Failed to delete variant',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleReorderVariant = async (variant: ProductVariant) => {
+    if (!selectedProductForVariants) return
+
+    try {
+      const response = await fetch(`/api/admin/products/${selectedProductForVariants.id}/variants/${variant.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          stock: variant.stock + (variant.reorderQty || 20),
+        }),
+      })
+
+      const result = await response.json() as any
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to reorder variant')
+      }
+
+      toast({
+        title: 'Success',
+        description: `Reordered ${variant.reorderQty || 20} units of ${variant.name}`,
+      })
+
+      await fetchVariants(selectedProductForVariants.id)
+    } catch (err: any) {
+      console.error('Error reordering variant:', err)
+      toast({
+        title: 'Error',
+        description: err.message || 'Failed to reorder variant',
         variant: 'destructive',
       })
     }
@@ -843,18 +920,19 @@ export default function ProductsPage() {
             </div>
           ) : (
             <ScrollArea className="h-[600px]">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-gray-50 hover:bg-gray-50">
-                    <TableHead className="font-semibold text-gray-700">Product</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Category</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Price</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Stock</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Sales</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Status</TableHead>
-                    <TableHead className="text-right font-semibold text-gray-700">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-gray-50 hover:bg-gray-50">
+                      <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Product</TableHead>
+                      <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Category</TableHead>
+                      <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Price</TableHead>
+                      <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Stock</TableHead>
+                      <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Sales</TableHead>
+                      <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Status</TableHead>
+                      <TableHead className="text-right font-semibold text-gray-700 whitespace-nowrap">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
                 <TableBody>
                   {products.map((product) => (
                     <TableRow key={product.id} className="hover:bg-gray-50">
@@ -930,10 +1008,17 @@ export default function ProductsPage() {
                               <Edit className="h-4 w-4 mr-2" />
                               Edit
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleReorder(product)}>
-                              <PackagePlus className="h-4 w-4 mr-2" />
-                              Quick Reorder (+{product.reorderQty})
-                            </DropdownMenuItem>
+                            {product.hasVariants ? (
+                              <DropdownMenuItem disabled className="text-gray-400 cursor-not-allowed">
+                                <PackagePlus className="h-4 w-4 mr-2" />
+                                Use Variant Management
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem onClick={() => handleReorder(product)}>
+                                <PackagePlus className="h-4 w-4 mr-2" />
+                                Quick Reorder (+{product.reorderQty})
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuSeparator />
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
@@ -973,6 +1058,7 @@ export default function ProductsPage() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             </ScrollArea>
           )}
         </CardContent>
@@ -980,7 +1066,7 @@ export default function ProductsPage() {
 
       {/* Edit Product Modal */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby="edit-product-description">
+        <DialogContent className="max-w-2xl w-full max-h-[90vh] overflow-y-auto sm:rounded-lg" aria-describedby="edit-product-description">
           <DialogHeader>
             <DialogTitle>Edit Product</DialogTitle>
             <DialogDescription id="edit-product-description">Update product information</DialogDescription>
@@ -1013,7 +1099,7 @@ export default function ProductsPage() {
               />
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Price *</label>
                 <Input
@@ -1031,6 +1117,16 @@ export default function ProductsPage() {
                   step="0.01"
                   value={editFormData.comparePrice}
                   onChange={(e) => setEditFormData({ ...editFormData, comparePrice: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Cost Price</label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={editFormData.costPrice}
+                  onChange={(e) => setEditFormData({ ...editFormData, costPrice: e.target.value })}
+                  placeholder="Purchase cost"
                 />
               </div>
               <div className="space-y-2">
@@ -1107,7 +1203,7 @@ export default function ProductsPage() {
 
       {/* Add Product Modal */}
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby="add-product-description">
+        <DialogContent className="max-w-2xl w-full max-h-[90vh] overflow-y-auto sm:rounded-lg" aria-describedby="add-product-description">
           <DialogHeader>
             <DialogTitle>Add New Product</DialogTitle>
             <DialogDescription id="add-product-description">Create a new product for your store</DialogDescription>
@@ -1142,7 +1238,7 @@ export default function ProductsPage() {
               />
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Price *</label>
                 <Input
@@ -1160,6 +1256,16 @@ export default function ProductsPage() {
                   step="0.01"
                   value={addFormData.comparePrice}
                   onChange={(e) => setAddFormData({ ...addFormData, comparePrice: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Cost Price</label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={addFormData.costPrice}
+                  onChange={(e) => setAddFormData({ ...addFormData, costPrice: e.target.value })}
+                  placeholder="Purchase cost"
                 />
               </div>
               <div className="space-y-2">
@@ -1263,7 +1369,7 @@ export default function ProductsPage() {
 
       {/* Variant Management Modal */}
       <Dialog open={isVariantsModalOpen} onOpenChange={setIsVariantsModalOpen}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl w-full max-h-[90vh] overflow-y-auto sm:rounded-lg">
           <DialogHeader>
             <DialogTitle>Manage Variants - {selectedProductForVariants?.name}</DialogTitle>
             <DialogDescription>Create and manage product variants (sizes, colors, materials)</DialogDescription>
@@ -1355,12 +1461,21 @@ export default function ProductsPage() {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => openEditVariantModal(variant)}
+                                title="Edit variant"
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleReorderVariant(variant)}
+                                title="Quick reorder (+{variant.reorderQty || 20})"
+                              >
+                                <PackagePlus className="h-4 w-4" />
+                              </Button>
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="text-red-600 hover:text-red-700">
+                                  <Button variant="ghost" size="icon" className="text-red-600 hover:text-red-700" title="Delete variant">
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
                                 </AlertDialogTrigger>
@@ -1392,7 +1507,7 @@ export default function ProductsPage() {
               )}
 
               {/* Add/Edit Variant Form */}
-              {(editingVariant !== null || variantFormData.name !== '') && (
+              {showAddVariantForm && (
                 <div className="border-t pt-4">
                   <h4 className="font-semibold mb-4">{editingVariant ? 'Edit Variant' : 'Add New Variant'}</h4>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1431,6 +1546,16 @@ export default function ProductsPage() {
                         step="0.01"
                         value={variantFormData.comparePrice}
                         onChange={(e) => setVariantFormData({ ...variantFormData, comparePrice: e.target.value })}
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Cost Price</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={variantFormData.costPrice}
+                        onChange={(e) => setVariantFormData({ ...variantFormData, costPrice: e.target.value })}
                         placeholder="0.00"
                       />
                     </div>
@@ -1475,6 +1600,35 @@ export default function ProductsPage() {
                         maxImages={5}
                       />
                     </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label>Low Stock Alert</Label>
+                        <Input
+                          type="number"
+                          value={variantFormData.lowStockAlert || ''}
+                          onChange={(e) => setVariantFormData({ ...variantFormData, lowStockAlert: e.target.value })}
+                          placeholder="10"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Reorder Level</Label>
+                        <Input
+                          type="number"
+                          value={variantFormData.reorderLevel || ''}
+                          onChange={(e) => setVariantFormData({ ...variantFormData, reorderLevel: e.target.value })}
+                          placeholder="5"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Reorder Quantity</Label>
+                        <Input
+                          type="number"
+                          value={variantFormData.reorderQty || ''}
+                          onChange={(e) => setVariantFormData({ ...variantFormData, reorderQty: e.target.value })}
+                          placeholder="20"
+                        />
+                      </div>
+                    </div>
                   </div>
                   <div className="flex items-center gap-4 mt-4">
                     <label className="flex items-center gap-2 cursor-pointer">
@@ -1502,20 +1656,9 @@ export default function ProductsPage() {
                       {editingVariant ? 'Update Variant' : 'Create Variant'}
                     </Button>
                     <Button variant="outline" onClick={() => {
+                      setShowAddVariantForm(false)
                       setEditingVariant(null)
-                      setVariantFormData({
-                        sku: '',
-                        name: '',
-                        price: '',
-                        comparePrice: '',
-                        stock: '',
-                        size: '',
-                        color: '',
-                        material: '',
-                        images: [],
-                        isDefault: false,
-                        isActive: true,
-                      })
+                      setVariantFormData(resetVariantForm())
                     }}>
                       Cancel
                     </Button>

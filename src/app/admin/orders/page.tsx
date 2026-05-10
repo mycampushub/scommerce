@@ -468,19 +468,20 @@ export default function OrdersPage() {
             </div>
           ) : (
             <ScrollArea className="h-[600px]">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-gray-50 hover:bg-gray-50">
-                    <TableHead className="font-semibold text-gray-700">Order</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Customer</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Items</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Total</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Payment</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Date</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Status</TableHead>
-                    <TableHead className="text-right font-semibold text-gray-700">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-gray-50 hover:bg-gray-50">
+                      <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Order</TableHead>
+                      <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Customer</TableHead>
+                      <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Items</TableHead>
+                      <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Total</TableHead>
+                      <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Payment</TableHead>
+                      <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Date</TableHead>
+                      <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Status</TableHead>
+                      <TableHead className="text-right font-semibold text-gray-700 whitespace-nowrap">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
                 <TableBody>
                   {orders.map((order) => (
                     <TableRow key={order.id} className="hover:bg-gray-50">
@@ -548,6 +549,7 @@ export default function OrdersPage() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             </ScrollArea>
           )}
         </CardContent>
@@ -555,7 +557,7 @@ export default function OrdersPage() {
 
       {/* Order Details Modal */}
       <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl w-full max-h-[90vh] overflow-y-auto sm:rounded-lg">
           <DialogHeader>
             <DialogTitle>Order Details</DialogTitle>
             <DialogDescription>Order {selectedOrder?.orderNumber}</DialogDescription>
@@ -671,7 +673,7 @@ export default function OrdersPage() {
 
       {/* Update Status Modal */}
       <Dialog open={isStatusModalOpen} onOpenChange={setIsStatusModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl w-full max-h-[90vh] overflow-y-auto sm:rounded-lg">
           <DialogHeader>
             <DialogTitle>Update Order Status</DialogTitle>
             <DialogDescription>Change the status and tracking for order {updatingOrder?.orderNumber}</DialogDescription>
