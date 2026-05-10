@@ -64,7 +64,7 @@ class PrismaPreparedStatement implements PreparedStatement {
 
   async first<T = Record<string, unknown>>(): Promise<T | null> {
     try {
-      const result = await this.prisma.$queryRawUnsafe<any[]>(this.sql, ...this.params);
+      const result = await (this.prisma.$queryRawUnsafe as any)(this.sql, ...this.params) as any[];
       return result.length > 0 ? (result[0] as T) : null;
     } catch (error) {
       console.error('[PrismaPreparedStatement] first() error:', error);
@@ -74,7 +74,7 @@ class PrismaPreparedStatement implements PreparedStatement {
 
   async all<T = Record<string, unknown>>(): Promise<{ results: T[] }> {
     try {
-      const result = await this.prisma.$queryRawUnsafe<any[]>(this.sql, ...this.params);
+      const result = await (this.prisma.$queryRawUnsafe as any)(this.sql, ...this.params) as any[];
       return { results: result as T[] };
     } catch (error) {
       console.error('[PrismaPreparedStatement] all() error:', error);

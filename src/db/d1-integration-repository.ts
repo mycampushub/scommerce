@@ -74,10 +74,6 @@ function getEnvOrThrow(): any {
   return env;
 }
 
-function mapRow<T>(row: any): T {
-  return row as T;
-}
-
 function nowISO(): string {
   return new Date().toISOString();
 }
@@ -85,8 +81,8 @@ function nowISO(): string {
 export class D1IntegrationRepository {
   static async getPaymentGateways(): Promise<PaymentGateway[]> {
     const env = getEnvOrThrow();
-    const rows = await queryAll<any>(env, 'SELECT * FROM payment_gateways ORDER BY createdAt DESC');
-    return rows.map(mapRow);
+    const rows = await queryAll<PaymentGateway>(env, 'SELECT * FROM payment_gateways ORDER BY createdAt DESC');
+    return rows;
   }
 
   static async getPaymentGatewayById(id: string): Promise<PaymentGateway | null> {
@@ -155,8 +151,8 @@ export class D1IntegrationRepository {
 
   static async getShippingCarriers(): Promise<ShippingCarrier[]> {
     const env = getEnvOrThrow();
-    const rows = await queryAll<any>(env, 'SELECT * FROM shipping_carriers ORDER BY createdAt DESC');
-    return rows.map(mapRow);
+    const rows = await queryAll<ShippingCarrier>(env, 'SELECT * FROM shipping_carriers ORDER BY createdAt DESC');
+    return rows;
   }
 
   static async getShippingCarrierById(id: string): Promise<ShippingCarrier | null> {
@@ -225,8 +221,8 @@ export class D1IntegrationRepository {
 
   static async getAnalyticsIntegrations(): Promise<AnalyticsIntegration[]> {
     const env = getEnvOrThrow();
-    const rows = await queryAll<any>(env, 'SELECT * FROM analytics_integrations ORDER BY createdAt DESC');
-    return rows.map(mapRow);
+    const rows = await queryAll<AnalyticsIntegration>(env, 'SELECT * FROM analytics_integrations ORDER BY createdAt DESC');
+    return rows;
   }
 
   static async getAnalyticsIntegrationById(id: string): Promise<AnalyticsIntegration | null> {
@@ -283,8 +279,8 @@ export class D1IntegrationRepository {
 
   static async getEmailServices(): Promise<EmailService[]> {
     const env = getEnvOrThrow();
-    const rows = await queryAll<any>(env, 'SELECT * FROM email_services ORDER BY createdAt DESC');
-    return rows.map(mapRow);
+    const rows = await queryAll<EmailService>(env, 'SELECT * FROM email_services ORDER BY createdAt DESC');
+    return rows;
   }
 
   static async getEmailServiceById(id: string): Promise<EmailService | null> {
