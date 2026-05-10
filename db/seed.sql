@@ -217,6 +217,45 @@ VALUES
 ('hp-7', 'reels', 1, 0, 5, null, datetime('now'));
 
 -- ============================================
+-- SITE SETTINGS
+-- ============================================
+INSERT OR IGNORE INTO site_settings (id, siteName, siteLogo, contactEmail, contactPhone, currency, freeShippingThreshold, baseShippingCost, taxRate, socialMedia, enableStore, maintenanceMode, updatedAt)
+VALUES
+('site-1', 'SCommerce', '/images/logo.svg', 'info@scommerce.com', '+8801700000000', 'BDT', 5000, 150, 0, '{"facebook":"https://facebook.com/scommerce","instagram":"https://instagram.com/scommerce","twitter":"https://twitter.com/scommerce"}', 1, 0, datetime('now'));
+
+-- ============================================
+-- PAYMENT GATEWAYS
+-- ============================================
+INSERT OR IGNORE INTO payment_gateways (id, name, provider, isActive, isDefault, apiKey, apiSecret, webhookSecret, sandboxMode, supportedCurrencies, settings, createdAt, updatedAt)
+VALUES
+('pg-1', 'Cash on Delivery', 'cod', 1, 1, null, null, null, 0, 'BDT', null, datetime('now'), datetime('now')),
+('pg-2', 'bKash', 'bkash', 0, 0, null, null, null, 1, 'BDT', '{"merchantAccount":"scommerce"}', datetime('now'), datetime('now')),
+('pg-3', 'Nagad', 'nagad', 0, 0, null, null, null, 1, 'BDT', '{"merchantAccount":"scommerce"}', datetime('now'), datetime('now'));
+
+-- ============================================
+-- SHIPPING CARRIERS
+-- ============================================
+INSERT OR IGNORE INTO shipping_carriers (id, name, provider, isActive, isDefault, apiKey, apiSecret, accountNumber, sandboxMode, shippingMethods, settings, createdAt, updatedAt)
+VALUES
+('sc-1', 'Standard Shipping', 'standard', 1, 1, null, null, null, 0, '[{"name":"Standard","cost":150,"estimatedDays":"3-5"}]', null, datetime('now'), datetime('now')),
+('sc-2', 'Express Shipping', 'express', 0, 0, null, null, null, 1, '[{"name":"Express","cost":250,"estimatedDays":"1-2"}]', null, datetime('now'), datetime('now'));
+
+-- ============================================
+-- EMAIL SERVICES
+-- ============================================
+INSERT OR IGNORE INTO email_services (id, name, provider, isActive, isDefault, apiKey, apiSecret, fromEmail, fromName, sandboxMode, settings, createdAt, updatedAt)
+VALUES
+('es-1', 'Resend', 'resend', 1, 1, null, null, 'info@scommerce.com', 'SCommerce', 1, null, datetime('now'), datetime('now'));
+
+-- ============================================
+-- ANALYTICS INTEGRATIONS
+-- ============================================
+INSERT OR IGNORE INTO analytics_integrations (id, name, provider, isActive, trackingId, apiKey, measurementId, settings, createdAt, updatedAt)
+VALUES
+('ai-1', 'Google Analytics', 'google', 0, null, null, null, null, datetime('now'), datetime('now'));
+
+
+-- ============================================
 -- INVENTORY ALERTS
 -- ============================================
 INSERT OR IGNORE INTO inventory_alerts (id, productId, alertType, quantity, isRead, isResolved, createdAt)
@@ -307,6 +346,11 @@ VALUES
 -- Inventory Alerts: 3
 -- Admin Logs: 5
 -- Posts: 3
+-- Site Settings: 1
+-- Payment Gateways: 3
+-- Shipping Carriers: 2
+-- Email Services: 1
+-- Analytics Integrations: 1
 
 -- Re-enable foreign key constraints after seeding
 PRAGMA foreign_keys = ON;
