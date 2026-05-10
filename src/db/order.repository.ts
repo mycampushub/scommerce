@@ -90,6 +90,7 @@ export class OrderRepository {
     discount?: number;
     total: number;
     paymentMethod?: string;
+    promoCode?: string;
   }): Promise<Order> {
     const id = generateId();
     const orderNumber = generateOrderNumber();
@@ -119,6 +120,7 @@ export class OrderRepository {
             status: 'PENDING' as OrderStatus,
             paymentStatus: 'PENDING' as PaymentStatus,
             paymentMethod: data.paymentMethod || null,
+            promoCode: data.promoCode || null,
             trackingStatus: 'PENDING' as TrackingStatus,
             createdAt: currentTime,
             updatedAt: currentTime
@@ -132,7 +134,7 @@ export class OrderRepository {
         'id', 'orderNumber', 'userId', 'customerName', 'customerEmail', 'customerPhone',
         'shippingAddress', 'billingAddress', 'city', 'district', 'division',
         'subtotal', 'shipping', 'tax', 'discount', 'total',
-        'status', 'paymentStatus', 'paymentMethod', 'trackingStatus',
+        'status', 'paymentStatus', 'paymentMethod', 'promoCode', 'trackingStatus',
         'createdAt', 'updatedAt'
       ];
 
@@ -157,6 +159,7 @@ export class OrderRepository {
         'PENDING',
         'PENDING',
         data.paymentMethod || null,
+        data.promoCode || null,
         'PENDING',
         currentTime,
         currentTime

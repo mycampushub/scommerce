@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, ShoppingBag } from 'lucide-react'
+import { formatCurrency } from '@/lib/format-currency'
 
 interface Category {
   id: string
@@ -104,7 +105,7 @@ export function FloatingCategoryCarousel({ categories, products = [] }: Floating
                     {product.name}
                   </p>
                   <p className="text-[10px] font-bold text-pink-600">
-                    ৳{product.price}
+                    {formatCurrency(product.price)}
                   </p>
                 </a>
               ))}

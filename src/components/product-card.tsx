@@ -5,8 +5,8 @@ import { Heart, Star, ShoppingCart } from 'lucide-react'
 import Link from 'next/link'
 import { QuickViewModal, Product } from '@/components/quick-view-modal'
 import { useCartStore } from '@/lib/store/cart-store'
-import { formatCurrency } from '@/lib/format-currency'
 import { toast } from 'sonner'
+import { PriceDisplay } from '@/components/price-display'
 
 interface ProductCardProps {
   product: Product
@@ -38,32 +38,32 @@ export function ProductCard({ product }: ProductCardProps) {
 
   const toggleWishlist = async (e: React.MouseEvent) => {
     e.stopPropagation()
-    
+
     if (isWishlistLoading) return
 
     setIsWishlistLoading(true)
-    
+
     // Optimistic update - toggle immediately
     setIsWishlisted(prev => !prev)
-    
+
     try {
       const method = !isWishlisted ? 'POST' : 'DELETE'
-      const url = method === 'DELETE' 
+      const url = method === 'DELETE'
         ? `/api/wishlist?productId=${product.id}`
         : '/api/wishlist'
-      
+
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: method === 'POST' ? JSON.stringify({ productId: product.id }) : undefined,
       })
-      
+
       if (!response.ok) {
         // Revert optimistic update if failed
         setIsWishlisted(prev => !prev)
-        
+
         const errorData = await response.json()
-        
+
         // Handle specific error cases
         if (response.status === 401) {
           toast.error('Please login to manage wishlist')
@@ -72,19 +72,19 @@ export function ProductCard({ product }: ProductCardProps) {
         } else {
           toast.error('Failed to update wishlist')
         }
-        
+
         return
       }
-      
+
       const data = await response.json()
-      
+
       // Show success message
       if (!isWishlisted) {
         toast.success('Added to wishlist!')
       } else {
         toast.success('Removed from wishlist')
       }
-      
+
     } catch (error) {
       // Revert optimistic update on error
       setIsWishlisted(prev => !prev)
@@ -97,6 +97,14 @@ export function ProductCard({ product }: ProductCardProps) {
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation()
+
+    // For products with variants, show quick view instead of adding directly
+    if (product.hasVariants) {
+      setShowQuickView(true)
+      return
+    }
+
+    // For simple products, add directly to cart
     addItem({
       id: product.id,
       name: product.name,
@@ -163,16 +171,12 @@ export function ProductCard({ product }: ProductCardProps) {
         <span className="text-sm text-gray-500">({product.reviews})</span>
       </div>
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className="text-lg font-bold text-gray-900">{formatCurrency(product.price)}</span>
-          {product.originalPrice && (
-            <span className="text-sm text-gray-400 line-through">{formatCurrency(product.originalPrice)}</span>
-          )}
-        </div>
+        <PriceDisplay value={product.price} originalPrice={product.originalPrice} />
         <button
           onClick={handleAddToCart}
-          className="bg-pink-600 text-white p-2 rounded-lg hover:bg-pink-700 transition-colors"
-          aria-label="Add to cart"
+          className={`${product.hasVariants ? 'bg-gray-600' : 'bg-pink-600'} text-white p-2 rounded-lg hover:bg-pink-700 transition-colors`}
+          aria-label={product.hasVariants ? 'View options' : 'Add to cart'}
+          title={product.hasVariants ? 'View options' : 'Add to cart'}
         >
           <ShoppingCart className="w-4 h-4" />
         </button>

@@ -101,13 +101,14 @@ model Product {
   tags            String?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
-  category        Category          @relation(fields: [categoryId], references: [id])
+  category        Category          @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   variants        ProductVariant[]
   reviews         ProductReview[]
   cartItems       CartItem[]
   wishlistItems   WishlistItem[]
   orderItems      OrderItem[]
   inventoryAlerts InventoryAlert[]
+  reservations    InventoryReservation[]
 
   @@index([categoryId])
   @@index([isFeatured])
@@ -140,6 +141,7 @@ model ProductVariant {
   cartItems     CartItem[]
   orderItems    OrderItem[]
   inventoryAlerts InventoryAlert[]
+  reservations    InventoryReservation[]
 
   @@index([productId])
   @@index([sku])
@@ -160,8 +162,8 @@ model ProductReview {
   isApproved  Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  product     Product  @relation(fields: [productId], references: [id])
-  user        User     @relation(fields: [userId], references: [id])
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([productId, userId])
   @@index([productId, isApproved])
@@ -203,6 +205,7 @@ model Order {
   status                String   @default("PENDING")
   paymentStatus         String   @default("PENDING")
   paymentMethod         String?
+  promoCode            String?  // Promo code used for the order
   trackingNumber        String?
   trackingStatus        String   @default("PENDING")
   estimatedDeliveryDate String?
@@ -219,7 +222,7 @@ model Order {
   deletedReason         String?
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
-  user                  User?    @relation(fields: [userId], references: [id])
+  user                  User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   items                 OrderItem[]
 
   @@index([userId])
@@ -245,8 +248,8 @@ model OrderItem {
   variantColor    String?
   variantMaterial String?
   createdAt       DateTime @default(now())
-  order           Order          @relation(fields: [orderId], references: [id])
-  product         Product        @relation(fields: [productId], references: [id])
+  order           Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product         Product        @relation(fields: [productId], references: [id], onDelete: Restrict)
   variant         ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
 
   @@index([orderId])
@@ -263,13 +266,13 @@ model CartItem {
   quantity  Int      @default(1)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  user      User            @relation(fields: [userId], references: [id])
-  product   Product         @relation(fields: [productId], references: [id])
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
   variant   ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, productId])
+  @@unique([userId, productId, variantId])
   @@index([userId])
-  @@index([userId, productId])
+  @@index([userId, variantId])
   @@index([variantId])
   @@map("cart_items")
 }
@@ -284,7 +287,7 @@ model AdminLog {
   ipAddress String?
   userAgent String?
   createdAt DateTime @default(now())
-  admin     User     @relation(fields: [adminId], references: [id])
+  admin     User     @relation(fields: [adminId], references: [id], onDelete: Cascade)
 
   @@index([adminId, createdAt(sort: Desc)])
   @@index([entity, createdAt(sort: Desc)])
@@ -313,6 +316,24 @@ model InventoryAlert {
   @@map("inventory_alerts")
 }
 
+model InventoryReservation {
+  id        String   @id @default(cuid())
+  variantId String?
+  productId String?
+  userId    String
+  quantity  Int
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  variant   ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  product   Product?        @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([variantId])
+  @@index([productId])
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("inventory_reservations")
+}
+
 model Post {
   id        String   @id @default(cuid())
   title     String
@@ -321,7 +342,7 @@ model Post {
   authorId  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [authorId], references: [id])
+  user      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([authorId])
   @@map("posts")
@@ -377,20 +398,34 @@ model Reel {
 }
 
 model Promotion {
-  id        String   @id @default(cuid())
-  title     String
-  description String?
-  image     String
-  ctaText   String?
-  ctaLink   String?
-  type      String   @default("banner")
-  isActive  Int      @default(1)
-  order     Int      @default(0) @map("displayOrder")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                  String   @id @default(cuid())
+  title               String
+  description         String?
+  image               String
+  ctaText             String?
+  ctaLink             String?
+  type                String   @default("banner") // banner, discount_code
+  promoCode           String?  @unique // Discount code for users to enter
+  discountType        String?  // percentage, fixed_amount, buy_x_get_y
+  discountValue       Float?   // Discount percentage or amount
+  minOrderAmount      Float?   // Minimum order value to apply
+  maxDiscountAmount   Float?   // Maximum discount cap
+  startDate           DateTime?
+  endDate             DateTime?
+  usageLimit          Int?     // Total usage limit
+  usedCount          Int      @default(0)
+  userLimit          Int?     // Per-user usage limit
+  applicableCategories String?  // JSON array of category IDs
+  applicableProducts   String?  // JSON array of product IDs
+  conditions          String?  // JSON for complex conditions
+  isActive            Int      @default(1)
+  order               Int      @default(0) @map("displayOrder")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   @@index([isActive])
   @@index([type, isActive])
+  @@index([promoCode])
   @@map("promotions")
 }
 

@@ -16,8 +16,11 @@ export async function GET(request: NextRequest) {
   const env = getEnv()
   try {
     const searchParams = request.nextUrl.searchParams
-    const query = searchParams.get('q') || ''
+    const rawQuery = searchParams.get('q') || ''
     const limit = parseInt(searchParams.get('limit') || '10')
+
+    // Sanitize and escape the query to prevent LIKE wildcard abuse
+    const query = rawQuery.replace(/[%_\\]/g, '\\$&').trim()
 
     if (query.length < 2) {
       const response = NextResponse.json({
@@ -38,7 +41,7 @@ export async function GET(request: NextRequest) {
       `SELECT p.id, p.name, p.slug, p.images, p.price, p.basePrice, p.comparePrice, c.name as categoryName, c.slug as categorySlug
        FROM products p
        LEFT JOIN categories c ON p.categoryId = c.id
-       WHERE p.isActive = 1 AND (p.name LIKE ? OR p.description LIKE ?)
+       WHERE p.isActive = 1 AND (p.name LIKE ? ESCAPE '\\' OR p.description LIKE ? ESCAPE '\\')
        ORDER BY p.createdAt DESC
        LIMIT ?`,
       `%${query}%`,
@@ -51,7 +54,7 @@ export async function GET(request: NextRequest) {
       env,
       `SELECT id, name, slug, image
        FROM categories
-       WHERE isActive = 1 AND (name LIKE ? OR description LIKE ?)
+       WHERE isActive = 1 AND (name LIKE ? ESCAPE '\\' OR description LIKE ? ESCAPE '\\')
        ORDER BY name ASC
        LIMIT 5`,
       `%${query}%`,

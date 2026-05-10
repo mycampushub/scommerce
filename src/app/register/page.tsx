@@ -9,8 +9,10 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2, Eye, EyeOff, Mail, User, Phone, CheckCircle2, AlertCircle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { useCartStore } from '@/lib/store/cart-store'
 
 export default function RegisterPage() {
+  const { items, clearCart } = useCartStore()
   const router = useRouter()
   const { toast } = useToast()
   const [formData, setFormData] = useState({
@@ -83,7 +85,10 @@ export default function RegisterPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          guestCart: items.length > 0 ? items : undefined,
+        }),
       })
 
       const data = await response.json() as any
@@ -95,8 +100,15 @@ export default function RegisterPage() {
       // Show success message
       toast({
         title: 'Registration Successful',
-        description: 'Your account has been created and you are now logged in.',
+        description: data.syncedCart > 0
+          ? `Your account has been created and you are now logged in. ${data.syncedCart} item(s) synced from your cart.`
+          : 'Your account has been created and you are now logged in.',
       })
+
+      // Clear local storage cart after successful sync
+      if (data.syncedCart > 0) {
+        clearCart()
+      }
 
       // Auto-redirect based on user role after a short delay
       setTimeout(() => {

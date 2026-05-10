@@ -93,6 +93,7 @@ export const createOrderSchema = z.object({
   discount: z.number().min(0, 'Discount must be non-negative').optional(),
   total: z.number().positive('Total must be positive'),
   paymentMethod: z.enum(['CASH_ON_DELIVERY', 'ONLINE_PAYMENT', 'CARD', 'UPI', 'BANK_TRANSFER']),
+  promoCode: z.string().optional(),
   notes: z.string().optional(),
 });
 

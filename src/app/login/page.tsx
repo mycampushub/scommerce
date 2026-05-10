@@ -14,7 +14,7 @@ import { useCartStore } from '@/lib/store/cart-store'
 export default function LoginPage() {
   const router = useRouter()
   const { toast } = useToast()
-  const { items } = useCartStore()
+  const { items, clearCart } = useCartStore()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -66,7 +66,11 @@ export default function LoginPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ 
+          email, 
+          password,
+          guestCart: items.length > 0 ? items : undefined 
+        }),
       })
 
       const data = await response.json() as any
@@ -82,23 +86,14 @@ export default function LoginPage() {
       // Show success message
       toast({
         title: 'Success',
-        description: 'Logged in successfully',
+        description: data.syncedCart > 0
+          ? `Logged in successfully. ${data.syncedCart} item(s) synced from your cart.`
+          : 'Logged in successfully',
       })
 
-      // Sync cart to backend if user has items in local cart
-      if (items.length > 0) {
-        try {
-          await fetch('/api/cart/sync', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ localCart: items }),
-          })
-        } catch (syncError) {
-          console.error('Cart sync error:', syncError)
-          // Don't block login if sync fails
-        }
+      // Clear local storage cart after successful sync
+      if (data.syncedCart > 0) {
+        clearCart()
       }
 
       // Redirect based on user role using Next.js router

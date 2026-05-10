@@ -19,6 +19,7 @@ import { useAuth } from '@/hooks/use-auth'
 import { RecentlyViewed } from '@/components/recently-viewed'
 import { ProductStructuredData } from '@/components/product-structured-data'
 import { Skeleton } from '@/components/ui/skeleton'
+import { PriceDisplay } from '@/components/price-display'
 
 // Types
 interface Product {
@@ -521,14 +522,11 @@ export default function ProductPage() {
               </div>
 
               <div className="flex items-baseline gap-3">
-                <span className="text-3xl font-bold text-gray-900">৳{currentPrice}</span>
+                <PriceDisplay value={currentPrice} originalPrice={currentComparePrice || product.originalPrice} showDecimals={false} className="text-3xl font-bold text-gray-900" />
                 {(currentComparePrice || product.originalPrice) && (
-                  <>
-                    <span className="text-xl text-gray-400 line-through">৳{currentComparePrice || product.originalPrice}</span>
-                    <span className="text-sm text-pink-600 font-medium">
-                      {Math.round((1 - currentPrice / (currentComparePrice || product.originalPrice || currentPrice)) * 100)}% OFF
-                    </span>
-                  </>
+                  <span className="text-sm text-pink-600 font-medium">
+                    {Math.round((1 - currentPrice / (currentComparePrice || product.originalPrice || currentPrice)) * 100)}% OFF
+                  </span>
                 )}
               </div>
 
@@ -837,12 +835,7 @@ export default function ProductPage() {
                   <span className="text-sm text-gray-500">({product.reviews})</span>
                 </div>
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg font-bold text-gray-900">৳{product.price}</span>
-                    {product.originalPrice && (
-                      <span className="text-sm text-gray-400 line-through">৳{product.originalPrice}</span>
-                    )}
-                  </div>
+                  <PriceDisplay value={product.price} originalPrice={product.originalPrice} />
                 </div>
               </div>
             ))}
@@ -906,12 +899,7 @@ export default function ProductPage() {
                       <span className="text-sm text-gray-500">({product.reviews})</span>
                     </div>
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg font-bold text-gray-900">৳{product.price}</span>
-                        {product.originalPrice && (
-                          <span className="text-sm text-gray-400 line-through">৳{product.originalPrice}</span>
-                        )}
-                      </div>
+                      <PriceDisplay value={product.price} originalPrice={product.originalPrice} />
                     </div>
                   </div>
                 ))}

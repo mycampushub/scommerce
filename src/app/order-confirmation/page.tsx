@@ -32,6 +32,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { PriceDisplay } from '@/components/price-display'
 
 interface OrderItem {
   id: string
@@ -185,7 +186,7 @@ function OrderConfirmationContent() {
     }
 
     if (amount > order.total) {
-      toast.error(`Refund amount cannot exceed order total of ৳${order.total.toFixed(2)}`)
+      toast.error(`Refund amount cannot exceed order total of ${order.total.toFixed(2)}`)
       return
     }
 
@@ -390,7 +391,7 @@ function OrderConfirmationContent() {
                         {order.refundedAmount && order.refundedAmount > 0 && (
                           <div className="pt-2 border-t border-red-200">
                             <p className="text-sm text-green-700 font-semibold">
-                              Refund of ৳{order.refundedAmount.toFixed(2)} has been processed
+                              Refund of <PriceDisplay value={order.refundedAmount} /> has been processed
                             </p>
                           </div>
                         )}
@@ -453,7 +454,7 @@ function OrderConfirmationContent() {
                           <h3 className="font-semibold text-gray-900 mb-1">{item.productName}</h3>
                           <p className="text-sm text-gray-500">Quantity: {item.quantity}</p>
                           <p className="text-lg font-bold text-pink-600 mt-2">
-                            ${(item.price * item.quantity).toFixed(2)}
+                            <PriceDisplay value={item.price * item.quantity} />
                           </p>
                         </div>
                       </div>
@@ -465,25 +466,25 @@ function OrderConfirmationContent() {
                     <div className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-gray-600">Subtotal</span>
-                        <span className="font-semibold">৳{order.subtotal.toFixed(2)}</span>
+                        <span className="font-semibold"><PriceDisplay value={order.subtotal} /></span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Shipping</span>
-                        <span className="font-semibold">৳{order.shipping.toFixed(2)}</span>
+                        <span className="font-semibold"><PriceDisplay value={order.shipping} /></span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-600">Tax</span>
-                        <span className="font-semibold">৳{order.tax.toFixed(2)}</span>
+                        <span className="font-semibold"><PriceDisplay value={order.tax} /></span>
                       </div>
                       {order.discount > 0 && (
                         <div className="flex justify-between text-green-600">
                           <span>Discount</span>
-                          <span className="font-semibold">-৳{order.discount.toFixed(2)}</span>
+                          <span className="font-semibold">-<PriceDisplay value={order.discount} /></span>
                         </div>
                       )}
                       <div className="flex justify-between pt-2 border-t border-gray-200">
                         <span className="text-lg font-bold text-gray-900">Total</span>
-                        <span className="text-lg font-bold text-pink-600">৳{order.total.toFixed(2)}</span>
+                        <span className="text-lg font-bold text-pink-600"><PriceDisplay value={order.total} /></span>
                       </div>
                     </div>
                   </div>
@@ -615,18 +616,18 @@ function OrderConfirmationContent() {
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="refund-amount">Refund Amount (৳)</Label>
+              <Label htmlFor="refund-amount">Refund Amount</Label>
               <Input
                 id="refund-amount"
                 type="number"
                 step="0.01"
-                placeholder={`Max: ৳${order?.total.toFixed(2) || '0.00'}`}
+                placeholder={`Max: ${order?.total.toFixed(2) || '0.00'}`}
                 value={refundAmount}
                 onChange={(e) => setRefundAmount(e.target.value)}
                 disabled={refundLoading}
               />
               <p className="text-xs text-gray-500">
-                Order total: ৳{order?.total.toFixed(2) || '0.00'}
+                Order total: <PriceDisplay value={order?.total || 0} />
               </p>
             </div>
             <div className="grid gap-2">

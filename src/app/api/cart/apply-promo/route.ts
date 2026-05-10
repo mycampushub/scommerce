@@ -1,15 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
-import { queryFirst } from '@/db/db'
 import { csrfMiddleware } from '@/lib/csrf'
-
-// Simple promo codes for demo (in production, use promotions table)
-const PROMO_CODES: Record<string, { discount: number; type: 'percentage' | 'fixed'; minOrder?: number }> = {
-  'SAVE10': { discount: 10, type: 'percentage' },
-  'SAVE20': { discount: 20, type: 'percentage' },
-  'FLAT50': { discount: 50, type: 'fixed', minOrder: 2000 },
-  'FREESHIP': { discount: 150, type: 'fixed', minOrder: 1000 },
-}
+import { validatePromoCode, getUserPromoCodes } from '@/lib/promotion-validation'
+import { verifyToken, extractTokenFromHeader } from '@/lib/auth'
 
 export async function POST(request: NextRequest) {
   const env = getEnv()
@@ -21,7 +14,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json() as { promoCode?: string }
+    const body = await request.json() as { promoCode?: string; subtotal?: number; cartItems?: Array<{ productId: string; variantId?: string; quantity: number }> }
 
     if (!body.promoCode) {
       return NextResponse.json(
@@ -33,54 +26,55 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { promoCode } = body
+    const { promoCode, subtotal, cartItems } = body
 
-    // Check if promo code exists
-    const promoData = PROMO_CODES[promoCode.toUpperCase()]
+    // Get user ID if authenticated
+    const authHeader = request.headers.get('authorization')
+    const cookieToken = request.cookies.get('session')?.value
+    const token = extractTokenFromHeader(authHeader) || cookieToken
+    let userId: string | undefined
 
-    if (!promoData) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Invalid promo code',
-        },
-        { status: 404 }
-      )
+    if (token) {
+      try {
+        const payload = await verifyToken(token)
+        if (payload && payload.userId) {
+          userId = payload.userId
+        }
+      } catch {
+        // Invalid token, continue without user ID
+      }
     }
 
-    // Check minimum order requirement
-    const cartData = await queryFirst<{ subtotal: number }>(
-      env,
-      'SELECT COALESCE(SUM(price * quantity), 0) as subtotal FROM cart_items ci JOIN products p ON ci.productId = p.id'
-    )
+    // If subtotal not provided, calculate from cart items
+    const calculatedSubtotal = subtotal || 0
 
-    const subtotal = cartData?.subtotal || 0
+    // Validate promo code using the new promotion validation logic
+    const validation = await validatePromoCode(env, {
+      promoCode,
+      subtotal: calculatedSubtotal,
+      userId,
+      cartItems,
+    })
 
-    if (promoData.minOrder && subtotal < promoData.minOrder) {
+    if (!validation.valid) {
       return NextResponse.json(
         {
           success: false,
-          error: `Minimum order of ${promoData.minOrder} required for this promo code`,
+          error: validation.error || 'Invalid promo code',
         },
         { status: 400 }
       )
-    }
-
-    // Calculate discount
-    let discountAmount = 0
-    if (promoData.type === 'percentage') {
-      discountAmount = subtotal * (promoData.discount / 100)
-    } else {
-      discountAmount = promoData.discount
     }
 
     return NextResponse.json({
       success: true,
       data: {
         promoCode: promoCode.toUpperCase(),
-        discount: promoData.discount,
-        discountType: promoData.type,
-        discountAmount: Math.round(discountAmount * 100) / 100,
+        title: validation.promotion?.title,
+        description: validation.promotion?.description,
+        discountType: validation.promotion?.discountType,
+        discountValue: validation.promotion?.discountValue,
+        discountAmount: validation.discountAmount || 0,
       },
     })
   } catch (error) {
@@ -89,6 +83,62 @@ export async function POST(request: NextRequest) {
       {
         success: false,
         error: 'Failed to apply promo code',
+      },
+      { status: 500 }
+    )
+  }
+}
+
+/**
+ * GET /api/cart/apply-promo - Get available promo codes for user
+ */
+export async function GET(request: NextRequest) {
+  const env = getEnv()
+
+  try {
+    // Get user ID if authenticated
+    const authHeader = request.headers.get('authorization')
+    const cookieToken = request.cookies.get('session')?.value
+    const token = extractTokenFromHeader(authHeader) || cookieToken
+    let userId: string | undefined
+
+    if (token) {
+      try {
+        const payload = await verifyToken(token)
+        if (payload && payload.userId) {
+          userId = payload.userId
+        }
+      } catch {
+        // Invalid token, continue without user ID
+      }
+    }
+
+    // Get available promo codes
+    const promoCodes = await getUserPromoCodes(env, userId)
+
+    return NextResponse.json({
+      success: true,
+      data: promoCodes.map(p => ({
+        id: p.id,
+        title: p.title,
+        description: p.description,
+        promoCode: p.promoCode,
+        discountType: p.discountType,
+        discountValue: p.discountValue,
+        minOrderAmount: p.minOrderAmount,
+        maxDiscountAmount: p.maxDiscountAmount,
+        startDate: p.startDate,
+        endDate: p.endDate,
+        userUsageCount: p.userUsageCount,
+        userLimit: p.userLimit,
+      })),
+    })
+  } catch (error) {
+    console.error('Error fetching promo codes:', error)
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Failed to fetch promo codes',
       },
       { status: 500 }
     )

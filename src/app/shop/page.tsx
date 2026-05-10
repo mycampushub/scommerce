@@ -13,6 +13,7 @@ import { toast } from 'sonner'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useDebounce } from '@/hooks/use-debounce'
 import { useFocusTrap } from '@/hooks/use-focus-trap'
+import { PriceDisplay } from '@/components/price-display'
 
 // Use Product type from QuickViewModal component
 
@@ -350,10 +351,7 @@ export default function ShopPage() {
                     </div>
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <span className="text-lg font-bold text-gray-900">৳{product.price}</span>
-                        {product.originalPrice && (
-                          <span className="text-sm text-gray-400 line-through">৳{product.originalPrice}</span>
-                        )}
+                      <PriceDisplay value={product.price} originalPrice={product.originalPrice} />
                       </div>
                     </div>
                   </div>

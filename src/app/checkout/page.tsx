@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { fetchWithCSRF, useCSRF } from '@/hooks/use-csrf'
+import { PriceDisplay } from '@/components/price-display'
 
 interface OrderResponse {
   success: boolean
@@ -615,7 +616,7 @@ export default function CheckoutPage() {
                           )}
                           <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
                           <div className="flex items-center gap-2 mt-1 flex-wrap">
-                            <p className="text-sm font-semibold text-gray-900">{formatCurrency(item.price * item.quantity)}</p>
+                            <PriceDisplay value={item.price * item.quantity} showDecimals={false} className="text-sm font-semibold text-gray-900" />
                             {stockInfo && (
                               <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${
                                 isOutOfStock
@@ -650,7 +651,7 @@ export default function CheckoutPage() {
                 <div className="border-t border-gray-200 pt-4 space-y-3">
                   <div className="flex justify-between text-sm md:text-base">
                     <span className="text-gray-600">Subtotal</span>
-                    <span className="font-semibold">{formatCurrency(total)}</span>
+                    <PriceDisplay value={total} showDecimals={false} />
                   </div>
                   <div className="flex justify-between text-sm md:text-base">
                     <span className="text-gray-600">Shipping</span>
@@ -660,17 +661,17 @@ export default function CheckoutPage() {
                       ) : shippingCost === 0 ? (
                         <span className="text-green-600">FREE</span>
                       ) : (
-                        formatCurrency(shippingCost)
+                        <PriceDisplay value={shippingCost} showDecimals={false} />
                       )}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm md:text-base">
                     <span className="text-gray-600">Tax ({(taxRate * 100).toFixed(0)}%)</span>
-                    <span className="font-semibold">{formatCurrency(total * taxRate)}</span>
+                    <span className="font-semibold"><PriceDisplay value={total * taxRate} showDecimals={false} /></span>
                   </div>
                   <div className="border-t border-gray-200 pt-3 flex justify-between">
                     <span className="text-base md:text-lg font-bold text-gray-900">Total</span>
-                    <span className="text-base md:text-lg font-bold text-pink-600">{formatCurrency(total + (total * taxRate) + shippingCost)}</span>
+                    <PriceDisplay value={total + (total * taxRate) + shippingCost} showDecimals={false} className="text-base md:text-lg font-bold text-pink-600" />
                   </div>
                 </div>
 
@@ -682,7 +683,7 @@ export default function CheckoutPage() {
                         Free shipping progress
                       </span>
                       <span className="text-xs md:text-sm text-blue-600">
-                        {formatCurrency(total)} / {formatCurrency(freeShippingThreshold)}
+                        <PriceDisplay value={total} showDecimals={false} /> / <PriceDisplay value={freeShippingThreshold} showDecimals={false} />
                       </span>
                     </div>
                     <div className="w-full bg-blue-200 rounded-full h-2">
@@ -692,7 +693,7 @@ export default function CheckoutPage() {
                       ></div>
                     </div>
                     <p className="text-xs text-blue-600 mt-2">
-                      Add {formatCurrency(freeShippingThreshold - total)} more for free shipping!
+                      Add <PriceDisplay value={freeShippingThreshold - total} showDecimals={false} /> more for free shipping!
                     </p>
                   </div>
                 )}

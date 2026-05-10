@@ -73,6 +73,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
+import { PriceDisplay } from '@/components/price-display'
 
 interface Product {
   id: string
@@ -885,10 +886,7 @@ export default function ProductsPage() {
                       </TableCell>
                       <TableCell>
                         <div>
-                          <p className="font-semibold text-gray-900">${(product.price || 0).toFixed(2)}</p>
-                          {product.comparePrice && (
-                            <p className="text-xs text-gray-500 line-through">${(product.comparePrice || 0).toFixed(2)}</p>
-                          )}
+                          <PriceDisplay value={product.price} originalPrice={product.comparePrice || undefined} showDecimals={true} className="font-semibold text-gray-900" />
                         </div>
                       </TableCell>
                       <TableCell>
@@ -1333,10 +1331,7 @@ export default function ProductsPage() {
                           </TableCell>
                           <TableCell>
                             <div>
-                              <p className="font-semibold">${(variant.price || 0).toFixed(2)}</p>
-                              {variant.comparePrice && (
-                                <p className="text-xs text-gray-500 line-through">${(variant.comparePrice || 0).toFixed(2)}</p>
-                              )}
+                              <PriceDisplay value={variant.price} originalPrice={variant.comparePrice || undefined} showDecimals={true} className="font-semibold" />
                             </div>
                           </TableCell>
                           <TableCell>

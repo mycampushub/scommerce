@@ -7,6 +7,7 @@ import { Header } from '@/components/header'
 import { Footer } from '@/components/footer'
 import { MobileBottomNav } from '@/components/mobile-bottom-nav'
 import { useDebounce } from '@/hooks/use-debounce'
+import { PriceDisplay } from '@/components/price-display'
 
 // Types
 interface Product {
@@ -188,10 +189,7 @@ export default function SearchPage() {
                         <span className="text-sm text-gray-500">({product.reviews})</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-lg font-bold text-gray-900">৳{product.price}</span>
-                        {product.originalPrice && (
-                          <span className="text-sm text-gray-400 line-through">৳{product.originalPrice}</span>
-                        )}
+                        <PriceDisplay value={product.price} originalPrice={product.originalPrice} />
                       </div>
                     </div>
                   ))}

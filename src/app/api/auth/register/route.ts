@@ -6,6 +6,7 @@ import { UserRepository } from '@/db/user.repository';
 import { getEnv } from '@/lib/cloudflare';
 import { generateEmailToken } from '@/lib/crypto-utils';
 import { createToken } from '@/lib/auth';
+import { CartRepository } from '@/db/cart.repository';
 
 
 export async function POST(request: NextRequest) {
@@ -15,7 +16,7 @@ export async function POST(request: NextRequest) {
   // Apply rate limiting based on IP and email
   const clientIp = getClientIp(request);
   const body = await request.json() as any;
-  const { email, name, phone, password, confirmPassword, adminSecret } = body;
+  const { email, name, phone, password, confirmPassword, adminSecret, guestCart } = body;
 
   // Rate limit by IP to prevent spam registration
   const rateLimitResult = await rateLimit(env, `register:${clientIp}`, {
@@ -122,6 +123,25 @@ export async function POST(request: NextRequest) {
       role: user.role,
     });
 
+    // Sync guest cart to database if provided
+    let syncedCartCount = 0;
+    if (guestCart && Array.isArray(guestCart) && guestCart.length > 0) {
+      try {
+        for (const guestItem of guestCart) {
+          await CartRepository.addItem(env, {
+            userId: user.id,
+            productId: guestItem.id,
+            variantId: guestItem.variantId,
+            quantity: guestItem.quantity || 1,
+          });
+          syncedCartCount++;
+        }
+      } catch (error) {
+        console.error('[register] Error syncing guest cart:', error);
+        // Don't fail registration if cart sync fails
+      }
+    }
+
     // Return user data (converting emailVerified from number to boolean for frontend)
     const transformedUser = {
       id: user.id,
@@ -148,6 +168,7 @@ export async function POST(request: NextRequest) {
         token,
         verificationLink, // Only included for demo purposes
       },
+      syncedCart: syncedCartCount,
     });
 
     // Set cookie for auto-login

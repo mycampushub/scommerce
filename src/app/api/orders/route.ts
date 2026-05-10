@@ -10,6 +10,8 @@ import { invalidateCache } from '@/lib/cache';
 import { rateLimit, getClientIp, createRateLimitResponse } from '@/lib/rate-limit';
 import { verifyToken, extractTokenFromHeader } from '@/lib/auth';
 import { addCacheHeaders, CachePresets } from '@/lib/http-cache';
+import { releaseCartReservations } from '@/db/inventory-reservation.repository';
+import { incrementPromoUsage } from '@/lib/promotion-validation';
 
 // Allowed payment methods - validated by Zod schema
 const ALLOWED_PAYMENT_METHODS = ['CASH_ON_DELIVERY', 'ONLINE_PAYMENT', 'CARD', 'UPI', 'BANK_TRANSFER'] as const;
@@ -235,7 +237,18 @@ export async function POST(request: NextRequest) {
       discount: parseFloat(discount.toFixed(2)),
       total: parseFloat(total.toFixed(2)),
       paymentMethod: validatedData.paymentMethod,
+      promoCode: validatedData.promoCode,
     });
+
+    // Increment promo code usage if promo code was used
+    if (validatedData.promoCode) {
+      try {
+        await incrementPromoUsage(env, validatedData.promoCode);
+      } catch (error) {
+        console.error('Error incrementing promo usage:', error);
+        // Continue even if promo usage increment fails
+      }
+    }
 
     // Create order items
     for (const item of validatedData.orderItems as any[]) {
@@ -252,6 +265,11 @@ export async function POST(request: NextRequest) {
         variantColor: item.variantColor,
         variantMaterial: item.variantMaterial,
       });
+    }
+
+    // Release stock reservations for this order
+    if (validatedData.userId) {
+      await releaseCartReservations(env, validatedData.userId, validatedData.orderItems);
     }
 
     // Update product/variant stock and generate alerts

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, ShoppingBag } from 'lucide-react'
+import { useFormatCurrency } from '@/hooks/use-format-currency'
 
 interface Category {
   id: string
@@ -31,6 +32,7 @@ export function CategoryCarousel({ categories, products = [] }: CategoryCarousel
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const { formatCurrency } = useFormatCurrency()
 
   // Auto-scroll effect
   useEffect(() => {
@@ -165,7 +167,7 @@ export function CategoryCarousel({ categories, products = [] }: CategoryCarousel
                       </div>
                     )}
                     <p className="text-base md:text-lg font-bold text-pink-600">
-                      ৳{product.price}
+                      {formatCurrency(product.price)}
                     </p>
                   </div>
                 </a>

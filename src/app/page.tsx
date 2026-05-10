@@ -11,6 +11,7 @@ import { MobileBottomNav } from '@/components/mobile-bottom-nav'
 import { PWAInstallPrompt } from '@/components/pwa-install-prompt'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
+import { PriceDisplay } from '@/components/price-display'
 
 
 
@@ -786,9 +787,7 @@ function CategoryCarousel({ categories, products }: { categories: Category[]; pr
                     <h3 className="text-sm md:text-base font-medium text-gray-900 line-clamp-2 mb-2">
                       {product.name}
                     </h3>
-                    <p className="text-base md:text-lg font-bold text-pink-600">
-                      ৳{product.price}
-                    </p>
+                    <PriceDisplay value={product.price} className="text-base md:text-lg font-bold text-pink-600" />
                   </div>
                 </a>
               ))}
@@ -1023,7 +1022,7 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
                 </div>
                 <h4 className="font-bold text-lg">{selectedReel.product.name}</h4>
                 <div className="flex items-center gap-2 mt-2">
-                  <span className="text-xl font-bold text-pink-600">৳{selectedReel.product.price}</span>
+                  <PriceDisplay value={selectedReel.product.price} className="text-xl font-bold text-pink-600" />
                   <button className="w-full mt-2 bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-full transition-colors">
                     Add to Cart
                   </button>
@@ -1048,7 +1047,7 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
                 <img src={selectedReel.product.image} alt={selectedReel.product.name} className="w-16 h-16 rounded-lg object-cover" />
                 <div className="flex-1">
                   <p className="font-semibold text-sm">{selectedReel.product.name}</p>
-                  <p className="text-pink-600 font-bold">৳{selectedReel.product.price}</p>
+                  <PriceDisplay value={selectedReel.product.price} className="text-pink-600 font-bold" />
                 </div>
                 <button className="bg-pink-600 hover:bg-pink-700 text-white p-2 rounded-full transition-colors">
                   <ShoppingCart className="w-4 h-4" />
@@ -1164,12 +1163,7 @@ function FeaturedCollection({ products, onQuickView, onAddToCart }: { products: 
                         <span className="text-sm text-gray-500">({product.reviews})</span>
                       </div>
                       <div className="product-grid-item__price flex items-center gap-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg font-bold text-gray-900">৳{product.price}</span>
-                          {product.originalPrice && (
-                            <span className="text-sm text-gray-400 line-through">৳{product.originalPrice}</span>
-                          )}
-                        </div>
+                        <PriceDisplay value={product.price} originalPrice={product.originalPrice} className="flex items-center gap-2" />
                       </div>
                     </div>
                     <button
@@ -1245,10 +1239,7 @@ function MosaicGrid({ products, onQuickView, onAddToCart }: { products: Product[
                       <span className="text-sm text-gray-500">({product.reviews})</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-lg font-bold text-gray-900">৳{product.price}</span>
-                      {product.originalPrice && (
-                        <span className="text-sm text-gray-400 line-through">৳{product.originalPrice}</span>
-                      )}
+                      <PriceDisplay value={product.price} originalPrice={product.originalPrice} />
                     </div>
                   </div>
                   <button

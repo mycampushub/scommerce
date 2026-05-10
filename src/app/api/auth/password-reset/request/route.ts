@@ -4,13 +4,26 @@ import { requestPasswordResetSchema } from '@/lib/validations';
 import { UserRepository } from '@/db/user.repository';
 import { getEnv } from '@/lib/cloudflare';
 import { generateId } from '@/db/db';
+import { rateLimit, createRateLimitResponse, getClientIp } from '@/lib/rate-limit';
 
 // Token expiry time (1 hour)
 const TOKEN_EXPIRY_HOURS = 1;
 
-
 export async function POST(request: NextRequest) {
-  const env = getEnv()
+  const env = getEnv();
+  
+  // Apply rate limiting to prevent abuse
+  const clientIp = getClientIp(request);
+  const rateLimitKey = `password-reset-request:${clientIp}`;
+  const rateLimitResult = await rateLimit(env, rateLimitKey, {
+    maxRequests: 3,
+    windowMs: 60 * 60 * 1000, // 1 hour window
+  });
+
+  if (!rateLimitResult.success) {
+    return createRateLimitResponse(rateLimitResult);
+  }
+
   try {
     const body = await request.json() as any;
 
@@ -71,7 +84,6 @@ export async function POST(request: NextRequest) {
     // - Resend, SendGrid, or similar email service
     // Example with a mock email service:
     // await sendPasswordResetEmail(email, resetToken);
-
     // For development/testing, we'll log the reset link
     const resetLink = `${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
     logger.info('Password reset link generated (development mode)', {
@@ -82,7 +94,6 @@ export async function POST(request: NextRequest) {
 
     // In production, don't include the reset link in the response
     const isDevelopment = process.env.NODE_ENV === 'development';
-
     return NextResponse.json({
       success: true,
       message: 'If an account with that email exists, a password reset link will be sent.',
@@ -92,7 +103,6 @@ export async function POST(request: NextRequest) {
     logger.logApiError('POST', '/api/auth/password-reset/request', error as Error, 500, undefined, undefined, {
       action: 'request_password_reset',
     });
-
     return NextResponse.json(
       {
         success: false,

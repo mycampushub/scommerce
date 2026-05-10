@@ -3,6 +3,7 @@ import { getEnv } from '@/lib/cloudflare'
 import { verifyAdminAuth } from '@/lib/admin-auth'
 import { queryAll, execute, queryFirst, generateId, now, parseJSON, stringifyJSON, boolToNumber, numberToBool } from '@/db/db'
 import { csrfMiddleware } from '@/lib/csrf'
+import { getClientIp, rateLimit, createRateLimitResponse } from '@/lib/rate-limit'
 
 
 // Default homepage settings
@@ -84,6 +85,18 @@ export async function PUT(request: NextRequest) {
   const csrfError = await csrfMiddleware(request, env)
   if (csrfError) {
     return csrfError
+  }
+
+  // Rate limiting: 10 requests per minute per admin
+  const clientIp = getClientIp(request);
+  const rateLimitKey = `admin-settings:${clientIp}`;
+  const rateLimitResult = await rateLimit(env, rateLimitKey, {
+    maxRequests: 10,
+    windowMs: 60 * 1000, // 1 minute window
+  });
+
+  if (!rateLimitResult.success) {
+    return createRateLimitResponse(rateLimitResult);
   }
 
   try {

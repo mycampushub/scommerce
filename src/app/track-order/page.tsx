@@ -7,6 +7,7 @@ import { Header } from '@/components/header'
 import { Footer } from '@/components/footer'
 import { MobileBottomNav } from '@/components/mobile-bottom-nav'
 import { useToast } from '@/hooks/use-toast'
+import { PriceDisplay } from '@/components/price-display'
 
 interface TrackingTimeline {
   status: string
@@ -377,7 +378,7 @@ export default function TrackOrderPage() {
                           <p className="text-sm text-gray-500">Quantity: {item.quantity}</p>
                         </div>
                         <p className="font-semibold text-pink-600">
-                          ৳{(item.price * item.quantity).toFixed(2)}
+                          <PriceDisplay value={item.price * item.quantity} />
                         </p>
                       </div>
                     ))}

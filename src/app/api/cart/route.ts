@@ -7,6 +7,12 @@ import { parseJSON, queryFirst, queryAll } from '@/db/db';
 import { csrfMiddleware } from '@/lib/csrf';
 import { sanitizeForDB } from '@/lib/sanitize';
 import { addCacheHeaders, CachePresets } from '@/lib/http-cache';
+import {
+  reserveStock,
+  releaseStock,
+  cleanupExpiredReservations,
+  getUserReservations,
+} from '@/db/inventory-reservation.repository';
 
 
 /**
@@ -29,10 +35,21 @@ export async function GET(request: NextRequest) {
       if (payload && payload.userId) {
         const cartItems = await CartRepository.findByUserId(env, payload.userId);
 
-        // Transform to match cart store format
-        const formattedItems = await Promise.all(cartItems.map(async (item) => {
-          // Fetch product details
-          const product = await queryFirst<{
+        // Batch fetch all products to avoid N+1 queries
+        const productIds = cartItems.map(item => item.productId);
+        const productsMap = new Map<string, {
+          id: string;
+          name: string;
+          basePrice: number;
+          comparePrice: number | null;
+          images: string;
+          stock: number;
+          isActive: number;
+        }>();
+
+        if (productIds.length > 0) {
+          const placeholders = productIds.map(() => '?').join(',');
+          const products = await queryAll<{
             id: string;
             name: string;
             basePrice: number;
@@ -42,31 +59,46 @@ export async function GET(request: NextRequest) {
             isActive: number;
           }>(
             env,
-            'SELECT id, name, basePrice, comparePrice, images, stock, isActive FROM products WHERE id = ? LIMIT 1',
-            item.productId
+            `SELECT id, name, basePrice, comparePrice, images, stock, isActive FROM products WHERE id IN (${placeholders})`,
+            ...productIds
           );
+          products.forEach(p => productsMap.set(p.id, p));
+        }
 
+        // Batch fetch all variants to avoid N+1 queries
+        const variantIds = cartItems.map(item => item.variantId).filter(Boolean) as string[];
+        const variantsMap = new Map<string, {
+          id: string;
+          sku: string | null;
+          size: string | null;
+          color: string | null;
+          material: string | null;
+          productId: string;
+        }>();
+
+        if (variantIds.length > 0) {
+          const placeholders = variantIds.map(() => '?').join(',');
+          const variants = await queryAll<{
+            id: string;
+            sku: string | null;
+            size: string | null;
+            color: string | null;
+            material: string | null;
+            productId: string;
+          }>(
+            env,
+            `SELECT id, sku, size, color, material, productId FROM product_variants WHERE id IN (${placeholders})`,
+            ...variantIds
+          );
+          variants.forEach(v => variantsMap.set(v.id, v));
+        }
+
+        // Transform to match cart store format
+        const formattedItems = cartItems.map(item => {
+          const product = productsMap.get(item.productId);
           if (!product) return null;
 
-          // Fetch variant details if variantId exists
-          const variant: {
-            id: string;
-            sku: string | null;
-            size: string | null;
-            color: string | null;
-            material: string | null;
-          } | null = item.variantId ? await queryFirst<{
-            id: string;
-            sku: string | null;
-            size: string | null;
-            color: string | null;
-            material: string | null;
-          }>(
-              env,
-              'SELECT id, sku, size, color, material FROM product_variants WHERE id = ? LIMIT 1',
-              item.variantId
-            ) : null;
-
+          const variant = item.variantId ? variantsMap.get(item.variantId) : null;
           const images = parseJSON<string[]>(product.images) || [];
 
           return {
@@ -82,7 +114,7 @@ export async function GET(request: NextRequest) {
             color: variant?.color || null,
             material: variant?.material || null,
           };
-        }));
+        });
 
         const validItems = formattedItems.filter(item => item !== null);
 
@@ -169,6 +201,49 @@ export async function POST(request: NextRequest) {
           );
         }
 
+        // Clean up expired reservations before adding
+        await cleanupExpiredReservations(env);
+
+        // Reserve stock for 30 minutes
+        const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
+
+        // Check stock availability and reserve
+        const reservation = await reserveStock(env, {
+          variantId: item.variantId,
+          productId: item.productId,
+          userId,
+          quantity: item.quantity || 1,
+          expiresAt,
+        });
+
+        if (!reservation) {
+          // Stock not available
+          const stockCheck = item.variantId
+            ? await queryFirst<{ stock: number; name: string; sku: string | null }>(
+                env,
+                'SELECT pv.stock, p.name, pv.sku FROM product_variants pv JOIN products p ON pv.productId = p.id WHERE pv.id = ? LIMIT 1',
+                item.variantId
+              )
+            : await queryFirst<{ stock: number; name: string }>(
+                env,
+                'SELECT stock, name FROM products WHERE id = ? LIMIT 1',
+                item.productId
+              );
+
+          const itemName = stockCheck
+            ? `${stockCheck.name}${(stockCheck as any).sku ? ` (${(stockCheck as any).sku})` : ''}`
+            : 'Item';
+
+          return NextResponse.json(
+            {
+              success: false,
+              error: `Sorry, ${itemName} is out of stock or insufficient quantity available`,
+              stockAvailable: stockCheck?.stock || 0,
+            },
+            { status: 409 }
+          );
+        }
+
         // Add item to cart using repository
         const cartItem = await CartRepository.addItem(env, {
           userId,
@@ -226,6 +301,16 @@ export async function POST(request: NextRequest) {
             { status: 404 }
           );
         }
+
+        // Release stock reservation
+        await env.DB.prepare(
+          `DELETE FROM inventory_reservations
+           WHERE userId = ?
+             AND ((productId = ? AND variantId IS NULL)
+                  OR (variantId = ? AND productId IS NULL))`
+        )
+          .bind(userId, item.productId!, item.variantId || null)
+          .run();
 
         // Remove cart item
         await CartRepository.removeItem(env, existingItemRemove.id);

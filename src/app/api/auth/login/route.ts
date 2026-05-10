@@ -6,6 +6,7 @@ import { loginSchema } from '@/lib/validations';
 import { UserRepository } from '@/db/user.repository';
 import { getEnv } from '@/lib/cloudflare';
 import { numberToBool } from '@/db/db';
+import { CartRepository } from '@/db/cart.repository';
 import type { Env } from '@/db/types';
 
 export async function POST(request: NextRequest) {
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
 
   const clientIp = getClientIp(request);
   const body = await request.json() as any;
-  const { email, password } = body;
+  const { email, password, guestCart } = body;
   const rateLimitKey = `login:${clientIp}:${email || 'unknown'}`;
   const rateLimitResult = await rateLimit(env, rateLimitKey, {
     maxRequests: 5,
@@ -103,9 +104,45 @@ export async function POST(request: NextRequest) {
       role: user.role,
     });
 
+    // Sync guest cart to database if provided
+    let syncedCartCount = 0;
+    if (guestCart && Array.isArray(guestCart) && guestCart.length > 0) {
+      try {
+        // Get existing cart items for user
+        const existingCartItems = await CartRepository.findByUserId(env, user.id);
+
+        for (const guestItem of guestCart) {
+          // Check if item already exists in user's cart
+          const existingItem = existingCartItems.find(
+            (item) =>
+              item.productId === guestItem.id &&
+              (!guestItem.variantId || item.variantId === guestItem.variantId)
+          );
+
+          if (existingItem) {
+            // Update quantity
+            await CartRepository.updateQuantity(env, existingItem.id, guestItem.quantity);
+          } else {
+            // Add new item
+            await CartRepository.addItem(env, {
+              userId: user.id,
+              productId: guestItem.id,
+              variantId: guestItem.variantId,
+              quantity: guestItem.quantity || 1,
+            });
+          }
+          syncedCartCount++;
+        }
+      } catch (error) {
+        console.error('[login] Error syncing guest cart:', error);
+        // Don't fail login if cart sync fails
+      }
+    }
+
     const response = NextResponse.json({
       success: true,
       data: { user: { id: user.id, email: user.email, name: user.name, role: user.role }, token },
+      syncedCart: syncedCartCount,
     });
 
     // Set session cookie with settings compatible with Cloudflare Workers

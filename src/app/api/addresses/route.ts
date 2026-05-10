@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
       addressLine2: body.addressLine2 ? sanitizeForDB(body.addressLine2) : null,
       city: sanitizeForDB(body.city),
       district: body.district ? sanitizeForDB(body.district) : null,
-      division: sanitizeForDB(body.division),
+      division: body.division ? sanitizeForDB(body.division) : null,
       postalCode: body.postalCode ? sanitizeForDB(body.postalCode) : null,
     }
 
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
       sanitizedBody.addressLine2 || null,
       sanitizedBody.city,
       sanitizedBody.district || null,
-      sanitizedBody.division,
+      sanitizedBody.division || null,
       sanitizedBody.postalCode || null,
       boolToNumber(sanitizedBody.isDefault || false),
       currentTime,

@@ -9,15 +9,174 @@ import { Header } from '@/components/header'
 import { Footer } from '@/components/footer'
 import { MobileBottomNav } from '@/components/mobile-bottom-nav'
 import { useToast } from '@/hooks/use-toast'
+import { useAuth } from '@/hooks/use-auth'
+import { PriceDisplay } from '@/components/price-display'
 
 export default function CartPage() {
-  const { items, updateQuantity, removeItem, getSubtotal, getTotal } = useCartStore()
+  const { user } = useAuth()
+  const localItems = useCartStore(state => state.items)
+  const localUpdateQuantity = useCartStore(state => state.updateQuantity)
+  const localRemoveItem = useCartStore(state => state.removeItem)
+  const localGetSubtotal = useCartStore(state => state.getSubtotal)
+  const localGetTotal = useCartStore(state => state.getTotal)
+  const clearLocalCart = useCartStore(state => state.clearCart)
+  const addItem = useCartStore(state => state.addItem)
+
+  const [items, setItems] = useState(localItems)
+  const [loading, setLoading] = useState(true)
+  const updateQuantity = async (id: string, quantity: number, variantId?: string) => {
+    if (quantity < 1) return
+
+    // For authenticated users, update server cart
+    if (user) {
+      try {
+        const response = await fetch('/api/cart', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'update',
+            item: { productId: id, variantId, quantity },
+          }),
+        })
+
+        const data = await response.json() as any
+        if (data.success) {
+          // Update local state
+          setItems(prev =>
+            prev.map(item => {
+              if (variantId) {
+                return item.variantId === variantId
+                  ? { ...item, quantity }
+                  : item
+              }
+              return item.id === id && !item.variantId
+                ? { ...item, quantity }
+                : item
+            })
+          )
+        } else {
+          throw new Error(data.error || 'Failed to update cart')
+        }
+      } catch (error) {
+        console.error('[Cart] Error updating server cart:', error)
+        toast({
+          title: 'Error',
+          description: 'Failed to update cart. Please try again.',
+          variant: 'destructive',
+        })
+      }
+    } else {
+      // For guest users, update local storage
+      localUpdateQuantity(id, quantity, variantId)
+    }
+  }
+
+  const removeItem = async (id: string, variantId?: string) => {
+    // For authenticated users, update server cart
+    if (user) {
+      try {
+        const response = await fetch('/api/cart', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'remove',
+            item: { productId: id, variantId },
+          }),
+        })
+
+        const data = await response.json() as any
+        if (data.success) {
+          // Update local state
+          setItems(prev =>
+            prev.filter(item => {
+              if (variantId) {
+                return !(item.variantId === variantId)
+              }
+              return !(item.id === id && !item.variantId)
+            })
+          )
+        } else {
+          throw new Error(data.error || 'Failed to remove item')
+        }
+      } catch (error) {
+        console.error('[Cart] Error removing from server cart:', error)
+        toast({
+          title: 'Error',
+          description: 'Failed to remove item. Please try again.',
+          variant: 'destructive',
+        })
+      }
+    } else {
+      // For guest users, update local storage
+      localRemoveItem(id, variantId)
+    }
+  }
+
+  // Calculate subtotal from current items state
+  const getSubtotal = () => {
+    return items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  }
+
+  // Calculate total with shipping from current items state
+  const getTotal = () => {
+    const subtotal = getSubtotal()
+    const shipping = subtotal > freeShippingThreshold ? 0 : baseShippingCost
+    return subtotal + shipping
+  }
+
   const [promoCode, setPromoCode] = useState('')
   const [appliedDiscount, setAppliedDiscount] = useState<{ amount: number; code: string } | null>(null)
   const [isApplyingPromo, setIsApplyingPromo] = useState(false)
   const { toast } = useToast()
   const [freeShippingThreshold, setFreeShippingThreshold] = useState(5000)
   const [baseShippingCost, setBaseShippingCost] = useState(150)
+
+  // Fetch cart from server for authenticated users
+  useEffect(() => {
+    const fetchServerCart = async () => {
+      // If user is authenticated, fetch cart from server
+      if (user) {
+        try {
+          const response = await fetch('/api/cart')
+          const data = await response.json() as any
+
+          if (data.success && data.source === 'database' && data.items) {
+            // Transform server items to match cart store format
+            const transformedItems = data.items.map((item: any) => ({
+              id: item.id,
+              name: item.name,
+              price: item.price,
+              originalPrice: item.originalPrice,
+              image: item.image,
+              variantId: item.variantId,
+              variantSku: item.variantSku,
+              size: item.size,
+              color: item.color,
+              material: item.material,
+              quantity: item.quantity,
+            }))
+
+            // Clear local storage cart and use server cart
+            setItems(transformedItems)
+            // Clear localStorage to prevent duplication
+            clearLocalCart()
+            console.log('[Cart] Loaded from server:', transformedItems.length, 'items')
+          }
+        } catch (error) {
+          console.error('[Cart] Error fetching server cart:', error)
+          // Fall back to local storage
+          setItems(localItems)
+        }
+      } else {
+        // Not authenticated, use local storage
+        setItems(localItems)
+      }
+      setLoading(false)
+    }
+
+    // Only fetch on initial mount and when user changes
+    fetchServerCart()
+  }, [user])
 
   // Fetch site settings for shipping thresholds
   useEffect(() => {
@@ -102,6 +261,15 @@ export default function CartPage() {
     setAppliedDiscount(null)
   }
 
+  // Show loading state while fetching cart
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600"></div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
@@ -168,10 +336,7 @@ export default function CartPage() {
                               {item.color && <span>Color: {item.color}</span>}
                             </p>
                             <div className="flex items-center gap-2 mb-2">
-                              <span className="text-lg font-bold text-gray-900">{formatCurrency(item.price)}</span>
-                              {item.originalPrice && (
-                                <span className="text-sm text-gray-400 line-through">{formatCurrency(item.originalPrice)}</span>
-                              )}
+                              <PriceDisplay value={item.price} originalPrice={item.originalPrice} showDecimals={false} />
                             </div>
                           </div>
                           <button
@@ -254,10 +419,7 @@ export default function CartPage() {
                             </button>
                           </div>
                           <div className="flex items-center gap-1.5 flex-shrink-0">
-                            <span className="text-sm font-bold text-gray-900">{formatCurrency(item.price)}</span>
-                            {item.originalPrice && (
-                              <span className="text-xs text-gray-400 line-through">{formatCurrency(item.originalPrice)}</span>
-                            )}
+                            <PriceDisplay value={item.price} originalPrice={item.originalPrice} showDecimals={false} />
                           </div>
                         </div>
                       </div>
@@ -274,13 +436,13 @@ export default function CartPage() {
                   <div className="space-y-4 mb-6">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Subtotal</span>
-                      <span className="font-semibold">{formatCurrency(subtotal)}</span>
+                      <PriceDisplay value={subtotal} showDecimals={false} />
                     </div>
                     {(discount > 0 || appliedDiscount) && (
                       <div className="flex justify-between text-green-600">
                         <span>Discount</span>
                         <span className="font-semibold">
-                          -{formatCurrency(appliedDiscount ? appliedDiscount.amount : discount)}
+                          -<PriceDisplay value={appliedDiscount ? appliedDiscount.amount : discount} showDecimals={false} />
                           {appliedDiscount && ` (${appliedDiscount.code})`}
                         </span>
                       </div>
@@ -288,12 +450,12 @@ export default function CartPage() {
                     <div className="flex justify-between">
                       <span className="text-gray-600">Shipping</span>
                       <span className="font-semibold">
-                        {shipping === 0 ? 'FREE' : formatCurrency(shipping)}
+                        {shipping === 0 ? 'FREE' : <PriceDisplay value={shipping} showDecimals={false} />}
                       </span>
                     </div>
                     <div className="border-t border-gray-200 pt-4 flex justify-between">
                       <span className="text-lg font-bold text-gray-900">Total</span>
-                      <span className="text-lg font-bold text-pink-600">{formatCurrency(total)}</span>
+                      <PriceDisplay value={total} showDecimals={false} className="text-lg font-bold text-pink-600" />
                     </div>
                   </div>
 
@@ -337,11 +499,11 @@ export default function CartPage() {
                     <div className="flex items-start gap-3">
                       <Check className="w-5 h-5 text-pink-600 flex-shrink-0 mt-0.5" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 mb-1">Free Shipping on Orders Over {formatCurrency(freeShippingThreshold)}</p>
+                        <p className="text-sm font-medium text-gray-900 mb-1">Free Shipping on Orders Over <PriceDisplay value={freeShippingThreshold} showDecimals={false} /></p>
                         <p className="text-sm text-gray-600">
                           {subtotal >= freeShippingThreshold
                             ? "You've qualified for free shipping!"
-                            : `Add ${formatCurrency(freeShippingThreshold - subtotal)} more to qualify`
+                            : <>Add <PriceDisplay value={freeShippingThreshold - subtotal} showDecimals={false} /> more to qualify</>
                           }
                         </p>
                       </div>

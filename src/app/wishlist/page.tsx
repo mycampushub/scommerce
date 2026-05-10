@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { useWishlist, useRemoveFromWishlist, type WishlistItem } from '@/hooks/use-wishlist'
+import { PriceDisplay } from '@/components/price-display'
 
 export default function WishlistPage() {
   const { user, isAuthenticated } = useAuth()
@@ -333,11 +334,11 @@ export default function WishlistPage() {
                       {/* Price */}
                       <div className="flex items-baseline gap-2 mb-3 sm:mb-4">
                         <span className="text-base sm:text-lg font-bold text-gray-900">
-                          ৳{item.product.price.toLocaleString()}
+                          <PriceDisplay value={item.product.price} />
                         </span>
                         {item.product.comparePrice && (
                           <span className="text-xs sm:text-sm text-gray-400 line-through">
-                            ৳{item.product.comparePrice.toLocaleString()}
+                            <PriceDisplay value={item.product.comparePrice} />
                           </span>
                         )}
                       </div>

@@ -9,6 +9,7 @@ import { ServiceWorkerHandler } from "@/components/service-worker-handler";
 
 import { CacheProvider } from "@/components/providers/CacheProvider";
 import { QueryProvider } from "@/components/providers/query-provider";
+import { SettingsProvider } from "@/contexts/SettingsContext";
 
 const inter = Inter({
   variable: "--font-geist-sans",
@@ -88,15 +89,17 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} antialiased bg-background text-foreground`}
       >
-        <QueryProvider>
-          <CacheProvider>
-            <AnalyticsScripts />
-            <ServiceWorkerHandler />
-            {children}
-            <Toaster />
-            <SonnerToaster position="top-center" />
-          </CacheProvider>
-        </QueryProvider>
+        <SettingsProvider>
+          <QueryProvider>
+            <CacheProvider>
+              <AnalyticsScripts />
+              <ServiceWorkerHandler />
+              {children}
+              <Toaster />
+              <SonnerToaster position="top-center" />
+            </CacheProvider>
+          </QueryProvider>
+        </SettingsProvider>
       </body>
     </html>
   );

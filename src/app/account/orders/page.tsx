@@ -13,6 +13,7 @@ import { Footer } from '@/components/footer'
 import { MobileBottomNav } from '@/components/mobile-bottom-nav'
 import { useAuth } from '@/hooks/use-auth'
 import { useOrders, useCancelOrder, type Order, type OrderItem } from '@/hooks/use-orders'
+import { PriceDisplay } from '@/components/price-display'
 
 function OrdersPage() {
   const [searchTerm, setSearchTerm] = useState('')
@@ -238,7 +239,7 @@ function OrdersPage() {
                       <div className="text-right">
                         <p className="text-sm text-gray-500">Total</p>
                         <p className="text-lg font-bold text-pink-600">
-                          ৳{order.total.toFixed(2)}
+                          <PriceDisplay value={order.total} />
                         </p>
                       </div>
                     </div>
