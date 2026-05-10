@@ -7,6 +7,7 @@ import {
   queryAll,
   execute,
   stringifyJSON,
+  parseJSON,
 } from '@/db/db';
 
 export class StoryRepository {
@@ -14,12 +15,21 @@ export class StoryRepository {
    * Find story by ID
    */
   static async findById(env: Env | null, id: string): Promise<Story | null> {
-    const story = await queryFirst<Story>(
+    const story = await queryFirst<any>(
       env,
       'SELECT * FROM stories WHERE id = ? LIMIT 1',
       id
     );
-    return story;
+    if (!story) return null;
+
+    // Parse JSON fields
+    return {
+      ...story,
+      images: parseJSON<string[]>(story.images) || [],
+      isActive: typeof story.isActive === 'boolean' ? story.isActive : Boolean(story.isActive),
+      order: story.order || story.orderNum,
+      orderNum: story.order || story.orderNum
+    };
   }
 
   /**
@@ -106,22 +116,36 @@ export class StoryRepository {
    * Get all active stories
    */
   static async findAllActive(env : Env | null): Promise<Story[]> {
-    const stories = await queryAll<Story>(
+    const stories = await queryAll<any>(
       env,
       'SELECT * FROM stories WHERE isActive = 1 ORDER BY "order" ASC, createdAt DESC'
     );
-    return stories;
+    // Parse JSON fields for each story
+    return stories.map(story => ({
+      ...story,
+      images: parseJSON<string[]>(story.images) || [],
+      isActive: typeof story.isActive === 'boolean' ? story.isActive : Boolean(story.isActive),
+      order: story.order || story.orderNum,
+      orderNum: story.order || story.orderNum
+    }));
   }
 
   /**
    * Get all stories (with pagination)
    */
   static async findAll(env : Env | null): Promise<Story[]> {
-    const stories = await queryAll<Story>(
+    const stories = await queryAll<any>(
       env,
       'SELECT * FROM stories ORDER BY "order" ASC, createdAt DESC'
     );
-    return stories;
+    // Parse JSON fields for each story
+    return stories.map(story => ({
+      ...story,
+      images: parseJSON<string[]>(story.images) || [],
+      isActive: typeof story.isActive === 'boolean' ? story.isActive : Boolean(story.isActive),
+      order: story.order || story.orderNum,
+      orderNum: story.order || story.orderNum
+    }));
   }
 
   /**

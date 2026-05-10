@@ -211,7 +211,7 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0 rounded-xl">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0 rounded-lg">
         <DialogHeader className="sr-only">
           <DialogTitle>Quick View - {product.name}</DialogTitle>
           <DialogDescription className="sr-only">
@@ -222,18 +222,18 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
         <button
           onClick={() => onOpenChange(false)}
           aria-label="Close quick view"
-          className="absolute right-4 top-4 z-10 min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-white/90 backdrop-blur-sm shadow-md flex items-center justify-center hover:bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2"
+          className="absolute right-3 top-3 z-10 h-9 w-9 rounded-full bg-white/90 backdrop-blur-sm shadow-md flex items-center justify-center hover:bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2"
         >
-          <X className="w-5 h-5" />
+          <X className="w-4 h-4" />
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
           {/* Product Image */}
-          <div className="relative bg-gray-50 p-4 lg:p-8">
-            <div className="space-y-4">
-              <div className="relative max-w-[350px] mx-auto aspect-[3/4] rounded-xl overflow-hidden bg-white shadow-sm">
+          <div className="relative bg-gray-50 p-4">
+            <div className="space-y-3">
+              <div className="relative max-w-[320px] mx-auto aspect-[3/4] rounded-lg overflow-hidden bg-white shadow-sm">
                 {product.badge && (
-                  <span className="absolute top-4 left-4 z-10 bg-pink-600 text-white text-sm px-3 py-1 rounded-full font-medium shadow-sm">
+                  <span className="absolute top-3 left-3 z-10 bg-pink-600 text-white text-xs px-2.5 py-1 rounded-full font-medium shadow-sm">
                     {product.badge}
                   </span>
                 )}
@@ -245,22 +245,22 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
                 <button
                   onClick={() => setIsWishlisted(!isWishlisted)}
                   aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
-                  className="absolute top-4 right-4 min-w-[44px] min-h-[44px] w-11 h-11 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md hover:bg-pink-600 hover:text-white transition-all focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2"
+                  className="absolute top-3 right-3 h-9 w-9 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md hover:bg-pink-600 hover:text-white transition-all focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2"
                 >
-                  <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-pink-600 text-pink-600' : ''}`} />
+                  <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-pink-600 text-pink-600' : ''}`} />
                 </button>
               </div>
               {/* Thumbnail Gallery */}
               {currentImages.length > 1 && (
-                <div className="flex gap-3 justify-center overflow-x-auto pb-2">
+                <div className="flex gap-2 justify-center overflow-x-auto pb-2">
                   {currentImages.map((img, idx) => (
                     <button
                       key={idx}
                       onClick={() => setSelectedImageIndex(idx)}
                       aria-label={`View image ${idx + 1} of ${currentImages.length}`}
-                      className={`flex-shrink-0 min-w-[80px] min-h-[80px] w-20 h-20 rounded-lg overflow-hidden border-2 transition-all focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2 ${
+                      className={`flex-shrink-0 w-14 h-14 rounded-md overflow-hidden border-2 transition-all focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2 ${
                         selectedImageIndex === idx
-                          ? 'border-pink-600 ring-2 ring-pink-200'
+                          ? 'border-pink-600 ring-1 ring-pink-200'
                           : 'border-gray-200 hover:border-pink-400'
                       }`}
                     >
@@ -277,21 +277,21 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
           </div>
 
           {/* Product Details */}
-          <div className="p-6 lg:p-8 flex flex-col">
-            <div className="mb-4">
+          <div className="p-5 flex flex-col">
+            <div className="mb-3">
               {product.category && (
-                <p className="text-sm text-pink-600 font-medium mb-2">{product.category}</p>
+                <p className="text-xs text-pink-600 font-medium mb-1.5">{product.category}</p>
               )}
-              <h2 className="text-2xl lg:text-3xl font-bold text-gray-900">{product.name}</h2>
+              <h2 className="text-xl font-semibold text-gray-900">{product.name}</h2>
             </div>
 
             {/* Rating */}
-            <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-2 mb-3">
               <div className="flex">
                 {[...Array(5)].map((_, i) => (
                   <Star
                     key={i}
-                    className={`w-5 h-5 ${
+                    className={`w-4 h-4 ${
                       i < Math.floor(product.rating)
                         ? 'fill-yellow-400 text-yellow-400'
                         : 'text-gray-300'
@@ -299,70 +299,68 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
                   />
                 ))}
               </div>
-              <span className="text-sm text-gray-600">
+              <span className="text-xs text-gray-600">
                 {product.rating} ({product.reviews} reviews)
               </span>
             </div>
 
             {/* Price */}
-            <div className="flex items-baseline gap-3 mb-4">
+            <div className="flex items-baseline gap-2 mb-3">
               <PriceDisplay
                 value={currentPrice}
                 originalPrice={currentComparePrice}
                 showDecimals={false}
-                className="text-3xl font-bold text-gray-900"
+                className="text-2xl font-bold text-gray-900"
               />
               {currentComparePrice && (
-                <span className="text-sm text-pink-600 font-medium">
+                <span className="text-xs text-pink-600 font-medium">
                   {discountPercentage}% OFF
                 </span>
               )}
             </div>
 
             {/* Stock Status */}
-            <div className="flex items-center gap-2 mb-6">
+            <div className="flex items-center gap-2 mb-4">
               {currentStock > 0 ? (
                 <>
-                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                  <span className="text-green-600 font-medium">
+                  <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                  <span className="text-xs text-green-600 font-medium">
                     In Stock ({currentStock} available)
                   </span>
                 </>
               ) : (
                 <>
-                  <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-                  <span className="text-red-600 font-medium">Out of Stock</span>
+                  <span className="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
+                  <span className="text-xs text-red-600 font-medium">Out of Stock</span>
                 </>
               )}
             </div>
 
             {/* Variant Selectors */}
             {hasVariants && (
-              <div className="space-y-6 mb-6">
+              <div className="space-y-4 mb-4">
                 {loadingVariants ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="w-8 h-8 text-pink-600 animate-spin" />
+                  <div className="flex items-center justify-center py-6">
+                    <Loader2 className="w-6 h-6 text-pink-600 animate-spin" />
                   </div>
                 ) : (
                   <>
                     {/* Size Selection */}
                     {availableSizes.length > 0 && (
                       <div>
-                        <h3 className="font-semibold text-gray-900 mb-3">Size: <span className="text-pink-600">{selectedSize || 'Select'}</span></h3>
+                        <h3 className="text-sm font-medium text-gray-900 mb-2">Size: <span className="text-pink-600 text-sm">{selectedSize || 'Select'}</span></h3>
                         <div className="flex flex-wrap gap-2">
                           {availableSizes.map((size) => (
                             <button
                               key={size}
                               onClick={() => handleVariantSelection(size, selectedColor, selectedMaterial)}
-                              className={`min-h-[44px] w-20 px-3 py-3 rounded-lg border-2 font-medium transition-all focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2 ${
+                              className={`h-9 px-3 rounded-md border text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2 ${
                                 selectedSize === size
                                   ? 'border-pink-600 bg-pink-50 text-pink-600'
                                   : 'border-gray-300 text-gray-700 hover:border-pink-400 hover:bg-gray-50'
                               }`}
                             >
-                              <span className="transition-all">
-                                {size}
-                              </span>
+                              {size}
                             </button>
                           ))}
                         </div>
@@ -372,21 +370,19 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
                     {/* Color Selection */}
                     {availableColors.length > 0 && (
                       <div>
-                        <h3 className="font-semibold text-gray-900 mb-3">Color: <span className="text-pink-600">{selectedColor || 'Select'}</span></h3>
+                        <h3 className="text-sm font-medium text-gray-900 mb-2">Color: <span className="text-pink-600 text-sm">{selectedColor || 'Select'}</span></h3>
                         <div className="flex flex-wrap gap-2">
                           {availableColors.map((color) => (
                             <button
                               key={color}
                               onClick={() => handleVariantSelection(selectedSize, color, selectedMaterial)}
-                              className={`min-h-[44px] px-4 py-3 rounded-lg border-2 font-medium transition-all focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2 ${
+                              className={`h-9 px-3 rounded-md border text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2 ${
                                 selectedColor === color
                                   ? 'border-pink-600 bg-pink-50 text-pink-600'
                                   : 'border-gray-300 text-gray-700 hover:border-pink-400 hover:bg-gray-50'
                               }`}
                             >
-                              <span className="transition-all">
-                                {color}
-                              </span>
+                              {color}
                             </button>
                           ))}
                         </div>
@@ -396,21 +392,19 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
                     {/* Material Selection */}
                     {availableMaterials.length > 0 && (
                       <div>
-                        <h3 className="font-semibold text-gray-900 mb-3">Material: <span className="text-pink-600">{selectedMaterial || 'Select'}</span></h3>
+                        <h3 className="text-sm font-medium text-gray-900 mb-2">Material: <span className="text-pink-600 text-sm">{selectedMaterial || 'Select'}</span></h3>
                         <div className="flex flex-wrap gap-2">
                           {availableMaterials.map((material) => (
                             <button
                               key={material}
                               onClick={() => handleVariantSelection(selectedSize, selectedColor, material)}
-                              className={`min-h-[44px] px-4 py-3 rounded-lg border-2 font-medium transition-all focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2 ${
+                              className={`h-9 px-3 rounded-md border text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2 ${
                                 selectedMaterial === material
                                   ? 'border-pink-600 bg-pink-50 text-pink-600'
                                   : 'border-gray-300 text-gray-700 hover:border-pink-400 hover:bg-gray-50'
                               }`}
                             >
-                              <span className="transition-all">
-                                {material}
-                              </span>
+                              {material}
                             </button>
                           ))}
                         </div>
@@ -422,78 +416,78 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
             )}
 
             {/* Quantity */}
-            <div className="mb-6">
-              <h3 className="font-semibold text-gray-900 mb-3">Quantity</h3>
-              <div className="flex items-center gap-3">
+            <div className="mb-4">
+              <h3 className="text-sm font-medium text-gray-900 mb-2">Quantity</h3>
+              <div className="flex items-center gap-2">
                 <button
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
                   aria-label="Decrease quantity"
-                  className="min-w-[44px] min-h-[44px] w-12 h-12 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2"
+                  className="h-10 w-10 rounded-md border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2"
                 >
-                  <Minus className="w-5 h-5" />
+                  <Minus className="w-4 h-4" />
                 </button>
-                <span className="w-16 text-center text-xl font-semibold" aria-live="polite">{quantity}</span>
+                <span className="w-12 text-center text-base font-semibold" aria-live="polite">{quantity}</span>
                 <button
                   onClick={() => setQuantity(quantity + 1)}
                   aria-label="Increase quantity"
-                  className="min-w-[44px] min-h-[44px] w-12 h-12 rounded-lg border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2"
+                  className="h-10 w-10 rounded-md border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2"
                 >
-                  <Plus className="w-5 h-5" />
+                  <Plus className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
             {/* Action Buttons */}
-            <div className="flex flex-col gap-4 mb-6">
-              <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col gap-3 mb-4">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={handleAddToCart}
                   disabled={currentStock <= 0 || (hasVariants && !selectedVariant)}
-                  className={`min-h-[48px] flex-1 py-4 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2 ${
+                  className={`h-12 flex-1 rounded-lg font-semibold text-sm transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2 ${
                     currentStock <= 0 || (hasVariants && !selectedVariant)
                       ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       : 'bg-pink-600 text-white hover:bg-pink-700'
                   }`}
                 >
-                  <ShoppingCart className="w-5 h-5" />
+                  <ShoppingCart className="w-4 h-4" />
                   {currentStock <= 0 ? 'Out of Stock' : hasVariants && !selectedVariant ? 'Select a Variant' : 'Add to Cart'}
                 </button>
                 <button
                   onClick={() => setIsWishlisted(!isWishlisted)}
                   aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
-                  className={`min-h-[48px] w-full sm:w-auto px-8 py-4 rounded-xl font-semibold border-2 transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2 ${
+                  className={`h-12 w-full sm:w-auto px-6 rounded-lg font-semibold text-sm border-2 transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2 ${
                     isWishlisted
                       ? 'border-pink-600 text-pink-600'
                       : 'border-gray-300 text-gray-700 hover:border-gray-400'
                   }`}
                 >
-                  <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-pink-600' : ''}`} />
+                  <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-pink-600' : ''}`} />
                   <span className="hidden sm:inline">{isWishlisted ? 'Wishlisted' : 'Wishlist'}</span>
                 </button>
               </div>
             </div>
 
             {/* Features */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 border-t border-gray-200 mt-auto">
-              <div className="flex items-start gap-3">
-                <Truck className="w-6 h-6 text-pink-600 flex-shrink-0" />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t border-gray-200 mt-auto">
+              <div className="flex items-start gap-2">
+                <Truck className="w-5 h-5 text-pink-600 flex-shrink-0" />
                 <div>
-                  <h4 className="font-semibold text-gray-900">Free Shipping</h4>
-                  <p className="text-sm text-gray-600">On orders over <PriceDisplay value={freeShippingThreshold} showDecimals={false} /></p>
+                  <h4 className="text-sm font-medium text-gray-900">Free Shipping</h4>
+                  <p className="text-xs text-gray-600">On orders over <PriceDisplay value={freeShippingThreshold} showDecimals={false} /></p>
                 </div>
               </div>
-              <div className="flex items-start gap-3">
-                <Shield className="w-6 h-6 text-pink-600 flex-shrink-0" />
+              <div className="flex items-start gap-2">
+                <Shield className="w-5 h-5 text-pink-600 flex-shrink-0" />
                 <div>
-                  <h4 className="font-semibold text-gray-900">Secure Payment</h4>
-                  <p className="text-sm text-gray-600">100% secure checkout</p>
+                  <h4 className="text-sm font-medium text-gray-900">Secure Payment</h4>
+                  <p className="text-xs text-gray-600">100% secure checkout</p>
                 </div>
               </div>
-              <div className="flex items-start gap-3">
-                <RotateCcw className="w-6 h-6 text-pink-600 flex-shrink-0" />
+              <div className="flex items-start gap-2">
+                <RotateCcw className="w-5 h-5 text-pink-600 flex-shrink-0" />
                 <div>
-                  <h4 className="font-semibold text-gray-900">Easy Returns</h4>
-                  <p className="text-sm text-gray-600">30-day return policy</p>
+                  <h4 className="text-sm font-medium text-gray-900">Easy Returns</h4>
+                  <p className="text-xs text-gray-600">30-day return policy</p>
                 </div>
               </div>
             </div>

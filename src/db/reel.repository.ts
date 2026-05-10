@@ -7,6 +7,7 @@ import {
   queryAll,
   execute,
   stringifyJSON,
+  parseJSON,
 } from '@/db/db';
 
 export class ReelRepository {
@@ -14,12 +15,21 @@ export class ReelRepository {
    * Find reel by ID
    */
   static async findById(env: Env | null, id: string): Promise<Reel | null> {
-    const reel = await queryFirst<Reel>(
+    const reel = await queryFirst<any>(
       env,
       'SELECT * FROM reels WHERE id = ? LIMIT 1',
       id
     );
-    return reel;
+    if (!reel) return null;
+
+    // Parse JSON fields
+    return {
+      ...reel,
+      productIds: parseJSON<string[]>(reel.productIds) || [],
+      isActive: typeof reel.isActive === 'boolean' ? reel.isActive : Boolean(reel.isActive),
+      order: reel.order || reel.orderNum,
+      orderNum: reel.order || reel.orderNum
+    };
   }
 
   /**
@@ -112,22 +122,36 @@ export class ReelRepository {
    * Get all active reels
    */
   static async findAllActive(env : Env | null): Promise<Reel[]> {
-    const reels = await queryAll<Reel>(
+    const reels = await queryAll<any>(
       env,
       'SELECT * FROM reels WHERE isActive = 1 ORDER BY "order" ASC, createdAt DESC'
     );
-    return reels;
+    // Parse JSON fields for each reel
+    return reels.map(reel => ({
+      ...reel,
+      productIds: parseJSON<string[]>(reel.productIds) || [],
+      isActive: typeof reel.isActive === 'boolean' ? reel.isActive : Boolean(reel.isActive),
+      order: reel.order || reel.orderNum,
+      orderNum: reel.order || reel.orderNum
+    }));
   }
 
   /**
    * Get all reels (with pagination)
    */
   static async findAll(env : Env | null): Promise<Reel[]> {
-    const reels = await queryAll<Reel>(
+    const reels = await queryAll<any>(
       env,
       'SELECT * FROM reels ORDER BY "order" ASC, createdAt DESC'
     );
-    return reels;
+    // Parse JSON fields for each reel
+    return reels.map(reel => ({
+      ...reel,
+      productIds: parseJSON<string[]>(reel.productIds) || [],
+      isActive: typeof reel.isActive === 'boolean' ? reel.isActive : Boolean(reel.isActive),
+      order: reel.order || reel.orderNum,
+      orderNum: reel.order || reel.orderNum
+    }));
   }
 
   /**

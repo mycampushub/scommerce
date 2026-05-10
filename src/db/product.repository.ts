@@ -16,24 +16,42 @@ export class ProductRepository {
    * Find product by slug
    */
   static async findBySlug(env: Env | null, slug: string): Promise<Product | null> {
-    const product = await queryFirst<Product>(
+    const product = await queryFirst<any>(
       env,
       'SELECT * FROM products WHERE slug = ? AND isActive = 1 LIMIT 1',
       slug
     );
-    return product;
+    if (!product) return null;
+
+    // Parse JSON fields
+    return {
+      ...product,
+      images: parseJSON<string[]>(product.images) || [],
+      isActive: typeof product.isActive === 'boolean' ? product.isActive : Boolean(product.isActive),
+      isFeatured: typeof product.isFeatured === 'boolean' ? product.isFeatured : Boolean(product.isFeatured),
+      hasVariants: typeof product.hasVariants === 'boolean' ? product.hasVariants : Boolean(product.hasVariants)
+    };
   }
 
   /**
    * Find product by ID
    */
   static async findById(env: Env | null, id: string): Promise<Product | null> {
-    const product = await queryFirst<Product>(
+    const product = await queryFirst<any>(
       env,
       'SELECT * FROM products WHERE id = ? LIMIT 1',
       id
     );
-    return product;
+    if (!product) return null;
+
+    // Parse JSON fields
+    return {
+      ...product,
+      images: parseJSON<string[]>(product.images) || [],
+      isActive: typeof product.isActive === 'boolean' ? product.isActive : Boolean(product.isActive),
+      isFeatured: typeof product.isFeatured === 'boolean' ? product.isFeatured : Boolean(product.isFeatured),
+      hasVariants: typeof product.hasVariants === 'boolean' ? product.hasVariants : Boolean(product.hasVariants)
+    };
   }
 
   /**
@@ -195,25 +213,39 @@ export class ProductRepository {
    */
   static async findAllActive(env: Env | null, options: { limit?: number; offset?: number } = {}): Promise<Product[]> {
     const { limit = 50, offset = 0 } = options;
-    const products = await queryAll<Product>(
+    const products = await queryAll<any>(
       env,
       `SELECT * FROM products WHERE isActive = 1 ORDER BY createdAt DESC LIMIT ? OFFSET ?`,
       limit,
       offset
     );
-    return products;
+    // Parse JSON fields for each product
+    return products.map(product => ({
+      ...product,
+      images: parseJSON<string[]>(product.images) || [],
+      isActive: typeof product.isActive === 'boolean' ? product.isActive : Boolean(product.isActive),
+      isFeatured: typeof product.isFeatured === 'boolean' ? product.isFeatured : Boolean(product.isFeatured),
+      hasVariants: typeof product.hasVariants === 'boolean' ? product.hasVariants : Boolean(product.hasVariants)
+    }));
   }
 
   /**
    * Get featured products
    */
   static async findFeatured(env: Env | null, limit: number = 10): Promise<Product[]> {
-    const products = await queryAll<Product>(
+    const products = await queryAll<any>(
       env,
       `SELECT * FROM products WHERE isActive = 1 AND isFeatured = 1 ORDER BY createdAt DESC LIMIT ?`,
       limit
     );
-    return products;
+    // Parse JSON fields for each product
+    return products.map(product => ({
+      ...product,
+      images: parseJSON<string[]>(product.images) || [],
+      isActive: typeof product.isActive === 'boolean' ? product.isActive : Boolean(product.isActive),
+      isFeatured: typeof product.isFeatured === 'boolean' ? product.isFeatured : Boolean(product.isFeatured),
+      hasVariants: typeof product.hasVariants === 'boolean' ? product.hasVariants : Boolean(product.hasVariants)
+    }));
   }
 
   /**
@@ -225,21 +257,28 @@ export class ProductRepository {
     options: { limit?: number; offset?: number } = {}
   ): Promise<Product[]> {
     const { limit = 50, offset = 0 } = options;
-    const products = await queryAll<Product>(
+    const products = await queryAll<any>(
       env,
       `SELECT * FROM products WHERE categoryId = ? AND isActive = 1 ORDER BY createdAt DESC LIMIT ? OFFSET ?`,
       categoryId,
       limit,
       offset
     );
-    return products;
+    // Parse JSON fields for each product
+    return products.map(product => ({
+      ...product,
+      images: parseJSON<string[]>(product.images) || [],
+      isActive: typeof product.isActive === 'boolean' ? product.isActive : Boolean(product.isActive),
+      isFeatured: typeof product.isFeatured === 'boolean' ? product.isFeatured : Boolean(product.isFeatured),
+      hasVariants: typeof product.hasVariants === 'boolean' ? product.hasVariants : Boolean(product.hasVariants)
+    }));
   }
 
   /**
    * Search products
    */
   static async search(env: Env | null, query: string, limit: number = 20): Promise<Product[]> {
-    const products = await queryAll<Product>(
+    const products = await queryAll<any>(
       env,
       `SELECT * FROM products WHERE isActive = 1 AND (name LIKE ? OR description LIKE ?)
        ORDER BY createdAt DESC LIMIT ?`,
@@ -247,7 +286,14 @@ export class ProductRepository {
       `%${query}%`,
       limit
     );
-    return products;
+    // Parse JSON fields for each product
+    return products.map(product => ({
+      ...product,
+      images: parseJSON<string[]>(product.images) || [],
+      isActive: typeof product.isActive === 'boolean' ? product.isActive : Boolean(product.isActive),
+      isFeatured: typeof product.isFeatured === 'boolean' ? product.isFeatured : Boolean(product.isFeatured),
+      hasVariants: typeof product.hasVariants === 'boolean' ? product.hasVariants : Boolean(product.hasVariants)
+    }));
   }
 
   /**
@@ -258,11 +304,18 @@ export class ProductRepository {
     options: { limit?: number; offset?: number } = {}
   ): Promise<Product[]> {
     const pagination = buildPaginationClause(options);
-    const products = await queryAll<Product>(
+    const products = await queryAll<any>(
       env,
       `SELECT * FROM products ORDER BY createdAt DESC ${pagination}`
     );
-    return products;
+    // Parse JSON fields for each product
+    return products.map(product => ({
+      ...product,
+      images: parseJSON<string[]>(product.images) || [],
+      isActive: typeof product.isActive === 'boolean' ? product.isActive : Boolean(product.isActive),
+      isFeatured: typeof product.isFeatured === 'boolean' ? product.isFeatured : Boolean(product.isFeatured),
+      hasVariants: typeof product.hasVariants === 'boolean' ? product.hasVariants : Boolean(product.hasVariants)
+    }));
   }
 
   /**
@@ -281,24 +334,38 @@ export class ProductRepository {
    * Get variants for a product
    */
   static async getVariants(env: Env | null, productId: string): Promise<ProductVariant[]> {
-    const variants = await queryAll<ProductVariant>(
+    const variants = await queryAll<any>(
       env,
       'SELECT * FROM product_variants WHERE productId = ? AND isActive = 1 ORDER BY createdAt ASC',
       productId
     );
-    return variants;
+    // Parse JSON fields for each variant
+    return variants.map(variant => ({
+      ...variant,
+      images: parseJSON<string[]>(variant.images) || [],
+      isActive: typeof variant.isActive === 'boolean' ? variant.isActive : Boolean(variant.isActive),
+      isDefault: typeof variant.isDefault === 'boolean' ? variant.isDefault : Boolean(variant.isDefault)
+    }));
   }
 
   /**
    * Find variant by SKU
    */
   static async findVariantBySKU(env: Env | null, sku: string): Promise<ProductVariant | null> {
-    const variant = await queryFirst<ProductVariant>(
+    const variant = await queryFirst<any>(
       env,
       'SELECT * FROM product_variants WHERE sku = ? LIMIT 1',
       sku
     );
-    return variant;
+    if (!variant) return null;
+
+    // Parse JSON fields
+    return {
+      ...variant,
+      images: parseJSON<string[]>(variant.images) || [],
+      isActive: typeof variant.isActive === 'boolean' ? variant.isActive : Boolean(variant.isActive),
+      isDefault: typeof variant.isDefault === 'boolean' ? variant.isDefault : Boolean(variant.isDefault)
+    };
   }
 
   /**
@@ -356,12 +423,20 @@ export class ProductRepository {
    * Find variant by ID
    */
   static async findVariantById(env: Env | null, id: string): Promise<ProductVariant | null> {
-    const variant = await queryFirst<ProductVariant>(
+    const variant = await queryFirst<any>(
       env,
       'SELECT * FROM product_variants WHERE id = ? LIMIT 1',
       id
     );
-    return variant;
+    if (!variant) return null;
+
+    // Parse JSON fields
+    return {
+      ...variant,
+      images: parseJSON<string[]>(variant.images) || [],
+      isActive: typeof variant.isActive === 'boolean' ? variant.isActive : Boolean(variant.isActive),
+      isDefault: typeof variant.isDefault === 'boolean' ? variant.isDefault : Boolean(variant.isDefault)
+    };
   }
 
   /**
