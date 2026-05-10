@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAdminAuth } from '@/lib/admin-auth'
-import { writeFile, mkdir, unlink } from 'fs/promises'
-import { join } from 'path'
-import { existsSync } from 'fs'
+import { getEnv } from '@/lib/cloudflare'
 
 export async function POST(request: NextRequest) {
   // Verify admin authentication
@@ -40,23 +38,31 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Get R2 bucket from environment (Cloudflare)
+    const env = getEnv()
+    const bucket = env?.BUCKET
+
+    if (!bucket) {
+      return NextResponse.json(
+        { success: false, error: 'R2 storage bucket not available in this environment' },
+        { status: 500 }
+      )
+    }
+
     // Generate unique filename
     const timestamp = Date.now()
     const randomString = Math.random().toString(36).substring(2, 15)
     const fileExtension = file.name.split('.').pop() || 'jpg'
     const uniqueFilename = `${timestamp}-${randomString}.${fileExtension}`
 
-    // Ensure uploads directory exists
-    const uploadsDir = join(process.cwd(), 'public', 'uploads')
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true })
-    }
-
-    // Write file to disk
-    const filePath = join(uploadsDir, uniqueFilename)
+    // Upload to R2 bucket
     const arrayBuffer = await file.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
-    await writeFile(filePath, buffer)
+    await bucket.put(uniqueFilename, arrayBuffer, {
+      httpMetadata: {
+        contentType: file.type,
+        contentLength: file.size,
+      },
+    })
 
     // Return file URL and metadata
     return NextResponse.json({
@@ -107,19 +113,22 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    // Get full file path
-    const filePath = join(process.cwd(), 'public', path)
+    // Get R2 bucket from environment
+    const env = getEnv()
+    const bucket = env?.BUCKET
 
-    // Check if file exists (safety check)
-    if (!existsSync(filePath)) {
-      return NextResponse.json({
-        success: true,
-        message: 'File not found (already deleted)',
-      })
+    if (!bucket) {
+      return NextResponse.json(
+        { success: false, error: 'R2 storage bucket not available in this environment' },
+        { status: 500 }
+      )
     }
 
-    // Delete file
-    await unlink(filePath)
+    // Extract filename from path
+    const filename = path.replace('/uploads/', '')
+
+    // Delete file from R2 bucket
+    await bucket.delete(filename)
 
     return NextResponse.json({
       success: true,

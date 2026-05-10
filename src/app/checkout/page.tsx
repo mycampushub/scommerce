@@ -11,7 +11,7 @@ import { formatCurrency } from '@/lib/format-currency'
 import { Header } from '@/components/header'
 import { Footer } from '@/components/footer'
 import { MobileBottomNav } from '@/components/mobile-bottom-nav'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { fetchWithCSRF, useCSRF } from '@/hooks/use-csrf'
@@ -238,10 +238,17 @@ export default function CheckoutPage() {
       const tax = subtotal * taxRate // Dynamic tax rate from settings
       const discount = 0 // Can be extended to include promo codes
       const total = subtotal + shipping + tax - discount
-      
-      // Format shipping address for Bangladesh
-      const fullAddress = `${shippingInfo.address}, ${shippingInfo.city}, ${shippingInfo.district}, ${shippingInfo.division}, ${shippingInfo.zipCode}, ${shippingInfo.country}`
-      
+
+      // Format shipping address as object for API
+      const addressObject = {
+        address: shippingInfo.address,
+        city: shippingInfo.city,
+        district: shippingInfo.district,
+        division: shippingInfo.division,
+        zipCode: shippingInfo.zipCode,
+        country: shippingInfo.country
+      }
+
       // Format order items to match API expectations
       const orderItems = items.map(item => ({
         productId: item.id,
@@ -265,8 +272,8 @@ export default function CheckoutPage() {
         customerName: `${shippingInfo.firstName} ${shippingInfo.lastName}`,
         customerEmail: shippingInfo.email,
         customerPhone: shippingInfo.phone,
-        shippingAddress: fullAddress,
-        billingAddress: fullAddress, // Same as shipping for now
+        shippingAddress: addressObject,
+        billingAddress: addressObject, // Same as shipping for now
         paymentMethod: paymentMethod === 'cod' ? 'CASH_ON_DELIVERY' : 'ONLINE_PAYMENT',
         orderItems,
         subtotal,
@@ -719,6 +726,9 @@ export default function CheckoutPage() {
         <DialogContent className="sm:max-w-[95vw] md:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Complete Your Order</DialogTitle>
+            <DialogDescription>
+              Please log in or sign up to complete your order
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="text-center mb-4">

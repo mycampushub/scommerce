@@ -4,11 +4,10 @@ import { getEnv } from '@/lib/cloudflare'
 import { OrderRepository } from '@/db/order.repository'
 import { UserRepository } from '@/db/user.repository'
 import { createOrderSchema } from '@/lib/validations'
-import { queryAll, execute, parseJSON, generateId, generateOrderNumber, now } from '@/db/db'
+import { queryAll, execute, generateId, generateOrderNumber, now } from '@/db/db'
 import { csrfMiddleware } from '@/lib/csrf'
 import { rateLimit } from '@/lib/rate-limit'
 import { verifyToken, extractTokenFromHeader } from '@/lib/auth'
-import prisma from '@/lib/database'
 
 
 export async function GET(request: NextRequest) {
@@ -31,108 +30,57 @@ export async function GET(request: NextRequest) {
     let orders: any[] = []
     let orderItems: any[] = []
 
-    // Use Prisma if env is null or env.DB doesn't exist (local dev)
-    if (!env || !env.DB) {
-      console.log('[orders API] Using Prisma for orders query')
+    const env = getEnv()
+    const searchParams = request.nextUrl.searchParams
+    const search = searchParams.get('search') || ''
+    const status = searchParams.get('status') || ''
+    const dateFrom = searchParams.get('dateFrom')
+    const dateTo = searchParams.get('dateTo')
 
-      // Build Prisma where clause with filters
-      const where: any = { deletedAt: null }
+    console.log('[orders API] Fetching orders with filters:', { search, status, dateFrom, dateTo })
 
-      if (search) {
-        where.OR = [
-          { orderNumber: { contains: search } },
-          { customerName: { contains: search } },
-          { customerEmail: { contains: search } },
-        ]
-      }
+    // Build WHERE clause with all filters
+    let whereClause = ' AND o.deletedAt IS NULL'
+    const whereParams: any[] = []
 
-      if (status && status !== 'all') {
-        where.status = status
-      }
+    if (search) {
+      whereClause += ' AND (o.orderNumber LIKE ? OR o.customerName LIKE ? OR o.customerEmail LIKE ?)'
+      const searchPattern = `%${search}%`
+      whereParams.push(searchPattern, searchPattern, searchPattern)
+    }
 
-      if (dateFrom) {
-        where.createdAt = { gte: new Date(dateFrom) }
-      }
-      if (dateTo) {
-        const endDate = new Date(dateTo)
-        endDate.setDate(endDate.getDate() + 1)
-        if (!where.createdAt) where.createdAt = {}
-        where.createdAt.lt = endDate
-      }
+    if (status && status !== 'all') {
+      whereClause += ' AND o.status = ?'
+      whereParams.push(status)
+    }
 
-      // Fetch orders with user details
-      const prismaOrders = await prisma.order.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              role: true
-            }
-          },
-          items: true
-        }
-      })
+    if (dateFrom) {
+      whereClause += ' AND o.createdAt >= ?'
+      whereParams.push(dateFrom)
+    }
 
-      orders = prismaOrders.map(o => {
-        const { items, user, ...orderData } = o
-        return {
-          ...orderData,
-          userId: o.userId,
-          userName: user?.name || null,
-          userEmail: user?.email || null,
-          userRole: user?.role || null,
-          orderItems: items || []
-        }
-      })
-    } else {
-      console.log('[orders API] Using D1 for orders query')
+    if (dateTo) {
+      const endDate = new Date(dateTo)
+      endDate.setDate(endDate.getDate() + 1)
+      whereClause += ' AND o.createdAt < ?'
+      whereParams.push(endDate.toISOString())
+    }
 
-      // Build WHERE clause with all filters at DB level
-      let whereClause = ' AND o.deletedAt IS NULL'
-      const whereParams: any[] = []
-
-      if (search) {
-        whereClause += ' AND (o.orderNumber LIKE ? OR o.customerName LIKE ? OR o.customerEmail LIKE ?)'
-        const searchPattern = `%${search}%`
-        whereParams.push(searchPattern, searchPattern, searchPattern)
-      }
-
-      if (status && status !== 'all') {
-        whereClause += ' AND o.status = ?'
-        whereParams.push(status)
-      }
-
-      if (dateFrom) {
-        whereClause += ' AND o.createdAt >= ?'
-        whereParams.push(dateFrom)
-      }
-
-      if (dateTo) {
-        const endDate = new Date(dateTo)
-        endDate.setDate(endDate.getDate() + 1)
-        whereClause += ' AND o.createdAt < ?'
-        whereParams.push(endDate.toISOString())
-      }
-
-      // Fetch orders with user details in a single query using JOIN
-      orders = await queryAll<any>(
-        env,
-        `SELECT
-           o.*,
-           u.id as userId,
-           u.name as userName,
-           u.email as userEmail,
-           u.role as userRole
-         FROM orders o
-         LEFT JOIN users u ON o.userId = u.id
-         WHERE 1=1${whereClause}
-         ORDER BY o.createdAt DESC`,
-        whereParams
-      )
+    // Fetch orders with user details in a single query using JOIN
+    orders = await queryAll<any>(
+      env,
+      `SELECT
+         o.*,
+         u.id as userId,
+         u.name as userName,
+         u.email as userEmail,
+         u.role as userRole
+       FROM orders o
+       LEFT JOIN users u ON o.userId = u.id
+       WHERE 1=1${whereClause}
+       ORDER BY o.createdAt DESC`,
+      whereParams
+    )
 
       // Fetch order items only for the fetched orders
       if (orders.length > 0) {
