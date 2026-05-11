@@ -74,6 +74,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PriceDisplay } from '@/components/price-display'
+import { apiFetch } from '@/lib/api-client'
 
 interface Product {
   id: string
@@ -318,7 +319,7 @@ export default function ProductsPage() {
     if (!editingProduct) return
 
     try {
-      const response = await fetch(`/api/admin/products/${editingProduct.id}`, {
+      const response = await apiFetch(`/api/admin/products/${editingProduct.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -366,7 +367,7 @@ export default function ProductsPage() {
     e.preventDefault()
 
     try {
-      const response = await fetch('/api/admin/products', {
+      const response = await apiFetch('/api/admin/products', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -434,7 +435,7 @@ export default function ProductsPage() {
     if (!deleteProductId) return
 
     try {
-      const response = await fetch(`/api/admin/products/${deleteProductId}`, {
+      const response = await apiFetch(`/api/admin/products/${deleteProductId}`, {
         method: 'DELETE',
       })
 
@@ -463,7 +464,7 @@ export default function ProductsPage() {
 
   const handleReorder = async (product: Product) => {
     try {
-      const response = await fetch(`/api/admin/products/${product.id}`, {
+      const response = await apiFetch(`/api/admin/products/${product.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -579,14 +580,14 @@ export default function ProductsPage() {
       let response
       if (editingVariant) {
         // Update existing variant
-        response = await fetch(`/api/admin/products/${selectedProductForVariants.id}/variants/${editingVariant.id}`, {
+        response = await apiFetch(`/api/admin/products/${selectedProductForVariants.id}/variants/${editingVariant.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         })
       } else {
         // Create new variant
-        response = await fetch(`/api/admin/products/${selectedProductForVariants.id}/variants`, {
+        response = await apiFetch(`/api/admin/products/${selectedProductForVariants.id}/variants`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
@@ -621,7 +622,7 @@ export default function ProductsPage() {
     if (!selectedProductForVariants) return
 
     try {
-      const response = await fetch(`/api/admin/products/${selectedProductForVariants.id}/variants/${variantId}`, {
+      const response = await apiFetch(`/api/admin/products/${selectedProductForVariants.id}/variants/${variantId}`, {
         method: 'DELETE',
       })
 
@@ -657,7 +658,7 @@ export default function ProductsPage() {
     if (!selectedProductForVariants) return
 
     try {
-      const response = await fetch(`/api/admin/products/${selectedProductForVariants.id}/variants/${variant.id}`, {
+      const response = await apiFetch(`/api/admin/products/${selectedProductForVariants.id}/variants/${variant.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -733,7 +734,7 @@ export default function ProductsPage() {
           isActive: true,
         }
 
-        await fetch(`/api/admin/products/${selectedProductForVariants.id}/variants`, {
+        await apiFetch(`/api/admin/products/${selectedProductForVariants.id}/variants`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),

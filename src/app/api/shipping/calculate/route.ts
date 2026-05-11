@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getEnv } from '@/lib/cloudflare'
-import { csrfMiddleware } from '@/lib/csrf'
 
 
 // Bangladesh division-based shipping rates
@@ -20,13 +18,6 @@ const DEFAULT_RATE = { base: 120, perKg: 25, freeThreshold: 5000 }
 
 
 export async function POST(request: NextRequest) {
-  // Check CSRF protection
-  const env = getEnv()
-  const csrfError = await csrfMiddleware(request, env)
-  if (csrfError) {
-    return csrfError
-  }
-
   try {
     const body = await request.json() as any
     const { subtotal, division, weight = 1 } = body
@@ -39,7 +30,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get shipping rate for the division
+    // Get shipping rate for division
     const rate = division && SHIPPING_RATES[division] ? SHIPPING_RATES[division] : DEFAULT_RATE
 
     // Calculate shipping cost
