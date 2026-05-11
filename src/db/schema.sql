@@ -55,6 +55,9 @@ CREATE TABLE IF NOT EXISTS categories (
   updatedAt TEXT DEFAULT (datetime('now'))
 );
 
+CREATE INDEX IF NOT EXISTS idx_categories_slug ON categories(slug);
+CREATE INDEX IF NOT EXISTS idx_categories_isActive ON categories(isActive);
+
 -- Products table
 CREATE TABLE IF NOT EXISTS products (
   id TEXT PRIMARY KEY,
@@ -253,6 +256,7 @@ CREATE TABLE IF NOT EXISTS admin_logs (
   createdAt TEXT DEFAULT (datetime('now'))
 );
 
+CREATE INDEX IF NOT EXISTS idx_admin_logs_adminId ON admin_logs(adminId);
 CREATE INDEX IF NOT EXISTS idx_admin_logs_adminId_createdAt ON admin_logs(adminId, createdAt DESC);
 CREATE INDEX IF NOT EXISTS idx_admin_logs_entity_createdAt ON admin_logs(entity, createdAt DESC);
 CREATE INDEX IF NOT EXISTS idx_admin_logs_action_createdAt ON admin_logs(action, createdAt DESC);
@@ -350,6 +354,19 @@ CREATE TABLE IF NOT EXISTS promotions (
   ctaText TEXT,
   ctaLink TEXT,
   type TEXT DEFAULT 'banner',
+  promoCode TEXT UNIQUE,
+  discountType TEXT,
+  discountValue REAL,
+  minOrderAmount REAL,
+  maxDiscountAmount REAL,
+  startDate TEXT,
+  endDate TEXT,
+  usageLimit INTEGER,
+  usedCount INTEGER DEFAULT 0,
+  userLimit INTEGER,
+  applicableCategories TEXT,
+  applicableProducts TEXT,
+  conditions TEXT,
   isActive INTEGER DEFAULT 1,
   orderNum INTEGER DEFAULT 0,
   createdAt TEXT DEFAULT (datetime('now')),
@@ -358,6 +375,7 @@ CREATE TABLE IF NOT EXISTS promotions (
 
 CREATE INDEX IF NOT EXISTS idx_promotions_isActive ON promotions(isActive);
 CREATE INDEX IF NOT EXISTS idx_promotions_type_isActive ON promotions(type, isActive);
+CREATE INDEX IF NOT EXISTS idx_promotions_promoCode ON promotions(promoCode);
 
 -- Homepage Settings
 CREATE TABLE IF NOT EXISTS homepage_settings (
@@ -452,3 +470,45 @@ CREATE TABLE IF NOT EXISTS email_services (
   createdAt TEXT DEFAULT (datetime('now')),
   updatedAt TEXT DEFAULT (datetime('now'))
 );
+
+-- Image Gallery table
+CREATE TABLE IF NOT EXISTS image_gallery (
+    id TEXT PRIMARY KEY,
+    filename TEXT NOT NULL,
+    url TEXT NOT NULL UNIQUE,
+    originalName TEXT,
+    mimeType TEXT,
+    size INTEGER,
+    width INTEGER,
+    height INTEGER,
+    alt TEXT,
+    tags TEXT,
+    category TEXT,
+    usageCount INTEGER NOT NULL DEFAULT 0,
+    isActive INTEGER NOT NULL DEFAULT 1,
+    uploadedBy TEXT,
+    createdAt TEXT DEFAULT (datetime('now')),
+    updatedAt TEXT DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_image_gallery_category ON image_gallery(category, createdAt DESC);
+CREATE INDEX IF NOT EXISTS idx_image_gallery_isActive ON image_gallery(isActive, createdAt DESC);
+CREATE INDEX IF NOT EXISTS idx_image_gallery_usageCount ON image_gallery(usageCount DESC);
+
+-- Inventory Reservations table
+CREATE TABLE IF NOT EXISTS inventory_reservations (
+    id TEXT PRIMARY KEY,
+    variantId TEXT,
+    productId TEXT,
+    userId TEXT NOT NULL,
+    quantity INTEGER NOT NULL,
+    expiresAt TEXT NOT NULL,
+    createdAt TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (variantId) REFERENCES product_variants(id) ON DELETE CASCADE,
+    FOREIGN KEY (productId) REFERENCES products(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_inventory_reservations_variantId ON inventory_reservations(variantId);
+CREATE INDEX IF NOT EXISTS idx_inventory_reservations_productId ON inventory_reservations(productId);
+CREATE INDEX IF NOT EXISTS idx_inventory_reservations_userId ON inventory_reservations(userId);
+CREATE INDEX IF NOT EXISTS idx_inventory_reservations_expiresAt ON inventory_reservations(expiresAt);

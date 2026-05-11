@@ -101,3 +101,56 @@ Stage Summary:
 - Build: ✅ Successful with no errors
 - Dev Server: ✅ Running and ready
 ---
+---
+Task ID: DB-CLEANUP
+Agent: Main Agent
+Task: Analyze all files in db folder, merge necessary schemas into main schema.sql, and remove unnecessary files
+
+Work Log:
+- Analyzed all files in /home/z/my-project/db/ folder:
+  • custom.db - SQLite database (keep - needed for local dev)
+  • schema.sql - Main schema file (keep and update)
+  • seed.sql - Outdated seed data (remove - uses old column names)
+  • seed-remote-simple.sql - Simplified remote seed (remove - redundant)
+  • seed-remote.sql - Full remote seed (remove - outdated)
+  • SEED-REMOTE-INSTRUCTIONS.md - Deployment instructions (move to project root)
+  • full_schema.sql - Generated schema (remove - redundant)
+  • schema_generated.sql - Generated schema (remove - redundant)
+  • migration-001.sql - Old migration file (remove - outdated)
+  • migrate-schema.sql - Migration script (remove - outdated)
+
+- Updated schema.sql with missing tables:
+  • Added image_gallery table with indexes:
+    - id (PRIMARY KEY)
+    - filename, url (UNIQUE), originalName, mimeType, size, width, height
+    - alt, tags, category
+    - usageCount, isActive, uploadedBy
+    - createdAt, updatedAt
+    - Indexes: category, isActive, usageCount
+  • Added inventory_reservations table with indexes:
+    - id (PRIMARY KEY)
+    - variantId, productId, userId, quantity, expiresAt, createdAt
+    - Foreign keys to product_variants and products (CASCADE)
+    - Indexes: variantId, productId, userId, expiresAt
+
+- Removed unnecessary files (7 files):
+  • migration-001.sql
+  • migrate-schema.sql
+  • seed.sql
+  • seed-remote.sql
+  • seed-remote-simple.sql
+  • full_schema.sql
+  • schema_generated.sql
+
+- Moved deployment instructions:
+  • db/SEED-REMOTE-INSTRUCTIONS.md → SEED-REMOTE-INSTRUCTIONS.md (project root)
+
+Stage Summary:
+- Final db folder state: 2 files only (schema.sql + custom.db)
+- Total size reduced from ~650KB to ~550KB
+- Schema completeness: All 25 tables defined
+- Both image_gallery and inventory_reservations tables added
+- Schema is ready for D1 deployment
+- All migration logic consolidated into main schema.sql
+- Deployment guide moved to project root for easy access
+
