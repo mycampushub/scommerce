@@ -5,6 +5,7 @@ import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
 import { existsSync } from 'fs'
 import sharp from 'sharp'
+import { csrfMiddleware } from '@/lib/csrf'
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
@@ -20,6 +21,25 @@ export async function POST(request: NextRequest) {
   }
 
   console.log('[Gallery Upload POST] Auth passed')
+
+  // Get environment
+  const env = await import('@/lib/cloudflare').then(m => m.getEnv())
+  console.log('[Gallery Upload POST] Env:', env ? 'exists' : 'null', 'Has KV:', env?.KV ? 'yes' : 'no')
+
+  // Get environment and check CSRF protection - only apply in Cloudflare with KV
+  const isCloudflareEnv = env && env.KV
+
+  // Only check CSRF if we're in Cloudflare environment with KV
+  if (isCloudflareEnv) {
+    console.log('[Gallery Upload POST] Checking CSRF...')
+    const csrfError = await csrfMiddleware(request, env)
+    if (csrfError) {
+      console.log('[Gallery Upload POST] CSRF validation failed')
+      return csrfError
+    }
+  } else {
+    console.log('[Gallery Upload POST] Skipping CSRF validation (local development or no KV)')
+  }
 
   try {
     const formData = await request.formData()
@@ -106,9 +126,31 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Save to gallery
+    // Save to gallery - only if we have D1 database (Cloudflare)
+    if (!env || !env.DB) {
+      console.warn('[Gallery Upload POST] No D1 database available, skipping database save')
+      // Return success with file info but not saved to database
+      return NextResponse.json({
+        success: true,
+        data: {
+          id: uniqueId,
+          filename,
+          url: `/uploads/${filename}`,
+          originalName: file.name,
+          mimeType: file.type,
+          size: file.size,
+          width,
+          height,
+          alt: alt || undefined,
+          tags,
+          category,
+        },
+        skipDatabase: true
+      })
+    }
+
     console.log('[Gallery Upload POST] Creating gallery item...')
-    const galleryItem = await ImageGalleryRepository.create(null, {
+    const galleryItem = await ImageGalleryRepository.create(env, {
       filename,
       url: `/uploads/${filename}`,
       originalName: file.name,

@@ -20,12 +20,13 @@ export async function POST(request: NextRequest) {
 
   console.log('[Upload POST] Auth passed')
 
-  // Check CSRF protection - skip in local development
+  // Get environment and check CSRF protection - only apply in Cloudflare with KV
   const env = await import('@/lib/cloudflare').then(m => m.getEnv())
-  console.log('[Upload POST] Env:', env ? 'exists' : 'null', 'Has KV:', env?.KV ? 'yes' : 'no')
-  
+  const isCloudflareEnv = env && env.KV
+  console.log('[Upload POST] Env:', env ? 'exists' : 'null', 'Has KV:', isCloudflareEnv ? 'yes' : 'no')
+
   // Only check CSRF if we're in Cloudflare environment with KV
-  if (env && env.KV) {
+  if (isCloudflareEnv) {
     console.log('[Upload POST] Checking CSRF...')
     const csrfError = await csrfMiddleware(request, env)
     if (csrfError) {
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest) {
       return csrfError
     }
   } else {
-    console.log('[Upload POST] Skipping CSRF validation (local development)')
+    console.log('[Upload POST] Skipping CSRF validation (local development or no KV)')
   }
 
   try {
@@ -117,11 +118,12 @@ export async function DELETE(request: NextRequest) {
     return userOrResponse
   }
 
-  // Check CSRF protection - skip in local development
+  // Get environment and check CSRF protection - only apply in Cloudflare with KV
   const env = await import('@/lib/cloudflare').then(m => m.getEnv())
-  
+  const isCloudflareEnv = env && env.KV
+
   // Only check CSRF if we're in Cloudflare environment with KV
-  if (env && env.KV) {
+  if (isCloudflareEnv) {
     const csrfError = await csrfMiddleware(request, env)
     if (csrfError) {
       return csrfError

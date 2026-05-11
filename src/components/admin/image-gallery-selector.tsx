@@ -123,9 +123,17 @@ export function ImageGallerySelector({
         body: formData,
       })
 
+      // Check if response is JSON before parsing
+      const contentType = response.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text()
+        console.error('Gallery upload error - non-JSON response:', text.substring(0, 200))
+        throw new Error(`Server returned ${response.status}: ${response.statusText}`)
+      }
+
       const result = await response.json()
 
-      if (result.success) {
+      if (response.ok && result.success) {
         // Refresh gallery
         fetchImages()
         setActiveTab('gallery')
@@ -138,7 +146,8 @@ export function ImageGallerySelector({
       }
     } catch (error) {
       console.error('Upload error:', error)
-      setUploadError('Failed to upload image')
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      setUploadError(`Failed to upload image: ${errorMessage}`)
     } finally {
       setUploading(false)
     }
@@ -178,6 +187,9 @@ export function ImageGallerySelector({
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col p-0">
+        <DialogDescription className="sr-only">
+          Image gallery selector
+        </DialogDescription>
         <DialogHeader className="p-6 border-b">
           <div className="flex items-center justify-between">
             <div className="flex flex-col gap-1">

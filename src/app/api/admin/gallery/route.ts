@@ -66,12 +66,13 @@ export async function POST(request: NextRequest) {
 
   console.log('[Gallery POST] Auth passed')
 
-  // Check CSRF protection - skip in local development
+  // Get environment and check CSRF protection - only apply in Cloudflare with KV
   const env = getEnv()
-  console.log('[Gallery POST] Env:', env ? 'exists' : 'null', 'Has KV:', env?.KV ? 'yes' : 'no')
-  
+  const isCloudflareEnv = env && env.KV
+  console.log('[Gallery POST] Env:', env ? 'exists' : 'null', 'Has KV:', isCloudflareEnv ? 'yes' : 'no')
+
   // Only check CSRF if we're in Cloudflare environment with KV
-  if (env && env.KV) {
+  if (isCloudflareEnv) {
     console.log('[Gallery POST] Checking CSRF...')
     const csrfError = await csrfMiddleware(request, env)
     if (csrfError) {
@@ -79,7 +80,7 @@ export async function POST(request: NextRequest) {
       return csrfError
     }
   } else {
-    console.log('[Gallery POST] Skipping CSRF validation (local development)')
+    console.log('[Gallery POST] Skipping CSRF validation (local development or no KV)')
   }
 
   try {

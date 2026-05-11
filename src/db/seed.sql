@@ -33,12 +33,12 @@ DELETE FROM users;
 -- USERS
 -- ================================================
 INSERT INTO users (id, email, name, phone, address, password, emailVerified, role, avatar, isBanned, lastLoginAt, createdAt, updatedAt) VALUES
-('admin-001', 'admin@scommerce.com', 'Admin User', '+8801700000001', 'Dhaka, Bangladesh', '$2b$10$X7...hashed_password...', 1, 'admin', '/uploads/avatars/admin.jpg', 0, '2025-01-11T10:00:00.000Z', '2024-01-01T00:00:00.000Z', '2025-01-11T10:00:00.000Z'),
-('user-001', 'rahul@example.com', 'Rahul Sharma', '+8801700000002', 'Gulshan, Dhaka', '$2b$10$X7...hashed_password...', 1, 'user', '/uploads/avatars/rahul.jpg', 0, '2025-01-10T15:30:00.000Z', '2024-01-05T00:00:00.000Z', '2025-01-10T15:30:00.000Z'),
-('user-002', 'priya@example.com', 'Priya Das', '+8801800000001', 'Banani, Dhaka', '$2b$10$X7...hashed_password...', 1, 'user', '/uploads/avatars/priya.jpg', 0, '2025-01-09T09:00:00.000Z', '2024-01-10T00:00:00.000Z', '2025-01-09T09:00:00.000Z'),
-('user-003', 'arif@example.com', 'Arif Rahman', '+8801900000001', 'Dhanmondi, Dhaka', '$2b$10$X7...hashed_password...', 1, 'user', '/uploads/avatars/arif.jpg', 0, '2025-01-08T18:20:00.000Z', '2024-01-15T00:00:00.000Z', '2025-01-08T18:20:00.000Z'),
-('user-004', 'fatima@example.com', 'Fatima Ali', '+8801600000001', 'Uttara, Dhaka', '$2b$10$X7...hashed_password...', 1, 'user', '/uploads/avatars/fatima.jpg', 0, '2025-01-07T11:45:00.000Z', '2024-01-20T00:00:00.000Z', '2025-01-07T11:45:00.000Z'),
-('user-005', 'kamal@example.com', 'Kamal Hassan', '+8801500000001', 'Mirpur, Dhaka', '$2b$10$X7...hashed_password...', 1, 'user', '/uploads/avatars/kamal.jpg', 0, '2025-01-06T14:15:00.000Z', '2024-01-25T00:00:00.000Z', '2025-01-06T14:15:00.000Z');
+('admin-001', 'admin@scommerce.com', 'Admin User', '+8801700000001', 'Dhaka, Bangladesh', '$2b$10$yH9K3i0710.a2tigxmPwg.6RV.HYVmXG4jvYAg51vrh6s3TG0pfcu', 1, 'admin', '/uploads/avatars/admin.jpg', 0, '2025-01-11T10:00:00.000Z', '2024-01-01T00:00:00.000Z', '2025-01-11T10:00:00.000Z'),
+('user-001', 'rahul@example.com', 'Rahul Sharma', '+8801700000002', 'Gulshan, Dhaka', '$2b$10$w8CKEFPCgyOd9EMltoiX7uGrBf7XxaM/Frrr7JBdmfw7we1nc0X5q', 1, 'user', '/uploads/avatars/rahul.jpg', 0, '2025-01-10T15:30:00.000Z', '2024-01-05T00:00:00.000Z', '2025-01-10T15:30:00.000Z'),
+('user-002', 'priya@example.com', 'Priya Das', '+8801800000001', 'Banani, Dhaka', '$2b$10$w8CKEFPCgyOd9EMltoiX7uGrBf7XxaM/Frrr7JBdmfw7we1nc0X5q', 1, 'user', '/uploads/avatars/priya.jpg', 0, '2025-01-09T09:00:00.000Z', '2024-01-10T00:00:00.000Z', '2025-01-09T09:00:00.000Z'),
+('user-003', 'arif@example.com', 'Arif Rahman', '+8801900000001', 'Dhanmondi, Dhaka', '$2b$10$w8CKEFPCgyOd9EMltoiX7uGrBf7XxaM/Frrr7JBdmfw7we1nc0X5q', 1, 'user', '/uploads/avatars/arif.jpg', 0, '2025-01-08T18:20:00.000Z', '2024-01-15T00:00:00.000Z', '2025-01-08T18:20:00.000Z'),
+('user-004', 'fatima@example.com', 'Fatima Ali', '+8801600000001', 'Uttara, Dhaka', '$2b$10$w8CKEFPCgyOd9EMltoiX7uGrBf7XxaM/Frrr7JBdmfw7we1nc0X5q', 1, 'user', '/uploads/avatars/fatima.jpg', 0, '2025-01-07T11:45:00.000Z', '2024-01-20T00:00:00.000Z', '2025-01-07T11:45:00.000Z'),
+('user-005', 'kamal@example.com', 'Kamal Hassan', '+8801500000001', 'Mirpur, Dhaka', '$2b$10$w8CKEFPCgyOd9EMltoiX7uGrBf7XxaM/Frrr7JBdmfw7we1nc0X5q', 1, 'user', '/uploads/avatars/kamal.jpg', 0, '2025-01-06T14:15:00.000Z', '2024-01-25T00:00:00.000Z', '2025-01-06T14:15:00.000Z');
 
 -- ================================================
 -- ADDRESSES

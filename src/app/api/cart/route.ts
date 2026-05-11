@@ -155,10 +155,14 @@ export async function POST(request: NextRequest) {
   // Get D1 database from request context (Cloudflare Pages/Workers)
   const env = getEnv();
 
-  // Check CSRF protection
-  const csrfError = await csrfMiddleware(request, env);
-  if (csrfError) {
-    return csrfError;
+  // Check CSRF protection - skip in local development
+  const isCloudflareEnv = env && env.KV
+
+  if (isCloudflareEnv) {
+    const csrfError = await csrfMiddleware(request, env);
+    if (csrfError) {
+      return csrfError;
+    }
   }
 
   try {

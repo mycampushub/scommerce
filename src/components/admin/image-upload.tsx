@@ -201,20 +201,29 @@ export function ImageUpload({
           body: formData
         })
 
+        // Check if response is JSON before parsing
+        const contentType = response.headers.get('content-type')
+        if (!contentType || !contentType.includes('application/json')) {
+          const text = await response.text()
+          console.error('Upload error - non-JSON response:', text.substring(0, 200))
+          throw new Error(`Server returned ${response.status}: ${response.statusText}`)
+        }
+
         const result = await response.json() as any
 
-        if (result.success) {
+        if (!response.ok || !result.success) {
+          console.error('Upload failed:', result.error)
+          setError(`Failed to upload ${file.name}: ${result.error || 'Unknown error'}`)
+        } else {
           newImages.push({
             ...result.data,
             isNew: true,
           })
-        } else {
-          console.error('Upload failed:', result.error)
-          setError(`Failed to upload ${file.name}: ${result.error}`)
         }
       } catch (err) {
         console.error('Upload error:', err)
-        setError(`Failed to upload ${file.name}`)
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+        setError(`Failed to upload ${file.name}: ${errorMessage}`)
       }
 
       setUploadProgress(((i + 1) / fileArray.length) * 100)
