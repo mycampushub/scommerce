@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
 import { ImageUpload } from '@/components/admin/image-upload'
@@ -568,6 +568,7 @@ export default function HomepageManagementPage() {
               <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>{editingBanner ? 'Edit Banner' : 'Add Banner'}</DialogTitle>
+                  <DialogDescription>Create or edit homepage banner with image and button text</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
@@ -726,6 +727,7 @@ export default function HomepageManagementPage() {
               <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>{editingStory ? 'Edit Story' : 'Add Story'}</DialogTitle>
+                  <DialogDescription>Create Instagram-style stories with thumbnail and multiple images</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
@@ -866,6 +868,7 @@ export default function HomepageManagementPage() {
               <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>{editingReel ? 'Edit Reel' : 'Add Reel'}</DialogTitle>
+                  <DialogDescription>Create short video reels with thumbnail and video URL</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
@@ -1013,6 +1016,7 @@ export default function HomepageManagementPage() {
               <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>{editingPromotion ? 'Edit Promotion' : 'Add Promotion'}</DialogTitle>
+                  <DialogDescription>Create promotional banners with discount or call-to-action</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>

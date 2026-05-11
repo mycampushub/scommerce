@@ -32,11 +32,12 @@ export async function GET(request: NextRequest) {
       data: images,
     })
   } catch (error) {
-    console.error('Error fetching gallery images:', error)
+    console.error('[Gallery API] Error fetching images:', error)
     return NextResponse.json(
       {
         success: false,
         error: 'Failed to fetch gallery images',
+        details: error instanceof Error ? error.message : String(error)
       },
       { status: 500 }
     )
@@ -192,11 +193,12 @@ export async function POST(request: NextRequest) {
       data: galleryItem,
     })
   } catch (error) {
-    console.error('Error creating gallery item:', error)
+    console.error('[Gallery API] Error creating gallery item:', error)
     return NextResponse.json(
       {
         success: false,
         error: 'Failed to create gallery item',
+        details: error instanceof Error ? error.message : String(error)
       },
       { status: 500 }
     )

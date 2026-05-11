@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: `Invalid file type. Allowed types: ${ALLOWED_TYPES.join(', ')}`
+          error: `Invalid file type: ${file.type}. Allowed types: ${ALLOWED_TYPES.join(', ')}`
         },
         { status: 400 }
       )
@@ -84,12 +84,12 @@ export async function POST(request: NextRequest) {
         type: file.type
       }
     })
-  } catch (error) {
-    console.error('Upload error:', error)
+  } catch (error: any) {
+    console.error('[Upload API] Error:', error)
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to upload file'
+        error: `Failed to upload file${error instanceof Error ? `: ${error.message}` : ''}`,
       },
       { status: 500 }
     )
@@ -147,12 +147,12 @@ export async function DELETE(request: NextRequest) {
       success: true,
       message: 'File deleted successfully'
     })
-  } catch (error) {
-    console.error('Delete error:', error)
+  } catch (error: any) {
+    console.error('[Delete API] Error:', error)
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to delete file'
+        error: 'Failed to delete file',
       },
       { status: 500 }
     )
