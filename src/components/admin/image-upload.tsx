@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
-import { Upload, X, Loader2, Image as ImageIcon, GripVertical, AlertCircle, Grid3X3 } from 'lucide-react'
+import { Upload, X, Loader2, Image as ImageIcon, GripVertical, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -23,7 +23,6 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { ImageGallerySelector } from './image-gallery-selector'
 
 interface UploadedImage {
   url: string
@@ -40,7 +39,6 @@ interface ImageUploadProps {
   maxImages?: number
   accept?: string
   maxSize?: number // in MB
-  galleryCategory?: 'product' | 'category' | 'story' | 'banner' | 'promotion' | 'general'
 }
 
 function SortableImage({
@@ -125,14 +123,12 @@ export function ImageUpload({
   productId,
   maxImages = 10,
   accept = 'image/jpeg,image/jpg,image/png,image/webp',
-  maxSize = 5,
-  galleryCategory = 'general'
+  maxSize = 5
 }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [images, setImages] = useState<(UploadedImage | string)[]>([])
-  const [showGallery, setShowGallery] = useState(false)
 
   // Initialize images from prop
   useEffect(() => {
@@ -201,29 +197,20 @@ export function ImageUpload({
           body: formData
         })
 
-        // Check if response is JSON before parsing
-        const contentType = response.headers.get('content-type')
-        if (!contentType || !contentType.includes('application/json')) {
-          const text = await response.text()
-          console.error('Upload error - non-JSON response:', text.substring(0, 200))
-          throw new Error(`Server returned ${response.status}: ${response.statusText}`)
-        }
-
         const result = await response.json() as any
 
-        if (!response.ok || !result.success) {
-          console.error('Upload failed:', result.error)
-          setError(`Failed to upload ${file.name}: ${result.error || 'Unknown error'}`)
-        } else {
+        if (result.success) {
           newImages.push({
             ...result.data,
             isNew: true,
           })
+        } else {
+          console.error('Upload failed:', result.error)
+          setError(`Failed to upload ${file.name}: ${result.error}`)
         }
       } catch (err) {
         console.error('Upload error:', err)
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-        setError(`Failed to upload ${file.name}: ${errorMessage}`)
+        setError(`Failed to upload ${file.name}`)
       }
 
       setUploadProgress(((i + 1) / fileArray.length) * 100)
@@ -289,18 +276,6 @@ export function ImageUpload({
     handleFileSelect(e.dataTransfer.files)
   }
 
-  const handleSelectFromGallery = (galleryImage: any) => {
-    const updatedImages = [...images, {
-      url: galleryImage.url,
-      name: galleryImage.originalName || galleryImage.filename,
-      size: galleryImage.size || 0,
-      type: galleryImage.mimeType || 'image/jpeg',
-      isNew: false,
-    }]
-    setImages(updatedImages)
-    onImagesChange?.(updatedImages.map(img => typeof img === 'string' ? img : img.url))
-  }
-
   return (
     <div className="space-y-4">
       {/* Error Alert */}
@@ -349,27 +324,15 @@ export function ImageUpload({
                   id="image-upload-input"
                   disabled={uploading || images.length >= maxImages}
                 />
-                <div className="flex gap-2 mt-4">
-                  <Button
-                    onClick={() => document.getElementById('image-upload-input')?.click()}
-                    disabled={uploading || images.length >= maxImages}
-                    className="flex-1 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
-                  >
-                    {images.length >= maxImages
-                      ? 'Maximum images reached'
-                      : 'Upload Images'}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowGallery(true)}
-                    disabled={uploading || images.length >= maxImages}
-                    className="flex-1"
-                  >
-                    <Grid3X3 className="h-4 w-4 mr-2" />
-                    Select from Gallery
-                  </Button>
-                </div>
+                <Button
+                  onClick={() => document.getElementById('image-upload-input')?.click()}
+                  disabled={uploading || images.length >= maxImages}
+                  className="mt-4 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
+                >
+                  {images.length >= maxImages
+                    ? 'Maximum images reached'
+                    : 'Select Images'}
+                </Button>
               </>
             )}
           </div>
@@ -406,15 +369,6 @@ export function ImageUpload({
           <p className="text-sm text-gray-500">No images uploaded yet</p>
         </div>
       )}
-
-      {/* Image Gallery Selector */}
-      <ImageGallerySelector
-        isOpen={showGallery}
-        onClose={() => setShowGallery(false)}
-        onSelect={handleSelectFromGallery}
-        category={galleryCategory}
-        maxSelection={maxImages - images.length}
-      />
     </div>
   )
 }

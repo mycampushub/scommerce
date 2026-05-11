@@ -203,9 +203,16 @@ export async function csrfMiddleware(
   // Check if we're in development/production mode
   const isCloudflareEnv = env && env.KV;
 
+  console.log('[CSRF Middleware] Check:', {
+    method,
+    hasEnv: !!env,
+    hasKV: !!(env?.KV),
+    isCloudflareEnv,
+  })
+
   // Skip CSRF validation if KV is not available (local development) or in production without KV
   if (!isCloudflareEnv) {
-    console.warn('[CSRF] KV not available (local development), skipping CSRF validation');
+    console.log('[CSRF Middleware] Skipping CSRF validation (no KV available)');
     return null;
   }
 

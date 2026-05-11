@@ -317,12 +317,12 @@ export default function CouponsPage() {
               Create Coupon
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" aria-describedby="coupon-description">
             <DialogHeader>
               <DialogTitle>
                 {editingPromotion ? 'Edit Coupon' : 'Create New Coupon'}
               </DialogTitle>
-              <DialogDescription>
+              <DialogDescription id="coupon-description">
                 Configure your coupon with discount rules, usage limits, and targeting
               </DialogDescription>
             </DialogHeader>

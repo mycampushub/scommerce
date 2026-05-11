@@ -341,13 +341,13 @@ export default function AuditLogsPage() {
       {/* Log Detail Modal */}
       {selectedLog && (
         <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl" aria-describedby="log-detail-description">
             <DialogHeader>
               <DialogTitle>Log Details</DialogTitle>
+              <DialogDescription id="log-detail-description">
+                View complete log information
+              </DialogDescription>
             </DialogHeader>
-            <DialogDescription>
-              View complete log information
-            </DialogDescription>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsDetailModalOpen(false)}>
                 Close

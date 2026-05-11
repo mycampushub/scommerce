@@ -55,6 +55,9 @@ CREATE TABLE IF NOT EXISTS categories (
   updatedAt TEXT DEFAULT (datetime('now'))
 );
 
+CREATE INDEX IF NOT EXISTS idx_categories_slug ON categories(slug);
+CREATE INDEX IF NOT EXISTS idx_categories_isActive ON categories(isActive);
+
 -- Products table
 CREATE TABLE IF NOT EXISTS products (
   id TEXT PRIMARY KEY,
@@ -253,7 +256,7 @@ CREATE TABLE IF NOT EXISTS admin_logs (
   createdAt TEXT DEFAULT (datetime('now'))
 );
 
-CREATE INDEX IF NOT EXISTS idx_admin_logs_adminId_createdAt ON admin_logs(adminId, createdAt DESC);
+CREATE INDEX IF NOT EXISTS idx_admin_logs_adminId ON admin_logs(adminId);
 CREATE INDEX IF NOT EXISTS idx_admin_logs_entity_createdAt ON admin_logs(entity, createdAt DESC);
 CREATE INDEX IF NOT EXISTS idx_admin_logs_action_createdAt ON admin_logs(action, createdAt DESC);
 CREATE INDEX IF NOT EXISTS idx_admin_logs_entity_entityId ON admin_logs(entity, entityId);
@@ -291,8 +294,7 @@ CREATE TABLE IF NOT EXISTS posts (
 
 CREATE INDEX IF NOT EXISTS idx_posts_authorId ON posts(authorId);
 
--- Homepage content management tables
--- Banners
+-- Banners table
 CREATE TABLE IF NOT EXISTS banners (
   id TEXT PRIMARY KEY,
   title TEXT NOT NULL,
@@ -302,30 +304,30 @@ CREATE TABLE IF NOT EXISTS banners (
   buttonText TEXT,
   buttonLink TEXT,
   isActive INTEGER DEFAULT 1,
-  orderNum INTEGER DEFAULT 0,
+  "order" INTEGER DEFAULT 0,
   createdAt TEXT DEFAULT (datetime('now')),
   updatedAt TEXT DEFAULT (datetime('now'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_banners_isActive ON banners(isActive);
-CREATE INDEX IF NOT EXISTS idx_banners_orderNum ON banners(orderNum);
+CREATE INDEX IF NOT EXISTS idx_banners_order ON banners("order");
 
--- Stories
+-- Stories table
 CREATE TABLE IF NOT EXISTS stories (
   id TEXT PRIMARY KEY,
   title TEXT NOT NULL,
   thumbnail TEXT NOT NULL,
   images TEXT NOT NULL,
   isActive INTEGER DEFAULT 1,
-  orderNum INTEGER DEFAULT 0,
+  "order" INTEGER DEFAULT 0,
   createdAt TEXT DEFAULT (datetime('now')),
   updatedAt TEXT DEFAULT (datetime('now'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_stories_isActive ON stories(isActive);
-CREATE INDEX IF NOT EXISTS idx_stories_orderNum ON stories(orderNum);
+CREATE INDEX IF NOT EXISTS idx_stories_order ON stories("order");
 
--- Reels
+-- Reels table
 CREATE TABLE IF NOT EXISTS reels (
   id TEXT PRIMARY KEY,
   title TEXT NOT NULL,
@@ -333,15 +335,15 @@ CREATE TABLE IF NOT EXISTS reels (
   videoUrl TEXT NOT NULL,
   productIds TEXT,
   isActive INTEGER DEFAULT 1,
-  orderNum INTEGER DEFAULT 0,
+  "order" INTEGER DEFAULT 0,
   createdAt TEXT DEFAULT (datetime('now')),
   updatedAt TEXT DEFAULT (datetime('now'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_reels_isActive ON reels(isActive);
-CREATE INDEX IF NOT EXISTS idx_reels_orderNum ON reels(orderNum);
+CREATE INDEX IF NOT EXISTS idx_reels_order ON reels("order");
 
--- Promotions
+-- Promotions table
 CREATE TABLE IF NOT EXISTS promotions (
   id TEXT PRIMARY KEY,
   title TEXT NOT NULL,
@@ -351,7 +353,7 @@ CREATE TABLE IF NOT EXISTS promotions (
   ctaLink TEXT,
   type TEXT DEFAULT 'banner',
   isActive INTEGER DEFAULT 1,
-  orderNum INTEGER DEFAULT 0,
+  "order" INTEGER DEFAULT 0,
   createdAt TEXT DEFAULT (datetime('now')),
   updatedAt TEXT DEFAULT (datetime('now'))
 );
@@ -359,7 +361,7 @@ CREATE TABLE IF NOT EXISTS promotions (
 CREATE INDEX IF NOT EXISTS idx_promotions_isActive ON promotions(isActive);
 CREATE INDEX IF NOT EXISTS idx_promotions_type_isActive ON promotions(type, isActive);
 
--- Homepage Settings
+-- Homepage Settings table
 CREATE TABLE IF NOT EXISTS homepage_settings (
   id TEXT PRIMARY KEY,
   sectionName TEXT UNIQUE NOT NULL,
@@ -370,21 +372,20 @@ CREATE TABLE IF NOT EXISTS homepage_settings (
   updatedAt TEXT DEFAULT (datetime('now'))
 );
 
--- Site Settings
+-- Site Settings table
 CREATE TABLE IF NOT EXISTS site_settings (
   id TEXT PRIMARY KEY,
-  siteName TEXT NOT NULL DEFAULT 'SCommerce',
+  siteName TEXT,
   siteLogo TEXT,
-  currency TEXT NOT NULL DEFAULT 'BDT',
-  currencySymbol TEXT NOT NULL DEFAULT '৳',
-  taxRate REAL NOT NULL DEFAULT 0.18,
-  freeShippingThreshold INTEGER NOT NULL DEFAULT 5000,
-  baseShippingCost INTEGER NOT NULL DEFAULT 150,
   contactEmail TEXT,
   contactPhone TEXT,
+  currency TEXT DEFAULT 'USD',
+  freeShippingThreshold REAL DEFAULT 5000,
+  baseShippingCost REAL DEFAULT 150,
+  taxRate REAL DEFAULT 0,
   socialMedia TEXT,
-  seo TEXT,
-  createdAt TEXT DEFAULT (datetime('now')),
+  enableStore INTEGER DEFAULT 1,
+  maintenanceMode INTEGER DEFAULT 0,
   updatedAt TEXT DEFAULT (datetime('now'))
 );
 

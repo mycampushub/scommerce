@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogDescription } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
 import { ImageUpload } from '@/components/admin/image-upload'
@@ -565,10 +565,12 @@ export default function HomepageManagementPage() {
                   Add Banner
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby="banner-dialog-description">
                 <DialogHeader>
                   <DialogTitle>{editingBanner ? 'Edit Banner' : 'Add Banner'}</DialogTitle>
-                  <DialogDescription>Create or edit homepage banner with image and button text</DialogDescription>
+                  <DialogDescription id="banner-dialog-description">
+                    {editingBanner ? 'Update banner information' : 'Add a new banner to the homepage'}
+                  </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
@@ -724,10 +726,12 @@ export default function HomepageManagementPage() {
                   Add Story
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby="story-dialog-description">
                 <DialogHeader>
                   <DialogTitle>{editingStory ? 'Edit Story' : 'Add Story'}</DialogTitle>
-                  <DialogDescription>Create Instagram-style stories with thumbnail and multiple images</DialogDescription>
+                  <DialogDescription id="story-dialog-description">
+                    {editingStory ? 'Update story information' : 'Add a new story to the homepage carousel'}
+                  </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
@@ -865,10 +869,12 @@ export default function HomepageManagementPage() {
                   Add Reel
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby="reel-dialog-description">
                 <DialogHeader>
                   <DialogTitle>{editingReel ? 'Edit Reel' : 'Add Reel'}</DialogTitle>
-                  <DialogDescription>Create short video reels with thumbnail and video URL</DialogDescription>
+                  <DialogDescription id="reel-dialog-description">
+                    {editingReel ? 'Update reel information' : 'Add a new reel video to the homepage'}
+                  </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
@@ -1013,10 +1019,12 @@ export default function HomepageManagementPage() {
                   Add Promotion
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby="promotion-dialog-description">
                 <DialogHeader>
                   <DialogTitle>{editingPromotion ? 'Edit Promotion' : 'Add Promotion'}</DialogTitle>
-                  <DialogDescription>Create promotional banners with discount or call-to-action</DialogDescription>
+                  <DialogDescription id="promotion-dialog-description">
+                    {editingPromotion ? 'Update promotion information' : 'Add a new promotional card to the homepage'}
+                  </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>

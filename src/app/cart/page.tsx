@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { Trash2, ShoppingBag, Plus, Minus, ArrowRight, Check } from 'lucide-react'
 import Link from 'next/link'
-import { useCartStore, CartItem } from '@/lib/store/cart-store'
+import { useCartStore } from '@/lib/store/cart-store'
 import { formatCurrency } from '@/lib/format-currency'
 import { Header } from '@/components/header'
 import { Footer } from '@/components/footer'
@@ -22,7 +22,7 @@ export default function CartPage() {
   const clearLocalCart = useCartStore(state => state.clearCart)
   const addItem = useCartStore(state => state.addItem)
 
-  const [items, setItems] = useState<CartItem[]>([])
+  const [items, setItems] = useState(localItems)
   const [loading, setLoading] = useState(true)
   const updateQuantity = async (id: string, quantity: number, variantId?: string) => {
     if (quantity < 1) return
@@ -30,20 +30,9 @@ export default function CartPage() {
     // For authenticated users, update server cart
     if (user) {
       try {
-        const csrfToken = typeof window !== 'undefined' ? localStorage.getItem('csrf_token') : null
-
-        const headers: Record<string, string> = {
-          'Content-Type': 'application/json',
-        }
-
-        // Only add CSRF token if it exists (for production/Cloudflare)
-        if (csrfToken) {
-          headers['X-CSRF-Token'] = csrfToken
-        }
-
         const response = await fetch('/api/cart', {
           method: 'POST',
-          headers,
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'update',
             item: { productId: id, variantId, quantity },
@@ -65,8 +54,6 @@ export default function CartPage() {
                 : item
             })
           )
-          // Also update zustand store to keep in sync
-          localUpdateQuantity(id, quantity, variantId)
         } else {
           throw new Error(data.error || 'Failed to update cart')
         }
@@ -88,20 +75,9 @@ export default function CartPage() {
     // For authenticated users, update server cart
     if (user) {
       try {
-        const csrfToken = typeof window !== 'undefined' ? localStorage.getItem('csrf_token') : null
-
-        const headers: Record<string, string> = {
-          'Content-Type': 'application/json',
-        }
-
-        // Only add CSRF token if it exists (for production/Cloudflare)
-        if (csrfToken) {
-          headers['X-CSRF-Token'] = csrfToken
-        }
-
         const response = await fetch('/api/cart', {
           method: 'POST',
-          headers,
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'remove',
             item: { productId: id, variantId },
@@ -119,8 +95,6 @@ export default function CartPage() {
               return !(item.id === id && !item.variantId)
             })
           )
-          // Also update zustand store to keep in sync
-          localRemoveItem(id, variantId)
         } else {
           throw new Error(data.error || 'Failed to remove item')
         }
@@ -187,9 +161,6 @@ export default function CartPage() {
             // Clear localStorage to prevent duplication
             clearLocalCart()
             console.log('[Cart] Loaded from server:', transformedItems.length, 'items')
-          } else {
-            // Server returned empty cart, use local storage
-            setItems(localItems)
           }
         } catch (error) {
           console.error('[Cart] Error fetching server cart:', error)
@@ -197,7 +168,7 @@ export default function CartPage() {
           setItems(localItems)
         }
       } else {
-        // Not authenticated, use local storage directly
+        // Not authenticated, use local storage
         setItems(localItems)
       }
       setLoading(false)
@@ -206,13 +177,6 @@ export default function CartPage() {
     // Only fetch on initial mount and when user changes
     fetchServerCart()
   }, [user])
-
-  // Keep local items in sync with zustand store for guest users
-  useEffect(() => {
-    if (!user) {
-      setItems(localItems)
-    }
-  }, [localItems, user])
 
   // Fetch site settings for shipping thresholds
   useEffect(() => {

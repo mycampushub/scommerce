@@ -365,12 +365,12 @@ function AddressBookPage() {
 
       {/* Add/Edit Address Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[600px]" aria-describedby="address-dialog-description">
           <DialogHeader>
             <DialogTitle>
               {editingAddress ? 'Edit Address' : 'Add New Address'}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription id="address-dialog-description">
               {editingAddress ? 'Update your address details' : 'Add a new address to your address book'}
             </DialogDescription>
           </DialogHeader>

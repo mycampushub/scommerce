@@ -747,19 +747,13 @@ export default function CustomersPage() {
 
       {/* Add Customer Dialog */}
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-        <DialogContent className="max-w-md w-full sm:rounded-lg">
+        <DialogContent className="max-w-md w-full sm:rounded-lg" aria-describedby="add-customer-description">
           <DialogHeader>
             <DialogTitle>Add New Customer</DialogTitle>
+            <DialogDescription id="add-customer-description">
+              Create a new customer account
+            </DialogDescription>
           </DialogHeader>
-          <DialogDescription>
-            Create a new customer account
-          </DialogDescription>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleAddCustomer}>
-              Add Customer
-            </Button>
-          </DialogFooter>
           <form onSubmit={handleAddCustomer} className="space-y-4">
             <div>
               <Label htmlFor="name">Name *</Label>
@@ -802,25 +796,23 @@ export default function CustomersPage() {
                 rows={3}
               />
             </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
+              <Button type="submit">Add Customer</Button>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
       {/* Edit Customer Dialog */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="max-w-md w-full sm:rounded-lg">
+        <DialogContent className="max-w-md w-full sm:rounded-lg" aria-describedby="edit-customer-description">
           <DialogHeader>
             <DialogTitle>Edit Customer</DialogTitle>
+            <DialogDescription id="edit-customer-description">
+              Update customer information
+            </DialogDescription>
           </DialogHeader>
-          <DialogDescription>
-            Update customer information
-          </DialogDescription>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleUpdateCustomer}>
-              Update Customer
-            </Button>
-          </DialogFooter>
           <form onSubmit={handleUpdateCustomer} className="space-y-4">
             <div>
               <Label htmlFor="edit-name">Name *</Label>
@@ -886,83 +878,87 @@ export default function CustomersPage() {
                 <span className="text-sm font-medium">Mark as VIP</span>
               </label>
             </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
+              <Button type="submit">Update Customer</Button>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
       {/* Customer Detail Dialog */}
       <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
-        <DialogContent className="max-w-md w-full sm:rounded-lg">
+        <DialogContent className="max-w-md w-full sm:rounded-lg" aria-describedby="customer-detail-description">
           <DialogHeader>
             <DialogTitle>Customer Details</DialogTitle>
+            <DialogDescription id="customer-detail-description">
+              View complete customer information and order history
+            </DialogDescription>
           </DialogHeader>
-          <DialogDescription>
-            View complete customer information and order history
-          </DialogDescription>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDetailModalOpen(false)}>Close</Button>
-            <Button onClick={() => openEditModal(selectedCustomer!)}>Edit</Button>
-          </DialogFooter>
           {selectedCustomer && (
             <div className="space-y-6">
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="h-16 w-16 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center text-white font-semibold text-xl">
-                    {selectedCustomer.name.substring(0, 2)}
-                  </div>
-                  {selectedCustomer.isVIP && (
-                    <Badge variant="outline" className="bg-yellow-100 text-yellow-700 border-yellow-300">
-                      <Star className="h-3 w-3 mr-1 fill-current" />
-                      VIP Customer
-                    </Badge>
-                  )}
+              <div className="flex items-center gap-4 mb-6">
+                <div className="h-16 w-16 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center text-white font-semibold text-xl">
+                  {selectedCustomer.name.substring(0, 2)}
                 </div>
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Email</p>
-                      <p className="text-sm text-gray-900">{selectedCustomer.email}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Phone</p>
-                      <p className="text-sm text-gray-900">{selectedCustomer.phone || 'Not provided'}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Address</p>
-                      <p className="text-sm text-gray-900 break-all-words">{selectedCustomer.address || 'Not provided'}</p>
-                    </div>
+                {selectedCustomer.isVIP && (
+                  <Badge variant="outline" className="bg-yellow-100 text-yellow-700 border-yellow-300">
+                    <Star className="h-3 w-3 mr-1 fill-current" />
+                    VIP Customer
+                  </Badge>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Email</p>
+                    <p className="text-sm text-gray-900">{selectedCustomer.email}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Status</p>
-                    <Badge
-                      variant={selectedCustomer.status === 'active' ? 'default' : selectedCustomer.status === 'banned' ? 'destructive' : 'secondary'}
-                      className={selectedCustomer.status === 'active' ? 'bg-green-100 text-green-700' : selectedCustomer.status === 'banned' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}
-                    >
-                      {selectedCustomer.status ? selectedCustomer.status.charAt(0).toUpperCase() + selectedCustomer.status.slice(1) : 'Unknown'}
-                    </Badge>
+                    <p className="text-sm font-medium text-gray-500">Phone</p>
+                    <p className="text-sm text-gray-900">{selectedCustomer.phone || 'Not provided'}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Total Orders</p>
-                    <p className="text-sm font-medium text-gray-900">{selectedCustomer.orders || 0}</p>
+                    <p className="text-sm font-medium text-gray-500">Address</p>
+                    <p className="text-sm text-gray-900 break-all-words">{selectedCustomer.address || 'Not provided'}</p>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Total Spent</p>
-                    <p className="text-sm font-medium text-gray-900">${(selectedCustomer.totalSpent || 0).toFixed(2)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Joined Date</p>
-                    <p className="text-sm text-gray-900">{formatDate(selectedCustomer.joined)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">VIP Status</p>
-                    <Badge variant={selectedCustomer.isVIP ? 'outline' : 'secondary'}>
-                      {selectedCustomer.isVIP ? 'Yes' : 'No'}
-                    </Badge>
-                  </div>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Status</p>
+                  <Badge
+                    variant={selectedCustomer.status === 'active' ? 'default' : selectedCustomer.status === 'banned' ? 'destructive' : 'secondary'}
+                    className={selectedCustomer.status === 'active' ? 'bg-green-100 text-green-700' : selectedCustomer.status === 'banned' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}
+                  >
+                    {selectedCustomer.status ? selectedCustomer.status.charAt(0).toUpperCase() + selectedCustomer.status.slice(1) : 'Unknown'}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Total Orders</p>
+                  <p className="text-sm font-medium text-gray-900">{selectedCustomer.orders || 0}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Total Spent</p>
+                  <p className="text-sm font-medium text-gray-900">${(selectedCustomer.totalSpent || 0).toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Joined Date</p>
+                  <p className="text-sm text-gray-900">{formatDate(selectedCustomer.joined)}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">VIP Status</p>
+                  <Badge variant={selectedCustomer.isVIP ? 'outline' : 'secondary'}>
+                    {selectedCustomer.isVIP ? 'Yes' : 'No'}
+                  </Badge>
                 </div>
               </div>
-            )}
-          </DialogContent>
-        </Dialog>
+            </div>
+          )}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setIsDetailModalOpen(false)}>Close</Button>
+            <Button type="button" onClick={() => openEditModal(selectedCustomer!)}>Edit</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

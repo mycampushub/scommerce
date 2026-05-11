@@ -609,10 +609,10 @@ export default function CategoriesPage() {
 
       {/* Add Category Modal */}
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-        <DialogContent>
+        <DialogContent aria-describedby="add-category-description">
           <DialogHeader>
             <DialogTitle>Add New Category</DialogTitle>
-            <DialogDescription>Create a new category to organize your products.</DialogDescription>
+            <DialogDescription id="add-category-description">Create a new category to organize your products.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreateCategory} className="space-y-4 py-4">
             <div className="space-y-2">
@@ -704,10 +704,10 @@ export default function CategoriesPage() {
 
       {/* Edit Category Modal */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent>
+        <DialogContent aria-describedby="edit-category-description">
           <DialogHeader>
             <DialogTitle>Edit Category</DialogTitle>
-            <DialogDescription>Update category information</DialogDescription>
+            <DialogDescription id="edit-category-description">Update category information</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleUpdateCategory} className="space-y-4 py-4">
             <div className="space-y-2">

@@ -509,10 +509,10 @@ export default function StaffPage() {
 
       {/* Add Staff Dialog */}
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md" aria-describedby="add-staff-member-description">
           <DialogHeader>
             <DialogTitle>Add New Staff Member</DialogTitle>
-            <DialogDescription>
+            <DialogDescription id="add-staff-member-description">
               Create a new admin or staff account
             </DialogDescription>
           </DialogHeader>
@@ -612,10 +612,10 @@ export default function StaffPage() {
 
       {/* Edit Staff Dialog */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md" aria-describedby="edit-staff-member-description">
           <DialogHeader>
             <DialogTitle>Edit Staff Member</DialogTitle>
-            <DialogDescription>
+            <DialogDescription id="edit-staff-member-description">
               Update staff member information and role
             </DialogDescription>
           </DialogHeader>

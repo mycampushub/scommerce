@@ -557,10 +557,10 @@ export default function OrdersPage() {
 
       {/* Order Details Modal */}
       <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
-        <DialogContent className="max-w-2xl w-full max-h-[90vh] overflow-y-auto sm:rounded-lg">
+        <DialogContent className="max-w-2xl w-full max-h-[90vh] overflow-y-auto sm:rounded-lg" aria-describedby="order-details-description">
           <DialogHeader>
             <DialogTitle>Order Details</DialogTitle>
-            <DialogDescription>Order {selectedOrder?.orderNumber}</DialogDescription>
+            <DialogDescription id="order-details-description">Order {selectedOrder?.orderNumber}</DialogDescription>
           </DialogHeader>
           {selectedOrder && (
             <div className="space-y-6 py-4">
@@ -673,10 +673,10 @@ export default function OrdersPage() {
 
       {/* Update Status Modal */}
       <Dialog open={isStatusModalOpen} onOpenChange={setIsStatusModalOpen}>
-        <DialogContent className="max-w-2xl w-full max-h-[90vh] overflow-y-auto sm:rounded-lg">
+        <DialogContent className="max-w-2xl w-full max-h-[90vh] overflow-y-auto sm:rounded-lg" aria-describedby="update-status-description">
           <DialogHeader>
             <DialogTitle>Update Order Status</DialogTitle>
-            <DialogDescription>Change the status and tracking for order {updatingOrder?.orderNumber}</DialogDescription>
+            <DialogDescription id="update-status-description">Change the status and tracking for order {updatingOrder?.orderNumber}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">

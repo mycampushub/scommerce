@@ -724,10 +724,10 @@ export default function CheckoutPage() {
 
       {/* Login/Signup Dialog */}
       <Dialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
-        <DialogContent className="sm:max-w-[95vw] md:max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[95vw] md:max-w-md max-h-[90vh] overflow-y-auto" aria-describedby="complete-order-description">
           <DialogHeader>
             <DialogTitle>Complete Your Order</DialogTitle>
-            <DialogDescription>
+            <DialogDescription id="complete-order-description">
               Please log in or sign up to complete your order
             </DialogDescription>
           </DialogHeader>

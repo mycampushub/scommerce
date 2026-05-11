@@ -607,10 +607,10 @@ function OrderConfirmationContent() {
 
       {/* Refund Request Dialog */}
       <Dialog open={showRefundDialog} onOpenChange={setShowRefundDialog}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px]" aria-describedby="refund-request-description">
           <DialogHeader>
             <DialogTitle>Request Refund</DialogTitle>
-            <DialogDescription>
+            <DialogDescription id="refund-request-description">
               Please provide details for your refund request. This will be reviewed by our team.
             </DialogDescription>
           </DialogHeader>
