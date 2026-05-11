@@ -158,11 +158,21 @@ export async function POST(request: NextRequest) {
   // Check CSRF protection - skip in local development
   const isCloudflareEnv = env && env.KV
 
+  console.log('[Cart POST] Environment check:', {
+    hasEnv: !!env,
+    hasKV: !!(env?.KV),
+    isCloudflareEnv,
+    method: request.method,
+  })
+
   if (isCloudflareEnv) {
     const csrfError = await csrfMiddleware(request, env);
     if (csrfError) {
+      console.log('[Cart POST] CSRF validation failed')
       return csrfError;
     }
+  } else {
+    console.log('[Cart POST] Skipping CSRF validation (local development or no KV)')
   }
 
   try {

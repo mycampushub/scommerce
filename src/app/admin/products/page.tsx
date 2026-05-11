@@ -1369,10 +1369,10 @@ export default function ProductsPage() {
 
       {/* Variant Management Modal */}
       <Dialog open={isVariantsModalOpen} onOpenChange={setIsVariantsModalOpen}>
-        <DialogContent className="max-w-5xl w-full max-h-[90vh] overflow-y-auto sm:rounded-lg">
+        <DialogContent className="max-w-5xl w-full max-h-[90vh] overflow-y-auto sm:rounded-lg" aria-describedby="manage-variants-description">
           <DialogHeader>
             <DialogTitle>Manage Variants - {selectedProductForVariants?.name}</DialogTitle>
-            <DialogDescription>Create and manage product variants (sizes, colors, materials)</DialogDescription>
+            <DialogDescription id="manage-variants-description">Create and manage product variants (sizes, colors, materials)</DialogDescription>
           </DialogHeader>
 
           <Tabs value={activeVariantTab} onValueChange={(v) => setActiveVariantTab(v as 'list' | 'matrix')} className="mt-4">

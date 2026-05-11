@@ -30,9 +30,20 @@ export default function CartPage() {
     // For authenticated users, update server cart
     if (user) {
       try {
+        const csrfToken = typeof window !== 'undefined' ? localStorage.getItem('csrf_token') : null
+
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+        }
+
+        // Only add CSRF token if it exists (for production/Cloudflare)
+        if (csrfToken) {
+          headers['X-CSRF-Token'] = csrfToken
+        }
+
         const response = await fetch('/api/cart', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({
             action: 'update',
             item: { productId: id, variantId, quantity },
@@ -77,9 +88,20 @@ export default function CartPage() {
     // For authenticated users, update server cart
     if (user) {
       try {
+        const csrfToken = typeof window !== 'undefined' ? localStorage.getItem('csrf_token') : null
+
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+        }
+
+        // Only add CSRF token if it exists (for production/Cloudflare)
+        if (csrfToken) {
+          headers['X-CSRF-Token'] = csrfToken
+        }
+
         const response = await fetch('/api/cart', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({
             action: 'remove',
             item: { productId: id, variantId },

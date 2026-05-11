@@ -100,7 +100,14 @@ export async function POST(request: NextRequest) {
     const filePath = join(uploadsDir, filename)
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
-    await writeFile(filePath, buffer)
+
+    try {
+      await writeFile(filePath, buffer)
+    } catch (writeErr: any) {
+      console.error('[Gallery Upload POST] Failed to write file:', writeErr)
+      throw new Error(writeErr?.message || 'Failed to save file - operation not permitted')
+    }
+
     console.log('[Gallery Upload POST] File saved:', filePath)
 
     // Get image dimensions
