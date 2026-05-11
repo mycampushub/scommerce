@@ -6,7 +6,7 @@ import { CategoryRepository } from '@/db/category.repository'
 import { generateSKU, checkSKUConflict } from '@/lib/sku-generator'
 import { z } from 'zod'
 import { queryFirst, queryAll, execute, boolToNumber, numberToBool, parseJSON, stringifyJSON, now, count } from '@/db/db'
-import { csrfMiddleware } from '@/lib/csrf'
+
 
 
 /**
@@ -105,14 +105,8 @@ export async function PUT(
     return userOrResponse
   }
 
-  // Check CSRF protection
-  const env = getEnv()
-  const csrfError = await csrfMiddleware(request, env)
-  if (csrfError) {
-    return csrfError
-  }
-
   try {
+    const env = getEnv()
     const { id, variantId } = await params
 
     // Check if variant exists
@@ -266,14 +260,8 @@ export async function DELETE(
     return userOrResponse
   }
 
-  // Check CSRF protection
-  const env = getEnv()
-  const csrfError = await csrfMiddleware(request, env)
-  if (csrfError) {
-    return csrfError
-  }
-
   try {
+    const env = getEnv()
     const { id, variantId } = await params
 
     // Check if variant exists

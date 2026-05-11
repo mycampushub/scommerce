@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
 import { verifyAdminAuth } from '@/lib/admin-auth'
 import { queryAll, execute, queryFirst, generateId, now, parseJSON, stringifyJSON, boolToNumber, numberToBool } from '@/db/db'
-import { csrfMiddleware } from '@/lib/csrf'
 import { getClientIp, rateLimit, createRateLimitResponse } from '@/lib/rate-limit'
 
 
@@ -80,12 +79,7 @@ export async function PUT(request: NextRequest) {
     return userOrResponse
   }
 
-  // Check CSRF protection
   const env = getEnv()
-  const csrfError = await csrfMiddleware(request, env)
-  if (csrfError) {
-    return csrfError
-  }
 
   // Rate limiting: 10 requests per minute per admin
   const clientIp = getClientIp(request);

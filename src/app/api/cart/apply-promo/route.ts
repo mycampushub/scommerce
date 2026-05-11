@@ -1,17 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
-import { csrfMiddleware } from '@/lib/csrf'
 import { validatePromoCode, getUserPromoCodes } from '@/lib/promotion-validation'
 import { verifyToken, extractTokenFromHeader } from '@/lib/auth'
 
 export async function POST(request: NextRequest) {
   const env = getEnv()
-
-  // Check CSRF protection
-  const csrfError = await csrfMiddleware(request, env)
-  if (csrfError) {
-    return csrfError
-  }
 
   try {
     const body = await request.json() as { promoCode?: string; subtotal?: number; cartItems?: Array<{ productId: string; variantId?: string; quantity: number }> }

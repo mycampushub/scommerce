@@ -4,7 +4,6 @@ import { getEnv } from '@/lib/cloudflare'
 import { CategoryRepository } from '@/db/category.repository'
 import { categorySchema } from '@/lib/validations'
 import { queryAll, count, numberToBool } from '@/db/db'
-import { csrfMiddleware } from '@/lib/csrf'
 
 
 export async function GET(request: NextRequest) {
@@ -79,12 +78,7 @@ export async function POST(request: NextRequest) {
     return userOrResponse
   }
 
-  // Check CSRF protection
   const env = getEnv()
-  const csrfError = await csrfMiddleware(request, env)
-  if (csrfError) {
-    return csrfError
-  }
 
   try {
     const body = await request.json() as any

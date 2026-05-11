@@ -5,7 +5,6 @@ import { OrderRepository } from '@/db/order.repository'
 import { UserRepository } from '@/db/user.repository'
 import { createOrderSchema } from '@/lib/validations/index'
 import { queryAll, execute, generateId, generateOrderNumber, now } from '@/db/db'
-import { csrfMiddleware } from '@/lib/csrf'
 import { rateLimit } from '@/lib/rate-limit'
 import { verifyToken, extractTokenFromHeader } from '@/lib/auth'
 
@@ -183,11 +182,7 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Check CSRF protection
-  const csrfError = await csrfMiddleware(request, env)
-  if (csrfError) {
-    return csrfError
-  }
+
 
   try {
     const body: any = await request.json() as any

@@ -4,7 +4,6 @@ import { getEnv } from '@/lib/cloudflare';
 import { OrderRepository } from '@/db/order.repository';
 import { ProductRepository } from '@/db/product.repository';
 import { queryFirst, queryAll, execute, stringifyJSON, numberToBool, boolToNumber, generateSecureId } from '@/db/db';
-import { csrfMiddleware } from '@/lib/csrf';
 import { sanitizeAddressData, sanitizeForDB, sanitizeEmail, sanitizePhone, sanitizeProductData } from '@/lib/sanitize';
 import { invalidateCache } from '@/lib/cache';
 import { rateLimit, getClientIp, createRateLimitResponse } from '@/lib/rate-limit';
@@ -20,12 +19,6 @@ const ALLOWED_PAYMENT_METHODS = ['CASH_ON_DELIVERY', 'ONLINE_PAYMENT', 'CARD', '
 export async function POST(request: NextRequest) {
   // Get D1 database from request context (Cloudflare Pages/Workers)
   const env = getEnv();
-
-  // Check CSRF protection
-  const csrfError = await csrfMiddleware(request, env);
-  if (csrfError) {
-    return csrfError;
-  }
 
   // Rate limiting: 10 orders per hour per user/IP
   const authHeader = request.headers.get('authorization');

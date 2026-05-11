@@ -3,7 +3,6 @@ import { getEnv, isCloudflareEnv } from '@/lib/cloudflare'
 import { verifyAdminAuth } from '@/lib/admin-auth'
 import { ReelRepositoryPrisma } from '@/db/reel-prisma.repository'
 import { ReelRepository } from '@/db/reel.repository'
-import { csrfMiddleware } from '@/lib/csrf'
 
 
 export async function GET(
@@ -53,12 +52,7 @@ export async function PUT(
     return userOrResponse
   }
 
-  // Check CSRF protection
   const env = getEnv()
-  const csrfError = await csrfMiddleware(request, env)
-  if (csrfError) {
-    return csrfError
-  }
 
   try {
     const { id } = await params
@@ -170,12 +164,7 @@ export async function DELETE(
     return userOrResponse
   }
 
-  // Check CSRF protection
   const env = getEnv()
-  const csrfError = await csrfMiddleware(request, env)
-  if (csrfError) {
-    return csrfError
-  }
 
   try {
     const { id } = await params

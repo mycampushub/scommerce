@@ -3,7 +3,6 @@ import { getEnv } from '@/lib/cloudflare'
 import { verifyAdminAuth } from '@/lib/admin-auth'
 import { promotionSchema } from '@/lib/validations'
 import { queryAll, queryFirst, execute, boolToNumber, numberToBool, parseJSON, stringifyJSON, now, generateId } from '@/db/db'
-import { csrfMiddleware } from '@/lib/csrf'
 
 
 export async function GET(request: NextRequest) {
@@ -55,12 +54,7 @@ export async function POST(request: NextRequest) {
     return userOrResponse
   }
 
-  // Check CSRF protection
   const env = getEnv()
-  const csrfError = await csrfMiddleware(request, env)
-  if (csrfError) {
-    return csrfError
-  }
 
   try {
     const body = await request.json() as any

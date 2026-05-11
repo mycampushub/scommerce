@@ -4,7 +4,6 @@ import { verifyAdmin } from '@/lib/auth-utils'
 import { UserRepository } from '@/db/user.repository'
 import { hashPassword } from '@/lib/bcrypt-wrapper'
 import { queryAll, count, numberToBool } from '@/db/db'
-import { csrfMiddleware } from '@/lib/csrf'
 
 
 export async function GET(request: NextRequest) {
@@ -80,12 +79,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check CSRF protection
     const env = getEnv()
-    const csrfError = await csrfMiddleware(request, env)
-    if (csrfError) {
-      return csrfError
-    }
 
     const body: any = await request.json() as any
     const { email, name, password, role } = body

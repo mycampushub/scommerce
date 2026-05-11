@@ -6,7 +6,7 @@ import { CategoryRepository } from '@/db/category.repository'
 import { generateSKU, checkSKUConflict } from '@/lib/sku-generator'
 import { z } from 'zod'
 import { queryFirst, queryAll, execute, boolToNumber, parseJSON, stringifyJSON, now } from '@/db/db'
-import { csrfMiddleware } from '@/lib/csrf'
+
 
 
 /**
@@ -129,14 +129,8 @@ export async function POST(
     return userOrResponse
   }
 
-  // Check CSRF protection
-  const env = getEnv()
-  const csrfError = await csrfMiddleware(request, env)
-  if (csrfError) {
-    return csrfError
-  }
-
   try {
+    const env = getEnv()
     const { id } = await params
 
     // Fetch product to check if it exists

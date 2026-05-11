@@ -4,7 +4,6 @@ import { getEnv } from '@/lib/cloudflare'
 import { CartRepository } from '@/db/cart.repository'
 import { UserRepository } from '@/db/user.repository'
 import { queryAll, queryFirst, parseJSON, numberToBool } from '@/db/db'
-import { csrfMiddleware } from '@/lib/csrf'
 import { cartItemSchema } from '@/lib/validations'
 
 
@@ -16,12 +15,6 @@ import { cartItemSchema } from '@/lib/validations'
 export async function POST(request: NextRequest) {
   // Get D1 database from request context
   const env = getEnv()
-
-  // Check CSRF protection
-  const csrfError = await csrfMiddleware(request, env)
-  if (csrfError) {
-    return csrfError
-  }
 
   try {
     // Get token from Authorization header or cookie

@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyAuth } from '@/lib/auth-utils'
 import { getEnv } from '@/lib/cloudflare'
 import { queryAll, queryFirst, execute, numberToBool, generateId, now } from '@/db/db'
-import { csrfMiddleware } from '@/lib/csrf'
 import { sanitizeHTML, sanitizeForDB } from '@/lib/sanitize'
 
 
@@ -58,12 +57,6 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   // Get D1 database from request context
   const env = getEnv()
-
-  // Check CSRF protection
-  const csrfError = await csrfMiddleware(request, env)
-  if (csrfError) {
-    return csrfError
-  }
 
   try {
     const body = await request.json() as any

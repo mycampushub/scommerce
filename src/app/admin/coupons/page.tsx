@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Plus, Edit, Trash2, Calendar, Tag, ShoppingCart, Users, Package, AlertCircle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import { useCSRF } from '@/hooks/use-csrf'
+
 import { PriceDisplay } from '@/components/price-display'
 
 interface Promotion {
@@ -58,7 +58,6 @@ export default function CouponsPage() {
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingPromotion, setEditingPromotion] = useState<Promotion | null>(null)
-  const csrfToken = useCSRF()
   const { toast } = useToast()
 
   // Form state
@@ -84,11 +83,7 @@ export default function CouponsPage() {
   const fetchPromotions = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/admin/promotions', {
-        headers: {
-          'X-CSRF-Token': csrfToken.token || '',
-        },
-      })
+      const response = await fetch('/api/admin/promotions')
       if (response.ok) {
         const data = await response.json()
         setPromotions(data.data || [])
@@ -182,8 +177,7 @@ export default function CouponsPage() {
       const response = await fetch(`/api/admin/promotions/${id}`, {
         method: 'DELETE',
         headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken.token || '',
+          'Content-Type': 'application/json'
         },
       })
 
@@ -217,8 +211,7 @@ export default function CouponsPage() {
       const response = await fetch(url, {
         method: editingPromotion ? 'PUT' : 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken.token || '',
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(formData),
       })
@@ -252,8 +245,7 @@ export default function CouponsPage() {
       const response = await fetch(`/api/admin/promotions/${id}`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': csrfToken.token || '',
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ isActive: !currentStatus }),
       })

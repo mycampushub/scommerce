@@ -4,7 +4,6 @@ import { cartItemSchema, updateCartItemSchema } from '@/lib/validations';
 import { getEnv } from '@/lib/cloudflare';
 import { CartRepository } from '@/db/cart.repository';
 import { parseJSON, queryFirst, queryAll } from '@/db/db';
-import { csrfMiddleware } from '@/lib/csrf';
 import { sanitizeForDB } from '@/lib/sanitize';
 import { addCacheHeaders, CachePresets } from '@/lib/http-cache';
 import {
@@ -154,12 +153,6 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   // Get D1 database from request context (Cloudflare Pages/Workers)
   const env = getEnv();
-
-  // Check CSRF protection
-  const csrfError = await csrfMiddleware(request, env);
-  if (csrfError) {
-    return csrfError;
-  }
 
   try {
     const body = await request.json() as any;

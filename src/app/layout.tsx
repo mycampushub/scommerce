@@ -10,7 +10,7 @@ import { ServiceWorkerHandler } from "@/components/service-worker-handler";
 import { CacheProvider } from "@/components/providers/CacheProvider";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { SettingsProvider } from "@/contexts/SettingsContext";
-import { GlobalFetchInitializer } from "@/components/global-fetch-initializer";
+
 
 const inter = Inter({
   variable: "--font-geist-sans",
@@ -93,7 +93,6 @@ export default function RootLayout({
         <SettingsProvider>
           <QueryProvider>
             <CacheProvider>
-              <GlobalFetchInitializer />
               <AnalyticsScripts />
               <ServiceWorkerHandler />
               {children}

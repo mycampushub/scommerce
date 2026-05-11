@@ -3,7 +3,6 @@ import { verifyAdminAuth } from '@/lib/admin-auth'
 import { getEnv } from '@/lib/cloudflare'
 import { UserRepository } from '@/db/user.repository'
 import { queryAll, count, numberToBool, generateId } from '@/db/db'
-import { csrfMiddleware } from '@/lib/csrf'
 import { hashPassword } from '@/lib/bcrypt-wrapper'
 import prisma from '@/lib/database'
 
@@ -87,12 +86,7 @@ export async function POST(request: NextRequest) {
     return userOrResponse
   }
 
-  // Check CSRF protection
   const env = getEnv()
-  const csrfError = await csrfMiddleware(request, env)
-  if (csrfError) {
-    return csrfError
-  }
 
   try {
     const body: any = await request.json() as any

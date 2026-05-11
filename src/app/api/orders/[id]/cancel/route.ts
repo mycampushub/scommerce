@@ -3,7 +3,6 @@ import { getEnv } from '@/lib/cloudflare';
 import { OrderRepository } from '@/db/order.repository';
 import { ProductRepository } from '@/db/product.repository';
 import { execute, parseJSON, queryFirst } from '@/db/db';
-import { csrfMiddleware } from '@/lib/csrf';
 
 
 // Order statuses that can be cancelled
@@ -15,12 +14,6 @@ export async function POST(
 ) {
   // Get D1 database from request context
   const env = getEnv();
-
-  // Check CSRF protection
-  const csrfError = await csrfMiddleware(request, env);
-  if (csrfError) {
-    return csrfError;
-  }
 
   try {
     const body = await request.json() as any;

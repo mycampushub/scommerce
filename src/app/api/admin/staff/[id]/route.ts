@@ -4,7 +4,6 @@ import { verifyAdmin } from '@/lib/auth-utils'
 import { UserRepository } from '@/db/user.repository'
 import { hashPassword } from '@/lib/bcrypt-wrapper'
 import { count, numberToBool } from '@/db/db'
-import { csrfMiddleware } from '@/lib/csrf'
 
 
 export async function GET(
@@ -71,12 +70,7 @@ export async function PUT(
       )
     }
 
-    // Check CSRF protection
     const env = getEnv()
-    const csrfError = await csrfMiddleware(request, env)
-    if (csrfError) {
-      return csrfError
-    }
 
     const body: any = await request.json() as any
     const { email, name, password, role, phone, address } = body
@@ -188,12 +182,7 @@ export async function DELETE(
       )
     }
 
-    // Check CSRF protection
     const env = getEnv()
-    const csrfError = await csrfMiddleware(request, env)
-    if (csrfError) {
-      return csrfError
-    }
 
     // Check if user exists
     const existingUser = await UserRepository.findById(env, (await params).id)

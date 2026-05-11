@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
 import { verifyAdminAuth } from '@/lib/admin-auth'
 import { queryFirst, queryAll, execute, boolToNumber, numberToBool, parseJSON } from '@/db/db'
-import { csrfMiddleware } from '@/lib/csrf'
 
 
 // PUT /api/admin/reviews/[id] - Approve/Reject review
@@ -16,12 +15,7 @@ export async function PUT(
     return userOrResponse
   }
 
-  // Check CSRF protection
   const env = getEnv()
-  const csrfError = await csrfMiddleware(request, env)
-  if (csrfError) {
-    return csrfError
-  }
 
   try {
     const { id } = await params
@@ -113,12 +107,7 @@ export async function DELETE(
     return userOrResponse
   }
 
-  // Check CSRF protection
   const env = getEnv()
-  const csrfError = await csrfMiddleware(request, env)
-  if (csrfError) {
-    return csrfError
-  }
 
   try {
     const { id } = await params

@@ -14,7 +14,7 @@ import {
   parseJSON,
   stringifyJSON
 } from '@/db/db'
-import { csrfMiddleware, getCSRFTokenFromRequest } from '@/lib/csrf'
+
 import { generateUniqueSlug, isValidSlug } from '@/lib/slug'
 
 
@@ -125,14 +125,8 @@ export async function POST(request: NextRequest) {
     return userOrResponse
   }
 
-  // Check CSRF protection
-  const env = getEnv()
-  const csrfError = await csrfMiddleware(request, env)
-  if (csrfError) {
-    return csrfError
-  }
-
   try {
+    const env = getEnv()
     const contentType = request.headers.get('content-type') || ''
 
     // Handle multipart/form-data for image uploads
@@ -222,25 +216,14 @@ export async function POST(request: NextRequest) {
 
       // Handle file uploads
       const files = formData.getAll('files') as File[]
-      // Extract CSRF token from the original request for internal upload calls
-      const csrfToken = getCSRFTokenFromRequest(request)
 
       for (const file of files) {
         if (file && file.size > 0) {
           const uploadFormData = new FormData()
           uploadFormData.append('file', file)
-          if (csrfToken) {
-            uploadFormData.append('_csrf', csrfToken)
-          }
-
-          const headers: HeadersInit = {}
-          if (csrfToken) {
-            headers['X-CSRF-Token'] = csrfToken
-          }
 
           const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/admin/upload`, {
             method: 'POST',
-            headers,
             body: uploadFormData,
           })
 

@@ -3,7 +3,6 @@ import { getEnv } from '@/lib/cloudflare';
 import { SettingsRepository } from '@/db/settings.repository';
 import { addCacheHeaders, CachePresets } from '@/lib/http-cache';
 import { verifyAdminAuth } from '@/lib/admin-auth';
-import { csrfMiddleware } from '@/lib/csrf';
 import prisma from '@/lib/database';
 
 
@@ -48,12 +47,6 @@ export async function POST(request: NextRequest) {
   }
 
   const env = getEnv();
-
-  // Check CSRF protection
-  const csrfError = await csrfMiddleware(request, env)
-  if (csrfError) {
-    return csrfError
-  }
 
   try {
     const body = await request.json() as any;

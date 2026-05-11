@@ -5,7 +5,6 @@ import { OrderRepository } from '@/db/order.repository'
 import { UserRepository } from '@/db/user.repository'
 import { execute, parseJSON } from '@/db/db'
 import { updateTrackingSchema } from '@/lib/validations'
-import { csrfMiddleware } from '@/lib/csrf'
 import prisma from '@/lib/database'
 
 
@@ -79,12 +78,7 @@ export async function PUT(
     return userOrResponse
   }
 
-  // Check CSRF protection
   const env = getEnv()
-  const csrfError = await csrfMiddleware(request, env)
-  if (csrfError) {
-    return csrfError
-  }
 
   try {
     const { id } = await params
@@ -223,12 +217,7 @@ export async function DELETE(
     return userOrResponse
   }
 
-  // Check CSRF protection
   const env = getEnv()
-  const csrfError = await csrfMiddleware(request, env)
-  if (csrfError) {
-    return csrfError
-  }
 
   try {
     const { id } = await params

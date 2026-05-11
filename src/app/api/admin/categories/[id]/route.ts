@@ -5,7 +5,6 @@ import { CategoryRepository } from '@/db/category.repository'
 import { updateCategorySchema } from '@/lib/validations'
 import { queryAll, count, numberToBool, boolToNumber } from '@/db/db'
 import { ProductRepository } from '@/db/product.repository'
-import { csrfMiddleware } from '@/lib/csrf'
 
 
 export async function GET(
@@ -65,12 +64,7 @@ export async function PUT(
     return userOrResponse
   }
 
-  // Check CSRF protection
   const env = getEnv()
-  const csrfError = await csrfMiddleware(request, env)
-  if (csrfError) {
-    return csrfError
-  }
 
   try {
     const body = await request.json() as any
@@ -130,12 +124,7 @@ export async function DELETE(
     return userOrResponse
   }
 
-  // Check CSRF protection
   const env = getEnv()
-  const csrfError = await csrfMiddleware(request, env)
-  if (csrfError) {
-    return csrfError
-  }
 
   try {
     await CategoryRepository.delete(env, (await params).id)

@@ -4,7 +4,6 @@ import { getEnv } from '@/lib/cloudflare'
 import { ProductRepository } from '@/db/product.repository'
 import { CategoryRepository } from '@/db/category.repository'
 import { queryAll, queryFirst, execute, parseJSON, numberToBool, generateSecureId } from '@/db/db'
-import { csrfMiddleware } from '@/lib/csrf'
 import { sanitizeForDB } from '@/lib/sanitize'
 import { addCacheHeaders, CachePresets } from '@/lib/http-cache'
 
@@ -84,12 +83,6 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   // Get D1 database from request context
   const env = getEnv()
-
-  // Check CSRF protection
-  const csrfError = await csrfMiddleware(request, env)
-  if (csrfError) {
-    return csrfError
-  }
 
   try {
     // Verify authentication
@@ -180,12 +173,6 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   // Get D1 database from request context
   const env = getEnv()
-
-  // Check CSRF protection
-  const csrfError = await csrfMiddleware(request, env)
-  if (csrfError) {
-    return csrfError
-  }
 
   try {
     // Verify authentication

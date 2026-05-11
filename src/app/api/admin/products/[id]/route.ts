@@ -5,7 +5,7 @@ import { ProductRepository } from '@/db/product.repository'
 import { CategoryRepository } from '@/db/category.repository'
 import { updateProductSchema } from '@/lib/validations'
 import { queryFirst, queryAll, execute, parseJSON, stringifyJSON, boolToNumber, numberToBool, now } from '@/db/db'
-import { csrfMiddleware, getCSRFTokenFromRequest } from '@/lib/csrf'
+
 import { isValidSlug } from '@/lib/slug'
 
 
@@ -63,17 +63,11 @@ export async function PUT(
     return userOrResponse
   }
 
-  // Check CSRF protection
-  const env = getEnv()
-  const csrfError = await csrfMiddleware(request, env)
-  if (csrfError) {
-    return csrfError
-  }
-
   // Await params outside try block to avoid scope issues
   const { id: productId } = await params
 
   try {
+    const env = getEnv()
     const contentType = request.headers.get('content-type') || ''
     const action = request.headers.get('x-action') || 'update'
 
@@ -143,22 +137,11 @@ export async function PUT(
         )
       }
 
-      // Extract CSRF token from the original request for internal upload calls
-      const csrfToken = getCSRFTokenFromRequest(request)
       const uploadFormData = new FormData()
       uploadFormData.append('file', file)
-      if (csrfToken) {
-        uploadFormData.append('_csrf', csrfToken)
-      }
-
-      const headers: HeadersInit = {}
-      if (csrfToken) {
-        headers['X-CSRF-Token'] = csrfToken
-      }
 
       const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/admin/upload`, {
         method: 'POST',
-        headers,
         body: uploadFormData,
       })
       const uploadResult = await uploadResponse.json() as any
@@ -221,15 +204,8 @@ export async function PUT(
       })
 
       // Delete file from server
-      const csrfToken = getCSRFTokenFromRequest(request)
-      const deleteHeaders: HeadersInit = {}
-      if (csrfToken) {
-        deleteHeaders['X-CSRF-Token'] = csrfToken
-      }
-
       await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/admin/upload?path=${encodeURIComponent(imageUrl)}`, {
         method: 'DELETE',
-        headers: deleteHeaders,
       })
 
       // Fetch category for response
@@ -337,25 +313,14 @@ export async function PUT(
 
       // Handle file uploads
       const files = formData.getAll('files') as File[]
-      // Extract CSRF token from the original request for internal upload calls
-      const csrfToken = getCSRFTokenFromRequest(request)
 
       for (const file of files) {
         if (file && file.size > 0) {
           const uploadFormData = new FormData()
           uploadFormData.append('file', file)
-          if (csrfToken) {
-            uploadFormData.append('_csrf', csrfToken)
-          }
-
-          const headers: HeadersInit = {}
-          if (csrfToken) {
-            headers['X-CSRF-Token'] = csrfToken
-          }
 
           const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/admin/upload`, {
             method: 'POST',
-            headers,
             body: uploadFormData,
           })
 
@@ -503,14 +468,8 @@ export async function DELETE(
     return userOrResponse
   }
 
-  // Check CSRF protection
-  const env = getEnv()
-  const csrfError = await csrfMiddleware(request, env)
-  if (csrfError) {
-    return csrfError
-  }
-
   try {
+    const env = getEnv()
     const { id } = await params
     await ProductRepository.delete(env, id)
 

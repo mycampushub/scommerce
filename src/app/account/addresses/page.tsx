@@ -104,8 +104,7 @@ function AddressBookPage() {
         method,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          'X-CSRF-Token': localStorage.getItem('csrfToken') || ''
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(formData)
       })
@@ -162,8 +161,7 @@ function AddressBookPage() {
       const response = await fetch(`/api/addresses/${addressId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'X-CSRF-Token': localStorage.getItem('csrfToken') || ''
+          'Authorization': `Bearer ${token}`
         }
       })
 
@@ -194,8 +192,7 @@ function AddressBookPage() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          'X-CSRF-Token': localStorage.getItem('csrfToken') || ''
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ isDefault: true })
       })

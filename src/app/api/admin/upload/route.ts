@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAdminAuth } from '@/lib/admin-auth'
-import { csrfMiddleware } from '@/lib/csrf'
+
 import { writeFile, mkdir, unlink } from 'fs/promises'
 import { join } from 'path'
 import { existsSync } from 'fs'
@@ -20,22 +20,7 @@ export async function POST(request: NextRequest) {
 
   console.log('[Upload POST] Auth passed')
 
-  // Get environment and check CSRF protection - only apply in Cloudflare with KV
   const env = await import('@/lib/cloudflare').then(m => m.getEnv())
-  const isCloudflareEnv = env && env.KV
-  console.log('[Upload POST] Env:', env ? 'exists' : 'null', 'Has KV:', isCloudflareEnv ? 'yes' : 'no')
-
-  // Only check CSRF if we're in Cloudflare environment with KV
-  if (isCloudflareEnv) {
-    console.log('[Upload POST] Checking CSRF...')
-    const csrfError = await csrfMiddleware(request, env)
-    if (csrfError) {
-      console.log('[Upload POST] CSRF validation failed')
-      return csrfError
-    }
-  } else {
-    console.log('[Upload POST] Skipping CSRF validation (local development or no KV)')
-  }
 
   try {
     const formData = await request.formData()
@@ -124,17 +109,7 @@ export async function DELETE(request: NextRequest) {
     return userOrResponse
   }
 
-  // Get environment and check CSRF protection - only apply in Cloudflare with KV
   const env = await import('@/lib/cloudflare').then(m => m.getEnv())
-  const isCloudflareEnv = env && env.KV
-
-  // Only check CSRF if we're in Cloudflare environment with KV
-  if (isCloudflareEnv) {
-    const csrfError = await csrfMiddleware(request, env)
-    if (csrfError) {
-      return csrfError
-    }
-  }
 
   try {
     const { searchParams } = new URL(request.url)
