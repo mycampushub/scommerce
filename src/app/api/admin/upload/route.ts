@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAdminAuth } from '@/lib/admin-auth'
-import { getEnv } from '@/lib/cloudflare'
 import { csrfMiddleware } from '@/lib/csrf'
+import { writeFile, mkdir, unlink } from 'fs/promises'
+import { join } from 'path'
+import { existsSync } from 'fs'
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
+const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
 
 export async function POST(request: NextRequest) {
   // Verify admin authentication
@@ -11,7 +16,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Check CSRF protection
-  const env = getEnv()
+  const env = await import('@/lib/cloudflare').then(m => m.getEnv())
   const csrfError = await csrfMiddleware(request, env)
   if (csrfError) {
     return csrfError
@@ -29,66 +34,62 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
-    if (!allowedTypes.includes(file.type)) {
+    if (!ALLOWED_TYPES.includes(file.type)) {
       return NextResponse.json(
-        { success: false, error: 'Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed.' },
+        {
+          success: false,
+          error: `Invalid file type. Allowed types: ${ALLOWED_TYPES.join(', ')}`
+        },
         { status: 400 }
       )
     }
 
-    // Validate file size (max 5MB)
-    const maxSize = 5 * 1024 * 1024 // 5MB
-    if (file.size > maxSize) {
+    // Validate file size
+    if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
-        { success: false, error: 'File size exceeds 5MB limit' },
+        {
+          success: false,
+          error: `File size exceeds limit of ${MAX_FILE_SIZE / 1024 / 1024}MB`
+        },
         { status: 400 }
-      )
-    }
-
-    // Get R2 bucket from environment (Cloudflare)
-    const env = getEnv()
-    const bucket = env?.BUCKET
-
-    if (!bucket) {
-      return NextResponse.json(
-        { success: false, error: 'R2 storage bucket not available in this environment' },
-        { status: 500 }
       )
     }
 
     // Generate unique filename
-    const timestamp = Date.now()
-    const randomString = Math.random().toString(36).substring(2, 15)
-    const fileExtension = file.name.split('.').pop() || 'jpg'
-    const uniqueFilename = `${timestamp}-${randomString}.${fileExtension}`
+    const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+    const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+    const filename = `${uniqueId}.${ext}`
 
-    // Upload to R2 bucket
-    const arrayBuffer = await file.arrayBuffer()
-    await bucket.put(uniqueFilename, arrayBuffer, {
-      httpMetadata: {
-        contentType: file.type,
-        contentLength: file.size,
-      },
-    })
+    // Ensure uploads directory exists
+    const uploadsDir = join(process.cwd(), 'public', 'uploads')
+    if (!existsSync(uploadsDir)) {
+      await mkdir(uploadsDir, { recursive: true })
+    }
 
-    // Return file URL and metadata
+    // Save file
+    const filePath = join(uploadsDir, filename)
+    const bytes = await file.arrayBuffer()
+    const buffer = Buffer.from(bytes)
+    await writeFile(filePath, buffer)
+
+    // Return file URL
+    const fileUrl = `/uploads/${filename}`
+
     return NextResponse.json({
       success: true,
       data: {
-        url: `/uploads/${uniqueFilename}`,
+        url: fileUrl,
+        name: filename,
         size: file.size,
-        type: file.type,
-        name: file.name,
-      },
+        type: file.type
+      }
     })
   } catch (error) {
-    console.error('[upload] Error:', error)
+    console.error('Upload error:', error)
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to upload file',
-        details: error instanceof Error ? error.message : 'Unknown error',
+        error: 'Failed to upload file'
       },
       { status: 500 }
     )
@@ -103,59 +104,55 @@ export async function DELETE(request: NextRequest) {
   }
 
   // Check CSRF protection
-  const env = getEnv()
+  const env = await import('@/lib/cloudflare').then(m => m.getEnv())
   const csrfError = await csrfMiddleware(request, env)
   if (csrfError) {
     return csrfError
   }
 
   try {
-    const searchParams = request.nextUrl.searchParams
+    const { searchParams } = new URL(request.url)
     const path = searchParams.get('path')
 
     if (!path) {
       return NextResponse.json(
-        { success: false, error: 'Path parameter is required' },
+        { success: false, error: 'No file path provided' },
         { status: 400 }
       )
     }
 
-    // Security: Ensure path is within uploads directory
-    if (!path.startsWith('/uploads/')) {
+    // Security check: ensure path is within uploads directory
+    if (!path.startsWith('/uploads/') && !path.startsWith('uploads/')) {
       return NextResponse.json(
-        { success: false, error: 'Invalid path' },
+        { success: false, error: 'Invalid file path' },
         { status: 400 }
       )
     }
 
-    // Get R2 bucket from environment
-    const env = getEnv()
-    const bucket = env?.BUCKET
+    // Remove leading slash if present
+    const cleanPath = path.startsWith('/') ? path.slice(1) : path
+    const filePath = join(process.cwd(), 'public', cleanPath)
 
-    if (!bucket) {
-      return NextResponse.json(
-        { success: false, error: 'R2 storage bucket not available in this environment' },
-        { status: 500 }
-      )
+    // Delete file
+    try {
+      await unlink(filePath)
+    } catch (err: any) {
+      // File doesn't exist, that's ok
+      if (err.code !== 'ENOENT') {
+        throw err
+      }
     }
-
-    // Extract filename from path
-    const filename = path.replace('/uploads/', '')
-
-    // Delete file from R2 bucket
-    await bucket.delete(filename)
 
     return NextResponse.json({
       success: true,
-      message: 'File deleted successfully',
+      message: 'File deleted successfully'
     })
   } catch (error) {
-    console.error('[upload] Delete error:', error)
+    console.error('Delete error:', error)
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to delete file',
-        details: error instanceof Error ? error.message : 'Unknown error',
+        error: 'Failed to delete file'
       },
       { status: 500 }
     )

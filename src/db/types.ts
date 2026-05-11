@@ -276,6 +276,25 @@ export interface Promotion {
   updatedAt: string;
 }
 
+export interface ImageGalleryItem {
+  id: string;
+  filename: string;
+  url: string;
+  originalName: string | null;
+  mimeType: string | null;
+  size: number | null;
+  width: number | null;
+  height: number | null;
+  alt: string | null;
+  tags: string[] | null;
+  category: string | null;
+  usageCount: number;
+  isActive: number;
+  uploadedBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface HomepageSettings {
   id: string;
   sectionName: string;

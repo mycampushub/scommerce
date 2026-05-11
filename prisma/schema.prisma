@@ -532,3 +532,27 @@ model EmailService {
 
   @@map("email_services")
 }
+
+model ImageGallery {
+  id          String   @id @default(cuid())
+  filename    String
+  url         String   @unique
+  originalName String?
+  mimeType    String?
+  size        Int?     // in bytes
+  width       Int?
+  height      Int?
+  alt         String?
+  tags        String?  // JSON array of tags
+  category    String?  // product, category, story, banner, promotion, general
+  usageCount  Int      @default(0)
+  isActive    Boolean  @default(true)
+  uploadedBy  String?  // userId
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category, createdAt(sort: Desc)])
+  @@index([isActive, createdAt(sort: Desc)])
+  @@index([usageCount(sort: Desc)])
+  @@map("image_gallery")
+}

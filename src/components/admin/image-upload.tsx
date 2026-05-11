@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
-import { Upload, X, Loader2, Image as ImageIcon, GripVertical, AlertCircle } from 'lucide-react'
+import { Upload, X, Loader2, Image as ImageIcon, GripVertical, AlertCircle, Grid3X3 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -23,6 +23,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { ImageGallerySelector } from './image-gallery-selector'
 
 interface UploadedImage {
   url: string
@@ -39,6 +40,7 @@ interface ImageUploadProps {
   maxImages?: number
   accept?: string
   maxSize?: number // in MB
+  galleryCategory?: 'product' | 'category' | 'story' | 'banner' | 'promotion' | 'general'
 }
 
 function SortableImage({
@@ -123,12 +125,14 @@ export function ImageUpload({
   productId,
   maxImages = 10,
   accept = 'image/jpeg,image/jpg,image/png,image/webp',
-  maxSize = 5
+  maxSize = 5,
+  galleryCategory = 'general'
 }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [images, setImages] = useState<(UploadedImage | string)[]>([])
+  const [showGallery, setShowGallery] = useState(false)
 
   // Initialize images from prop
   useEffect(() => {
@@ -276,6 +280,18 @@ export function ImageUpload({
     handleFileSelect(e.dataTransfer.files)
   }
 
+  const handleSelectFromGallery = (galleryImage: any) => {
+    const updatedImages = [...images, {
+      url: galleryImage.url,
+      name: galleryImage.originalName || galleryImage.filename,
+      size: galleryImage.size || 0,
+      type: galleryImage.mimeType || 'image/jpeg',
+      isNew: false,
+    }]
+    setImages(updatedImages)
+    onImagesChange?.(updatedImages.map(img => typeof img === 'string' ? img : img.url))
+  }
+
   return (
     <div className="space-y-4">
       {/* Error Alert */}
@@ -324,15 +340,27 @@ export function ImageUpload({
                   id="image-upload-input"
                   disabled={uploading || images.length >= maxImages}
                 />
-                <Button
-                  onClick={() => document.getElementById('image-upload-input')?.click()}
-                  disabled={uploading || images.length >= maxImages}
-                  className="mt-4 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
-                >
-                  {images.length >= maxImages
-                    ? 'Maximum images reached'
-                    : 'Select Images'}
-                </Button>
+                <div className="flex gap-2 mt-4">
+                  <Button
+                    onClick={() => document.getElementById('image-upload-input')?.click()}
+                    disabled={uploading || images.length >= maxImages}
+                    className="flex-1 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
+                  >
+                    {images.length >= maxImages
+                      ? 'Maximum images reached'
+                      : 'Upload Images'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowGallery(true)}
+                    disabled={uploading || images.length >= maxImages}
+                    className="flex-1"
+                  >
+                    <Grid3X3 className="h-4 w-4 mr-2" />
+                    Select from Gallery
+                  </Button>
+                </div>
               </>
             )}
           </div>
@@ -369,6 +397,15 @@ export function ImageUpload({
           <p className="text-sm text-gray-500">No images uploaded yet</p>
         </div>
       )}
+
+      {/* Image Gallery Selector */}
+      <ImageGallerySelector
+        isOpen={showGallery}
+        onClose={() => setShowGallery(false)}
+        onSelect={handleSelectFromGallery}
+        category={galleryCategory}
+        maxSelection={maxImages - images.length}
+      />
     </div>
   )
 }

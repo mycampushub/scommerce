@@ -512,6 +512,38 @@ export async function DELETE(
 
   try {
     const { id } = await params
+
+    // Check if product exists
+    const product = await ProductRepository.findById(env, id)
+    if (!product) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Product not found',
+        },
+        { status: 404 }
+      )
+    }
+
+    // Check if product has order history (cannot delete if it has been ordered)
+    const { queryFirst } = await import('@/db/db')
+    const orderItem = await queryFirst<any>(
+      env,
+      'SELECT id FROM order_items WHERE productId = ? LIMIT 1',
+      id
+    )
+
+    if (orderItem) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Cannot delete product that has been ordered. Consider marking it as inactive instead.',
+        },
+        { status: 409 }
+      )
+    }
+
+    // Delete product
     await ProductRepository.delete(env, id)
 
     return NextResponse.json({
@@ -520,6 +552,19 @@ export async function DELETE(
     })
   } catch (error) {
     console.error('Error deleting product:', error)
+
+    // Check if it's a foreign key constraint error
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    if (errorMessage.includes('FOREIGN KEY') || errorMessage.includes('constraint')) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Cannot delete product that has related records (orders, cart items, etc.). Consider marking it as inactive instead.',
+        },
+        { status: 409 }
+      )
+    }
+
     return NextResponse.json(
       {
         success: false,
