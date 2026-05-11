@@ -10,14 +10,20 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
 
 export async function POST(request: NextRequest) {
+  console.log('[Gallery Upload POST] Request received')
+
   // Verify admin authentication
   const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff'])
   if (userOrResponse instanceof NextResponse) {
+    console.log('[Gallery Upload POST] Auth failed')
     return userOrResponse
   }
 
+  console.log('[Gallery Upload POST] Auth passed')
+
   try {
     const formData = await request.formData()
+    console.log('[Gallery Upload POST] FormData received')
     const file = formData.get('file') as File
     const category = formData.get('category') as string || 'general'
     const alt = formData.get('alt') as string | null
@@ -30,7 +36,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('[Gallery Upload] Processing file:', {
+    console.log('[Gallery Upload POST] Processing file:', {
       name: file.name,
       type: file.type,
       size: file.size,
@@ -75,6 +81,7 @@ export async function POST(request: NextRequest) {
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
     await writeFile(filePath, buffer)
+    console.log('[Gallery Upload POST] File saved:', filePath)
 
     // Get image dimensions
     let width: number | null = null
@@ -100,6 +107,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Save to gallery
+    console.log('[Gallery Upload POST] Creating gallery item...')
     const galleryItem = await ImageGalleryRepository.create(null, {
       filename,
       url: `/uploads/${filename}`,
@@ -113,7 +121,7 @@ export async function POST(request: NextRequest) {
       category,
     })
 
-    console.log('[Gallery Upload] Successfully created gallery item:', galleryItem.id)
+    console.log('[Gallery Upload POST] Successfully created gallery item:', galleryItem.id)
 
     return NextResponse.json({
       success: true,

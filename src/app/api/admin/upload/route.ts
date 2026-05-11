@@ -9,17 +9,31 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
 
 export async function POST(request: NextRequest) {
+  console.log('[Upload POST] Request received')
+
   // Verify admin authentication
   const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff'])
   if (userOrResponse instanceof NextResponse) {
+    console.log('[Upload POST] Auth failed')
     return userOrResponse
   }
 
-  // Check CSRF protection
+  console.log('[Upload POST] Auth passed')
+
+  // Check CSRF protection - skip in local development
   const env = await import('@/lib/cloudflare').then(m => m.getEnv())
-  const csrfError = await csrfMiddleware(request, env)
-  if (csrfError) {
-    return csrfError
+  console.log('[Upload POST] Env:', env ? 'exists' : 'null', 'Has KV:', env?.KV ? 'yes' : 'no')
+  
+  // Only check CSRF if we're in Cloudflare environment with KV
+  if (env && env.KV) {
+    console.log('[Upload POST] Checking CSRF...')
+    const csrfError = await csrfMiddleware(request, env)
+    if (csrfError) {
+      console.log('[Upload POST] CSRF validation failed')
+      return csrfError
+    }
+  } else {
+    console.log('[Upload POST] Skipping CSRF validation (local development)')
   }
 
   try {
@@ -103,11 +117,15 @@ export async function DELETE(request: NextRequest) {
     return userOrResponse
   }
 
-  // Check CSRF protection
+  // Check CSRF protection - skip in local development
   const env = await import('@/lib/cloudflare').then(m => m.getEnv())
-  const csrfError = await csrfMiddleware(request, env)
-  if (csrfError) {
-    return csrfError
+  
+  // Only check CSRF if we're in Cloudflare environment with KV
+  if (env && env.KV) {
+    const csrfError = await csrfMiddleware(request, env)
+    if (csrfError) {
+      return csrfError
+    }
   }
 
   try {

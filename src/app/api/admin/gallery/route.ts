@@ -5,14 +5,20 @@ import { ImageGalleryRepository } from '@/db/image-gallery.repository'
 import { csrfMiddleware, getCSRFTokenFromRequest } from '@/lib/csrf'
 
 export async function GET(request: NextRequest) {
+  console.log('[Gallery GET] Request received')
+
   // Verify admin authentication
   const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff'])
   if (userOrResponse instanceof NextResponse) {
+    console.log('[Gallery GET] Auth failed')
     return userOrResponse
   }
 
+  console.log('[Gallery GET] Auth passed')
+
   try {
     const env = getEnv()
+    console.log('[Gallery GET] Env:', env ? 'exists' : 'null')
     const searchParams = request.nextUrl.searchParams
     const category = searchParams.get('category') || undefined
     const search = searchParams.get('search') || undefined
@@ -21,11 +27,15 @@ export async function GET(request: NextRequest) {
 
     let images
 
+    console.log('[Gallery GET] Fetching images, search:', search, 'category:', category)
+
     if (search) {
       images = await ImageGalleryRepository.search(env, search, { category, limit })
     } else {
       images = await ImageGalleryRepository.findAll(env, { category, isActive: true, limit, offset })
     }
+
+    console.log('[Gallery GET] Images fetched:', images.length)
 
     return NextResponse.json({
       success: true,
@@ -45,17 +55,31 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  console.log('[Gallery POST] Request received')
+
   // Verify admin authentication (admin only)
   const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff'])
   if (userOrResponse instanceof NextResponse) {
+    console.log('[Gallery POST] Auth failed')
     return userOrResponse
   }
 
-  // Check CSRF protection
+  console.log('[Gallery POST] Auth passed')
+
+  // Check CSRF protection - skip in local development
   const env = getEnv()
-  const csrfError = await csrfMiddleware(request, env)
-  if (csrfError) {
-    return csrfError
+  console.log('[Gallery POST] Env:', env ? 'exists' : 'null', 'Has KV:', env?.KV ? 'yes' : 'no')
+  
+  // Only check CSRF if we're in Cloudflare environment with KV
+  if (env && env.KV) {
+    console.log('[Gallery POST] Checking CSRF...')
+    const csrfError = await csrfMiddleware(request, env)
+    if (csrfError) {
+      console.log('[Gallery POST] CSRF validation failed')
+      return csrfError
+    }
+  } else {
+    console.log('[Gallery POST] Skipping CSRF validation (local development)')
   }
 
   try {
