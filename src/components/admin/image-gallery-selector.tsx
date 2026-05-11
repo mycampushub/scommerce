@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { X, Loader2, Search, Upload, Image as ImageIcon, Grid3X3, Trash2, Edit2, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -135,10 +135,15 @@ export function ImageGallerySelector({
       <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col p-0">
         <DialogHeader className="p-6 border-b">
           <div className="flex items-center justify-between">
-            <DialogTitle className="flex items-center gap-2">
-              <ImageIcon className="h-5 w-5" />
-              Image Gallery
-            </DialogTitle>
+            <div className="flex flex-col gap-1">
+              <DialogTitle className="flex items-center gap-2">
+                <ImageIcon className="h-5 w-5" />
+                Image Gallery
+              </DialogTitle>
+              <DialogDescription>
+                Select images from your gallery or upload new ones
+              </DialogDescription>
+            </div>
             <Button variant="ghost" size="icon" onClick={handleClose}>
               <X className="h-4 w-4" />
             </Button>
@@ -152,6 +157,7 @@ export function ImageGallerySelector({
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-10"
+                aria-describedby="image-search"
               />
             </div>
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
@@ -175,7 +181,7 @@ export function ImageGallerySelector({
           </div>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 p-6">
+        <ScrollArea className="flex-1 p-6" id="gallery-scroll-area">
           {loading ? (
             <div className="flex items-center justify-center h-64">
               <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
@@ -199,6 +205,9 @@ export function ImageGallerySelector({
                       ? 'border-violet-500 ring-2 ring-violet-500 ring-offset-2'
                       : 'border-gray-200 hover:border-violet-300'
                   }`}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Select image: ${image.originalName || image.filename}`}
                 >
                   <div className="aspect-square relative overflow-hidden rounded-lg">
                     <img
@@ -214,6 +223,7 @@ export function ImageGallerySelector({
                           e.stopPropagation()
                           window.open(image.url, '_blank')
                         }}
+                        aria-label="View full image"
                       >
                         <ImageIcon className="h-4 w-4" />
                       </Button>
@@ -221,6 +231,7 @@ export function ImageGallerySelector({
                         size="icon"
                         variant="destructive"
                         onClick={(e) => handleDeleteImage(e, image.id)}
+                        aria-label="Delete image"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

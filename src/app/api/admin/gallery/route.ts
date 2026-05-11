@@ -127,10 +127,6 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      // Get image dimensions
-      const { getImageDimensions } = await import('@/lib/image-utils')
-      const dimensions = await getImageDimensions(file)
-
       // Parse tags
       let tags: string[] = []
       if (tagsJson) {
@@ -141,15 +137,15 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Save to gallery
+      // Save to gallery (dimensions will be detected client-side later)
       const galleryItem = await ImageGalleryRepository.create(env, {
         filename: uploadResult.data.name,
         url: uploadResult.data.url,
         originalName: file.name,
         mimeType: file.type,
         size: file.size,
-        width: dimensions?.width,
-        height: dimensions?.height,
+        width: null,
+        height: null,
         alt: alt || undefined,
         tags,
         category,

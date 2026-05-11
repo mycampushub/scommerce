@@ -40,8 +40,8 @@ export class ImageGalleryRepository {
     originalName?: string;
     mimeType?: string;
     size?: number;
-    width?: number;
-    height?: number;
+    width?: number | null;
+    height?: number | null;
     alt?: string;
     tags?: string[];
     category?: string;
