@@ -59,13 +59,12 @@ export async function DELETE(
     )
 
     if (inventoryAlerts && inventoryAlerts.count > 0) {
-      return NextResponse(
+      return NextResponse.json(
         {
           success: false,
-          key: 'Cannot delete product: It has associated inventory alerts.',
           error: 'Cannot delete product: It has associated inventory alerts.',
-          status: 400
-        }
+        },
+        { status: 400 }
       )
     }
 
