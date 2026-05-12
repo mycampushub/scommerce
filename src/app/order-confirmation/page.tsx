@@ -49,8 +49,8 @@ interface Order {
   customerName: string
   customerEmail: string
   customerPhone?: string
-  shippingAddress: string
-  billingAddress: string
+  shippingAddress: string | Record<string, string>
+  billingAddress: string | Record<string, string>
   subtotal: number
   shipping: number
   tax: number
@@ -81,6 +81,12 @@ interface OrderResponse {
 
 // Components
 
+const formatAddress = (address: string | Record<string, string> | null | undefined): string => {
+  if (!address) return ''
+  if (typeof address === 'string') return address
+  const parts = [address.address, address.city, address.district, address.division, address.zipCode, address.country].filter(Boolean)
+  return parts.join(', ')
+}
 
 
 function OrderConfirmationContent() {
@@ -323,12 +329,12 @@ function OrderConfirmationContent() {
                   </div>
 
                   {/* Shipping Information */}
-                  <div className="bg-pink-50 rounded-xl p-6 mb-8 text-left">
-                    <h3 className="font-bold text-gray-900 mb-3">Shipping Information</h3>
-                    <p className="text-gray-700">
-                      <span className="font-semibold">{order.customerName}</span><br />
-                      {order.shippingAddress}
-                    </p>
+                    <div className="bg-pink-50 rounded-xl p-6 mb-8 text-left">
+                      <h3 className="font-bold text-gray-900 mb-3">Shipping Information</h3>
+                      <p className="text-gray-700">
+                        <span className="font-semibold">{order.customerName}</span><br />
+                        {formatAddress(order.shippingAddress)}
+                      </p>
                     <div className="mt-2 text-sm text-gray-600">
                       <p>Email: {order.customerEmail}</p>
                       {order.customerPhone && <p>Phone: {order.customerPhone}</p>}
@@ -569,10 +575,10 @@ function OrderConfirmationContent() {
 
       {/* Cancel Order Confirmation Dialog */}
       <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent aria-describedby="cancel-order-description">
           <AlertDialogHeader>
             <AlertDialogTitle>Cancel Order?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription id="cancel-order-description">
               Are you sure you want to cancel this order? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>

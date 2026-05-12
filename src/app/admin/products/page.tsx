@@ -1480,13 +1480,13 @@ export default function ProductsPage() {
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
                                 </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Delete Variant</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Are you sure you want to delete "{variant.name}"? This action cannot be undone.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
+                              <AlertDialogContent aria-describedby="delete-variant-description">
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Variant</AlertDialogTitle>
+                                  <AlertDialogDescription id="delete-variant-description">
+                                    Are you sure you want to delete "{variant.name}"? This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
                                   <AlertDialogFooter>
                                     <AlertDialogCancel>Cancel</AlertDialogCancel>
                                     <AlertDialogAction
