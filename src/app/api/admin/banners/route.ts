@@ -38,9 +38,9 @@ export async function POST(request: NextRequest) {
     return userOrResponse
   }
 
-  const env = getEnv()
 
   try {
+    const env = getEnv()
     const body = await request.json() as any
     const { title, description, image, mobileImage, buttonText, buttonLink, isActive, order } = body
 

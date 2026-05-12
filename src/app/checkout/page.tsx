@@ -14,7 +14,6 @@ import { MobileBottomNav } from '@/components/mobile-bottom-nav'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
-
 import { PriceDisplay } from '@/components/price-display'
 
 interface OrderResponse {
@@ -60,6 +59,7 @@ export default function CheckoutPage() {
   const [freeShippingThreshold, setFreeShippingThreshold] = useState(5000) // Default fallback
 
   const total = getTotal()
+
 
   // Fetch site settings for tax rate and shipping threshold
   useEffect(() => {
@@ -281,7 +281,6 @@ export default function CheckoutPage() {
         total
       }
       
-      // Place the order
       const response = await fetch('/api/orders', {
         method: 'POST',
         headers: {

@@ -14,7 +14,6 @@ import {
   parseJSON,
   stringifyJSON
 } from '@/db/db'
-
 import { generateUniqueSlug, isValidSlug } from '@/lib/slug'
 
 
@@ -221,6 +220,7 @@ export async function POST(request: NextRequest) {
         if (file && file.size > 0) {
           const uploadFormData = new FormData()
           uploadFormData.append('file', file)
+
 
           const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/admin/upload`, {
             method: 'POST',

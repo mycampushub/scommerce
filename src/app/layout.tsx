@@ -11,7 +11,6 @@ import { CacheProvider } from "@/components/providers/CacheProvider";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { SettingsProvider } from "@/contexts/SettingsContext";
 
-
 const inter = Inter({
   variable: "--font-geist-sans",
   subsets: ["latin"],

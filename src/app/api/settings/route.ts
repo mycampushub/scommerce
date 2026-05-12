@@ -3,6 +3,7 @@ import { getEnv } from '@/lib/cloudflare';
 import { SettingsRepository } from '@/db/settings.repository';
 import { addCacheHeaders, CachePresets } from '@/lib/http-cache';
 import { verifyAdminAuth } from '@/lib/admin-auth';
+;
 import prisma from '@/lib/database';
 
 
@@ -47,6 +48,7 @@ export async function POST(request: NextRequest) {
   }
 
   const env = getEnv();
+
 
   try {
     const body = await request.json() as any;

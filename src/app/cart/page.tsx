@@ -24,6 +24,7 @@ export default function CartPage() {
 
   const [items, setItems] = useState(localItems)
   const [loading, setLoading] = useState(true)
+  const [hasSynced, setHasSynced] = useState(false) // Track if we've synced for this session
   const updateQuantity = async (id: string, quantity: number, variantId?: string) => {
     if (quantity < 1) return
 
@@ -135,8 +136,30 @@ export default function CartPage() {
   useEffect(() => {
     const fetchServerCart = async () => {
       // If user is authenticated, fetch cart from server
-      if (user) {
+      if (user && !hasSynced) {
         try {
+          // First, sync local cart items to server if there are any
+          if (localItems.length > 0) {
+            console.log('[Cart] Syncing local cart to server:', localItems.length, 'items')
+            await fetch('/api/cart', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                action: 'sync',
+                items: localItems.map(item => ({
+                  id: item.id,
+                  productId: item.id,
+                  quantity: item.quantity,
+                  variantId: item.variantId,
+                  size: item.size,
+                  color: item.color,
+                  material: item.material,
+                })),
+              }),
+            })
+          }
+
+          // Now fetch the server cart
           const response = await fetch('/api/cart')
           const data = await response.json() as any
 
@@ -156,25 +179,33 @@ export default function CartPage() {
               quantity: item.quantity,
             }))
 
-            // Clear local storage cart and use server cart
+            // Update items state from server
             setItems(transformedItems)
             // Clear localStorage to prevent duplication
             clearLocalCart()
+            // Mark as synced to prevent re-running
+            setHasSynced(true)
             console.log('[Cart] Loaded from server:', transformedItems.length, 'items')
+          } else {
+            // Server returned empty cart or guest cart
+            setItems([])
+            setHasSynced(true)
           }
         } catch (error) {
           console.error('[Cart] Error fetching server cart:', error)
           // Fall back to local storage
           setItems(localItems)
+          setHasSynced(true)
         }
-      } else {
-        // Not authenticated, use local storage
+      } else if (!user) {
+        // Not authenticated, use local storage and reset sync flag
         setItems(localItems)
+        setHasSynced(false)
       }
       setLoading(false)
     }
 
-    // Only fetch on initial mount and when user changes
+    // Only fetch on initial mount and when user changes (NOT on localItems changes)
     fetchServerCart()
   }, [user])
 

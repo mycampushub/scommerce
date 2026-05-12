@@ -16,6 +16,7 @@ export async function POST(request: NextRequest) {
   // Get D1 database from request context
   const env = getEnv()
 
+
   try {
     // Get token from Authorization header or cookie
     const authHeader = request.headers.get('authorization')

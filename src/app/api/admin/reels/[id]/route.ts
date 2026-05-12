@@ -52,9 +52,9 @@ export async function PUT(
     return userOrResponse
   }
 
-  const env = getEnv()
 
   try {
+    const env = getEnv()
     const { id } = await params
     const body = await request.json() as any
     const { title, thumbnail, videoUrl, productIds, isActive, orderNum } = body
@@ -164,9 +164,9 @@ export async function DELETE(
     return userOrResponse
   }
 
-  const env = getEnv()
 
   try {
+    const env = getEnv()
     const { id } = await params
     if (isCloudflareEnv()) {
       await ReelRepository.delete(env, id)

@@ -50,9 +50,9 @@ export async function POST(request: NextRequest) {
     return userOrResponse
   }
 
-  const env = getEnv()
 
   try {
+    const env = getEnv()
     const body = await request.json() as any
     const { title, thumbnail, videoUrl, productIds, isActive, order } = body
 

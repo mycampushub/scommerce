@@ -13,7 +13,6 @@ import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Plus, Edit, Trash2, Calendar, Tag, ShoppingCart, Users, Package, AlertCircle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-
 import { PriceDisplay } from '@/components/price-display'
 
 interface Promotion {
@@ -83,7 +82,10 @@ export default function CouponsPage() {
   const fetchPromotions = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/admin/promotions')
+      const response = await fetch('/api/admin/promotions', {
+        headers: {
+        },
+      })
       if (response.ok) {
         const data = await response.json()
         setPromotions(data.data || [])
@@ -177,7 +179,7 @@ export default function CouponsPage() {
       const response = await fetch(`/api/admin/promotions/${id}`, {
         method: 'DELETE',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
       })
 
@@ -211,7 +213,7 @@ export default function CouponsPage() {
       const response = await fetch(url, {
         method: editingPromotion ? 'PUT' : 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(formData),
       })
@@ -245,7 +247,7 @@ export default function CouponsPage() {
       const response = await fetch(`/api/admin/promotions/${id}`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({ isActive: !currentStatus }),
       })

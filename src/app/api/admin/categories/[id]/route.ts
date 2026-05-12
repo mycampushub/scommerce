@@ -64,9 +64,9 @@ export async function PUT(
     return userOrResponse
   }
 
-  const env = getEnv()
 
   try {
+    const env = getEnv()
     const body = await request.json() as any
 
     // Validate with Zod
@@ -124,9 +124,9 @@ export async function DELETE(
     return userOrResponse
   }
 
-  const env = getEnv()
 
   try {
+    const env = getEnv()
     await CategoryRepository.delete(env, (await params).id)
 
     return NextResponse.json({

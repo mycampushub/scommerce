@@ -93,9 +93,9 @@ export async function PUT(
     return userOrResponse
   }
 
-  const env = getEnv()
 
   try {
+    const env = getEnv()
     const { id } = await params
     const body = await request.json() as any
 
@@ -242,9 +242,9 @@ export async function DELETE(
     return userOrResponse
   }
 
-  const env = getEnv()
 
   try {
+    const env = getEnv()
     const { id } = await params
 
     // Check if customer exists

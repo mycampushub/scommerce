@@ -15,9 +15,9 @@ export async function PUT(
     return userOrResponse
   }
 
-  const env = getEnv()
 
   try {
+    const env = getEnv()
     const { id } = await params
     const body = await request.json() as any
     const { action } = body // approve or reject
@@ -107,9 +107,9 @@ export async function DELETE(
     return userOrResponse
   }
 
-  const env = getEnv()
 
   try {
+    const env = getEnv()
     const { id } = await params
     const reviewId = id
 

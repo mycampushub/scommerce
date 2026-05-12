@@ -8,7 +8,6 @@ import { z } from 'zod'
 import { queryFirst, queryAll, execute, boolToNumber, numberToBool, parseJSON, stringifyJSON, now, count } from '@/db/db'
 
 
-
 /**
  * Schema for variant update
  */
@@ -105,8 +104,9 @@ export async function PUT(
     return userOrResponse
   }
 
+  const env = getEnv()
+
   try {
-    const env = getEnv()
     const { id, variantId } = await params
 
     // Check if variant exists
@@ -259,6 +259,9 @@ export async function DELETE(
   if (userOrResponse instanceof NextResponse) {
     return userOrResponse
   }
+
+
+  const env = getEnv()
 
   try {
     const env = getEnv()

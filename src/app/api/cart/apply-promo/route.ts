@@ -6,6 +6,7 @@ import { verifyToken, extractTokenFromHeader } from '@/lib/auth'
 export async function POST(request: NextRequest) {
   const env = getEnv()
 
+
   try {
     const body = await request.json() as { promoCode?: string; subtotal?: number; cartItems?: Array<{ productId: string; variantId?: string; quantity: number }> }
 

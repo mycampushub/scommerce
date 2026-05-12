@@ -173,6 +173,7 @@ export async function POST(request: NextRequest) {
   // Get D1 database from request context
   const env = getEnv()
 
+
   try {
     const body = await request.json() as any
     const { userIds, subject, message } = body

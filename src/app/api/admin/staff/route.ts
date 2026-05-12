@@ -80,7 +80,6 @@ export async function POST(request: NextRequest) {
     }
 
     const env = getEnv()
-
     const body: any = await request.json() as any
     const { email, name, password, role } = body
 

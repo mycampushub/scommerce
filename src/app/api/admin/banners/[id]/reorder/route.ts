@@ -8,15 +8,14 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  // Verify admin authentication
-  const userOrResponse = await verifyAdminAuth(request, ['admin'])
-  if (userOrResponse instanceof NextResponse) {
-    return userOrResponse
-  }
-
-  const env = getEnv()
-
   try {
+    // Verify admin authentication
+    const userOrResponse = await verifyAdminAuth(request, ['admin'])
+    if (userOrResponse instanceof NextResponse) {
+      return userOrResponse
+    }
+
+    const env = getEnv()
     const { id } = await params
     const body = await request.json() as any
     const { order } = body

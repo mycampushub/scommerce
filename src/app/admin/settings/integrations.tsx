@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -310,9 +310,6 @@ export default function IntegrationsSettings() {
                 <DialogHeader>
                   <DialogTitle>Add Payment Gateway</DialogTitle>
                 </DialogHeader>
-                <DialogDescription className="sr-only">
-                  Configure a new payment gateway for your store
-                </DialogDescription>
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label>Gateway Name</Label>
@@ -440,9 +437,6 @@ export default function IntegrationsSettings() {
                 <DialogHeader>
                   <DialogTitle>Add Shipping Carrier</DialogTitle>
                 </DialogHeader>
-                <DialogDescription className="sr-only">
-                  Configure a new shipping carrier for your store
-                </DialogDescription>
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label>Carrier Name</Label>
@@ -579,9 +573,6 @@ export default function IntegrationsSettings() {
                 <DialogHeader>
                   <DialogTitle>Add Analytics Integration</DialogTitle>
                 </DialogHeader>
-                <DialogDescription className="sr-only">
-                  Configure a new analytics integration for your store
-                </DialogDescription>
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label>Integration Name</Label>
@@ -674,9 +665,6 @@ export default function IntegrationsSettings() {
                 <DialogHeader>
                   <DialogTitle>Add Email Service</DialogTitle>
                 </DialogHeader>
-                <DialogDescription className="sr-only">
-                  Configure a new email service for your store
-                </DialogDescription>
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label>Service Name</Label>

@@ -8,7 +8,6 @@ import { z } from 'zod'
 import { queryFirst, queryAll, execute, boolToNumber, parseJSON, stringifyJSON, now } from '@/db/db'
 
 
-
 /**
  * Schema for variant creation
  */
@@ -129,8 +128,9 @@ export async function POST(
     return userOrResponse
   }
 
+  const env = getEnv()
+
   try {
-    const env = getEnv()
     const { id } = await params
 
     // Fetch product to check if it exists

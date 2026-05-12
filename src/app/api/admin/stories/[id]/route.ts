@@ -52,9 +52,9 @@ export async function PUT(
     return userOrResponse
   }
 
-  const env = getEnv()
 
   try {
+    const env = getEnv()
     const { id } = await params
     const body = await request.json() as any
     const { title, thumbnail, images, isActive, orderNum } = body
@@ -176,9 +176,9 @@ export async function DELETE(
     return userOrResponse
   }
 
-  const env = getEnv()
 
   try {
+    const env = getEnv()
     const { id } = await params
     if (isCloudflareEnv()) {
       await StoryRepository.delete(env, id)

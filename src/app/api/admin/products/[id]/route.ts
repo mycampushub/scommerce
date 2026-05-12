@@ -5,7 +5,6 @@ import { ProductRepository } from '@/db/product.repository'
 import { CategoryRepository } from '@/db/category.repository'
 import { updateProductSchema } from '@/lib/validations'
 import { queryFirst, queryAll, execute, parseJSON, stringifyJSON, boolToNumber, numberToBool, now } from '@/db/db'
-
 import { isValidSlug } from '@/lib/slug'
 
 
@@ -63,11 +62,12 @@ export async function PUT(
     return userOrResponse
   }
 
+  const env = getEnv()
+
   // Await params outside try block to avoid scope issues
   const { id: productId } = await params
 
   try {
-    const env = getEnv()
     const contentType = request.headers.get('content-type') || ''
     const action = request.headers.get('x-action') || 'update'
 
@@ -319,6 +319,7 @@ export async function PUT(
           const uploadFormData = new FormData()
           uploadFormData.append('file', file)
 
+
           const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/admin/upload`, {
             method: 'POST',
             body: uploadFormData,
@@ -468,10 +469,11 @@ export async function DELETE(
     return userOrResponse
   }
 
+
   try {
     const env = getEnv()
     const { id } = await params
-    await ProductRepository.forceDelete(env, id)
+    await ProductRepository.delete(env, id)
 
     return NextResponse.json({
       success: true,
@@ -479,11 +481,10 @@ export async function DELETE(
     })
   } catch (error) {
     console.error('Error deleting product:', error)
-    const errorMessage = error instanceof Error ? error.message : 'Failed to delete product'
     return NextResponse.json(
       {
         success: false,
-        error: errorMessage,
+        error: 'Failed to delete product',
       },
       { status: 500 }
     )

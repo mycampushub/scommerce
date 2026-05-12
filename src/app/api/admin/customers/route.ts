@@ -86,9 +86,9 @@ export async function POST(request: NextRequest) {
     return userOrResponse
   }
 
-  const env = getEnv()
 
   try {
+    const env = getEnv()
     const body: any = await request.json() as any
 
     // Generate secure random temporary password (16 characters)
