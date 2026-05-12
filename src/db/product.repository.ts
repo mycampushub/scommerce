@@ -215,6 +215,18 @@ export class ProductRepository {
   }
 
   /**
+   * Force delete product and all related data
+   * Deletes variants, cart items, and reviews before deleting the product
+   */
+  static async forceDelete(env: Env | null, id: string): Promise<void> {
+    await execute(env, 'DELETE FROM product_variants WHERE productId = ?', id);
+    await execute(env, 'DELETE FROM cart_items WHERE productId = ?', id);
+    await execute(env, 'DELETE FROM wishlist_items WHERE productId = ?', id);
+    await execute(env, 'DELETE FROM reviews WHERE productId = ?', id);
+    await execute(env, 'DELETE FROM products WHERE id = ?', id);
+  }
+
+  /**
    * Get all active products
    */
   static async findAllActive(env: Env | null, options: { limit?: number; offset?: number } = {}): Promise<Product[]> {

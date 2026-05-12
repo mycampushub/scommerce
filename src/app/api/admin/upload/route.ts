@@ -20,8 +20,6 @@ export async function POST(request: NextRequest) {
 
   console.log('[Upload POST] Auth passed')
 
-  const env = await import('@/lib/cloudflare').then(m => m.getEnv())
-
   try {
     const formData = await request.formData()
     const file = formData.get('file') as File
@@ -108,8 +106,6 @@ export async function DELETE(request: NextRequest) {
   if (userOrResponse instanceof NextResponse) {
     return userOrResponse
   }
-
-  const env = await import('@/lib/cloudflare').then(m => m.getEnv())
 
   try {
     const { searchParams } = new URL(request.url)

@@ -471,7 +471,7 @@ export async function DELETE(
   try {
     const env = getEnv()
     const { id } = await params
-    await ProductRepository.delete(env, id)
+    await ProductRepository.forceDelete(env, id)
 
     return NextResponse.json({
       success: true,
@@ -479,10 +479,11 @@ export async function DELETE(
     })
   } catch (error) {
     console.error('Error deleting product:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Failed to delete product'
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to delete product',
+        error: errorMessage,
       },
       { status: 500 }
     )
