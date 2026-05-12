@@ -847,6 +847,12 @@ export default function CheckoutPage() {
                       email,
                       phone,
                       password,
+                      confirmPassword,
+                      guestCart: items.map(item => ({
+                        id: item.id,
+                        variantId: item.variantId,
+                        quantity: item.quantity
+                      })),
                       address: shippingInfo.address,
                       division: shippingInfo.division,
                       district: shippingInfo.district,

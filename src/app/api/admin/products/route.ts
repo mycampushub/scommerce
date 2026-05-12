@@ -247,6 +247,7 @@ export async function POST(request: NextRequest) {
         lowStockAlert: lowStockAlert ? parseInt(lowStockAlert) : undefined,
         isActive,
         isFeatured,
+        hasVariants: false,
       })
 
       // Fetch category for response
@@ -263,67 +264,6 @@ export async function POST(request: NextRequest) {
         },
       })
     }
-
-    // Handle JSON payload
-    const body = await request.json() as any
-
-    // Validate with Zod
-    const validation = productSchema.safeParse(body)
-    if (!validation.success) {
-      return NextResponse.json(
-        { success: false, error: validation.error.issues[0].message },
-        { status: 400 }
-      )
-    }
-
-    const validatedData = validation.data
-
-    // Validate slug format
-    if (!isValidSlug(validatedData.slug)) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid slug format. Use only lowercase letters, numbers, and hyphens.' },
-        { status: 400 }
-      )
-    }
-
-    // Check for unique slug
-    const existingProduct = await ProductRepository.findBySlug(env, validatedData.slug)
-    if (existingProduct) {
-      return NextResponse.json(
-        { success: false, error: 'A product with this URL slug already exists. Please use a different name or slug.' },
-        { status: 409 }
-      )
-    }
-
-    const product = await ProductRepository.create(env, {
-      name: validatedData.name,
-      slug: validatedData.slug,
-      description: validatedData.description,
-      categoryId: validatedData.categoryId,
-      basePrice: validatedData.price,
-      comparePrice: validatedData.comparePrice,
-      costPrice: validatedData.costPrice,
-      images: validatedData.images,
-      stock: validatedData.stock,
-      lowStockAlert: validatedData.lowStockAlert,
-      isActive: validatedData.isActive ?? true,
-      isFeatured: validatedData.isFeatured ?? false,
-      hasVariants: body.hasVariants ?? false,
-    })
-
-    // Fetch category for response
-    let category: any = null
-    if (product.categoryId) {
-      category = await CategoryRepository.findById(env, product.categoryId)
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: {
-        ...product,
-        category,
-      },
-    })
   } catch (error) {
     console.error('Error creating product:', error)
     return NextResponse.json(

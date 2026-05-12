@@ -1034,10 +1034,10 @@ export default function ProductsPage() {
                                   Delete
                                 </DropdownMenuItem>
                               </AlertDialogTrigger>
-                              <AlertDialogContent>
+                              <AlertDialogContent aria-describedby="delete-product-description">
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Delete Product</AlertDialogTitle>
-                                  <AlertDialogDescription>
+                                  <AlertDialogDescription id="delete-product-description">
                                     Are you sure you want to delete "{product.name}"? This action cannot be undone.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
