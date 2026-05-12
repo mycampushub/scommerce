@@ -89,7 +89,7 @@ export const createOrderSchema = z.object({
   userId: z.string().optional(),
   customerName: z.string().min(1, 'Customer name is required'),
   customerEmail: z.string().email('Invalid email address'),
-  customerPhone: z.string().min(10, 'Phone number must be at least 10 digits'),
+  customerPhone: z.string().min(10, 'Phone number must be at least 10 digits').optional(),
   shippingAddress: addressSchemaFlexible,
   billingAddress: addressSchemaFlexible.optional(),
   orderItems: z.array(orderItemSchema)

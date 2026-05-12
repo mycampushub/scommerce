@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
        ${whereClause}
        ORDER BY p.createdAt DESC
        LIMIT ? OFFSET ?`,
-      ...params,
+      ...(params || []),
       limit,
       offset
     )
@@ -221,11 +221,19 @@ export async function POST(request: NextRequest) {
           const uploadFormData = new FormData()
           uploadFormData.append('file', file)
 
+          const baseUrl = getEnvVar('NEXT_PUBLIC_BASE_URL') || request.headers.get('host')
+          const uploadUrl = baseUrl ? `https://${baseUrl}/api/admin/upload` : 'http://localhost:3000/api/admin/upload'
 
-          const uploadResponse = await fetch(`${getEnvVar('NEXT_PUBLIC_BASE_URL') || 'http://localhost:3000'}/api/admin/upload`, {
+          const uploadResponse = await fetch(uploadUrl, {
             method: 'POST',
             body: uploadFormData,
           })
+
+          if (!uploadResponse.ok) {
+            const errorText = await uploadResponse.text()
+            console.error('Upload failed:', errorText)
+            continue
+          }
 
           const uploadResult = await uploadResponse.json() as any
           if (uploadResult.success) {
@@ -264,6 +272,53 @@ export async function POST(request: NextRequest) {
         },
       })
     }
+
+    // Handle JSON content type (from admin panel)
+    if (contentType.includes('application/json')) {
+      const body = await request.json()
+
+      // Validate using Zod schema
+      const validation = productSchema.safeParse(body)
+      if (!validation.success) {
+        return NextResponse.json(
+          { success: false, error: validation.error.issues[0].message },
+          { status: 400 }
+        )
+      }
+
+      const validatedData = validation.data
+
+      // Check for unique slug
+      const existingProduct = await ProductRepository.findBySlug(env, validatedData.slug)
+      if (existingProduct) {
+        return NextResponse.json(
+          { success: false, error: 'A product with this URL slug already exists. Please use a different name or slug.' },
+          { status: 409 }
+        )
+      }
+
+      const product = await ProductRepository.create(env, validatedData)
+
+      // Fetch category for response
+      let category: any = null
+      if (product.categoryId) {
+        category = await CategoryRepository.findById(env, product.categoryId)
+      }
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          ...product,
+          category,
+        },
+      })
+    }
+
+    // Unsupported content type
+    return NextResponse.json(
+      { success: false, error: 'Unsupported content type. Use application/json or multipart/form-data' },
+      { status: 415 }
+    )
   } catch (error) {
     console.error('Error creating product:', error)
     return NextResponse.json(

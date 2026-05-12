@@ -195,10 +195,10 @@ export default function CheckoutPage() {
       return
     }
 
-    // Validate phone (Bangladesh format: 01XXXXXXXXX)
-    const phoneRegex = /^01[3-9]\d{8}$/
-    if (!phoneRegex.test(shippingInfo.phone)) {
-      toast.error('Please enter a valid Bangladesh phone number (01XXXXXXXXX)')
+    // Validate phone (10-14 digits, allowing common formats)
+    const phoneRegex = /^\d{10,14}$/
+    if (!phoneRegex.test(shippingInfo.phone.replace(/\D/g, ''))) {
+      toast.error('Please enter a valid phone number (10-14 digits)')
       return
     }
 
