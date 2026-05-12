@@ -10,6 +10,15 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: false,
   },
   reactStrictMode: true,
+  // Rewrite /uploads/* to image proxy for R2 compatibility
+  async rewrites() {
+    return [
+      {
+        source: '/uploads/:path*',
+        destination: '/api/images/proxy?path=/uploads/:path*',
+      },
+    ];
+  },
   // CDN optimization headers
   async headers() {
     return [

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAdminAuth } from '@/lib/admin-auth'
-import { getEnv } from '@/lib/cloudflare'
+import { getEnv, getEnvVar } from '@/lib/cloudflare'
 import { ProductRepository } from '@/db/product.repository'
 import { CategoryRepository } from '@/db/category.repository'
 import { productSchema } from '@/lib/validations'
@@ -222,7 +222,7 @@ export async function POST(request: NextRequest) {
           uploadFormData.append('file', file)
 
 
-          const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/admin/upload`, {
+          const uploadResponse = await fetch(`${getEnvVar('NEXT_PUBLIC_BASE_URL') || 'http://localhost:3000'}/api/admin/upload`, {
             method: 'POST',
             body: uploadFormData,
           })

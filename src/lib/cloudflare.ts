@@ -59,3 +59,22 @@ export function getEnv(_request?: Request): any | null {
   console.error('[cloudflare.ts] Env not found and no fallback available');
   return null;
 }
+
+/**
+ * Get environment variable from Cloudflare or process.env
+ * Cloudflare Workers/Pages store env vars in the cloudflare context
+ */
+export function getEnvVar(key: string): string | undefined {
+  // Try Cloudflare env context first
+  try {
+    const { env } = getCloudflareContext();
+    if (env && key in env) {
+      return env[key];
+    }
+  } catch (error) {
+    // Ignore errors
+  }
+
+  // Fallback to process.env
+  return process.env[key];
+}

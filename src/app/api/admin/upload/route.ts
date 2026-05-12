@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdminAuth } from '@/lib/admin-auth';
-import { getEnv } from '@/lib/cloudflare';
+import { getEnv, getEnvVar } from '@/lib/cloudflare';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
@@ -65,15 +65,20 @@ export async function POST(request: NextRequest) {
       console.log('[Upload POST] Using R2 bucket');
       try {
         const arrayBuffer = await file.arrayBuffer();
-        
+
         await env.BUCKET.put(filename, arrayBuffer, {
           httpMetadata: {
             contentType: file.type,
           },
         });
 
-        // Get the R2 public URL (needs to be configured in R2 bucket settings)
-        fileUrl = `/uploads/${filename}`;
+        // Get R2 public URL from environment variable or fallback to uploads path
+        const r2PublicUrl = getEnvVar('R2_PUBLIC_URL') || '';
+        if (r2PublicUrl) {
+          fileUrl = `${r2PublicUrl}/${filename}`;
+        } else {
+          fileUrl = `/uploads/${filename}`;
+        }
         console.log('[Upload POST] R2 upload successful:', fileUrl);
       } catch (r2Error) {
         console.error('[Upload POST] R2 upload error:', r2Error);

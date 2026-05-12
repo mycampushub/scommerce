@@ -21,6 +21,7 @@ JWT_SECRET = "sr7UraN4Bsu3BM3IuxhlipQLOWYrs0lJX7ExEF7RnvHAiqrJEXn6NUkf6HypYN"
 ADMIN_SECRET = "eWwWR7nbgndkHaUYNdmNsZentGz7vpcF0tAz7UL4ydqa8H7TrE5EXVI20GdXgh"
 NEXT_PUBLIC_URL = "https://scommerce.demo-web.workers.dev"
 CLOUDFLARE_ENV = "true"
+R2_PUBLIC_URL = "https://pub-fce53fe542d84412a03d3ff73c33d43f.r2.dev"
 # NOTE: For production security, set JWT_SECRET and ADMIN_SECRET as encrypted
 # secrets in Cloudflare Dashboard instead of plaintext in wrangler.toml:
 #   wrangler secret put JWT_SECRET

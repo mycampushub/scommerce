@@ -57,9 +57,19 @@ export const addressSchema = z.object({
 });
 
 // Address can be either an object or a string (for backward compatibility)
+// Support two address formats:
+// 1. Standard format with fullName, addressLine1, etc.
+// 2. Checkout format with address, city, zipCode, etc.
 export const addressSchemaFlexible = z.union([
   addressSchema,
-  z.string().min(1, 'Address is required'),
+  z.object({
+    address: z.string().min(1, 'Address is required'),
+    city: z.string().min(1, 'City is required'),
+    district: z.string().optional(),
+    division: z.string().min(1, 'Division is required'),
+    zipCode: z.string().min(1, 'Zip code is required'),
+    country: z.string().optional(),
+  }),
 ]);
 
 export const orderItemSchema = z.object({
