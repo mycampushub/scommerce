@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
       ...body,
       customerName: sanitizeForDB(body.customerName),
       customerEmail: sanitizeEmail(body.customerEmail),
-      customerPhone: sanitizePhone(body.customerPhone),
+      customerPhone: body.customerPhone ? sanitizePhone(body.customerPhone) : undefined,
       shippingAddress: sanitizeAddress(body.shippingAddress),
       billingAddress: body.billingAddress ? sanitizeAddress(body.billingAddress) : undefined,
       orderItems: body.orderItems?.map((item: any) => ({

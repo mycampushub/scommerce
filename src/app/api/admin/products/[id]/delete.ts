@@ -46,7 +46,7 @@ export async function DELETE(
         {
           success: false,
           error: 'Cannot delete product: It has associated orders. Please delete or archive orders first.',
-          },
+        },
         { status: 400 }
       )
     }

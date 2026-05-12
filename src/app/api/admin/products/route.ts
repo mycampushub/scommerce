@@ -297,7 +297,14 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      const product = await ProductRepository.create(env, validatedData)
+      // Convert null values to undefined for repository
+      const productData = {
+        ...validatedData,
+        comparePrice: validatedData.comparePrice ?? undefined,
+        costPrice: validatedData.costPrice ?? undefined,
+      }
+
+      const product = await ProductRepository.create(env, productData)
 
       // Fetch category for response
       let category: any = null

@@ -211,7 +211,7 @@ export async function POST(request: NextRequest) {
       userId: validatedData.userId,
       customerName: validatedData.customerName,
       customerEmail: validatedData.customerEmail,
-      customerPhone: validatedData.customerPhone,
+      customerPhone: validatedData.customerPhone || undefined,
       shippingAddress: typeof validatedData.shippingAddress === 'string'
         ? validatedData.shippingAddress
         : JSON.stringify(validatedData.shippingAddress),
