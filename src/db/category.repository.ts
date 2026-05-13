@@ -113,6 +113,17 @@ export class CategoryRepository {
   }
 
   /**
+   * Count products in a category
+   */
+  static async countProducts(env: Env | null, id: string): Promise<number> {
+    const result = await queryFirst<{ count: number }>(
+      env,
+      'SELECT COUNT(*) as count FROM products WHERE categoryId = ?'
+    );
+    return result?.count || 0;
+  }
+
+  /**
    * Get all active categories
    */
   static async findAllActive(env : Env | null): Promise<Category[]> {

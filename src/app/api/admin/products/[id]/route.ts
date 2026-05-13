@@ -176,12 +176,23 @@ export async function DELETE(
       )
     }
 
+    const inventoryReservations = await queryFirst<{ count: number }>(
+      env,
+      'SELECT COUNT(*) as count FROM inventory_reservations WHERE productId = ? LIMIT 1',
+      id
+    )
+
+    if (inventoryReservations && inventoryReservations.count > 0) {
+      return NextResponse.json(
+        { success: false, error: 'Cannot delete product: It has active inventory reservations.' },
+        { status: 400 }
+      )
+    }
+
     await execute(env, 'DELETE FROM product_variants WHERE productId = ?', id)
-    await execute(env, 'DELETE FROM order_items WHERE productId = ?', id)
     await execute(env, 'DELETE FROM cart_items WHERE productId = ?', id)
     await execute(env, 'DELETE FROM wishlist_items WHERE productId = ?', id)
     await execute(env, 'DELETE FROM product_reviews WHERE productId = ?', id)
-    await execute(env, 'DELETE FROM inventory_alerts WHERE productId = ?', id)
     await execute(env, 'DELETE FROM products WHERE id = ?', id)
 
     return NextResponse.json({

@@ -50,7 +50,7 @@ interface ReelApiResponse {
   videoUrl: string
   productIds: string | null
   isActive: number
-  orderNum: number
+  order: number
   createdAt: string
   updatedAt: string
 }

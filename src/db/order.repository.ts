@@ -487,4 +487,137 @@ export class OrderRepository {
       id
     ))!;
   }
+
+  /**
+   * Archive old completed orders
+   * Archives orders that are DELIVERED/COMPLETED and older than specified days
+   */
+  static async archiveOldOrders(env: Env | null, olderThanDays: number = 180): Promise<number> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
+    const cutoffDateStr = cutoffDate.toISOString();
+
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
+      const result = await prisma.order.updateMany({
+        where: {
+          status: { in: ['DELIVERED', 'COMPLETED'] as OrderStatus[] },
+          createdAt: { lt: cutoffDateStr },
+          deletedAt: null // Only archive non-deleted orders
+        },
+        data: {
+          deletedAt: cutoffDateStr,
+          deletedBy: 'system',
+          deletedReason: `Archived (older than ${olderThanDays} days)`,
+          updatedAt: now()
+        }
+      });
+      return result.count;
+    }
+
+    const result = await execute(
+      env,
+      `UPDATE orders
+       SET deletedAt = ?, deletedBy = 'system', deletedReason = ?, updatedAt = ?
+       WHERE status IN ('DELIVERED', 'COMPLETED')
+       AND createdAt < ?
+       AND deletedAt IS NULL`,
+      cutoffDateStr,
+      `Archived (older than ${olderThanDays} days)`,
+      now(),
+      cutoffDateStr
+    );
+
+    // Get count by querying archived orders
+    const archivedCountResult = await queryFirst<{ count: number }>(
+      env,
+      `SELECT COUNT(*) as count FROM orders
+       WHERE deletedAt = ? AND deletedBy = 'system' AND deletedReason = ?`,
+      cutoffDateStr,
+      `Archived (older than ${olderThanDays} days)`
+    );
+    return archivedCountResult?.count || 0;
+  }
+
+  /**
+   * Permanently delete soft-deleted orders
+   * Permanently removes orders that were deleted/archived older than specified days
+   */
+  static async cleanupDeletedOrders(env: Env | null, olderThanDays: number = 365): Promise<number> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
+    const cutoffDateStr = cutoffDate.toISOString();
+
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
+      const orders = await prisma.order.findMany({
+        where: {
+          deletedAt: { lt: cutoffDateStr }
+        },
+        select: { id: true }
+      });
+
+      const orderIds = orders.map(o => o.id);
+
+      if (orderIds.length === 0) return 0;
+
+      // Delete order items first
+      await prisma.orderItem.deleteMany({
+        where: { orderId: { in: orderIds } }
+      });
+
+      // Delete orders
+      const result = await prisma.order.deleteMany({
+        where: { id: { in: orderIds } }
+      });
+
+      return result.count;
+    }
+
+    // Get order IDs to delete
+    const orders = await queryAll<{ id: string }>(
+      env,
+      'SELECT id FROM orders WHERE deletedAt < ?',
+      cutoffDateStr
+    );
+
+    if (!orders || orders.length === 0) return 0;
+
+    const orderIds = orders.map(o => o.id);
+    const count = orderIds.length;
+
+    // Delete order items first (FK constraint might be RESTRICT)
+    await execute(
+      env,
+      `DELETE FROM order_items WHERE orderId IN (${orderIds.map(() => '?').join(',')})`,
+      ...orderIds
+    );
+
+    // Delete orders
+    await execute(
+      env,
+      `DELETE FROM orders WHERE id IN (${orderIds.map(() => '?').join(',')})`,
+      ...orderIds
+    );
+
+    return count;
+  }
+
+  /**
+   * Get archived orders count
+   */
+  static async getArchivedCount(env: Env | null): Promise<number> {
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
+      return await prisma.order.count({
+        where: { deletedAt: { not: null } }
+      });
+    }
+
+    const result = await queryFirst<{ count: number }>(
+      env,
+      'SELECT COUNT(*) as count FROM orders WHERE deletedAt IS NOT NULL'
+    );
+    return result?.count || 0;
+  }
 }

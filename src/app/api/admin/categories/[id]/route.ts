@@ -127,7 +127,33 @@ export async function DELETE(
 
   try {
     const env = getEnv()
-    await CategoryRepository.delete(env, (await params).id)
+    const id = (await params).id
+
+    // Check if category exists
+    const category = await CategoryRepository.findById(env, id)
+    if (!category) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Category not found',
+        },
+        { status: 404 }
+      )
+    }
+
+    // Check if category has products
+    const productCount = await CategoryRepository.countProducts(env, id)
+    if (productCount > 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Cannot delete category: It contains ${productCount} product${productCount > 1 ? 's' : ''}. Please reassign or delete the products first.`,
+        },
+        { status: 400 }
+      )
+    }
+
+    await CategoryRepository.delete(env, id)
 
     return NextResponse.json({
       success: true,

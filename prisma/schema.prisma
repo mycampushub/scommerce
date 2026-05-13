@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,186 +7,199 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id              String    @id @default(cuid())
-  email           String    @unique
-  name            String?
-  phone           String?   @unique
-  address         String?
-  password        String?
-  emailVerified   Int       @default(0)
-  emailToken      String?
-  newEmail        String?
-  resetToken      String?
-  resetTokenExpiry String?
-  role            String    @default("user")
-  avatar          String?
-  isBanned        Boolean   @default(false)
-  bannedAt        DateTime?
-  lastLoginAt     DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  addresses       Address[]
-  orders          Order[]
-  cartItems       CartItem[]
-  wishlistItems   WishlistItem[]
-  productReviews  ProductReview[]
-  posts           Post[]
-  adminLogs       AdminLog[]
-
-  @@map("users")
+model HomepageSettings {
+  id           String   @id
+  sectionName  String   @unique
+  isEnabled    Int      @default(1)
+  autoPlay     Int      @default(5000)
+  displayLimit Int?
+  settings     String?
+  updatedAt    DateTime @default(now())
 }
 
-model Address {
-  id            String   @id @default(cuid())
-  userId        String
-  fullName      String
-  phone         String
-  addressLine1  String
-  addressLine2  String?
-  city          String
-  district      String?
-  division      String
-  postalCode    String?
-  isDefault     Int      @default(0)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+model addresses {
+  id           String   @id
+  userId       String
+  fullName     String
+  phone        String
+  addressLine1 String
+  addressLine2 String?
+  city         String
+  district     String?
+  division     String
+  postalCode   String?
+  isDefault    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime
+  users        users    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
   @@index([isDefault])
-  @@map("addresses")
+  @@index([userId])
 }
 
-model Category {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  slug        String   @unique
+model admin_logs {
+  id        String   @id
+  action    String
+  entity    String
+  entityId  String?
+  adminId   String
+  details   String?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  users     users    @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([entity, entityId])
+  @@index([createdAt(sort: Desc)])
+  @@index([action, createdAt(sort: Desc)])
+  @@index([entity, createdAt(sort: Desc)])
+  @@index([adminId, createdAt(sort: Desc)])
+}
+
+model analytics_integrations {
+  id         String   @id
+  name       String   @unique
+  provider   String   @default("custom")
+  trackingId String?
+  measurementId String?
+  apiKey     String?
+  pixelId    String?
+  isActive   Boolean  @default(true)
+  settings   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime
+}
+
+model banners {
+  id          String   @id
+  title       String
+  description String?
+  image       String
+  mobileImage String?
+  buttonText  String?
+  buttonLink  String?
+  isActive    Int      @default(1)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime
+
+  @@index([order])
+  @@index([isActive])
+}
+
+model cart_items {
+  id               String            @id
+  userId           String
+  productId        String
+  variantId        String?
+  quantity         Int               @default(1)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime
+  users            users             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  products         products          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product_variants product_variants? @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId, variantId])
+  @@index([variantId])
+  @@index([userId, variantId])
+  @@index([userId])
+}
+
+model categories {
+  id          String     @id
+  name        String     @unique
+  slug        String     @unique
   description String?
   image       String?
-  isActive    Int      @default(1)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  products    Product[]
+  isActive    Int        @default(1)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime
+  products    products[]
 
-  @@index([slug])
   @@index([isActive])
-  @@map("categories")
-}
-
-model Product {
-  id              String            @id @default(cuid())
-  name            String
-  slug            String            @unique
-  description     String?
-  categoryId      String
-  price           Float             @default(0)
-  basePrice       Float             @default(0)
-  comparePrice    Float?
-  discount        Float             @default(0)
-  discountType    String            @default("percentage")
-  costPrice       Float?            @default(0)
-  images          String?
-  stock           Int               @default(0)
-  lowStockAlert   Int               @default(10)
-  reorderLevel    Int               @default(5)
-  reorderQty      Int               @default(20)
-  isActive        Int               @default(1)
-  isFeatured      Int               @default(0)
-  hasVariants     Int               @default(0)
-  weight          Float?
-  dimensions      String?
-  tags            String?
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-  category        Category          @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  variants        ProductVariant[]
-  reviews         ProductReview[]
-  cartItems       CartItem[]
-  wishlistItems   WishlistItem[]
-  orderItems      OrderItem[]
-  inventoryAlerts InventoryAlert[]
-  reservations    InventoryReservation[]
-
-  @@index([categoryId])
-  @@index([isFeatured])
-  @@index([isActive, createdAt(sort: Desc)])
   @@index([slug])
-  @@index([isActive, isFeatured])
-  @@map("products")
 }
 
-model ProductVariant {
-  id            String   @id @default(cuid())
-  productId     String
-  sku           String   @unique
-  name          String
-  price         Float
-  comparePrice  Float?
-  costPrice     Float?   @default(0)
-  stock         Int      @default(0)
-  images        String?
-  size          String?
-  color         String?
-  material      String?
-  isActive      Int      @default(1)
-  isDefault     Int      @default(0)
-  lowStockAlert Int      @default(10)
-  reorderLevel  Int      @default(5)
-  reorderQty    Int      @default(20)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  cartItems     CartItem[]
-  orderItems    OrderItem[]
-  inventoryAlerts InventoryAlert[]
-  reservations    InventoryReservation[]
+model email_services {
+  id         String    @id
+  name       String    @unique
+  provider   String    @default("custom")
+  apiKey     String?
+  apiSecret  String?
+  fromEmail  String?
+  fromName   String?
+  webhookUrl String?
+  sandboxMode Int      @default(0)
+  isActive   Boolean   @default(true)
+  isDefault  Boolean   @default(false)
+  settings   String?
+  lastTested DateTime?
+  testStatus String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime
+}
 
+model inventory_alerts {
+  id               String            @id
+  variantId        String?
+  productId        String?
+  alertType        String            @default("LOW_STOCK")
+  quantity         Int
+  isRead           Int               @default(0)
+  isResolved       Int               @default(0)
+  resolvedAt       String?
+  createdAt        DateTime          @default(now())
+  product_variants product_variants? @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  products         products?         @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([isRead, isResolved])
   @@index([productId])
-  @@index([sku])
-  @@index([productId, isActive])
-  @@index([productId, size, color])
-  @@map("product_variants")
+  @@index([variantId])
 }
 
-model ProductReview {
-  id          String   @id @default(cuid())
-  productId   String
-  userId      String
-  userName    String?
-  rating      Int
-  title       String?
-  comment     String?
-  isVerified  Int      @default(0)
-  isApproved  Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+model inventory_reservations {
+  id               String            @id
+  variantId        String?
+  productId        String?
+  userId           String
+  quantity         Int
+  expiresAt        DateTime
+  createdAt        DateTime          @default(now())
+  product_variants product_variants? @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  products         products?         @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  @@unique([productId, userId])
-  @@index([productId, isApproved])
-  @@index([productId, rating(sort: Desc)])
+  @@index([expiresAt])
   @@index([userId])
-  @@index([isApproved, createdAt(sort: Desc)])
-  @@map("product_reviews")
+  @@index([productId])
+  @@index([variantId])
 }
 
-model WishlistItem {
-  id        String   @id @default(cuid())
-  userId    String
-  productId String
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+model order_items {
+  id               String            @id
+  orderId          String
+  productId        String
+  variantId        String?
+  quantity         Int
+  price            Float
+  productName      String
+  productImage     String?
+  variantSku       String?
+  variantSize      String?
+  variantColor     String?
+  variantMaterial  String?
+  createdAt        DateTime          @default(now())
+  orders           orders            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  products         products          @relation(fields: [productId], references: [id], onDelete: Restrict)
+  product_variants product_variants? @relation(fields: [variantId], references: [id], onDelete: SetNull)
 
-  @@unique([userId, productId])
-  @@map("wishlist_items")
+  @@index([variantId])
+  @@index([productId])
+  @@index([orderId])
 }
 
-model Order {
-  id                    String   @id @default(cuid())
-  orderNumber           String   @unique
+model orders {
+  id                    String        @id
+  orderNumber           String        @unique
   userId                String?
   customerName          String
   customerEmail         String
@@ -200,16 +210,15 @@ model Order {
   district              String?
   division              String?
   subtotal              Float
-  shipping              Float    @default(0)
-  tax                   Float    @default(0)
-  discount              Float    @default(0)
+  shipping              Float         @default(0)
+  tax                   Float         @default(0)
+  discount              Float         @default(0)
   total                 Float
-  status                String   @default("PENDING")
-  paymentStatus         String   @default("PENDING")
+  status                String        @default("PENDING")
+  paymentStatus         String        @default("PENDING")
   paymentMethod         String?
-  promoCode            String?  // Promo code used for the order
   trackingNumber        String?
-  trackingStatus        String   @default("PENDING")
+  trackingStatus        String        @default("PENDING")
   estimatedDeliveryDate String?
   cancelledAt           String?
   cancelledBy           String?
@@ -222,227 +231,214 @@ model Order {
   deletedAt             DateTime?
   deletedBy             String?
   deletedReason         String?
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-  user                  User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  items                 OrderItem[]
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime
+  promoCode             String?
+  order_items           order_items[]
+  users                 users?        @relation(fields: [userId], references: [id], onDelete: SetNull)
 
-  @@index([userId])
-  @@index([customerEmail])
-  @@index([orderNumber])
-  @@index([status, createdAt(sort: Desc)])
-  @@index([customerEmail, status])
   @@index([deletedAt])
-  @@map("orders")
-}
-
-model OrderItem {
-  id              String  @id @default(cuid())
-  orderId         String
-  productId       String
-  variantId       String?
-  quantity        Int
-  price           Float
-  productName     String
-  productImage    String?
-  variantSku      String?
-  variantSize     String?
-  variantColor    String?
-  variantMaterial String?
-  createdAt       DateTime @default(now())
-  order           Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product         Product        @relation(fields: [productId], references: [id], onDelete: Restrict)
-  variant         ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
-
-  @@index([orderId])
-  @@index([productId])
-  @@index([variantId])
-  @@map("order_items")
-}
-
-model CartItem {
-  id        String   @id @default(cuid())
-  userId    String
-  productId String
-  variantId String?
-  quantity  Int      @default(1)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  product   Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
-  variant   ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, productId, variantId])
+  @@index([customerEmail, status])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([orderNumber])
+  @@index([customerEmail])
   @@index([userId])
-  @@index([userId, variantId])
-  @@index([variantId])
-  @@map("cart_items")
 }
 
-model AdminLog {
-  id        String   @id @default(cuid())
-  action    String
-  entity    String
-  entityId  String?
-  adminId   String
-  details   String?
-  ipAddress String?
-  userAgent String?
-  createdAt DateTime @default(now())
-  admin     User     @relation(fields: [adminId], references: [id], onDelete: Cascade)
-
-  @@index([adminId, createdAt(sort: Desc)])
-  @@index([entity, createdAt(sort: Desc)])
-  @@index([action, createdAt(sort: Desc)])
-  @@index([createdAt(sort: Desc)])
-  @@index([entity, entityId])
-  @@map("admin_logs")
+model payment_gateways {
+  id         String    @id
+  name       String    @unique
+  provider   String    @default("custom")
+  apiKey     String?
+  apiSecret  String?
+  webhookUrl String?
+  webhookSecret String?
+  sandboxMode Int       @default(0)
+  supportedCurrencies String?
+  isActive   Boolean   @default(true)
+  isDefault  Boolean   @default(false)
+  settings   String?
+  lastTested DateTime?
+  testStatus String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime
 }
 
-model InventoryAlert {
-  id         String   @id @default(cuid())
-  variantId  String?
-  productId  String?
-  alertType  String   @default("LOW_STOCK")
-  quantity   Int
-  isRead     Int      @default(0)
-  isResolved Int      @default(0)
-  resolvedAt String?
-  createdAt  DateTime @default(now())
-  variant    ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
-  product    Product?        @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@index([variantId])
-  @@index([productId])
-  @@index([isRead, isResolved])
-  @@map("inventory_alerts")
-}
-
-model InventoryReservation {
-  id        String   @id @default(cuid())
-  variantId String?
-  productId String?
-  userId    String
-  quantity  Int
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-  variant   ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
-  product   Product?        @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@index([variantId])
-  @@index([productId])
-  @@index([userId])
-  @@index([expiresAt])
-  @@map("inventory_reservations")
-}
-
-model Post {
-  id        String   @id @default(cuid())
+model posts {
+  id        String   @id
   title     String
   content   String?
   published Int      @default(0)
   authorId  String
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  updatedAt DateTime
+  users     users    @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([authorId])
-  @@map("posts")
 }
 
-model Banner {
-  id          String   @id @default(cuid())
-  title       String
-  description String?
-  image       String
-  mobileImage String?
-  buttonText  String?
-  buttonLink  String?
-  isActive    Int      @default(1)
-  order       Int      @default(0) @map("order")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+model product_reviews {
+  id         String   @id
+  productId  String
+  userId     String
+  userName   String?
+  rating     Int
+  title      String?
+  comment    String?
+  isVerified Int      @default(0)
+  isApproved Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime
+  products   products @relation(fields: [productId], references: [id], onDelete: Cascade)
+  users      users    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([productId, userId])
+  @@index([isApproved, createdAt(sort: Desc)])
+  @@index([userId])
+  @@index([productId, rating(sort: Desc)])
+  @@index([productId, isApproved])
+}
+
+model product_variants {
+  id                     String                   @id
+  productId              String
+  sku                    String                   @unique
+  name                   String
+  price                  Float
+  comparePrice           Float?
+  stock                  Int                      @default(0)
+  images                 String?
+  size                   String?
+  color                  String?
+  material               String?
+  isActive               Int                      @default(1)
+  isDefault              Int                      @default(0)
+  lowStockAlert          Int                      @default(10)
+  reorderLevel           Int                      @default(5)
+  reorderQty             Int                      @default(20)
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime
+  costPrice              Float?                   @default(0)
+  cart_items             cart_items[]
+  inventory_alerts       inventory_alerts[]
+  inventory_reservations inventory_reservations[]
+  order_items            order_items[]
+  products               products                 @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, size, color])
+  @@index([productId, isActive])
+  @@index([sku])
+  @@index([productId])
+}
+
+model products {
+  id                     String                   @id
+  name                   String
+  slug                   String                   @unique
+  description            String?
+  categoryId             String
+  price                  Float                    @default(0)
+  basePrice              Float                    @default(0)
+  comparePrice           Float?
+  discount               Float                    @default(0)
+  discountType           String                   @default("percentage")
+  images                 String?
+  stock                  Int                      @default(0)
+  lowStockAlert          Int                      @default(10)
+  reorderLevel           Int                      @default(5)
+  reorderQty             Int                      @default(20)
+  isActive               Int                      @default(1)
+  isFeatured             Int                      @default(0)
+  hasVariants            Int                      @default(0)
+  weight                 Float?
+  dimensions             String?
+  tags                   String?
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime
+  costPrice              Float?                   @default(0)
+  cart_items             cart_items[]
+  inventory_alerts       inventory_alerts[]
+  inventory_reservations inventory_reservations[]
+  order_items            order_items[]
+  product_reviews        product_reviews[]
+  product_variants       product_variants[]
+  categories             categories               @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  wishlist_items         wishlist_items[]
+
+  @@index([isActive, isFeatured])
+  @@index([slug])
+  @@index([isActive, createdAt(sort: Desc)])
+  @@index([isFeatured])
+  @@index([categoryId])
+}
+
+model promotions {
+  id                   String    @id
+  title                String
+  description          String?
+  image                String
+  ctaText              String?
+  ctaLink              String?
+  type                 String    @default("banner")
+  promoCode            String?   @unique
+  discountType         String?
+  discountValue        Float?
+  minOrderAmount       Float?
+  maxDiscountAmount    Float?
+  startDate            DateTime?
+  endDate              DateTime?
+  usageLimit           Int?
+  usedCount            Int       @default(0)
+  userLimit            Int?
+  applicableCategories String?
+  applicableProducts   String?
+  conditions           String?
+  isActive             Int       @default(1)
+  order                Int       @default(0)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime
+
+  @@index([promoCode])
+  @@index([type, isActive])
   @@index([isActive])
-  @@index([order])
-  @@map("banners")
 }
 
-model Story {
-  id        String   @id @default(cuid())
-  title     String
-  thumbnail String
-  images    String
-  isActive  Int      @default(1)
-  order     Int      @default(0) @map("displayOrder")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([isActive])
-  @@index([order])
-  @@map("stories")
-}
-
-model Reel {
-  id         String   @id @default(cuid())
+model reels {
+  id         String   @id
   title      String
   thumbnail  String
   videoUrl   String
   productIds String?
   isActive   Int      @default(1)
-  order      Int      @default(0) @map("displayOrder")
+  order      Int      @default(0)
   createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  updatedAt  DateTime
 
-  @@index([isActive])
   @@index([order])
-  @@map("reels")
-}
-
-model Promotion {
-  id                  String   @id @default(cuid())
-  title               String
-  description         String?
-  image               String
-  ctaText             String?
-  ctaLink             String?
-  type                String   @default("banner") // banner, discount_code
-  promoCode           String?  @unique // Discount code for users to enter
-  discountType        String?  // percentage, fixed_amount, buy_x_get_y
-  discountValue       Float?   // Discount percentage or amount
-  minOrderAmount      Float?   // Minimum order value to apply
-  maxDiscountAmount   Float?   // Maximum discount cap
-  startDate           DateTime?
-  endDate             DateTime?
-  usageLimit          Int?     // Total usage limit
-  usedCount          Int      @default(0)
-  userLimit          Int?     // Per-user usage limit
-  applicableCategories String?  // JSON array of category IDs
-  applicableProducts   String?  // JSON array of product IDs
-  conditions          String?  // JSON for complex conditions
-  isActive            Int      @default(1)
-  order               Int      @default(0) @map("displayOrder")
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-
   @@index([isActive])
-  @@index([type, isActive])
-  @@index([promoCode])
-  @@map("promotions")
 }
 
-model HomepageSettings {
-  id          String   @id @default(cuid())
-  sectionName String   @unique
-  isEnabled   Int      @default(1)
-  autoPlay    Int      @default(5000)
-  displayLimit Int?
-  settings    String?
-  updatedAt   DateTime @default(now())
+model shipping_carriers {
+  id            String    @id
+  name          String    @unique
+  provider      String    @default("custom")
+  apiKey        String?
+  apiSecret     String?
+  accountNumber String?
+  webhookUrl    String?
+  sandboxMode   Int       @default(0)
+  shippingMethods String?
+  isActive      Boolean   @default(true)
+  isDefault     Boolean   @default(false)
+  settings      String?
+  lastTested    DateTime?
+  testStatus    String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime
 }
 
-model SiteSettings {
-  id                    String   @id @default(cuid())
+model site_settings {
+  id                    String   @id
   siteName              String   @default("SCommerce")
   siteLogo              String?
   currency              String   @default("BDT")
@@ -453,82 +449,62 @@ model SiteSettings {
   contactEmail          String?
   contactPhone          String?
   socialMedia           String?
+  enableStore           Int      @default(1)
+  maintenanceMode       Int      @default(0)
   seo                   String?
   createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-
-  @@map("site_settings")
+  updatedAt             DateTime
 }
 
-// Integration Types
-model PaymentGateway {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  provider    String   @default("custom") // stripe, paypal, custom
-  apiKey      String?
-  apiSecret   String?
-  webhookUrl  String?
-  isActive    Boolean  @default(true)
-  isDefault   Boolean  @default(false)
-  settings    String?  // JSON for additional settings
-  lastTested  DateTime?
-  testStatus  String?  // success, failed, pending
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+model stories {
+  id        String   @id
+  title     String
+  thumbnail String
+  images    String
+  isActive  Int      @default(1)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime
 
-  @@map("payment_gateways")
+  @@index([order])
+  @@index([isActive])
 }
 
-model ShippingCarrier {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  provider    String   @default("custom") // fedex, ups, dhl, custom
-  apiKey      String?
-  apiSecret   String?
-  accountNumber String?
-  webhookUrl  String?
-  isActive    Boolean  @default(true)
-  isDefault   Boolean  @default(false)
-  settings    String?  // JSON for additional settings
-  lastTested  DateTime?
-  testStatus  String?  // success, failed, pending
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@map("shipping_carriers")
+model users {
+  id               String            @id
+  email            String            @unique
+  name             String?
+  phone            String?           @unique
+  address          String?
+  password         String?
+  emailVerified    Int               @default(0)
+  emailToken       String?
+  newEmail         String?
+  resetToken       String?
+  resetTokenExpiry String?
+  role             String            @default("user")
+  avatar           String?
+  isBanned         Boolean           @default(false)
+  bannedAt         DateTime?
+  lastLoginAt      DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime
+  addresses        addresses[]
+  admin_logs       admin_logs[]
+  cart_items       cart_items[]
+  orders           orders[]
+  posts            posts[]
+  product_reviews  product_reviews[]
+  wishlist_items   wishlist_items[]
 }
 
-model AnalyticsIntegration {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  provider    String   @default("custom") // google, facebook, custom
-  trackingId  String?
-  apiKey      String?
-  pixelId     String?
-  isActive    Boolean  @default(true)
-  settings    String?  // JSON for additional settings
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+model wishlist_items {
+  id        String   @id
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+  users     users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  products  products @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  @@map("analytics_integrations")
-}
-
-model EmailService {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  provider    String   @default("custom") // sendgrid, mailgun, ses, custom
-  apiKey      String?
-  apiSecret   String?
-  fromEmail   String?
-  fromName    String?
-  webhookUrl  String?
-  isActive    Boolean  @default(true)
-  isDefault   Boolean  @default(false)
-  settings    String?  // JSON for additional settings
-  lastTested  DateTime?
-  testStatus  String?  // success, failed, pending
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@map("email_services")
+  @@unique([userId, productId])
 }

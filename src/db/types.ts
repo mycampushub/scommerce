@@ -34,6 +34,10 @@ export interface User {
   resetToken: string | null;
   resetTokenExpiry: string | null;
   role: UserRole;
+  avatar: string | null;
+  isBanned: number;
+  bannedAt: string | null;
+  lastLoginAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -163,6 +167,10 @@ export interface Order {
   refundMethod: string | null;
   refundReason: string | null;
   notes: string | null;
+  deletedAt: string | null;
+  deletedBy: string | null;
+  deletedReason: string | null;
+  promoCode: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -271,7 +279,7 @@ export interface Promotion {
   ctaLink: string | null;
   type: string | null;
   isActive: number;
-  orderNum: number;
+  order: number;
   createdAt: string;
   updatedAt: string;
 }
