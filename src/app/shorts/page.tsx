@@ -208,7 +208,7 @@ export default function ShortsPage() {
         }
         return prev
       })
-    }, 30000) // 30 seconds per video
+    }, 30000) // 30 seconds in milliseconds
 
     return () => {
       setAutoAdvanceTimer(timer)

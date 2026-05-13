@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
       buttonText,
       buttonLink,
       isActive: isActive !== undefined ? isActive : true,
-      orderNum: bannerOrder
+      order: bannerOrder
     })
 
     return NextResponse.json({

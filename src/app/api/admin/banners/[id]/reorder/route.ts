@@ -31,7 +31,7 @@ export async function PUT(
       )
     }
 
-    const banner = await BannerRepository.update(env, id, { orderNum: order })
+    const banner = await BannerRepository.update(env, id, { order: order })
 
     if (!banner) {
       return NextResponse.json(

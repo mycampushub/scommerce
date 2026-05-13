@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken, extractTokenFromHeader } from '@/lib/auth'
 import { getEnv } from '@/lib/cloudflare'
 import { queryAll, queryFirst, execute, boolToNumber, numberToBool, now } from '@/db/db'
-
+import { sanitizeHTML } from '@/lib/sanitize'
 
 /**
  * PUT /api/addresses/[id] - Update a saved address
@@ -18,7 +18,6 @@ export async function PUT(
   try {
     const authHeader = request.headers.get('authorization')
     const token = extractTokenFromHeader(authHeader)
-
     if (!token) {
       return NextResponse.json(
         { success: false, error: 'Authentication required' },
@@ -50,7 +49,7 @@ export async function PUT(
     }
 
     const body = await request.json() as any
-
+    
     // If this is set as default, unset any existing default address
     if (body.isDefault && !numberToBool(existingAddress.isDefault as number)) {
       await execute(
@@ -64,42 +63,38 @@ export async function PUT(
     // Build update query dynamically
     const updates: string[] = []
     const values: unknown[] = []
-
+    
     if (body.fullName !== undefined) {
       updates.push('fullName = ?')
-      values.push(body.fullName)
+      values.push(sanitizeHTML(body.fullName))
     }
     if (body.phone !== undefined) {
       updates.push('phone = ?')
-      values.push(body.phone)
+      values.push(sanitizeHTML(body.phone))
     }
     if (body.addressLine1 !== undefined) {
       updates.push('addressLine1 = ?')
-      values.push(body.addressLine1)
+      values.push(sanitizeHTML(body.addressLine1))
     }
     if (body.addressLine2 !== undefined) {
       updates.push('addressLine2 = ?')
-      values.push(body.addressLine2)
+      values.push(sanitizeHTML(body.addressLine2))
     }
     if (body.city !== undefined) {
       updates.push('city = ?')
-      values.push(body.city)
+      values.push(sanitizeHTML(body.city))
     }
     if (body.district !== undefined) {
       updates.push('district = ?')
-      values.push(body.district)
+      values.push(sanitizeHTML(body.district))
     }
     if (body.division !== undefined) {
       updates.push('division = ?')
-      values.push(body.division)
+      values.push(sanitizeHTML(body.division))
     }
     if (body.postalCode !== undefined) {
       updates.push('postalCode = ?')
-      values.push(body.postalCode)
-    }
-    if (body.isDefault !== undefined) {
-      updates.push('isDefault = ?')
-      values.push(boolToNumber(body.isDefault))
+      values.push(sanitizeHTML(body.postalCode))
     }
 
     if (updates.length === 0) {
@@ -153,7 +148,6 @@ export async function DELETE(
   try {
     const authHeader = request.headers.get('authorization')
     const token = extractTokenFromHeader(authHeader)
-
     if (!token) {
       return NextResponse.json(
         { success: false, error: 'Authentication required' },
@@ -192,7 +186,6 @@ export async function DELETE(
         payload.userId,
         (await params).id
       )
-
       if (otherAddresses.length > 0) {
         await execute(
           env,

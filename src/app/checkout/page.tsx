@@ -30,7 +30,7 @@ interface OrderResponse {
 
 export default function CheckoutPage() {
   const router = useRouter()
-  const { items, getTotal, clearCart } = useCartStore()
+  const { items, getTotal, getSubtotal, clearCart } = useCartStore()
   const { user, loading } = useAuth()
   const [step, setStep] = useState(1)
   const [isProcessing, setIsProcessing] = useState(false)
@@ -58,6 +58,8 @@ export default function CheckoutPage() {
   const [taxRate, setTaxRate] = useState(0.18) // Default fallback
   const [freeShippingThreshold, setFreeShippingThreshold] = useState(5000) // Default fallback
 
+  const subtotal = getSubtotal()
+  const tax = subtotal * taxRate
   const total = getTotal()
 
 
@@ -647,7 +649,7 @@ export default function CheckoutPage() {
                 <div className="border-t border-gray-200 pt-4 space-y-3">
                   <div className="flex justify-between text-sm md:text-base">
                     <span className="text-gray-600">Subtotal</span>
-                    <PriceDisplay value={total} showDecimals={false} />
+                    <PriceDisplay value={subtotal} showDecimals={false} />
                   </div>
                   <div className="flex justify-between text-sm md:text-base">
                     <span className="text-gray-600">Shipping</span>
@@ -663,11 +665,11 @@ export default function CheckoutPage() {
                   </div>
                   <div className="flex justify-between text-sm md:text-base">
                     <span className="text-gray-600">Tax ({(taxRate * 100).toFixed(0)}%)</span>
-                    <span className="font-semibold"><PriceDisplay value={total * taxRate} showDecimals={false} /></span>
+                    <span className="font-semibold"><PriceDisplay value={tax} showDecimals={false} /></span>
                   </div>
                   <div className="border-t border-gray-200 pt-3 flex justify-between">
                     <span className="text-base md:text-lg font-bold text-gray-900">Total</span>
-                    <PriceDisplay value={total + (total * taxRate) + shippingCost} showDecimals={false} className="text-base md:text-lg font-bold text-pink-600" />
+                    <PriceDisplay value={subtotal + shippingCost + tax} showDecimals={false} className="text-base md:text-lg font-bold text-pink-600" />
                   </div>
                 </div>
 

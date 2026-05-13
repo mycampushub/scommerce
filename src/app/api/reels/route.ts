@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getEnv, isCloudflareEnv } from '@/lib/cloudflare';
-import { ReelRepositoryPrisma } from '@/db/reel-prisma.repository';
-import { ReelRepository } from '@/db/reel.repository';
+import { getEnv } from '@/lib/cloudflare';
+import { MediaRepository } from '@/db/media.repository';
 import { addCacheHeaders, CachePresets } from '@/lib/http-cache';
 
 
@@ -10,10 +9,8 @@ export async function GET(request: Request) {
   const env = getEnv();
 
   try {
-    // Use Prisma for local development, D1 for Cloudflare
-    const reels = isCloudflareEnv()
-      ? await ReelRepository.findAllActive(env)
-      : await ReelRepositoryPrisma.findAllActive(env);
+    // Use MediaRepository for reels
+    const reels = await MediaRepository.findAllActiveReels(env);
 
     const response = NextResponse.json({
       success: true,

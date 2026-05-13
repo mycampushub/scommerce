@@ -58,8 +58,8 @@ export default function RegisterPage() {
       setError('Invalid phone number. Format: 01XXXXXXXXX')
       return false
     }
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters')
+    if (formData.password.length < 8) {
+      setError('Password must be at least 8 characters')
       return false
     }
     if (formData.password !== formData.confirmPassword) {
@@ -247,7 +247,7 @@ export default function RegisterPage() {
                     </button>
                   </div>
                   <p className="text-xs text-gray-500">
-                    Password must be at least 6 characters
+                    Password must be at least 8 characters
                   </p>
                 </div>
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
 import { verifyAdminAuth } from '@/lib/admin-auth'
-import { StoryRepository } from '@/db/story.repository'
+import { MediaRepository } from '@/db/media.repository'
 
 
 export async function PUT(
@@ -31,7 +31,7 @@ export async function PUT(
       )
     }
 
-    const story = await StoryRepository.update(env, id, { orderNum: order })
+    const story = await MediaRepository.updateStory(env, id, { order: order })
 
     if (!story) {
       return NextResponse.json(

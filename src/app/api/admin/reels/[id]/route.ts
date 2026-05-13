@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getEnv, isCloudflareEnv } from '@/lib/cloudflare'
+import { getEnv } from '@/lib/cloudflare'
 import { verifyAdminAuth } from '@/lib/admin-auth'
-import { ReelRepositoryPrisma } from '@/db/reel-prisma.repository'
-import { ReelRepository } from '@/db/reel.repository'
+import { MediaRepository } from '@/db/media.repository'
 
 
 export async function GET(
@@ -12,9 +11,7 @@ export async function GET(
   try {
     const env = getEnv()
     const { id } = await params
-    const reel = isCloudflareEnv()
-      ? await ReelRepository.findById(env, id)
-      : await ReelRepositoryPrisma.findById(env, id)
+    const reel = await MediaRepository.findReelById(env, id)
 
     if (!reel) {
       return NextResponse.json(
@@ -57,7 +54,7 @@ export async function PUT(
     const env = getEnv()
     const { id } = await params
     const body = await request.json() as any
-    const { title, thumbnail, videoUrl, productIds, isActive, orderNum } = body
+    const { title, thumbnail, videoUrl, productIds, isActive, order } = body
 
     // Validate required fields if provided
     if (title !== undefined) {
@@ -120,23 +117,36 @@ export async function PUT(
       }
     }
 
-    const reel = isCloudflareEnv()
-      ? await ReelRepository.update(env, id, {
-          title,
-          thumbnail,
-          videoUrl,
-          productIds,
-          isActive,
-          orderNum
-        })
-      : await ReelRepositoryPrisma.update(env, id, {
-          ...(title !== undefined && { title }),
-          ...(thumbnail !== undefined && { thumbnail }),
-          ...(videoUrl !== undefined && { videoUrl }),
-          ...(productIds !== undefined && { productIds }),
-          ...(isActive !== undefined && { isActive }),
-          ...(orderNum !== undefined && { orderNum })
-        })
+    if (productIds !== undefined) {
+      if (!Array.isArray(productIds)) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Product IDs must be an array'
+          },
+          { status: 400 }
+        )
+      }
+    }
+
+    const reel = await MediaRepository.updateReel(env, id, {
+      ...(title !== undefined && { title }),
+      ...(thumbnail !== undefined && { thumbnail }),
+      ...(videoUrl !== undefined && { videoUrl }),
+      ...(productIds !== undefined && { productIds }),
+      ...(isActive !== undefined && { isActive }),
+      ...(order !== undefined && { order })
+    })
+
+    if (!reel) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Reel not found'
+        },
+        { status: 404 }
+      )
+    }
 
     return NextResponse.json({
       success: true,
@@ -168,11 +178,7 @@ export async function DELETE(
   try {
     const env = getEnv()
     const { id } = await params
-    if (isCloudflareEnv()) {
-      await ReelRepository.delete(env, id)
-    } else {
-      await ReelRepositoryPrisma.delete(env, id)
-    }
+    await MediaRepository.deleteReel(env, id)
 
     return NextResponse.json({
       success: true,

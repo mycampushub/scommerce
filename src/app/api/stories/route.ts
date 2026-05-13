@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getEnv, isCloudflareEnv } from '@/lib/cloudflare';
-import { StoryRepositoryPrisma } from '@/db/story-prisma.repository';
-import { StoryRepository } from '@/db/story.repository';
+import { getEnv } from '@/lib/cloudflare';
+import { MediaRepository } from '@/db/media.repository';
 import { addCacheHeaders, CachePresets } from '@/lib/http-cache';
 
 
@@ -10,10 +9,8 @@ export async function GET(request: Request) {
   const env = getEnv();
 
   try {
-    // Use Prisma for local development, D1 for Cloudflare
-    const stories = isCloudflareEnv()
-      ? await StoryRepository.findAllActive(env)
-      : await StoryRepositoryPrisma.findAllActive(env);
+    // Use MediaRepository for stories
+    const stories = await MediaRepository.findAllActiveStories(env);
 
     const response = NextResponse.json({
       success: true,

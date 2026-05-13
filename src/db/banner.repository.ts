@@ -32,7 +32,7 @@ export class BannerRepository {
     buttonText?: string;
     buttonLink?: string;
     isActive?: boolean;
-    orderNum?: number;
+    order?: number;
   }): Promise<Banner> {
     const id = generateId();
     const currentTime = now();
@@ -49,7 +49,7 @@ export class BannerRepository {
       data.buttonText || null,
       data.buttonLink || null,
       boolToNumber(data.isActive !== undefined ? data.isActive : true),
-      data.orderNum || 0,
+      data.order || 0,
       currentTime,
       currentTime
     );
@@ -92,9 +92,9 @@ export class BannerRepository {
       updates.push('isActive = ?');
       values.push(boolToNumber(data.isActive !== undefined ? true : data.isActive));
     }
-    if (data.orderNum !== undefined) {
+    if (data.order !== undefined) {
       updates.push('"order" = ?');
-      values.push(data.orderNum);
+      values.push(data.order);
     }
 
     if (updates.length === 0) return this.findById(env, id);

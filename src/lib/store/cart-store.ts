@@ -1,6 +1,10 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
+// Shipping configuration (should ideally come from settings API)
+const FREE_SHIPPING_THRESHOLD = 5000 // BDT currency
+const BASE_SHIPPING_COST = 150 // BDT currency
+
 export interface CartItem {
   id: string
   name: string
@@ -97,7 +101,7 @@ export const useCartStore = create<CartStore>()(
 
       getTotal: () => {
         const subtotal = get().getSubtotal()
-        const shipping = subtotal > 5000 ? 0 : 150 // BDT currency
+        const shipping = subtotal > FREE_SHIPPING_THRESHOLD ? 0 : BASE_SHIPPING_COST
         return subtotal + shipping
       },
 
@@ -119,10 +123,10 @@ export const useCartStore = create<CartStore>()(
           if (result.success) {
             return result.data.shippingCost
           }
-          return 150 // Fallback to default shipping
+          return BASE_SHIPPING_COST // Fallback to default shipping
         } catch (error) {
           console.error('Shipping calculation error:', error)
-          return 150 // Fallback to default shipping
+          return BASE_SHIPPING_COST // Fallback to default shipping
         }
       },
 

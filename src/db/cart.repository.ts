@@ -16,12 +16,13 @@ export class CartRepository {
   /**
    * Find specific cart item
    */
-  static async findItem(env: Env | null, userId: string, productId: string): Promise<CartItem | null> {
+  static async findItem(env: Env | null, userId: string, productId: string, variantId?: string): Promise<CartItem | null> {
     return queryFirst<CartItem>(
       env,
-      'SELECT * FROM cart_items WHERE userId = ? AND productId = ? LIMIT 1',
+      'SELECT * FROM cart_items WHERE userId = ? AND productId = ? AND (variantId = ? OR variantId IS NULL) LIMIT 1',
       userId,
-      productId
+      productId,
+      variantId || null
     );
   }
 
@@ -35,7 +36,7 @@ export class CartRepository {
     quantity?: number;
   }): Promise<CartItem> {
     // Check if item already exists
-    const existing = await this.findItem(env, data.userId, data.productId);
+    const existing = await this.findItem(env, data.userId, data.productId, data.variantId);
 
     if (existing) {
       // Update quantity

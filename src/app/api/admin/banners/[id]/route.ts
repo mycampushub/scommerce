@@ -116,7 +116,7 @@ export async function PUT(
       ...(body.buttonText !== undefined && { buttonText: body.buttonText }),
       ...(body.buttonLink !== undefined && { buttonLink: body.buttonLink }),
       ...(body.isActive !== undefined && { isActive: body.isActive }),
-      ...(body.order !== undefined && { orderNum: body.order }),
+      ...(body.order !== undefined && { order: body.order }),
     })
 
     if (!banner) {

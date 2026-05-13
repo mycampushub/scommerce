@@ -234,7 +234,7 @@ export interface Banner {
   buttonText: string | null;
   buttonLink: string | null;
   isActive: number;
-  orderNum: number;
+  order: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -243,9 +243,9 @@ export interface Story {
   id: string;
   title: string;
   thumbnail: string;
-  images: string;
+  images: string | string[];
   isActive: number;
-  orderNum: number;
+  order: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -257,7 +257,7 @@ export interface Reel {
   videoUrl: string;
   productIds: string | null;
   isActive: number;
-  orderNum: number;
+  order: number;
   createdAt: string;
   updatedAt: string;
 }

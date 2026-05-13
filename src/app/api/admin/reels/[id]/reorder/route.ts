@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
 import { verifyAdminAuth } from '@/lib/admin-auth'
-import { ReelRepository } from '@/db/reel.repository'
+import { MediaRepository } from '@/db/media.repository'
 
 
 export async function PUT(
@@ -31,9 +31,17 @@ export async function PUT(
       )
     }
 
-    const reel = await ReelRepository.update(env, id, {
-      orderNum: order
-    })
+    const reel = await MediaRepository.updateReel(env, id, { order: order })
+
+    if (!reel) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Reel not found'
+        },
+        { status: 404 }
+      )
+    }
 
     return NextResponse.json({
       success: true,
