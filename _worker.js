@@ -9,17 +9,6 @@ export default {
     const url = new URL(request.url);
     const pathname = url.pathname;
 
-    // Set Cloudflare context globally for API routes to access
-    const cloudflareContextSymbol = Symbol.for("__cloudflare-context__");
-    const originalGetter = Object.getOwnPropertyDescriptor(globalThis, cloudflareContextSymbol)?.get;
-
-    // Set the context before processing the request
-    Object.defineProperty(globalThis, cloudflareContextSymbol, {
-      get() {
-        return { env, ctx, cf: request.cf };
-      },
-    });
-
     // Serve static assets from public folder
     if (
       pathname === '/favicon.ico' ||
@@ -78,29 +67,9 @@ export default {
     // Import and delegate to OpenNext worker for Next.js requests
     try {
       const worker = await import('./.open-next/worker.js');
-      const response = await worker.default.fetch(request, env, ctx);
-
-      // Restore original getter if it existed
-      if (originalGetter) {
-        Object.defineProperty(globalThis, cloudflareContextSymbol, {
-          get: originalGetter,
-        });
-      } else {
-        delete globalThis[cloudflareContextSymbol];
-      }
-
-      return response;
+      return worker.default.fetch(request, env, ctx);
     } catch (error) {
       console.error('OpenNext worker error:', error);
-
-      // Restore original getter if it existed
-      if (originalGetter) {
-        Object.defineProperty(globalThis, cloudflareContextSymbol, {
-          get: originalGetter,
-        });
-      } else {
-        delete globalThis[cloudflareContextSymbol];
-      }
 
       // Fallback: return HTML response
       if (pathname.endsWith('.css') || pathname.endsWith('.js')) {
