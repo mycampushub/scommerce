@@ -44,7 +44,37 @@ export function getDatabase(env: Env | null): any | PrismaClient {
  */
 export function isCloudflareEnv(): boolean {
   try {
-    return typeof process !== 'undefined' && process.env.CLOUDFLARE_ENV === 'true';
+    // First check for explicit environment variable
+    if (typeof process !== 'undefined' && process.env.CLOUDFLARE_ENV === 'true') {
+      return true;
+    }
+
+    // Check if we're in a Cloudflare Workers/Pages environment by looking for global bindings
+    // This is more reliable than environment variables
+    if (typeof globalThis !== 'undefined') {
+      // Cloudflare Workers runtime has these characteristics
+      const hasCloudflareRuntime = (
+        // Check for Cloudflare-specific globals that exist in production
+        typeof (globalThis as any).caches !== 'undefined' ||
+        // Check if we're in a Workers environment by checking typeof fetch
+        typeof (globalThis as any).Request !== 'undefined'
+      );
+
+      // Also check if cloudflare context symbol is available in global scope
+      try {
+        const cloudflareContextSymbol = Symbol.for("__cloudflare-context__");
+        const hasContext = cloudflareContextSymbol in globalThis;
+        if (hasContext) {
+          return true;
+        }
+      } catch {
+        // Symbol check failed, continue with other checks
+      }
+
+      return hasCloudflareRuntime;
+    }
+
+    return false;
   } catch {
     return false;
   }

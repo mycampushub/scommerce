@@ -13,24 +13,16 @@ export async function POST(request: NextRequest) {
   let env: Env | null = null;
   try {
     env = getEnv() as Env | null;
-    // Note: env can be null in local development - repositories will fall back to Prisma
-    if (!env && process.env.NODE_ENV !== 'development') {
-      console.error('[login] Database not available in production - env:', env);
-      return NextResponse.json(
-        { success: false, error: 'Database connection error. Please try again later.' },
-        { status: 500 }
-      );
-    }
-    // In development with null env, we continue - repositories will use Prisma
+    // Note: env can be null in both local development and some production scenarios
+    // The repositories will fall back to Prisma when env is null
+    console.log('[login] Environment check:', {
+      hasEnv: !!env,
+      hasDB: !!env?.DB,
+      nodeEnv: process.env.NODE_ENV
+    });
   } catch (error) {
     console.error('[login] Error getting environment:', error);
-    // In development, continue with null env (will use Prisma)
-    if (process.env.NODE_ENV !== 'development') {
-      return NextResponse.json(
-        { success: false, error: 'Configuration error. Please contact support.' },
-        { status: 500 }
-      );
-    }
+    // Continue with null env - repositories will use Prisma fallback
   }
 
   const clientIp = getClientIp(request);

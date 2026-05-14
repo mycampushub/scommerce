@@ -9,12 +9,26 @@ export { isCloudflareEnv };
  */
 function safelyGetCloudflareContext() {
   try {
-    return getCloudflareContext();
+    const context = getCloudflareContext();
+    // Validate that the context has the expected structure
+    if (!context || typeof context !== 'object') {
+      console.warn('[cloudflare.ts] Invalid Cloudflare context structure');
+      return null;
+    }
+    if (!context.env || typeof context.env !== 'object') {
+      console.warn('[cloudflare.ts] Cloudflare context missing env object');
+      return null;
+    }
+    return context;
   } catch (error: any) {
     // If called during static build or in sync mode, return null
     const errorMsg = error?.message || '';
-    if (errorMsg.includes('sync mode') || errorMsg.includes('static route') || errorMsg.includes('top level')) {
-      // Silently return null during build
+    if (errorMsg.includes('sync mode') ||
+        errorMsg.includes('static route') ||
+        errorMsg.includes('top level') ||
+        errorMsg.includes('initOpenNextCloudflareForDev')) {
+      // Silently return null during build or when context isn't initialized
+      console.debug('[cloudflare.ts] Context not available:', errorMsg.substring(0, 100));
       return null;
     }
     // Log other errors but still return null
@@ -50,13 +64,7 @@ export function getDB(_request?: Request): any | null {
  * Falls back to a mock env with Prisma for local development
  */
 export function getEnv(_request?: Request): any | null {
-  // First check if we're in local development mode
-  if (!isCloudflareEnv()) {
-    console.warn('[cloudflare.ts] Local development mode - returning null for Prisma direct usage');
-    return null;
-  }
-
-  // Then try Cloudflare bindings
+  // First try Cloudflare bindings regardless of environment detection
   const context = safelyGetCloudflareContext();
   if (context?.env && (context.env['DB'] || context.env['KV'] || context.env['BUCKET'])) {
     console.log('[cloudflare.ts] Using Cloudflare bindings', {
@@ -65,6 +73,12 @@ export function getEnv(_request?: Request): any | null {
       hasBUCKET: !!context.env['BUCKET'],
     });
     return context.env;
+  }
+
+  // Then check if we're in local development mode
+  if (!isCloudflareEnv()) {
+    console.warn('[cloudflare.ts] Local development mode - returning null for Prisma direct usage');
+    return null;
   }
 
   console.error('[cloudflare.ts] Env not found and no fallback available');
