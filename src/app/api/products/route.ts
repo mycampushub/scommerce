@@ -131,8 +131,27 @@ export async function GET(request: Request) {
 
     // Batch fetch rating data for all products to avoid N+1 queries
     const productIds = products.map((p: any) => p.id);
-    let ratingsMap = new Map<string, { avgRating: number, totalReviews: number }>();
+    const categoryIds = [...new Set(products.map((p: any) => p.categoryId))];
 
+    let ratingsMap = new Map<string, { avgRating: number, totalReviews: number }>();
+    let categoriesMap = new Map<string, { name: string, slug: string, image?: string }>();
+
+    // Batch fetch categories
+    if (categoryIds.length > 0) {
+      const placeholders = categoryIds.map(() => '?').join(',');
+      const categoriesData = await queryAll<{ id: string, name: string, slug: string, image?: string }>(
+        env,
+        `SELECT id, name, slug, image FROM categories WHERE id IN (${placeholders}) AND isActive = 1`,
+        ...categoryIds
+      );
+      categoriesData.forEach(c => categoriesMap.set(c.id, {
+        name: c.name,
+        slug: c.slug,
+        image: c.image
+      }));
+    }
+
+    // Batch fetch ratings
     if (productIds.length > 0) {
       const placeholders = productIds.map(() => '?').join(',');
       const ratings = await queryAll<{ productId: string, avgRating: number, totalReviews: number }>(
@@ -152,6 +171,7 @@ export async function GET(request: Request) {
     // Transform products to match expected frontend format
     const transformedProducts = products.map((product: any) => {
       const images = parseJSON<string[]>(product.images) || [];
+      const productCategory = categoriesMap.get(product.categoryId);
       let attributes: any = {};
 
       // If product has variants, include that information
@@ -177,13 +197,13 @@ export async function GET(request: Request) {
         description: product.description,
         price: product.basePrice,
         originalPrice: product.comparePrice || undefined,
-        image: images[0] || category?.image || '',
+        image: images[0] || productCategory?.image || '',
         images: images,
         rating: ratingData.avgRating,
         reviews: ratingData.totalReviews,
         badge,
-        category: category?.name,
-        categorySlug: category?.slug,
+        category: productCategory?.name,
+        categorySlug: productCategory?.slug,
         categoryId: product.categoryId,
         stock: product.stock,
         hasVariants: numberToBool(product.hasVariants),

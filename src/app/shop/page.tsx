@@ -17,7 +17,7 @@ import { PriceDisplay } from '@/components/price-display'
 
 // Use Product type from QuickViewModal component
 
-const categories = ['All', 'Sarees', 'Salwar Suits', 'Lehengas', 'Gowns', 'Kurtas', 'Menswear', 'Dresses']
+const categories = ['All', 'Sarees', 'Salwar Suits', 'Lehengas', 'Gowns', 'Kurtas', 'Menswear', 'Dresses', 'Traditional Wear']
 const sortOptions = [
   { label: 'Featured', value: 'featured' },
   { label: 'Price: Low to High', value: 'price-asc' },
