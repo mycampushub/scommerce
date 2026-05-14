@@ -11,6 +11,14 @@ import { errorResponse } from '@/lib/api-response';
 export async function GET(request: Request) {
   // Get D1 database from request context (Cloudflare Pages/Workers)
   const env = getEnv();
+  
+  console.log('[products API] Environment check:', {
+    hasEnv: !!env,
+    hasDB: !!env?.DB,
+    hasKV: !!env?.KV,
+    hasBUCKET: !!env?.BUCKET,
+    url: request.url
+  });
 
   try {
     const { searchParams } = new URL(request.url);

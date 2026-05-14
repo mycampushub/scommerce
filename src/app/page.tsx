@@ -1701,10 +1701,10 @@ export default function Home() {
         ])
 
         // Set products and categories
-        setFeaturedProducts(featuredData.products || featuredData.data || [])
-        setSaleProducts(saleData.products || saleData.data || [])
-        setNewProducts(newData.products || newData.data || [])
-        setTrendingProducts(trendingData.products || trendingData.data || [])
+        setFeaturedProducts(featuredData.data?.products || featuredData.products || [])
+        setSaleProducts(saleData.data?.products || saleData.products || [])
+        setNewProducts(newData.data?.products || newData.products || [])
+        setTrendingProducts(trendingData.data?.products || trendingData.products || [])
 
         // Transform categories to include href
         const categoriesWithHref = (categoriesData.data || categoriesData || []).map((cat: any) => ({

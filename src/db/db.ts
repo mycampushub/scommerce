@@ -15,13 +15,27 @@ export async function queryFirst<T = Record<string, unknown>>(
 ): Promise<T | null> {
   const db = getDatabase(env);
   if (!db) {
-    console.error('[db.ts] Database not available');
+    console.error('[db.ts] Database not available - cannot execute query:', sql);
     return null;
   }
-  const stmt = db.prepare(sql);
-  const result = await stmt.bind(...params).first() as T | null;
+  
+  try {
+    const stmt = db.prepare(sql);
+    const result = await stmt.bind(...params).first() as T | null;
 
-  return result;
+    console.log('[db.ts] queryFirst result:', {
+      hasResult: !!result,
+      sql: sql.substring(0, 100)
+    });
+
+    return result;
+  } catch (error) {
+    console.error('[db.ts] queryFirst execution error:', {
+      sql: sql.substring(0, 100),
+      error: String(error)
+    });
+    return null;
+  }
 }
 
 /**
@@ -34,13 +48,28 @@ export async function queryAll<T = Record<string, unknown>>(
 ): Promise<T[]> {
   const db = getDatabase(env);
   if (!db) {
-    console.error('[db.ts] Database not available');
+    console.error('[db.ts] Database not available - cannot execute query:', sql);
     return [];
   }
-  const stmt = db.prepare(sql);
-  const result = await stmt.bind(...params).all() as { results: T[] };
+  
+  try {
+    const stmt = db.prepare(sql);
+    const result = await stmt.bind(...params).all() as { results: T[] };
 
-  return result?.results || [];
+    console.log('[db.ts] Query executed successfully:', {
+      sql: sql.substring(0, 100),
+      paramsCount: params.length,
+      resultCount: result?.results?.length || 0
+    });
+
+    return result?.results || [];
+  } catch (error) {
+    console.error('[db.ts] Query execution error:', {
+      sql: sql.substring(0, 100),
+      error: String(error)
+    });
+    return [];
+  }
 }
 
 /**

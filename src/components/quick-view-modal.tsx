@@ -211,10 +211,10 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0 rounded-lg">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0 rounded-lg" aria-describedby="quick-view-description">
         <DialogHeader className="sr-only">
           <DialogTitle>Quick View - {product.name}</DialogTitle>
-          <DialogDescription className="sr-only">
+          <DialogDescription id="quick-view-description" className="sr-only">
             Quick view dialog for {product.name}
           </DialogDescription>
         </DialogHeader>

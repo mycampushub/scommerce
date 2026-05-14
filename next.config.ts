@@ -1,5 +1,4 @@
 import type { NextConfig } from "next";
-import withPWAInit from "@ducanh2912/next-pwa";
 import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 
 // Initialize Cloudflare for development mode
@@ -66,9 +65,6 @@ const nextConfig: NextConfig = {
   },
 };
 
-const withPWA = withPWAInit({
-  dest: "public",
-  disable: false,
-});
-
-export default withPWA(nextConfig);
+// Note: PWA disabled due to transpilation issues with service worker
+// Using custom service worker at public/sw-custom.js instead
+export default nextConfig;

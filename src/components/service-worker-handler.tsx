@@ -5,22 +5,24 @@ import { useEffect } from 'react'
 /**
  * Service Worker Handler Component
  *
- * This component works with next-pwa's automatic service worker registration.
- * It handles service worker updates and shows update prompts when available.
+ * This component manually registers and manages a custom service worker
+ * that works with Cloudflare Workers deployment.
  *
- * next-pwa automatically registers the service worker, so we don't need to
- * manually register it here. We only handle updates.
+ * The custom service worker avoids TypeScript transpilation issues
+ * that occur with the next-pwa plugin.
  */
 export function ServiceWorkerHandler() {
   useEffect(() => {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-      let updateAvailable = false
+      const swUrl = '/sw-custom.js'
 
-      // Get the existing service worker registration (created by next-pwa)
-      navigator.serviceWorker.getRegistration().then((registration) => {
-        if (!registration) return
-
+      // Register the custom service worker
+      navigator.serviceWorker.register(swUrl, {
+        scope: '/'
+      }).then((registration) => {
         console.log('Service Worker registered with scope:', registration.scope)
+
+        let updateAvailable = false
 
         // Listen for new service worker waiting to be activated
         if (registration.waiting) {
@@ -55,17 +57,14 @@ export function ServiceWorkerHandler() {
         registration.addEventListener('controllerchange', () => {
           console.log('Service worker controller changed')
           if (updateAvailable) {
-            // Page will reload automatically due to skipWaiting: true
             console.log('Reloading page with new version')
-            // Optionally reload if skipWaiting is not set
-            // window.location.reload()
+            window.location.reload()
           } else {
-            // First-time install or background update
             console.log('Service worker activated')
           }
         })
       }).catch((error) => {
-        console.error('Error getting service worker registration:', error)
+        console.error('Service Worker registration failed:', error)
       })
     }
   }, [])
@@ -90,7 +89,7 @@ function showUpdatePrompt() {
       <div class="flex items-center gap-2">
         <div class="animate-spin">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 12a9 9 0 0 1-9-9 9.42 9.42 0 0 1-9.42 9.42-0 0 1-9.42 9.42 0 0 1 9.42 9.42 0 0 1-9.42 9.42 0 0 1-9.42 9.42 0 0 1-9.42 9.42 0 0 1-9.42 9.42 0 0 1-9.42 9.42 0 0 1-9.42 9.42 0 0 1-9.42 9.42 0 0 1-9.42 9.42 0 0 1-9.42 9.42 0 0 1-9.42 9.42 0 0 1-9. SW is ready. Click to update" class="text-sm font-medium">
+            <path d="M21 12a9 9 0 0 1-9-9 9.42 9.42 0 0 1-9.42 9.42-0 0 1-9.42 9.42 0 0 1-9.42 9.42 0 0 1-9.42 9.42 0 0 1-9.42 9.42 0 0 1-9.42 9.42 0 0 1-9.42 9.42 0 0 1-9.42 9.42 0 0 1-9.42 9.42 0 0 1-9. SW is ready. Click to update" class="text-sm font-medium">
         </div>
       </div>
       <button
