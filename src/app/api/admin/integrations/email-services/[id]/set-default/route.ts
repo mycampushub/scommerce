@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { IntegrationRepository } from '@/db/integration';
 import { verifyAdminAuth } from '@/lib/admin-auth';
+import { successResponse, errorResponse } from '@/lib/api-response';
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   // Verify admin authentication
@@ -12,9 +13,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   try {
     const { id } = await params;
     await IntegrationRepository.setDefaultEmailService(id);
-    return NextResponse.json({ success: true, message: 'Email service set as default' });
+    return successResponse(null, 'Email service set as default');
   } catch (error) {
     console.error('Error setting default email service:', error);
-    return NextResponse.json({ success: false, error: 'Failed to set default email service' }, { status: 500 });
+    return errorResponse('Failed to set default email service');
   }
 }

@@ -5,6 +5,7 @@ import { CategoryRepository } from '@/db/category.repository'
 import { updateCategorySchema } from '@/lib/validations'
 import { queryAll, count, numberToBool, boolToNumber } from '@/db/db'
 import { ProductRepository } from '@/db/product.repository'
+import { logAdminAction } from '@/lib/audit-logger'
 
 
 export async function GET(
@@ -64,6 +65,8 @@ export async function PUT(
     return userOrResponse
   }
 
+  const admin = userOrResponse as { id: string; email: string; role: string; name?: string }
+
 
   try {
     const env = getEnv()
@@ -79,6 +82,18 @@ export async function PUT(
     }
 
     const validatedData = validation.data
+
+    // Get existing category for audit log
+    const existing = await CategoryRepository.findById(env, (await params).id)
+    if (!existing) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Category not found',
+        },
+        { status: 404 }
+      )
+    }
 
     const category = await CategoryRepository.update(env, (await params).id, {
       ...(validatedData.name !== undefined && { name: validatedData.name }),
@@ -97,6 +112,20 @@ export async function PUT(
         { status: 404 }
       )
     }
+
+    // Log audit event
+    const changes: string[] = []
+    if (validatedData.name && validatedData.name !== existing.name) {
+      changes.push(`name: "${existing.name}" → "${validatedData.name}"`)
+    }
+    if (typeof validatedData.isActive !== 'undefined' && validatedData.isActive !== numberToBool(existing.isActive as number)) {
+      changes.push(`isActive: ${numberToBool(existing.isActive as number)} → ${validatedData.isActive}`)
+    }
+    const details = changes.length > 0
+      ? `Updated category "${existing.name}" (ID: ${(await params).id}): ${changes.join(', ')}`
+      : `Updated category "${existing.name}" (ID: ${(await params).id})`
+
+    await logAdminAction(env, request, admin.id, 'UPDATE', 'Category', (await params).id, details)
 
     return NextResponse.json({
       success: true,
@@ -123,6 +152,8 @@ export async function DELETE(
   if (userOrResponse instanceof NextResponse) {
     return userOrResponse
   }
+
+  const admin = userOrResponse as { id: string; email: string; role: string; name?: string }
 
 
   try {
@@ -154,6 +185,17 @@ export async function DELETE(
     }
 
     await CategoryRepository.delete(env, id)
+
+    // Log audit event
+    await logAdminAction(
+      env,
+      request,
+      admin.id,
+      'DELETE',
+      'Category',
+      id,
+      `Deleted category "${category.name}" (ID: ${id})`
+    )
 
     return NextResponse.json({
       success: true,

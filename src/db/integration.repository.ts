@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import prisma from '@/lib/database';
+import { generateId } from '@/db/db';
 
 // Integration Types
 export type IntegrationType = 'payment' | 'shipping' | 'analytics' | 'email';
@@ -12,13 +13,15 @@ export interface PaymentGateway {
   apiKey: string | null;
   apiSecret: string | null;
   webhookUrl: string | null;
+  webhookSecret: string | null;
+  sandboxMode: number;
+  supportedCurrencies: string | null;
   isActive: boolean;
   isDefault: boolean;
   settings: string | null;
   lastTested: Date | null;
   testStatus: string | null;
   createdAt: Date;
-  updatedAt: Date;
 }
 
 // Shipping Carrier
@@ -30,13 +33,14 @@ export interface ShippingCarrier {
   apiSecret: string | null;
   accountNumber: string | null;
   webhookUrl: string | null;
+  sandboxMode: number;
+  shippingMethods: string | null;
   isActive: boolean;
   isDefault: boolean;
   settings: string | null;
   lastTested: Date | null;
   testStatus: string | null;
   createdAt: Date;
-  updatedAt: Date;
 }
 
 // Analytics Integration
@@ -63,13 +67,13 @@ export interface EmailService {
   fromEmail: string | null;
   fromName: string | null;
   webhookUrl: string | null;
+  sandboxMode: number;
   isActive: boolean;
   isDefault: boolean;
   settings: string | null;
   lastTested: Date | null;
   testStatus: string | null;
   createdAt: Date;
-  updatedAt: Date;
 }
 
 /**
@@ -83,7 +87,7 @@ export class IntegrationRepository {
    * Get all payment gateways
    */
   static async getPaymentGateways(): Promise<PaymentGateway[]> {
-    const gateways = await prisma.paymentGateway.findMany({
+    const gateways = await prisma.payment_gateways.findMany({
       orderBy: { createdAt: 'desc' }
     });
 
@@ -94,13 +98,15 @@ export class IntegrationRepository {
       apiKey: gateway.apiKey,
       apiSecret: gateway.apiSecret,
       webhookUrl: gateway.webhookUrl,
+      webhookSecret: gateway.webhookSecret,
+      sandboxMode: gateway.sandboxMode,
+      supportedCurrencies: gateway.supportedCurrencies,
       isActive: Boolean(gateway.isActive),
       isDefault: Boolean(gateway.isDefault),
       settings: gateway.settings,
       lastTested: gateway.lastTested,
       testStatus: gateway.testStatus,
-      createdAt: gateway.createdAt,
-      updatedAt: gateway.updatedAt
+      createdAt: gateway.createdAt
     }));
   }
 
@@ -108,7 +114,7 @@ export class IntegrationRepository {
    * Get payment gateway by ID
    */
   static async getPaymentGatewayById(id: string): Promise<PaymentGateway | null> {
-    const gateway = await prisma.paymentGateway.findUnique({
+    const gateway = await prisma.payment_gateways.findUnique({
       where: { id }
     });
 
@@ -125,7 +131,7 @@ export class IntegrationRepository {
    * Get default payment gateway
    */
   static async getDefaultPaymentGateway(): Promise<PaymentGateway | null> {
-    const gateway = await prisma.paymentGateway.findFirst({
+    const gateway = await prisma.payment_gateways.findFirst({
       where: { isDefault: true }
     });
 
@@ -141,17 +147,22 @@ export class IntegrationRepository {
   /**
    * Create payment gateway
    */
-  static async createPaymentGateway(data: Omit<PaymentGateway, 'id' | 'createdAt' | 'updatedAt' | 'lastTested' | 'testStatus'>): Promise<PaymentGateway> {
-    const gateway = await prisma.paymentGateway.create({
+  static async createPaymentGateway(data: Omit<PaymentGateway, 'id' | 'createdAt' | 'lastTested' | 'testStatus'>): Promise<PaymentGateway> {
+    const gateway = await prisma.payment_gateways.create({
       data: {
+        id: generateId(),
         name: data.name,
         provider: data.provider,
         apiKey: data.apiKey,
         apiSecret: data.apiSecret,
         webhookUrl: data.webhookUrl,
+        webhookSecret: data.webhookSecret || null,
+        sandboxMode: data.sandboxMode || 0,
+        supportedCurrencies: data.supportedCurrencies || null,
         isActive: data.isActive,
         isDefault: data.isDefault,
-        settings: data.settings
+        settings: data.settings,
+        updatedAt: new Date()
       }
     });
 
@@ -165,8 +176,8 @@ export class IntegrationRepository {
   /**
    * Update payment gateway
    */
-  static async updatePaymentGateway(id: string, data: Partial<Omit<PaymentGateway, 'id' | 'createdAt' | 'updatedAt'>>): Promise<PaymentGateway | null> {
-    const gateway = await prisma.paymentGateway.update({
+  static async updatePaymentGateway(id: string, data: Partial<Omit<PaymentGateway, 'id' | 'createdAt'>>): Promise<PaymentGateway | null> {
+    const gateway = await prisma.payment_gateways.update({
       where: { id },
       data: {
         ...(data.name !== undefined && { name: data.name }),
@@ -193,7 +204,7 @@ export class IntegrationRepository {
    * Delete payment gateway
    */
   static async deletePaymentGateway(id: string): Promise<void> {
-    await prisma.paymentGateway.delete({
+    await prisma.payment_gateways.delete({
       where: { id }
     });
   }
@@ -204,11 +215,11 @@ export class IntegrationRepository {
   static async setDefaultPaymentGateway(id: string): Promise<void> {
     await prisma.$transaction([
       // Reset all gateways
-      prisma.paymentGateway.updateMany({
+      prisma.payment_gateways.updateMany({
         data: { isDefault: false }
       }),
       // Set new default
-      prisma.paymentGateway.update({
+      prisma.payment_gateways.update({
         where: { id },
         data: { isDefault: true }
       })
@@ -221,7 +232,7 @@ export class IntegrationRepository {
    * Get all shipping carriers
    */
   static async getShippingCarriers(): Promise<ShippingCarrier[]> {
-    const carriers = await prisma.shippingCarrier.findMany({
+    const carriers = await prisma.shipping_carriers.findMany({
       orderBy: { createdAt: 'desc' }
     });
 
@@ -236,7 +247,7 @@ export class IntegrationRepository {
    * Get shipping carrier by ID
    */
   static async getShippingCarrierById(id: string): Promise<ShippingCarrier | null> {
-    const carrier = await prisma.shippingCarrier.findUnique({
+    const carrier = await prisma.shipping_carriers.findUnique({
       where: { id }
     });
 
@@ -253,7 +264,7 @@ export class IntegrationRepository {
    * Get default shipping carrier
    */
   static async getDefaultShippingCarrier(): Promise<ShippingCarrier | null> {
-    const carrier = await prisma.shippingCarrier.findFirst({
+    const carrier = await prisma.shipping_carriers.findFirst({
       where: { isDefault: true }
     });
 
@@ -269,18 +280,22 @@ export class IntegrationRepository {
   /**
    * Create shipping carrier
    */
-  static async createShippingCarrier(data: Omit<ShippingCarrier, 'id' | 'createdAt' | 'updatedAt' | 'lastTested' | 'testStatus'>): Promise<ShippingCarrier> {
-    const carrier = await prisma.shippingCarrier.create({
+  static async createShippingCarrier(data: Omit<ShippingCarrier, 'id' | 'createdAt' | 'lastTested' | 'testStatus'>): Promise<ShippingCarrier> {
+    const carrier = await prisma.shipping_carriers.create({
       data: {
+        id: generateId(),
         name: data.name,
         provider: data.provider,
         apiKey: data.apiKey,
         apiSecret: data.apiSecret,
         accountNumber: data.accountNumber,
         webhookUrl: data.webhookUrl,
+        sandboxMode: data.sandboxMode || 0,
+        shippingMethods: data.shippingMethods || null,
         isActive: data.isActive,
         isDefault: data.isDefault,
-        settings: data.settings
+        settings: data.settings,
+        updatedAt: new Date()
       }
     });
 
@@ -294,8 +309,8 @@ export class IntegrationRepository {
   /**
    * Update shipping carrier
    */
-  static async updateShippingCarrier(id: string, data: Partial<Omit<ShippingCarrier, 'id' | 'createdAt' | 'updatedAt'>>): Promise<ShippingCarrier | null> {
-    const carrier = await prisma.shippingCarrier.update({
+  static async updateShippingCarrier(id: string, data: Partial<Omit<ShippingCarrier, 'id' | 'createdAt'>>): Promise<ShippingCarrier | null> {
+    const carrier = await prisma.shipping_carriers.update({
       where: { id },
       data: {
         ...(data.name !== undefined && { name: data.name }),
@@ -323,7 +338,7 @@ export class IntegrationRepository {
    * Delete shipping carrier
    */
   static async deleteShippingCarrier(id: string): Promise<void> {
-    await prisma.shippingCarrier.delete({
+    await prisma.shipping_carriers.delete({
       where: { id }
     });
   }
@@ -334,11 +349,11 @@ export class IntegrationRepository {
   static async setDefaultShippingCarrier(id: string): Promise<void> {
     await prisma.$transaction([
       // Reset all carriers
-      prisma.shippingCarrier.updateMany({
+      prisma.shipping_carriers.updateMany({
         data: { isDefault: false }
       }),
       // Set new default
-      prisma.shippingCarrier.update({
+      prisma.shipping_carriers.update({
         where: { id },
         data: { isDefault: true }
       })
@@ -351,7 +366,7 @@ export class IntegrationRepository {
    * Get all analytics integrations
    */
   static async getAnalyticsIntegrations(): Promise<AnalyticsIntegration[]> {
-    const integrations = await prisma.analyticsIntegration.findMany({
+    const integrations = await prisma.analytics_integrations.findMany({
       orderBy: { createdAt: 'desc' }
     });
 
@@ -365,7 +380,7 @@ export class IntegrationRepository {
    * Get analytics integration by ID
    */
   static async getAnalyticsIntegrationById(id: string): Promise<AnalyticsIntegration | null> {
-    const integration = await prisma.analyticsIntegration.findUnique({
+    const integration = await prisma.analytics_integrations.findUnique({
       where: { id }
     });
 
@@ -381,15 +396,17 @@ export class IntegrationRepository {
    * Create analytics integration
    */
   static async createAnalyticsIntegration(data: Omit<AnalyticsIntegration, 'id' | 'createdAt' | 'updatedAt' | 'lastTested' | 'testStatus'>): Promise<AnalyticsIntegration> {
-    const integration = await prisma.analyticsIntegration.create({
+    const integration = await prisma.analytics_integrations.create({
       data: {
+        id: generateId(),
         name: data.name,
         provider: data.provider,
         trackingId: data.trackingId,
         apiKey: data.apiKey,
         pixelId: data.pixelId,
         isActive: data.isActive,
-        settings: data.settings
+        settings: data.settings,
+        updatedAt: new Date()
       }
     });
 
@@ -403,7 +420,7 @@ export class IntegrationRepository {
    * Update analytics integration
    */
   static async updateAnalyticsIntegration(id: string, data: Partial<Omit<AnalyticsIntegration, 'id' | 'createdAt' | 'updatedAt'>>): Promise<AnalyticsIntegration | null> {
-    const integration = await prisma.analyticsIntegration.update({
+    const integration = await prisma.analytics_integrations.update({
       where: { id },
       data: {
         ...(data.name !== undefined && { name: data.name }),
@@ -426,7 +443,7 @@ export class IntegrationRepository {
    * Delete analytics integration
    */
   static async deleteAnalyticsIntegration(id: string): Promise<void> {
-    await prisma.analyticsIntegration.delete({
+    await prisma.analytics_integrations.delete({
       where: { id }
     });
   }
@@ -437,7 +454,7 @@ export class IntegrationRepository {
    * Get all email services
    */
   static async getEmailServices(): Promise<EmailService[]> {
-    const services = await prisma.emailService.findMany({
+    const services = await prisma.email_services.findMany({
       orderBy: { createdAt: 'desc' }
     });
 
@@ -452,7 +469,7 @@ export class IntegrationRepository {
    * Get email service by ID
    */
   static async getEmailServiceById(id: string): Promise<EmailService | null> {
-    const service = await prisma.emailService.findUnique({
+    const service = await prisma.email_services.findUnique({
       where: { id }
     });
 
@@ -469,7 +486,7 @@ export class IntegrationRepository {
    * Get default email service
    */
   static async getDefaultEmailService(): Promise<EmailService | null> {
-    const service = await prisma.emailService.findFirst({
+    const service = await prisma.email_services.findFirst({
       where: { isDefault: true }
     });
 
@@ -485,9 +502,10 @@ export class IntegrationRepository {
   /**
    * Create email service
    */
-  static async createEmailService(data: Omit<EmailService, 'id' | 'createdAt' | 'updatedAt' | 'lastTested' | 'testStatus'>): Promise<EmailService> {
-    const service = await prisma.emailService.create({
+  static async createEmailService(data: Omit<EmailService, 'id' | 'createdAt' | 'lastTested' | 'testStatus'>): Promise<EmailService> {
+    const service = await prisma.email_services.create({
       data: {
+        id: generateId(),
         name: data.name,
         provider: data.provider,
         apiKey: data.apiKey,
@@ -495,9 +513,11 @@ export class IntegrationRepository {
         fromEmail: data.fromEmail,
         fromName: data.fromName,
         webhookUrl: data.webhookUrl,
+        sandboxMode: data.sandboxMode || 0,
         isActive: data.isActive,
         isDefault: data.isDefault,
-        settings: data.settings
+        settings: data.settings,
+        updatedAt: new Date()
       }
     });
 
@@ -511,8 +531,8 @@ export class IntegrationRepository {
   /**
    * Update email service
    */
-  static async updateEmailService(id: string, data: Partial<Omit<EmailService, 'id' | 'createdAt' | 'updatedAt'>>): Promise<EmailService | null> {
-    const service = await prisma.emailService.update({
+  static async updateEmailService(id: string, data: Partial<Omit<EmailService, 'id' | 'createdAt'>>): Promise<EmailService | null> {
+    const service = await prisma.email_services.update({
       where: { id },
       data: {
         ...(data.name !== undefined && { name: data.name }),
@@ -541,7 +561,7 @@ export class IntegrationRepository {
    * Delete email service
    */
   static async deleteEmailService(id: string): Promise<void> {
-    await prisma.emailService.delete({
+    await prisma.email_services.delete({
       where: { id }
     });
   }
@@ -552,11 +572,11 @@ export class IntegrationRepository {
   static async setDefaultEmailService(id: string): Promise<void> {
     await prisma.$transaction([
       // Reset all services
-      prisma.emailService.updateMany({
+      prisma.email_services.updateMany({
         data: { isDefault: false }
       }),
       // Set new default
-      prisma.emailService.update({
+      prisma.email_services.update({
         where: { id },
         data: { isDefault: true }
       })

@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
         // Use Prisma if env is null or env.DB doesn't exist (local dev)
         let orderCount = 0
         if (!env || !env.DB) {
-          orderCount = await prisma.order.count({
+          orderCount = await prisma.orders.count({
             where: { userId: customer.id }
           })
         } else {

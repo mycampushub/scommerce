@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
+import { successResponse, errorResponse, validationErrorResponse } from '@/lib/api-response'
 import { getEnv } from '@/lib/cloudflare'
 import { execute } from '@/db/db'
 
@@ -19,19 +20,13 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields
     if (!body.name || !body.email || !body.subject || !body.message) {
-      return NextResponse.json(
-        { success: false, error: 'All required fields must be filled' },
-        { status: 400 }
-      )
+      return validationErrorResponse('All required fields must be filled')
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(body.email)) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid email format' },
-        { status: 400 }
-      )
+      return validationErrorResponse('Invalid email format')
     }
 
     // Store contact submission in database
@@ -56,15 +51,12 @@ export async function POST(request: NextRequest) {
     // 2. Send auto-reply to customer
     // For now, we'll just store the submission
 
-    return NextResponse.json({
-      success: true,
-      message: 'Your message has been sent successfully! We will get back to you within 24 hours.'
-    })
+    return successResponse(
+      { message: 'Your message has been sent successfully! We will get back to you within 24 hours.' },
+      'Contact form submitted successfully'
+    )
   } catch (error) {
     console.error('Error submitting contact form:', error)
-    return NextResponse.json(
-      { success: false, error: 'Failed to submit contact form' },
-      { status: 500 }
-    )
+    return errorResponse('Failed to submit contact form', 500)
   }
 }

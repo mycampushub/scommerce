@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { successResponse, errorResponse } from '@/lib/api-response';
 import { getEnv } from '@/lib/cloudflare';
 import { CategoryRepository } from '@/db/category.repository';
 import { addCacheHeaders, CachePresets } from '@/lib/http-cache';
@@ -21,15 +21,12 @@ export async function GET(request: Request) {
       image: category.image || '',
     }));
 
-    const response = NextResponse.json(transformedCategories);
+    const response = successResponse(transformedCategories);
 
     // Add caching headers for categories (semi-static - 10 minutes)
     return addCacheHeaders(response, CachePresets.SEMI_STATIC);
   } catch (error) {
     console.error('Error fetching categories:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch categories' },
-      { status: 500 }
-    );
+    return errorResponse('Failed to fetch categories', 500);
   }
 }

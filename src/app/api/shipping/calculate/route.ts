@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
+import { successResponse, errorResponse, validationErrorResponse } from '@/lib/api-response'
 
 
 // Bangladesh division-based shipping rates
@@ -24,10 +25,7 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields
     if (typeof subtotal !== 'number' || subtotal < 0) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid subtotal value' },
-        { status: 400 }
-      )
+      return validationErrorResponse('Invalid subtotal value')
     }
 
     // Get shipping rate for division
@@ -44,36 +42,27 @@ export async function POST(request: NextRequest) {
       shippingCost = rate.base + (rate.perKg * weight)
     }
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        shippingCost,
-        baseRate: rate.base,
-        perKgRate: rate.perKg,
-        freeThreshold: rate.freeThreshold,
-        isFreeShipping: subtotal >= rate.freeThreshold,
-        division: division || 'Unknown',
-      },
-    })
+    return successResponse({
+      shippingCost,
+      baseRate: rate.base,
+      perKgRate: rate.perKg,
+      freeThreshold: rate.freeThreshold,
+      isFreeShipping: subtotal >= rate.freeThreshold,
+      division: division || 'Unknown',
+    }, 'Shipping calculated successfully')
   } catch (error) {
     console.error('Shipping calculation error:', error)
-    return NextResponse.json(
-      { success: false, error: 'Failed to calculate shipping' },
-      { status: 500 }
-    )
+    return errorResponse('Failed to calculate shipping', 500)
   }
 }
 
 // GET endpoint to retrieve all available shipping zones
 export async function GET() {
-  return NextResponse.json({
-    success: true,
-    data: {
-      zones: Object.keys(SHIPPING_RATES).map((division) => ({
-        division,
-        ...SHIPPING_RATES[division],
-      })),
-      default: DEFAULT_RATE,
-    },
-  })
+  return successResponse({
+    zones: Object.keys(SHIPPING_RATES).map((division) => ({
+      division,
+      ...SHIPPING_RATES[division],
+    })),
+    default: DEFAULT_RATE,
+  }, 'Shipping zones retrieved successfully')
 }

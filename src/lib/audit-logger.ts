@@ -1,5 +1,7 @@
 import { db } from '@/lib/db';
+import { generateId, execute, queryAll, queryFirst } from '@/db/db';
 import type { AuditAction, AuditEntity } from '@/types/audit';
+import type { Env } from '@/db/types';
 
 export interface AuditLogOptions {
   adminId: string;
@@ -14,20 +16,44 @@ export interface AuditLogOptions {
 /**
  * Log an admin action to the AdminLog table
  * This function is called from server-side code (API routes, server actions)
+ * Supports both Prisma (local dev) and D1 (Cloudflare)
  */
-export async function logAuditEvent(options: AuditLogOptions): Promise<void> {
+export async function logAuditEvent(
+  env: Env | null,
+  options: AuditLogOptions
+): Promise<void> {
   try {
-    await db.adminLog.create({
-      data: {
-        adminId: options.adminId,
-        action: options.action,
-        entity: options.entity,
-        entityId: options.entityId,
-        details: options.details,
-        ipAddress: options.ipAddress,
-        userAgent: options.userAgent,
-      },
-    });
+    // Use Prisma if env is null or env.DB doesn't exist (local dev)
+    if (!env || !env.DB) {
+      await db.admin_logs.create({
+        data: {
+          id: generateId(),
+          adminId: options.adminId,
+          action: options.action,
+          entity: options.entity,
+          entityId: options.entityId,
+          details: options.details,
+          ipAddress: options.ipAddress,
+          userAgent: options.userAgent,
+        },
+      });
+    } else {
+      // D1 environment
+      await execute(
+        env,
+        `INSERT INTO admin_logs (id, adminId, action, entity, entityId, details, ipAddress, userAgent, createdAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        generateId(),
+        options.adminId,
+        options.action,
+        options.entity,
+        options.entityId || null,
+        options.details || null,
+        options.ipAddress || null,
+        options.userAgent || null,
+        new Date().toISOString()
+      );
+    }
   } catch (error) {
     // Don't throw errors for audit logging failures to avoid breaking main functionality
     console.error('Failed to log audit event:', error);
@@ -42,7 +68,7 @@ export async function getAdminAuditLogs(
   limit: number = 50,
   offset: number = 0
 ) {
-  return await db.adminLog.findMany({
+  return await db.admin_logs.findMany({
     where: { adminId },
     orderBy: { createdAt: 'desc' },
     take: limit,
@@ -68,13 +94,13 @@ export async function getAllAuditLogs(filters: {
   if (action) where.action = action;
 
   const [logs, total] = await Promise.all([
-    db.adminLog.findMany({
+    db.admin_logs.findMany({
       where,
       orderBy: { createdAt: 'desc' },
       take: limit,
       skip: offset,
       include: {
-        admin: {
+        users: {
           select: {
             id: true,
             name: true,
@@ -83,7 +109,7 @@ export async function getAllAuditLogs(filters: {
         },
       },
     }),
-    db.adminLog.count({ where }),
+    db.admin_logs.count({ where }),
   ]);
 
   return { logs, total };
@@ -97,7 +123,7 @@ export async function getEntityAuditLogs(
   entityId: string,
   limit: number = 20
 ) {
-  return await db.adminLog.findMany({
+  return await db.admin_logs.findMany({
     where: {
       entity,
       entityId,
@@ -105,7 +131,7 @@ export async function getEntityAuditLogs(
     orderBy: { createdAt: 'desc' },
     take: limit,
     include: {
-      admin: {
+      users: {
         select: {
           id: true,
           name: true,
@@ -157,4 +183,20 @@ export function createAuditLogOptions(
     ipAddress: getIpAddress(request),
     userAgent: getUserAgent(request),
   };
+}
+
+/**
+ * Log an admin action with request context (convenience function)
+ */
+export async function logAdminAction(
+  env: Env | null,
+  request: Request,
+  adminId: string,
+  action: AuditAction,
+  entity: AuditEntity,
+  entityId?: string,
+  details?: string
+): Promise<void> {
+  const options = createAuditLogOptions(request, adminId, action, entity, entityId, details);
+  await logAuditEvent(env, options);
 }

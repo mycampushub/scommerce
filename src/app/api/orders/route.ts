@@ -211,29 +211,58 @@ export async function POST(request: NextRequest) {
       return undefined;
     };
 
-    // Create order with the selected payment method
-    const order = await OrderRepository.create(env, {
-      userId: validatedData.userId || undefined,
-      customerName: validatedData.customerName,
-      customerEmail: validatedData.customerEmail,
-      customerPhone: validatedData.customerPhone || undefined,
-      shippingAddress: stringifyJSON(validatedData.shippingAddress),
-      billingAddress: validatedData.billingAddress
-        ? stringifyJSON(validatedData.billingAddress)
-        : stringifyJSON(validatedData.shippingAddress),
-      city: extractAddressField(validatedData.shippingAddress, 'city') || extractAddressField(validatedData.shippingAddress, 'district'),
-      district: extractAddressField(validatedData.shippingAddress, 'district'),
-      division: extractAddressField(validatedData.shippingAddress, 'division') || extractAddressField(validatedData.shippingAddress, 'state'),
-      subtotal: parseFloat(subtotal.toFixed(2)),
-      shipping: parseFloat(shipping.toFixed(2)),
-      tax: parseFloat(tax.toFixed(2)),
-      discount: parseFloat(discount.toFixed(2)),
-      total: parseFloat(total.toFixed(2)),
-      paymentMethod: validatedData.paymentMethod,
-      promoCode: validatedData.promoCode,
-    });
+    // Create order with items and stock updates in a transaction
+    // This ensures atomicity - either all operations succeed or none do
+    const orderResult = await OrderRepository.createOrderWithItems(
+      env,
+      {
+        userId: validatedData.userId || undefined,
+        customerName: validatedData.customerName,
+        customerEmail: validatedData.customerEmail,
+        customerPhone: validatedData.customerPhone || undefined,
+        shippingAddress: stringifyJSON(validatedData.shippingAddress),
+        billingAddress: validatedData.billingAddress
+          ? stringifyJSON(validatedData.billingAddress)
+          : stringifyJSON(validatedData.shippingAddress),
+        city: extractAddressField(validatedData.shippingAddress, 'city') || extractAddressField(validatedData.shippingAddress, 'district'),
+        district: extractAddressField(validatedData.shippingAddress, 'district'),
+        division: extractAddressField(validatedData.shippingAddress, 'division') || extractAddressField(validatedData.shippingAddress, 'state'),
+        subtotal: parseFloat(subtotal.toFixed(2)),
+        shipping: parseFloat(shipping.toFixed(2)),
+        tax: parseFloat(tax.toFixed(2)),
+        discount: parseFloat(discount.toFixed(2)),
+        total: parseFloat(total.toFixed(2)),
+        paymentMethod: validatedData.paymentMethod,
+        promoCode: validatedData.promoCode,
+      },
+      validatedData.orderItems as any[],
+      validatedData.userId
+    );
 
-    // Increment promo code usage if promo code was used
+    // If transaction failed, return error
+    if (!orderResult) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Failed to create order. Please try again.',
+        },
+        { status: 500 }
+      );
+    }
+
+    const { order } = orderResult;
+
+    // Release stock reservations for this order (outside transaction - non-critical)
+    if (validatedData.userId) {
+      try {
+        await releaseCartReservations(env, validatedData.userId, validatedData.orderItems);
+      } catch (error) {
+        console.error('Error releasing cart reservations:', error);
+        // Continue even if reservation release fails
+      }
+    }
+
+    // Increment promo code usage if promo code was used (outside transaction - non-critical)
     if (validatedData.promoCode) {
       try {
         await incrementPromoUsage(env, validatedData.promoCode);
@@ -243,192 +272,23 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create order items
-    for (const item of validatedData.orderItems as any[]) {
-      await OrderRepository.addItem(env, {
-        orderId: order.id,
-        productId: item.productId,
-        variantId: item.variantId,
-        quantity: item.quantity,
-        price: parseFloat(item.price.toFixed(2)),
-        productName: item.productName,
-        productImage: item.productImage,
-        variantSku: item.variantSku,
-        variantSize: item.variantSize,
-        variantColor: item.variantColor,
-        variantMaterial: item.variantMaterial,
-      });
-    }
-
-    // Release stock reservations for this order
+    // Invalidate user cart cache if user is logged in (outside transaction - non-critical)
     if (validatedData.userId) {
-      await releaseCartReservations(env, validatedData.userId, validatedData.orderItems);
-    }
-
-    // Update product/variant stock and generate alerts
-    for (const item of validatedData.orderItems as any[]) {
-      const quantity = item.quantity;
-
-      if (item.variantId) {
-        // Update variant-level inventory
-        const variant = await queryFirst<{ stock: number; lowStockAlert: number; reorderLevel: number; reorderQty: number }>(
-          env,
-          'SELECT id, stock, lowStockAlert, reorderLevel, reorderQty FROM product_variants WHERE id = ? LIMIT 1',
-          item.variantId
-        );
-
-        if (!variant) continue;
-
-        // Update variant stock
-        const newStock = variant.stock - quantity;
-        await execute(
-          env,
-          'UPDATE product_variants SET stock = ? WHERE id = ?',
-          newStock,
-          item.variantId
-        );
-
-        // Generate variant-specific alerts
-        if (newStock === 0) {
-          await execute(
-            env,
-            'INSERT INTO inventory_alerts (id, variantId, alertType, quantity, isRead, isResolved, createdAt) VALUES (?, ?, ?, ?, 0, 0, ?)',
-            generateSecureId(),
-            item.variantId,
-            'OUT_OF_STOCK',
-            0,
-            new Date().toISOString()
-          );
-        } else if (newStock < variant.reorderLevel) {
-          // Check if REORDER_NEEDED alert already exists and is not resolved
-          const existingAlert = await queryFirst(
-            env,
-            'SELECT id FROM inventory_alerts WHERE variantId = ? AND alertType = ? AND isResolved = 0 LIMIT 1',
-            item.variantId,
-            'REORDER_NEEDED'
-          );
-
-          if (!existingAlert) {
-            await execute(
-              env,
-              'INSERT INTO inventory_alerts (id, variantId, alertType, quantity, isRead, isResolved, createdAt) VALUES (?, ?, ?, ?, 0, 0, ?)',
-              generateSecureId(),
-              item.variantId,
-              'REORDER_NEEDED',
-              newStock,
-              new Date().toISOString()
-            );
-          }
-        } else if (newStock < variant.lowStockAlert) {
-          // Check if LOW_STOCK alert already exists and is not resolved
-          const existingAlert = await queryFirst(
-            env,
-            'SELECT id FROM inventory_alerts WHERE variantId = ? AND alertType = ? AND isResolved = 0 LIMIT 1',
-            item.variantId,
-            'LOW_STOCK'
-          );
-
-          if (!existingAlert) {
-            await execute(
-              env,
-              'INSERT INTO inventory_alerts (id, variantId, alertType, quantity, isRead, isResolved, createdAt) VALUES (?, ?, ?, ?, 0, 0, ?)',
-              generateSecureId(),
-              item.variantId,
-              'LOW_STOCK',
-              newStock,
-              new Date().toISOString()
-            );
-          }
-        }
-      } else {
-        // Update product-level inventory (backward compatibility)
-        const product = await queryFirst<{ stock: number; lowStockAlert: number; reorderLevel: number; reorderQty: number }>(
-          env,
-          'SELECT id, stock, lowStockAlert, reorderLevel, reorderQty FROM products WHERE id = ? LIMIT 1',
-          item.productId
-        );
-
-        if (!product) continue;
-
-        // Update stock
-        const newStock = product.stock - quantity;
-        await execute(
-          env,
-          'UPDATE products SET stock = ? WHERE id = ?',
-          newStock,
-          item.productId
-        );
-
-        // Generate inventory alerts based on new stock level
-        if (newStock === 0) {
-          await execute(
-            env,
-            'INSERT INTO inventory_alerts (id, productId, alertType, quantity, isRead, isResolved, createdAt) VALUES (?, ?, ?, ?, 0, 0, ?)',
-            generateSecureId(),
-            item.productId,
-            'OUT_OF_STOCK',
-            0,
-            new Date().toISOString()
-          );
-        } else if (newStock < product.reorderLevel) {
-          // Check if REORDER_NEEDED alert already exists and is not resolved
-          const existingAlert = await queryFirst(
-            env,
-            'SELECT id FROM inventory_alerts WHERE productId = ? AND alertType = ? AND isResolved = 0 LIMIT 1',
-            item.productId,
-            'REORDER_NEEDED'
-          );
-
-          if (!existingAlert) {
-            await execute(
-              env,
-              'INSERT INTO inventory_alerts (id, productId, alertType, quantity, isRead, isResolved, createdAt) VALUES (?, ?, ?, ?, 0, 0, ?)',
-              generateSecureId(),
-              item.productId,
-              'REORDER_NEEDED',
-              newStock,
-              new Date().toISOString()
-            );
-          }
-        } else if (newStock < product.lowStockAlert) {
-          // Check if LOW_STOCK alert already exists and is not resolved
-          const existingAlert = await queryFirst(
-            env,
-            'SELECT id FROM inventory_alerts WHERE productId = ? AND alertType = ? AND isResolved = 0 LIMIT 1',
-            item.productId,
-            'LOW_STOCK'
-          );
-
-          if (!existingAlert) {
-            await execute(
-              env,
-              'INSERT INTO inventory_alerts (id, productId, alertType, quantity, isRead, isResolved, createdAt) VALUES (?, ?, ?, ?, 0, 0, ?)',
-              generateSecureId(),
-              item.productId,
-              'LOW_STOCK',
-              newStock,
-              new Date().toISOString()
-            );
-          }
-        }
+      try {
+        await invalidateCache(env, 'user-cart', validatedData.userId);
+      } catch (error) {
+        console.error('Error invalidating cache:', error);
+        // Continue even if cache invalidation fails
       }
     }
 
-    // Fetch order with items
-    const orderWithItems = await OrderRepository.findById(env, order.id);
-    const orderItems = await OrderRepository.getItems(env, order.id);
-
+    // Prepare transformed order response
     const transformedOrder = {
-      ...orderWithItems,
-      shippingAddress: orderWithItems?.shippingAddress ? JSON.parse(orderWithItems.shippingAddress) : null,
-      billingAddress: orderWithItems?.billingAddress ? JSON.parse(orderWithItems.billingAddress) : null,
-      orderItems,
+      ...order,
+      shippingAddress: order.shippingAddress ? JSON.parse(order.shippingAddress) : null,
+      billingAddress: order.billingAddress ? JSON.parse(order.billingAddress) : null,
+      orderItems: orderResult.items,
     };
-
-    // Invalidate user cart cache if user is logged in
-    if (validatedData.userId) {
-      await invalidateCache(env, 'user-cart', validatedData.userId);
-    }
 
     return NextResponse.json({
       success: true,

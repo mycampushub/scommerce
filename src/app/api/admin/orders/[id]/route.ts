@@ -6,6 +6,7 @@ import { UserRepository } from '@/db/user.repository'
 import { execute, parseJSON } from '@/db/db'
 import { updateTrackingSchema } from '@/lib/validations'
 import prisma from '@/lib/database'
+import { logAdminAction } from '@/lib/audit-logger'
 
 
 export async function GET(
@@ -78,17 +79,29 @@ export async function PUT(
     return userOrResponse
   }
 
+  const admin = userOrResponse as { id: string; email: string; role: string; name?: string }
 
   try {
     const env = getEnv()
     const { id } = await params
     const body: any = await request.json() as any
 
+    // Get current order first for audit log
+    const currentOrder = await OrderRepository.findById(env, id)
+    if (!currentOrder) {
+      return NextResponse.json(
+        { success: false, error: 'Order not found' },
+        { status: 404 }
+      )
+    }
+
     // Prepare update data
     const updates: any = {}
+    const changes: string[] = []
 
     if (body.status) {
       await OrderRepository.updateStatus(env, id, body.status)
+      changes.push(`status: ${currentOrder.status} → ${body.status}`)
       // Need to re-fetch after status update
       const updated = await OrderRepository.findById(env, id)
       if (!updated) {
@@ -107,6 +120,7 @@ export async function PUT(
 
     if (body.paymentStatus) {
       await OrderRepository.updatePaymentStatus(env, id, body.paymentStatus)
+      changes.push(`paymentStatus: ${currentOrder.paymentStatus} → ${body.paymentStatus}`)
       const updated = await OrderRepository.findById(env, id)
       if (!updated) {
         return NextResponse.json(
@@ -141,6 +155,12 @@ export async function PUT(
       }
 
       await OrderRepository.updateTracking(env, id, body.trackingNumber, body.trackingStatus)
+      if (body.trackingStatus) {
+        changes.push(`trackingStatus: ${currentOrder.trackingStatus} → ${body.trackingStatus}`)
+      }
+      if (body.trackingNumber) {
+        changes.push(`trackingNumber: ${body.trackingNumber}`)
+      }
       const updated = await OrderRepository.findById(env, id)
       if (updated) {
         Object.assign(updates, {
@@ -151,14 +171,26 @@ export async function PUT(
     }
 
     const updateFields: Record<string, unknown> = {}
-    if (body.shipping !== undefined) updateFields.shipping = body.shipping
-    if (body.tax !== undefined) updateFields.tax = body.tax
-    if (body.discount !== undefined) updateFields.discount = body.discount
-    if (body.notes !== undefined) updateFields.notes = body.notes
+    if (body.shipping !== undefined) {
+      updateFields.shipping = body.shipping
+      changes.push(`shipping: ${currentOrder.shipping} → ${body.shipping}`)
+    }
+    if (body.tax !== undefined) {
+      updateFields.tax = body.tax
+      changes.push(`tax: ${currentOrder.tax} → ${body.tax}`)
+    }
+    if (body.discount !== undefined) {
+      updateFields.discount = body.discount
+      changes.push(`discount: ${currentOrder.discount} → ${body.discount}`)
+    }
+    if (body.notes !== undefined) {
+      updateFields.notes = body.notes
+      changes.push('notes updated')
+    }
 
     if (Object.keys(updateFields).length > 0) {
       if (!env || !env.DB) {
-        await prisma.order.update({
+        await prisma.orders.update({
           where: { id },
           data: { ...updateFields, updatedAt: new Date().toISOString() }
         })
@@ -167,6 +199,19 @@ export async function PUT(
           await execute(env, `UPDATE orders SET ${field} = ?, updatedAt = ? WHERE id = ?`, value as any, new Date().toISOString(), id)
         }
       }
+    }
+
+    // Log audit event
+    if (changes.length > 0) {
+      await logAdminAction(
+        env,
+        request,
+        admin.id,
+        'UPDATE',
+        'Order',
+        id,
+        `Updated order ${currentOrder.orderNumber} (ID: ${id}): ${changes.join(', ')}`
+      )
     }
 
     // Fetch final order
@@ -217,19 +262,29 @@ export async function DELETE(
     return userOrResponse
   }
 
+  const admin = userOrResponse as { id: string; email: string; role: string; name?: string }
 
   try {
     const env = getEnv()
     const { id } = await params
     const body = await request.json().catch(() => ({}))
 
+    // Get order info for audit log
+    const order = await OrderRepository.findById(env, id)
+    if (!order) {
+      return NextResponse.json(
+        { success: false, error: 'Order not found' },
+        { status: 404 }
+      )
+    }
+
     // Soft delete: mark order as deleted instead of removing
     if (!env || !env.DB) {
-      await prisma.order.update({
+      await prisma.orders.update({
         where: { id },
         data: {
           deletedAt: new Date().toISOString(),
-          deletedBy: userOrResponse.id || 'unknown',
+          deletedBy: admin.id,
           deletedReason: body.reason || 'Manually deleted',
           updatedAt: new Date().toISOString()
         }
@@ -238,12 +293,23 @@ export async function DELETE(
       await execute(env,
         `UPDATE orders SET deletedAt = ?, deletedBy = ?, deletedReason = ?, updatedAt = ? WHERE id = ?`,
         new Date().toISOString(),
-        userOrResponse.id || 'unknown',
+        admin.id,
         body.reason || 'Manually deleted',
         new Date().toISOString(),
         id
       )
     }
+
+    // Log audit event
+    await logAdminAction(
+      env,
+      request,
+      admin.id,
+      'DELETE',
+      'Order',
+      id,
+      `Deleted order ${order.orderNumber} (ID: ${id}). Reason: ${body.reason || 'Manually deleted'}`
+    )
 
     return NextResponse.json({
       success: true,

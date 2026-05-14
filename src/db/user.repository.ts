@@ -21,7 +21,7 @@ export class UserRepository {
   static async findByEmail(env: Env | null, email: string): Promise<User | null> {
     // If env is null or env.DB doesn't exist (local dev), use Prisma query
     if (!env || !env.DB) {
-      const user = await prisma.user.findUnique({
+      const user = await prisma.users.findUnique({
         where: { email }
       });
       return user as User | null;
@@ -41,7 +41,7 @@ export class UserRepository {
   static async findById(env: Env | null, id: string): Promise<User | null> {
     // Use Prisma if env is null or env.DB doesn't exist (local dev)
     if (!env || !env.DB) {
-      const user = await prisma.user.findUnique({
+      const user = await prisma.users.findUnique({
         where: { id }
       });
       return user as User | null;
@@ -62,7 +62,7 @@ export class UserRepository {
 
     // Use Prisma if env is null or env.DB doesn't exist (local dev)
     if (!env || !env.DB) {
-      const user = await prisma.user.findFirst({
+      const user = await prisma.users.findFirst({
         where: {
           resetToken: token,
           resetTokenExpiry: { gt: currentTime }
@@ -96,7 +96,7 @@ export class UserRepository {
 
     // Use Prisma if env is null or env.DB doesn't exist (local dev)
     if (!env || !env.DB) {
-      const user = await prisma.user.create({
+      const user = await prisma.users.create({
         data: {
           id,
           email: data.email,
@@ -169,7 +169,7 @@ export class UserRepository {
 
       updateData.updatedAt = now();
 
-      await prisma.user.update({
+      await prisma.users.update({
         where: { id },
         data: updateData
       });
@@ -239,7 +239,7 @@ export class UserRepository {
   static async delete(env: Env | null, id: string): Promise<void> {
     // Use Prisma if env is null or env.DB doesn't exist (local dev)
     if (!env || !env.DB) {
-      await prisma.user.delete({
+      await prisma.users.delete({
         where: { id }
       });
       return;
@@ -263,7 +263,7 @@ export class UserRepository {
       const where: any = {};
       if (role) where.role = role;
 
-      const users = await prisma.user.findMany({
+      const users = await prisma.users.findMany({
         where,
         orderBy: { createdAt: 'desc' },
         take: limit,
@@ -292,7 +292,7 @@ export class UserRepository {
       const where: any = {};
       if (role) where.role = role;
 
-      return await prisma.user.count({ where });
+      return await prisma.users.count({ where });
     }
 
     // Use D1

@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
 
     if (usePrisma) {
       // Use Prisma for local development
-      const products = await prisma.product.findMany({
+      const products = await prisma.products.findMany({
         select: {
           id: true,
           isActive: true,
@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
 
     if (usePrisma) {
       // Use Prisma for local development
-      const orders = await prisma.order.findMany({
+      const orders = await prisma.orders.findMany({
         select: {
           status: true,
         },
@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
 
     if (usePrisma) {
       // Use Prisma for local development
-      const customers = await prisma.user.findMany({
+      const customers = await prisma.users.findMany({
         where: { role: 'user' },
         select: {
           id: true,
@@ -127,19 +127,19 @@ export async function GET(request: NextRequest) {
 
     if (usePrisma) {
       // Use Prisma for local development
-      const prismaOrders = await prisma.order.findMany({
+      const prismaOrders = await prisma.orders.findMany({
         where: {
           createdAt: { gte: daysAgo },
         },
         include: {
-          items: true,
+          order_items: true,
         },
         orderBy: { createdAt: 'desc' },
       })
 
       ordersList = prismaOrders.map(order => {
-        const total = order.items.reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0)
-        const itemsCount = order.items.reduce((sum, item) => sum + item.quantity, 0)
+        const total = order.order_items.reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0)
+        const itemsCount = order.order_items.reduce((sum, item) => sum + item.quantity, 0)
         return {
           ...order,
           total,
@@ -192,7 +192,7 @@ export async function GET(request: NextRequest) {
 
     if (usePrisma) {
       // Use Prisma for local development
-      const prismaPreviousOrders = await prisma.order.findMany({
+      const prismaPreviousOrders = await prisma.orders.findMany({
         where: {
           createdAt: {
             gte: previousDaysAgo,
@@ -200,12 +200,12 @@ export async function GET(request: NextRequest) {
           },
         },
         include: {
-          items: true,
+          order_items: true,
         },
       })
 
       previousOrdersList = prismaPreviousOrders.map(order => {
-        const total = order.items.reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0)
+        const total = order.order_items.reduce((sum, item) => sum + (item.price || 0) * item.quantity, 0)
         return {
           id: order.id,
           total,
@@ -257,14 +257,14 @@ export async function GET(request: NextRequest) {
 
     if (usePrisma) {
       // Use Prisma for local development
-      currentPeriodCustomers = await prisma.user.findMany({
+      currentPeriodCustomers = await prisma.users.findMany({
         where: {
           role: 'user',
           createdAt: { gte: daysAgo },
         },
       })
 
-      previousPeriodCustomers = await prisma.user.findMany({
+      previousPeriodCustomers = await prisma.users.findMany({
         where: {
           role: 'user',
           createdAt: {
@@ -311,11 +311,11 @@ export async function GET(request: NextRequest) {
 
     if (usePrisma) {
       // Use Prisma for local development
-      const products = await prisma.product.findMany({
+      const products = await prisma.products.findMany({
         include: {
-          orderItems: {
+          order_items: {
             include: {
-              order: true,
+              orders: true,
             },
           },
         },
@@ -326,7 +326,7 @@ export async function GET(request: NextRequest) {
           id: p.id,
           name: p.name,
           price: p.basePrice || 0,
-          sales: p.orderItems.filter(oi => oi.order.createdAt >= daysAgo).length,
+          sales: p.order_items.filter(oi => oi.orders.createdAt >= daysAgo).length,
         }))
         .sort((a, b) => b.sales - a.sales)
         .slice(0, 5)
@@ -351,7 +351,7 @@ export async function GET(request: NextRequest) {
 
     if (usePrisma) {
       // Use Prisma for local development
-      const customers = await prisma.user.findMany({
+      const customers = await prisma.users.findMany({
         where: { role: 'user' },
         include: {
           orders: {

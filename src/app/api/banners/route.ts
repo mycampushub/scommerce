@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { successResponse, errorResponse } from '@/lib/api-response';
 import { getEnv } from '@/lib/cloudflare';
 import { BannerRepository } from '@/db/banner.repository';
 import { addCacheHeaders, CachePresets } from '@/lib/http-cache';
@@ -11,19 +11,13 @@ export async function GET(request: Request) {
   try {
     const banners = await BannerRepository.findAllActive(env);
 
-    const response = NextResponse.json({
-      success: true,
-      data: banners
-    });
+    const response = successResponse(banners, 'Banners fetched successfully');
 
     // Add caching headers for banners (static content - 1 hour)
     return addCacheHeaders(response, CachePresets.STATIC);
   } catch (error) {
     console.error('Error fetching banners:', error);
     // Return empty array on error instead of failing
-    return NextResponse.json({
-      success: false,
-      data: []
-    });
+    return errorResponse('Failed to fetch banners', 500, { data: [] });
   }
 }

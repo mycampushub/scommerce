@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { IntegrationRepository } from '@/db/integration';
 import { verifyAdminAuth } from '@/lib/admin-auth';
+import { successResponse, errorResponse, validationErrorResponse } from '@/lib/api-response';
 
 /**
  * GET /api/admin/integrations/email-services
@@ -17,10 +18,10 @@ export async function GET(request: NextRequest) {
     const services = await IntegrationRepository.getEmailServices();
     const safeServices = services.map(s => ({ ...s, apiSecret: s.apiSecret ? '********' : undefined }));
 
-    return NextResponse.json({ success: true, data: safeServices });
+    return successResponse(safeServices);
   } catch (error) {
     console.error('Error fetching email services:', error);
-    return NextResponse.json({ success: false, error: 'Failed to fetch email services' }, { status: 500 });
+    return errorResponse('Failed to fetch email services');
   }
 }
 
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     if (!body.name || !body.provider) {
-      return NextResponse.json({ success: false, error: 'Name and provider are required' }, { status: 400 });
+      return validationErrorResponse('Name and provider are required');
     }
 
     const existing = await IntegrationRepository.getEmailServices();
@@ -53,14 +54,15 @@ export async function POST(request: NextRequest) {
       fromEmail: body.fromEmail,
       fromName: body.fromName,
       webhookUrl: body.webhookUrl,
+      sandboxMode: body.sandboxMode || 0,
       isActive: body.isActive !== undefined ? body.isActive : true,
       isDefault: body.isDefault !== undefined ? body.isDefault : isFirst,
       settings: body.settings
     });
 
-    return NextResponse.json({ success: true, data: service, message: 'Email service created successfully' }, { status: 201 });
+    return successResponse(service, 'Email service created successfully', 201);
   } catch (error) {
     console.error('Error creating email service:', error);
-    return NextResponse.json({ success: false, error: 'Failed to create email service' }, { status: 500 });
+    return errorResponse('Failed to create email service');
   }
 }

@@ -71,6 +71,8 @@ export async function POST(request: NextRequest) {
       apiSecret: body.apiSecret,
       accountNumber: body.accountNumber,
       webhookUrl: body.webhookUrl,
+      sandboxMode: body.sandboxMode || 0,
+      shippingMethods: body.shippingMethods || null,
       isActive: body.isActive !== undefined ? body.isActive : true,
       isDefault: body.isDefault !== undefined ? body.isDefault : isFirstCarrier,
       settings: body.settings

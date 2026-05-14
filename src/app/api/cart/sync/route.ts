@@ -5,6 +5,9 @@ import { CartRepository } from '@/db/cart.repository'
 import { UserRepository } from '@/db/user.repository'
 import { queryAll, queryFirst, parseJSON, numberToBool } from '@/db/db'
 import { cartItemSchema } from '@/lib/validations'
+import { cleanupExpiredReservations, reserveStock } from '@/db/inventory-reservation.repository'
+import { successResponse, errorResponse } from '@/lib/api-response'
+import { CartItem, Product, ProductVariant } from '@/types/common'
 
 
 /**
@@ -39,7 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = payload.userId
-    const body = await request.json() as any
+    const body = await request.json() as { localCart: CartItem[] }
     const { localCart } = body
 
     if (!Array.isArray(localCart)) {
@@ -65,8 +68,26 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Clean up expired reservations before sync
+    await cleanupExpiredReservations(env)
+
     // Get existing database cart items with products and variants
-    const cartItems = await queryAll(
+    const cartItems = await queryAll<{
+      id: string
+      productId: string
+      variantId: string | null
+      quantity: number
+      productName: string
+      basePrice: number
+      comparePrice: number | null
+      images: string
+      stock: number
+      isActive: number
+      sku: string | null
+      size: string | null
+      color: string | null
+      material: string | null
+    }>(
       env,
       `SELECT ci.*, p.name as productName, p.basePrice, p.comparePrice, p.images, p.stock, p.isActive,
               v.sku, v.size, v.color, v.material
@@ -80,7 +101,7 @@ export async function POST(request: NextRequest) {
 
     // Create a map for quick lookup (using productId + variantId as key)
     const dbCartMap = new Map(
-      cartItems.map((item: any) => [
+      cartItems.map((item) => [
         `${item.productId}-${item.variantId || 'no-variant'}`,
         item
       ])
@@ -88,32 +109,70 @@ export async function POST(request: NextRequest) {
 
     let addedCount = 0
     let updatedCount = 0
+    const warnings: string[] = []
 
     // Merge local cart with database cart
     for (const localItem of localCart) {
       const itemKey = `${localItem.id}-${localItem.variantId || 'no-variant'}`
       const existingItem = dbCartMap.get(itemKey)
 
+      // Check stock availability
+      const stockCheck = localItem.variantId
+        ? await queryFirst<{ stock: number; name: string }>(
+            env,
+            'SELECT pv.stock, p.name FROM product_variants pv JOIN products p ON pv.productId = p.id WHERE pv.id = ? LIMIT 1',
+            localItem.variantId
+          )
+        : await queryFirst<{ stock: number; name: string }>(
+            env,
+            'SELECT stock, name FROM products WHERE id = ? LIMIT 1',
+            localItem.id
+          )
+
+      const availableStock = stockCheck?.stock || 0
+      const requestedQuantity = localItem.quantity || 1
+      const adjustedQuantity = Math.min(requestedQuantity, availableStock)
+
       if (existingItem) {
-        // Item exists in both, keep higher quantity
-        const newQuantity = Math.max(
-          existingItem.quantity,
-          localItem.quantity || 1
+        // Item exists in both, keep higher quantity (but not exceeding available stock)
+        const newQuantity = Math.min(
+          Math.max(existingItem.quantity, requestedQuantity),
+          availableStock
         )
 
         if (newQuantity !== existingItem.quantity) {
+          if (newQuantity < requestedQuantity) {
+            warnings.push(`${stockCheck?.name || 'Item'}: Only ${availableStock} available, adjusted from ${requestedQuantity}`)
+          }
           await CartRepository.updateQuantity(env, existingItem.id, newQuantity)
           updatedCount++
         }
       } else {
-        // Item only in local cart, add to database
-        await CartRepository.addItem(env, {
-          userId,
-          productId: localItem.id,
-          variantId: localItem.variantId,
-          quantity: localItem.quantity || 1,
-        })
-        addedCount++
+        // Item only in local cart, add to database (with stock validation)
+        if (availableStock > 0) {
+          await CartRepository.addItem(env, {
+            userId,
+            productId: localItem.id,
+            variantId: localItem.variantId,
+            quantity: adjustedQuantity,
+          })
+          addedCount++
+
+          // Reserve stock for 30 minutes
+          await reserveStock(env, {
+            variantId: localItem.variantId,
+            productId: localItem.id,
+            userId,
+            quantity: adjustedQuantity,
+            expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+          })
+
+          if (adjustedQuantity < requestedQuantity) {
+            warnings.push(`${stockCheck?.name || 'Item'}: Only ${availableStock} available, adjusted from ${requestedQuantity}`)
+          }
+        } else {
+          warnings.push(`${stockCheck?.name || 'Item'}: Out of stock, skipped`)
+        }
       }
     }
 
@@ -131,8 +190,8 @@ export async function POST(request: NextRequest) {
     )
 
     // Transform to match cart store format
-    const formattedItems = mergedCart.map((item: any) => {
-      const images = parseJSON<string[]>(item.images) || []
+    const formattedItems = mergedCart.map((item) => {
+      const images = parseJSON<string[]>(item.images as string) || []
       return {
         id: item.productId,
         name: item.productName,
@@ -156,6 +215,7 @@ export async function POST(request: NextRequest) {
         updated: updatedCount,
         total: formattedItems.length,
       },
+      warnings: warnings.length > 0 ? warnings : undefined,
     })
   } catch (error) {
     console.error('Cart sync error:', error)

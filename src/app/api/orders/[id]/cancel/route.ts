@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getEnv } from '@/lib/cloudflare';
 import { OrderRepository } from '@/db/order.repository';
-import { ProductRepository } from '@/db/product.repository';
-import { execute, parseJSON, queryFirst } from '@/db/db';
-;
-
+import { verifyToken, extractTokenFromHeader } from '@/lib/auth';
 
 // Order statuses that can be cancelled
 const CANCELLABLE_STATUSES = ['PENDING', 'CONFIRMED'];
@@ -31,7 +28,7 @@ export async function POST(
       );
     }
 
-    // Fetch order with items and products
+    // Fetch order to check status and ownership
     const order = await OrderRepository.findById(env, (await params).id);
     
     if (!order) {
@@ -80,42 +77,32 @@ export async function POST(
       }
     }
 
-    // Restore product stock
-    const orderItems = await OrderRepository.getItems(env, (await params).id);
-    for (const item of orderItems) {
-      if (item.variantId) {
-        // Get current variant stock
-        const variant = await queryFirst<{ stock: number }>(
-          env,
-          'SELECT stock FROM product_variants WHERE id = ?',
-          item.variantId
-        );
-        const currentStock = variant?.stock || 0;
-        // Restore variant stock
-        await ProductRepository.updateVariantStock(env, item.variantId, currentStock + item.quantity);
-      } else {
-        // Get current product stock
-        const product = await queryFirst<{ stock: number }>(
-          env,
-          'SELECT stock FROM products WHERE id = ?',
-          item.productId
-        );
-        const currentStock = product?.stock || 0;
-        // Restore product stock
-        await ProductRepository.updateProductStock(env, item.productId, currentStock + item.quantity);
-      }
+    // Cancel order with stock restoration in a transaction
+    // This ensures atomicity - either stock is restored AND order is cancelled, or neither happens
+    const cancelledOrder = await OrderRepository.cancelOrderWithRestock(
+      env,
+      (await params).id,
+      cancelledBy,
+      reason
+    );
+
+    if (!cancelledOrder) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Failed to cancel order. Please try again.',
+        },
+        { status: 500 }
+      );
     }
 
-    // Cancel order
-    const updatedOrder = await OrderRepository.cancel(env, (await params).id, cancelledBy, reason);
-
     // TODO: Send notification email to customer about cancellation
-    // await sendOrderCancellationEmail(updatedOrder);
+    // await sendOrderCancellationEmail(cancelledOrder);
 
     return NextResponse.json({
       success: true,
       message: 'Order cancelled successfully',
-      data: updatedOrder,
+      data: cancelledOrder,
     });
   } catch (error) {
     console.error('Error cancelling order:', error);
@@ -123,6 +110,7 @@ export async function POST(
       {
         success: false,
         error: 'Failed to cancel order',
+        details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );

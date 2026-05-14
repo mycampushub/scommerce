@@ -26,6 +26,49 @@ interface OrderResponse {
   message?: string
 }
 
+interface SettingsResponse {
+  success: boolean
+  data?: {
+    taxRate?: number
+    freeShippingThreshold?: number
+  }
+  error?: string
+}
+
+interface ShippingResponse {
+  success: boolean
+  data?: {
+    shippingCost: number
+  }
+  error?: string
+}
+
+interface ProductResponse {
+  success: boolean
+  data?: {
+    id: string
+    name: string
+    stock?: number
+    variants?: Array<{
+      id: string
+      stock?: number
+    }>
+  }
+  error?: string
+}
+
+interface AuthResponse {
+  success: boolean
+  data?: {
+    user?: {
+      id: string
+      email: string
+      name: string
+    }
+  }
+  error?: string
+}
+
 // Components
 
 export default function CheckoutPage() {
@@ -68,7 +111,7 @@ export default function CheckoutPage() {
     const fetchSettings = async () => {
       try {
         const response = await fetch('/api/settings')
-        const result = await response.json() as any as any
+        const result: SettingsResponse = await response.json()
         if (result.success && result.data) {
           setTaxRate(result.data.taxRate || 0.18)
           setFreeShippingThreshold(result.data.freeShippingThreshold || 5000)
@@ -98,8 +141,8 @@ export default function CheckoutPage() {
           weight: 1, // Default weight 1kg
         }),
       })
-      const result = await response.json() as any as any
-      if (result.success) {
+      const result: ShippingResponse = await response.json()
+      if (result.success && result.data) {
         setShippingCost(result.data.shippingCost)
       }
     } catch (error) {
@@ -128,7 +171,7 @@ export default function CheckoutPage() {
       for (const item of items) {
         const itemKey = `${item.id}-${item.variantId || 'no-variant'}`
         const response = await fetch(`/api/products/${item.id}`)
-        const data = await response.json() as any as any
+        const data: ProductResponse = await response.json()
         
         if (data.success && data.data) {
           const product = data.data
@@ -291,7 +334,7 @@ export default function CheckoutPage() {
         body: JSON.stringify(orderData),
       })
       
-      const result: OrderResponse = await response.json() as any
+      const result: OrderResponse = await response.json()
       
       if (!response.ok || !result.success) {
         throw new Error(result.error || 'Failed to create order')
@@ -759,9 +802,9 @@ export default function CheckoutPage() {
                         body: JSON.stringify({ email, password }),
                       })
 
-                      const result = await response.json() as any
+                      const result: AuthResponse = await response.json()
 
-                      if (result.success) {
+                      if (result.success && result.data?.user) {
                         // Store the authenticated user data
                         setAuthenticatedUser(result.data.user)
                         toast.success('Logged in successfully!')
@@ -870,9 +913,9 @@ export default function CheckoutPage() {
                         body: JSON.stringify(registerData),
                       })
 
-                      const result = await response.json() as any
+                      const result: AuthResponse = await response.json()
 
-                      if (result.success) {
+                      if (result.success && result.data?.user) {
                         // Store the authenticated user data
                         setAuthenticatedUser(result.data.user)
                         toast.success('Account created successfully!')

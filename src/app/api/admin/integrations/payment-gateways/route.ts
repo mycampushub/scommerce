@@ -70,6 +70,9 @@ export async function POST(request: NextRequest) {
       apiKey: body.apiKey,
       apiSecret: body.apiSecret,
       webhookUrl: body.webhookUrl,
+      webhookSecret: body.webhookSecret || null,
+      sandboxMode: body.sandboxMode || 0,
+      supportedCurrencies: body.supportedCurrencies || null,
       isActive: body.isActive !== undefined ? body.isActive : true,
       isDefault: body.isDefault !== undefined ? body.isDefault : isFirstGateway,
       settings: body.settings

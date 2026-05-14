@@ -67,11 +67,44 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
   try {
     const JWT_SECRET = getJWTSecret();
     const { payload } = await jwtVerify(token, JWT_SECRET);
+
+    // Explicitly check token expiration (jose does this, but we want to be explicit)
+    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
+      console.error('[auth.ts] Token has expired');
+      return null;
+    }
+
     console.log('[auth.ts] Token verified successfully, userId:', (payload as any).userId, 'email:', (payload as any).email);
     return payload as JWTPayload;
-  } catch (error) {
-    console.error('[auth.ts] Token verification failed:', error);
+  } catch (error: any) {
+    // Distinguish between expired tokens and other verification errors
+    if (error?.code === 'ERR_JWT_EXPIRED' || error?.message?.includes('expired')) {
+      console.error('[auth.ts] Token has expired');
+    } else {
+      console.error('[auth.ts] Token verification failed:', error?.message || error);
+    }
     return null;
+  }
+}
+
+/**
+ * Check if a token is expired without throwing errors
+ * Returns true if token is expired or invalid, false if valid
+ */
+export async function isTokenExpired(token: string): Promise<boolean> {
+  try {
+    const JWT_SECRET = getJWTSecret();
+    const { payload } = await jwtVerify(token, JWT_SECRET);
+
+    // Check if token is expired
+    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
+      return true;
+    }
+
+    return false;
+  } catch (error: any) {
+    // Any verification error means token is invalid or expired
+    return true;
   }
 }
 

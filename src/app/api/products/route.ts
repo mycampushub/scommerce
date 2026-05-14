@@ -68,14 +68,16 @@ export async function GET(request: Request) {
         // Category not found, return empty results with standard format
         return NextResponse.json({
           success: true,
-          products: [],
-          pagination: {
-            page,
-            limit,
-            totalCount: 0,
-            totalPages: 0,
-            hasNextPage: false,
-            hasPrevPage: false,
+          data: {
+            products: [],
+            pagination: {
+              page,
+              limit,
+              totalCount: 0,
+              totalPages: 0,
+              hasNextPage: false,
+              hasPrevPage: false,
+            },
           },
         });
       }
@@ -199,14 +201,17 @@ export async function GET(request: Request) {
     const hasPrevPage = page > 1;
 
     const response = NextResponse.json({
-      products: transformedProducts,
-      pagination: {
-        page,
-        limit,
-        totalCount,
-        totalPages,
-        hasNextPage,
-        hasPrevPage,
+      success: true,
+      data: {
+        products: transformedProducts,
+        pagination: {
+          page,
+          limit,
+          totalCount,
+          totalPages,
+          hasNextPage,
+          hasPrevPage,
+        },
       },
     });
 

@@ -80,6 +80,43 @@ export async function getUserReservations(env: Env | null, userId: string): Prom
 }
 
 /**
+ * Release cart item reservation for a specific product/variant
+ */
+export async function releaseCartItemReservation(
+  env: Env | null,
+  userId: string,
+  productId: string,
+  variantId?: string | null
+): Promise<void> {
+  // Build WHERE clause based on whether variantId is present
+  if (variantId) {
+    // For products with variants - match both productId and variantId
+    await execute(
+      env,
+      'DELETE FROM inventory_reservations WHERE userId = ? AND productId = ? AND variantId = ?',
+      userId,
+      productId,
+      variantId
+    );
+  } else {
+    // For products without variants - match productId and variantId IS NULL
+    await execute(
+      env,
+      'DELETE FROM inventory_reservations WHERE userId = ? AND productId = ? AND variantId IS NULL',
+      userId,
+      productId
+    );
+  }
+}
+
+/**
+ * Release all reservations for a user
+ */
+export async function releaseAllUserReservations(env: Env | null, userId: string): Promise<void> {
+  await execute(env, 'DELETE FROM inventory_reservations WHERE userId = ?', userId);
+}
+
+/**
  * Release all cart reservations for a user
  */
 export async function releaseCartReservations(env: Env | null, userId: string, orderItems: any[]): Promise<void> {
@@ -87,16 +124,17 @@ export async function releaseCartReservations(env: Env | null, userId: string, o
   const variantIds = orderItems.map(item => item.variantId).filter(Boolean) as string[];
 
   if (variantIds.length > 0) {
+    // For products with variants - release by variantId
     await execute(
       env,
       `DELETE FROM inventory_reservations
-       WHERE userId = ? AND productId IN (${itemIds.map(() => '?').join(',')})
-       AND variantId IN (${variantIds.map(() => '?').join(',')})`,
+       WHERE userId = ? AND variantId IN (${variantIds.map(() => '?').join(',')})`,
       userId,
-      ...itemIds,
       ...variantIds
     );
-  } else if (itemIds.length > 0) {
+  }
+  if (itemIds.length > 0) {
+    // For products without variants - release by productId where variantId IS NULL
     await execute(
       env,
       `DELETE FROM inventory_reservations

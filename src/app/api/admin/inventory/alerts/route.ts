@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
 
       console.log('[inventory alerts API] Prisma where clause:', where)
 
-      const prismaAlerts = await prisma.inventoryAlert.findMany({
+      const prismaAlerts = await prisma.inventory_alerts.findMany({
         where,
         orderBy: { createdAt: 'desc' }
       })
@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
     if (productIds.length > 0) {
       if (!env || !env.DB) {
         console.log('[inventory alerts API] Using Prisma to fetch products')
-        const products = await prisma.product.findMany({
+        const products = await prisma.products.findMany({
           where: { id: { in: productIds } },
           select: { id: true, name: true, slug: true, images: true }
         })
@@ -174,7 +174,7 @@ export async function POST(request: NextRequest) {
       console.log('[inventory alerts API] Using Prisma to create alert')
 
       // Check if alert already exists for this product and type
-      const existingAlert = await prisma.inventoryAlert.findFirst({
+      const existingAlert = await prisma.inventory_alerts.findFirst({
         where: {
           productId: body.productId,
           alertType: body.alertType,
@@ -190,8 +190,9 @@ export async function POST(request: NextRequest) {
       }
 
       // Create alert using Prisma
-      alert = await prisma.inventoryAlert.create({
+      alert = await prisma.inventory_alerts.create({
         data: {
+          id: generateId(),
           productId: body.productId,
           alertType: body.alertType,
           quantity: body.quantity || 0,
@@ -245,7 +246,7 @@ export async function POST(request: NextRequest) {
     // Enrich with product data
     let product
     if (!env || !env.DB) {
-      product = await prisma.product.findUnique({
+      product = await prisma.products.findUnique({
         where: { id: alert.productId },
         select: { id: true, name: true, slug: true, images: true }
       })

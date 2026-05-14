@@ -9,10 +9,38 @@ import { sanitizeForDB } from '@/lib/sanitize';
 import { addCacheHeaders, CachePresets } from '@/lib/http-cache';
 import {
   reserveStock,
-  releaseStock,
+  releaseCartItemReservation,
+  releaseAllUserReservations,
   cleanupExpiredReservations,
   getUserReservations,
 } from '@/db/inventory-reservation.repository';
+
+/**
+ * TypeScript interfaces for cart operations
+ */
+interface CartRequestBody {
+  action: 'add' | 'update' | 'remove' | 'sync' | 'clear';
+  item?: {
+    productId: string;
+    variantId?: string;
+    quantity?: number;
+    size?: string;
+    color?: string;
+  };
+  items?: Array<{
+    id: string;
+    quantity: number;
+    variantId?: string;
+    size?: string;
+    color?: string;
+  }>;
+}
+
+interface StockCheckResult {
+  stock: number;
+  name: string;
+  sku?: string | null;
+}
 
 
 /**
@@ -156,7 +184,7 @@ export async function POST(request: NextRequest) {
   const env = getEnv();
 
   try {
-    const body = await request.json() as any;
+    const body: CartRequestBody = await request.json() as CartRequestBody;
     const { action, item, items } = body;
 
     // Get token from Authorization header or cookie
@@ -187,6 +215,13 @@ export async function POST(request: NextRequest) {
     switch (action) {
       case 'add': {
         // Validate cart item
+        if (!item) {
+          return NextResponse.json(
+            { success: false, error: 'Item data is required' },
+            { status: 400 }
+          );
+        }
+
         const validation = cartItemSchema.safeParse(item);
         if (!validation.success) {
           return NextResponse.json(
@@ -213,7 +248,7 @@ export async function POST(request: NextRequest) {
         if (!reservation) {
           // Stock not available
           const stockCheck = item.variantId
-            ? await queryFirst<{ stock: number; name: string; sku: string | null }>(
+            ? await queryFirst<StockCheckResult>(
                 env,
                 'SELECT pv.stock, p.name, pv.sku FROM product_variants pv JOIN products p ON pv.productId = p.id WHERE pv.id = ? LIMIT 1',
                 item.variantId
@@ -224,8 +259,9 @@ export async function POST(request: NextRequest) {
                 item.productId
               );
 
-          const itemName = stockCheck
-            ? `${stockCheck.name}${(stockCheck as any).sku ? ` (${(stockCheck as any).sku})` : ''}`
+          const stockCheckTyped = stockCheck as StockCheckResult | null;
+          const itemName = stockCheckTyped
+            ? `${stockCheckTyped.name}${stockCheckTyped.sku ? ` (${stockCheckTyped.sku})` : ''}`
             : 'Item';
 
           return NextResponse.json(
@@ -238,18 +274,37 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        // Add item to cart using repository
-        const cartItem = await CartRepository.addItem(env, {
-          userId,
-          productId: item.productId,
-          variantId: item.variantId,
-          quantity: item.quantity || 1,
-        });
+        // Add item to cart using repository with error handling
+        let cartItem;
+        try {
+          cartItem = await CartRepository.addItem(env, {
+            userId,
+            productId: item.productId,
+            variantId: item.variantId,
+            quantity: item.quantity || 1,
+          });
+        } catch (error) {
+          // If cart add fails, release the reservation
+          console.error('Failed to add cart item, releasing reservation:', error);
+          await releaseCartItemReservation(env, userId, item.productId, item.variantId || null);
+          return NextResponse.json(
+            { success: false, error: 'Failed to add item to cart' },
+            { status: 500 }
+          );
+        }
+
         return NextResponse.json({ success: true, item: cartItem });
       }
 
       case 'update': {
         // Validate cart item
+        if (!item) {
+          return NextResponse.json(
+            { success: false, error: 'Item data is required' },
+            { status: 400 }
+          );
+        }
+
         const validation = updateCartItemSchema.safeParse(item);
         if (!validation.success) {
           return NextResponse.json(
@@ -274,12 +329,46 @@ export async function POST(request: NextRequest) {
           );
         }
 
+        // Re-check stock availability before updating quantity
+        // Get current stock for the product/variant
+        const stockCheck = item.variantId
+          ? await queryFirst<{ stock: number }>(
+              env,
+              'SELECT stock FROM product_variants WHERE id = ? LIMIT 1',
+              item.variantId
+            )
+          : await queryFirst<{ stock: number }>(
+              env,
+              'SELECT stock FROM products WHERE id = ? LIMIT 1',
+              item.productId
+            );
+
+        const availableStock = stockCheck?.stock || 0;
+        const quantityRequested = item.quantity || 1;
+        if (quantityRequested > availableStock) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: `Sorry, only ${availableStock} item(s) available in stock`,
+              availableStock,
+            },
+            { status: 409 }
+          );
+        }
+
         // Update quantity
-        const updatedItem = await CartRepository.updateQuantity(env, existingItem.id, item.quantity);
+        const updatedItem = await CartRepository.updateQuantity(env, existingItem.id, quantityRequested);
         return NextResponse.json({ success: true, item: updatedItem });
       }
 
       case 'remove': {
+        if (!item) {
+          return NextResponse.json(
+            { success: false, error: 'Item data is required' },
+            { status: 400 }
+          );
+        }
+
         // Find the cart item
         const existingItemRemove = await queryFirst<{ id: string }>(
           env,
@@ -297,14 +386,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Release stock reservation
-        await env.DB.prepare(
-          `DELETE FROM inventory_reservations
-           WHERE userId = ?
-             AND ((productId = ? AND variantId IS NULL)
-                  OR (variantId = ? AND productId IS NULL))`
-        )
-          .bind(userId, item.productId!, item.variantId || null)
-          .run();
+        await releaseCartItemReservation(env, userId, item.productId!, item.variantId || null);
 
         // Remove cart item
         await CartRepository.removeItem(env, existingItemRemove.id);
@@ -319,7 +401,16 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ success: true, synced: 0 });
         }
 
-        // Validate each cart item
+        const errors: string[] = [];
+        let synced = 0;
+
+        // Clean up expired reservations before sync
+        await cleanupExpiredReservations(env);
+
+        // Clear existing cart
+        await CartRepository.clearCart(env, userId);
+
+        // Create new cart items
         for (const clientItem of items) {
           const validation = cartItemSchema.safeParse({
             productId: clientItem.id,
@@ -328,30 +419,68 @@ export async function POST(request: NextRequest) {
             color: clientItem.color,
           });
           if (!validation.success) {
-            return NextResponse.json(
-              { success: false, error: `Invalid cart item: ${validation.error.issues[0].message}` },
-              { status: 400 }
-            );
+            errors.push(`Item ${clientItem.id}: ${validation.error.issues[0].message}`);
+            continue; // Skip invalid items but continue with others
+          }
+
+          // Check stock availability before adding to cart
+          const stockCheck = clientItem.variantId
+            ? await queryFirst<{ stock: number }>(
+                env,
+                'SELECT stock FROM product_variants WHERE id = ? LIMIT 1',
+                clientItem.variantId
+              )
+            : await queryFirst<{ stock: number }>(
+                env,
+                'SELECT stock FROM products WHERE id = ? LIMIT 1',
+                clientItem.id
+              );
+
+          const availableStock = stockCheck?.stock || 0;
+          const quantityToAdd = clientItem.quantity || 1;
+
+          if (quantityToAdd > availableStock) {
+            errors.push(`Item ${clientItem.id}: Only ${availableStock} available, requested ${quantityToAdd}`);
+            // Still add the item but with available stock
+            await CartRepository.addItem(env, {
+              userId,
+              productId: clientItem.id,
+              variantId: clientItem.variantId,
+              quantity: availableStock,
+            });
+            synced++;
+          } else {
+            // Reserve stock
+            await reserveStock(env, {
+              variantId: clientItem.variantId,
+              productId: clientItem.id,
+              userId,
+              quantity: quantityToAdd,
+              expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+            });
+
+            await CartRepository.addItem(env, {
+              userId,
+              productId: clientItem.id,
+              variantId: clientItem.variantId,
+              quantity: quantityToAdd,
+            });
+            synced++;
           }
         }
 
-        // Clear existing cart
-        await CartRepository.clearCart(env, userId);
-
-        // Create new cart items
-        for (const clientItem of items) {
-          await CartRepository.addItem(env, {
-            userId,
-            productId: clientItem.id,
-            variantId: clientItem.variantId,
-            quantity: clientItem.quantity || 1,
-          });
-        }
-
-        return NextResponse.json({ success: true, synced: items.length });
+        // Return success even with errors, but include error details
+        return NextResponse.json({
+          success: true,
+          synced,
+          errors: errors.length > 0 ? errors : undefined,
+        });
       }
 
       case 'clear': {
+        // Release all inventory reservations for this user
+        await releaseAllUserReservations(env, userId);
+
         // Clear all cart items for user
         await CartRepository.clearCart(env, userId);
         return NextResponse.json({ success: true });

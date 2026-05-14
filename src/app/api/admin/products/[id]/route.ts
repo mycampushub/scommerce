@@ -5,6 +5,7 @@ import { ProductRepository } from '@/db/product.repository'
 import { CategoryRepository } from '@/db/category.repository'
 import { updateProductSchema } from '@/lib/validations'
 import { queryFirst, execute, parseJSON, numberToBool } from '@/db/db'
+import { logAdminAction } from '@/lib/audit-logger'
 
 
 export async function GET(
@@ -64,6 +65,8 @@ export async function PUT(
     return userOrResponse
   }
 
+  const admin = userOrResponse as { id: string; email: string; role: string; name?: string }
+
   try {
     const env = getEnv()
     const { id } = await params
@@ -106,6 +109,23 @@ export async function PUT(
       )
     }
 
+    // Log audit event
+    const changes: string[] = []
+    if (validatedData.name && validatedData.name !== existing.name) {
+      changes.push(`name: "${existing.name}" → "${validatedData.name}"`)
+    }
+    if (validatedData.price && validatedData.price !== existing.basePrice) {
+      changes.push(`price: ${existing.basePrice} → ${validatedData.price}`)
+    }
+    if (typeof validatedData.isActive !== 'undefined' && validatedData.isActive !== numberToBool(existing.isActive)) {
+      changes.push(`isActive: ${numberToBool(existing.isActive)} → ${validatedData.isActive}`)
+    }
+    const details = changes.length > 0
+      ? `Updated product (ID: ${id}): ${changes.join(', ')}`
+      : `Updated product (ID: ${id})`
+
+    await logAdminAction(env, request, admin.id, 'UPDATE', 'Product', id, details)
+
     let category: any = null
     if (updated.categoryId) {
       category = await CategoryRepository.findById(env, updated.categoryId)
@@ -133,13 +153,15 @@ export async function DELETE(
     return userOrResponse
   }
 
+  const admin = userOrResponse as { id: string; email: string; role: string; name?: string }
+
   try {
     const env = getEnv()
     const { id } = await params
 
     const product = await queryFirst<any>(
       env,
-      'SELECT id FROM products WHERE id = ? LIMIT 1',
+      'SELECT id, name FROM products WHERE id = ? LIMIT 1',
       id
     )
 
@@ -194,6 +216,17 @@ export async function DELETE(
     await execute(env, 'DELETE FROM wishlist_items WHERE productId = ?', id)
     await execute(env, 'DELETE FROM product_reviews WHERE productId = ?', id)
     await execute(env, 'DELETE FROM products WHERE id = ?', id)
+
+    // Log audit event
+    await logAdminAction(
+      env,
+      request,
+      admin.id,
+      'DELETE',
+      'Product',
+      id,
+      `Deleted product "${product.name}" (ID: ${id})`
+    )
 
     return NextResponse.json({
       success: true,

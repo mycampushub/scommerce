@@ -4,6 +4,7 @@ import { ProductRepository } from '@/db/product.repository';
 import { CategoryRepository } from '@/db/category.repository';
 import { numberToBool, parseJSON, queryFirst } from '@/db/db';
 import { addCacheHeaders, CachePresets } from '@/lib/http-cache';
+import { successResponse, errorResponse, notFoundResponse } from '@/lib/api-response';
 
 
 export async function GET(
@@ -25,10 +26,7 @@ export async function GET(
     }
 
     if (!product) {
-      return NextResponse.json(
-        { error: 'Product not found' },
-        { status: 404 }
-      );
+      return notFoundResponse('Product not found');
     }
 
     // Get category
@@ -77,15 +75,12 @@ export async function GET(
       updatedAt: product.updatedAt,
     };
 
-    const response = NextResponse.json(transformedProduct);
+    const response = successResponse(transformedProduct);
 
     // Add caching headers for product detail (semi-static - 10 minutes)
     return addCacheHeaders(response, CachePresets.SEMI_STATIC);
   } catch (error) {
     console.error('Error fetching product:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch product' },
-      { status: 500 }
-    );
+    return errorResponse('Failed to fetch product', 500);
   }
 }

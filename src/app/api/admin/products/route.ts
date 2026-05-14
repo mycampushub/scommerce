@@ -14,7 +14,8 @@ import {
   parseJSON,
   stringifyJSON
 } from '@/db/db'
-import { generateUniqueSlug, isValidSlug } from '@/lib/slug'
+import { generateUniqueSlug, isValidSlug, createSlug } from '@/lib/slug'
+import { logAdminAction } from '@/lib/audit-logger'
 
 
 export async function GET(request: NextRequest) {
@@ -95,7 +96,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: productsWithImages,
-      total: productsWithImages.length,
       totalCount,
       pagination: {
         page,
@@ -124,6 +124,8 @@ export async function POST(request: NextRequest) {
     return userOrResponse
   }
 
+  const admin = userOrResponse as { id: string; email: string; role: string; name?: string }
+
   try {
     const env = getEnv()
     const contentType = request.headers.get('content-type') || ''
@@ -151,11 +153,11 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         )
       }
+
+      // Auto-generate slug from name if not provided
+      let finalSlug = slug
       if (!slug || slug.trim().length === 0) {
-        return NextResponse.json(
-          { success: false, error: 'Product slug is required' },
-          { status: 400 }
-        )
+        finalSlug = createSlug(name)
       }
       if (!description || description.trim().length === 0) {
         return NextResponse.json(
@@ -186,20 +188,21 @@ export async function POST(request: NextRequest) {
       }
 
       // Validate slug format
-      if (!isValidSlug(slug)) {
+      if (!isValidSlug(finalSlug)) {
         return NextResponse.json(
           { success: false, error: 'Invalid slug format. Use only lowercase letters, numbers, and hyphens.' },
           { status: 400 }
         )
       }
 
-      // Check for unique slug
-      const existingProduct = await ProductRepository.findBySlug(env, slug)
-      if (existingProduct) {
-        return NextResponse.json(
-          { success: false, error: 'A product with this URL slug already exists. Please use a different name or slug.' },
-          { status: 409 }
-        )
+      // Check for unique slug and generate unique slug if needed
+      let generatedSlug = finalSlug
+      let counter = 1
+      let existingProduct = await ProductRepository.findBySlug(env, generatedSlug)
+      while (existingProduct) {
+        generatedSlug = `${finalSlug}-${counter}`
+        counter++
+        existingProduct = await ProductRepository.findBySlug(env, generatedSlug)
       }
 
       // Handle image uploads
@@ -244,7 +247,7 @@ export async function POST(request: NextRequest) {
 
       const product = await ProductRepository.create(env, {
         name,
-        slug,
+        slug: generatedSlug,
         description: description || undefined,
         categoryId: categoryId || '',
         basePrice: parseFloat(basePrice),
@@ -257,6 +260,17 @@ export async function POST(request: NextRequest) {
         isFeatured,
         hasVariants: false,
       })
+
+      // Log audit event
+      await logAdminAction(
+        env,
+        request,
+        admin.id,
+        'CREATE',
+        'Product',
+        product.id,
+        `Created product "${name}" (ID: ${product.id})`
+      )
 
       // Fetch category for response
       let category: any = null
@@ -288,23 +302,42 @@ export async function POST(request: NextRequest) {
 
       const validatedData = validation.data
 
-      // Check for unique slug
-      const existingProduct = await ProductRepository.findBySlug(env, validatedData.slug)
-      if (existingProduct) {
-        return NextResponse.json(
-          { success: false, error: 'A product with this URL slug already exists. Please use a different name or slug.' },
-          { status: 409 }
-        )
+      // Auto-generate slug from name if not provided
+      let finalSlug = validatedData.slug
+      if (!finalSlug || finalSlug.trim().length === 0) {
+        finalSlug = createSlug(validatedData.name)
+      }
+
+      // Check for unique slug and generate unique slug if needed
+      let generatedSlug = finalSlug
+      let counter = 1
+      let existingProduct = await ProductRepository.findBySlug(env, generatedSlug)
+      while (existingProduct) {
+        generatedSlug = `${finalSlug}-${counter}`
+        counter++
+        existingProduct = await ProductRepository.findBySlug(env, generatedSlug)
       }
 
       // Convert null values to undefined for repository
       const productData = {
         ...validatedData,
+        slug: generatedSlug,
         comparePrice: validatedData.comparePrice ?? undefined,
         costPrice: validatedData.costPrice ?? undefined,
       }
 
       const product = await ProductRepository.create(env, productData)
+
+      // Log audit event
+      await logAdminAction(
+        env,
+        request,
+        admin.id,
+        'CREATE',
+        'Product',
+        product.id,
+        `Created product "${validatedData.name}" (ID: ${product.id})`
+      )
 
       // Fetch category for response
       let category: any = null

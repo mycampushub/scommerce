@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { successResponse, errorResponse } from '@/lib/api-response'
 import { getEnv } from '@/lib/cloudflare'
 import { queryAll } from '@/db/db'
 import { parseJSON } from '@/db/db'
 import { addCacheHeaders, CachePresets } from '@/lib/http-cache'
+import { Product, Category } from '@/types/common'
 
 
 /**
@@ -23,12 +25,9 @@ export async function GET(request: NextRequest) {
     const query = rawQuery.replace(/[%_\\]/g, '\\$&').trim()
 
     if (query.length < 2) {
-      const response = NextResponse.json({
-        success: true,
-        data: {
-          products: [],
-          categories: [],
-        },
+      const response = successResponse({
+        products: [],
+        categories: [],
       })
 
       // Add caching headers for empty autocomplete results (short cache)
@@ -36,7 +35,17 @@ export async function GET(request: NextRequest) {
     }
 
     // Search for products matching query
-    const products = await queryAll(
+    const products = await queryAll<{
+      id: string
+      name: string
+      slug: string
+      images: string
+      price?: number
+      basePrice: number
+      comparePrice: number | null
+      categoryName: string | null
+      categorySlug: string | null
+    }>(
       env,
       `SELECT p.id, p.name, p.slug, p.images, p.price, p.basePrice, p.comparePrice, c.name as categoryName, c.slug as categorySlug
        FROM products p
@@ -50,7 +59,12 @@ export async function GET(request: NextRequest) {
     )
 
     // Search for categories matching query
-    const categories = await queryAll(
+    const categories = await queryAll<{
+      id: string
+      name: string
+      slug: string
+      image: string | null
+    }>(
       env,
       `SELECT id, name, slug, image
        FROM categories
@@ -62,7 +76,7 @@ export async function GET(request: NextRequest) {
     )
 
     // Format products
-    const formattedProducts = products.map((product: any) => {
+    const formattedProducts = products.map((product) => {
       const parsedImages = parseJSON<string[]>(product.images)
       const images = parsedImages || []
       return {
@@ -79,7 +93,7 @@ export async function GET(request: NextRequest) {
     })
 
     // Format categories
-    const formattedCategories = categories.map((category: any) => ({
+    const formattedCategories = categories.map((category) => ({
       id: category.id,
       name: category.name,
       slug: category.slug,
@@ -93,22 +107,16 @@ export async function GET(request: NextRequest) {
       ...formattedCategories.slice(0, 5),
     ].slice(0, limit)
 
-    const response = NextResponse.json({
-      success: true,
-      data: {
-        products: formattedProducts,
-        categories: formattedCategories,
-        combined: combinedResults,
-      },
-    })
+    const response = successResponse({
+      products: formattedProducts,
+      categories: formattedCategories,
+      combined: combinedResults,
+    }, 'Search results retrieved successfully')
 
     // Add caching headers for search autocomplete (short cache - 1 minute)
     return addCacheHeaders(response, CachePresets.SHORT);
   } catch (error) {
     console.error('Search autocomplete error:', error)
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch suggestions' },
-      { status: 500 }
-    )
+    return errorResponse('Failed to fetch suggestions', 500)
   }
 }

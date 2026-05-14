@@ -4,6 +4,7 @@ import { getEnv } from '@/lib/cloudflare'
 import { CategoryRepository } from '@/db/category.repository'
 import { categorySchema } from '@/lib/validations'
 import { queryAll, count, numberToBool } from '@/db/db'
+import { logAdminAction } from '@/lib/audit-logger'
 
 
 export async function GET(request: NextRequest) {
@@ -78,6 +79,8 @@ export async function POST(request: NextRequest) {
     return userOrResponse
   }
 
+  const admin = userOrResponse as { id: string; email: string; role: string; name?: string }
+
 
   try {
     const env = getEnv()
@@ -101,6 +104,17 @@ export async function POST(request: NextRequest) {
       image: validatedData.image,
       isActive: validatedData.isActive ?? true,
     })
+
+    // Log audit event
+    await logAdminAction(
+      env,
+      request,
+      admin.id,
+      'CREATE',
+      'Category',
+      category.id,
+      `Created category "${validatedData.name}" (ID: ${category.id})`
+    )
 
     return NextResponse.json({
       success: true,

@@ -37,35 +37,35 @@ VALUES
 ('prod-sa-005', 'Kanjeevaram Saree', 'kanjeevaram-saree', 'Traditional Kanjeevaram silk saree', 'cat-sarees', 15000, 15000, 18000, 16.67, 'percentage', '["/images/products/saree-5.jpg"]', 8, 1, 1, 0, datetime('now'), datetime('now')),
 
 -- Salwar Suits
-('prod-sw-001', 'Anarkali Suit', 'anarkali-suit', 'Beautiful Anarkali salwar suit', 'cat-salwar', 4000, 4000, 5000, 20, 'percentage', '["/images/products/salwar-1.jpg"]', 15, 1, 1, 0, datetime('now'), datetime('now')),
+('prod-sw-001', 'Anarkali Suit', 'anarkali-suit', 'Beautiful Anarkali salwar suit', 'cat-salwar', 4000, 4000, 5000, 20, 'percentage', '["/images/products/salwar-1.jpg"]', 15, 1, 1, 1, datetime('now'), datetime('now')),
 ('prod-sw-002', 'Palazzo Suit', 'palazzo-suit', 'Modern palazzo salwar suit', 'cat-salwar', 3500, 3500, null, 0, 'percentage', '["/images/products/salwar-2.jpg"]', 20, 1, 0, 0, datetime('now'), datetime('now')),
 ('prod-sw-003', 'Straight Cut Suit', 'straight-cut-suit', 'Elegant straight cut salwar suit', 'cat-salwar', 3000, 3000, 3500, 14.29, 'percentage', '["/images/products/salwar-3.jpg"]', 18, 1, 1, 0, datetime('now'), datetime('now')),
 ('prod-sw-004', 'Churidar Suit', 'churidar-suit', 'Classic churidar salwar suit', 'cat-salwar', 3500, 3500, 4000, 12.5, 'percentage', '["/images/products/salwar-4.jpg"]', 22, 1, 0, 0, datetime('now'), datetime('now')),
 ('prod-sw-005', 'Patiala Suit', 'patiala-suit', 'Traditional Patiala salwar suit', 'cat-salwar', 3800, 3800, null, 0, 'percentage', '["/images/products/salwar-5.jpg"]', 16, 1, 1, 0, datetime('now'), datetime('now')),
 
 -- Kurtas
-('prod-ku-001', 'Embroidered Kurta', 'embroidered-kurta', 'Beautiful embroidered kurta', 'cat-kurtas', 2000, 2000, 2500, 20, 'percentage', '["/images/products/kurta-1.jpg"]', 25, 1, 1, 0, datetime('now'), datetime('now')),
+('prod-ku-001', 'Embroidered Kurta', 'embroidered-kurta', 'Beautiful embroidered kurta', 'cat-kurtas', 2000, 2000, 2500, 20, 'percentage', '["/images/products/kurta-1.jpg"]', 25, 1, 1, 1, datetime('now'), datetime('now')),
 ('prod-ku-002', 'Printed Kurta', 'printed-kurta', 'Trendy printed kurta', 'cat-kurtas', 1500, 1500, null, 0, 'percentage', '["/images/products/kurta-2.jpg"]', 30, 1, 0, 0, datetime('now'), datetime('now')),
 ('prod-ku-003', 'Solid Kurta', 'solid-kurta', 'Elegant solid color kurta', 'cat-kurtas', 1800, 1800, 2000, 10, 'percentage', '["/images/products/kurta-3.jpg"]', 20, 1, 1, 0, datetime('now'), datetime('now')),
 ('prod-ku-004', 'Long Straight Kurta', 'long-straight-kurta', 'Modern long straight kurta', 'cat-kurtas', 2200, 2200, null, 0, 'percentage', '["/images/products/kurta-4.jpg"]', 18, 1, 0, 0, datetime('now'), datetime('now')),
 ('prod-ku-005', 'A-Line Kurta', 'a-line-kurta', 'Flattering A-line kurta', 'cat-kurtas', 2000, 2000, 2400, 16.67, 'percentage', '["/images/products/kurta-5.jpg"]', 22, 1, 1, 0, datetime('now'), datetime('now')),
 
 -- Tops
-('prod-to-001', 'Floral Top', 'floral-top', 'Beautiful floral print top', 'cat-tops', 1200, 1200, 1500, 20, 'percentage', '["/images/products/top-1.jpg"]', 30, 1, 1, 0, datetime('now'), datetime('now')),
+('prod-to-001', 'Floral Top', 'floral-top', 'Beautiful floral print top', 'cat-tops', 1200, 1200, 1500, 20, 'percentage', '["/images/products/top-1.jpg"]', 30, 1, 1, 1, datetime('now'), datetime('now')),
 ('prod-to-002', 'Striped Top', 'striped-top', 'Classic striped top', 'cat-tops', 1000, 1000, null, 0, 'percentage', '["/images/products/top-2.jpg"]', 35, 1, 0, 0, datetime('now'), datetime('now')),
 ('prod-to-003', 'Solid Color Top', 'solid-color-top', 'Versatile solid color top', 'cat-tops', 900, 900, 1100, 18.18, 'percentage', '["/images/products/top-3.jpg"]', 40, 1, 1, 0, datetime('now'), datetime('now')),
 ('prod-to-004', 'Peplum Top', 'peplum-top', 'Stylish peplum top', 'cat-tops', 1500, 1500, 1800, 16.67, 'percentage', '["/images/products/top-4.jpg"]', 25, 1, 0, 0, datetime('now'), datetime('now')),
 ('prod-to-005', 'Off-Shoulder Top', 'off-shoulder-top', 'Trendy off-shoulder top', 'cat-tops', 1800, 1800, null, 0, 'percentage', '["/images/products/top-5.jpg"]', 20, 1, 1, 0, datetime('now'), datetime('now')),
 
 -- Gowns
-('prod-go-001', 'Evening Gown', 'evening-gown', 'Elegant evening gown', 'cat-gowns', 12000, 12000, 15000, 20, 'percentage', '["/images/products/gown-1.jpg"]', 10, 1, 1, 1, datetime('now'), datetime('now')),
-('prod-go-002', 'Wedding Gown', 'wedding-gown', 'Beautiful wedding gown', 'cat-gowns', 25000, 25000, 30000, 16.67, 'percentage', '["/images/products/gown-2.jpg"]', 5, 1, 1, 1, datetime('now'), datetime('now')),
+('prod-go-001', 'Evening Gown', 'evening-gown', 'Elegant evening gown', 'cat-gowns', 12000, 12000, 15000, 20, 'percentage', '["/images/products/gown-1.jpg"]', 10, 1, 1, 0, datetime('now'), datetime('now')),
+('prod-go-002', 'Wedding Gown', 'wedding-gown', 'Beautiful wedding gown', 'cat-gowns', 25000, 25000, 30000, 16.67, 'percentage', '["/images/products/gown-2.jpg"]', 5, 1, 1, 0, datetime('now'), datetime('now')),
 ('prod-go-003', 'Party Gown', 'party-gown', 'Stylish party gown', 'cat-gowns', 8000, 8000, 10000, 20, 'percentage', '["/images/products/gown-3.jpg"]', 12, 1, 1, 0, datetime('now'), datetime('now')),
 ('prod-go-004', 'Cocktail Gown', 'cocktail-gown', 'Chic cocktail gown', 'cat-gowns', 10000, 10000, null, 0, 'percentage', '["/images/products/gown-4.jpg"]', 8, 1, 0, 0, datetime('now'), datetime('now')),
 ('prod-go-005', 'Maxi Gown', 'maxi-gown', 'Flowing maxi gown', 'cat-gowns', 9000, 9000, 11000, 18.18, 'percentage', '["/images/products/gown-5.jpg"]', 10, 1, 1, 0, datetime('now'), datetime('now')),
 
 -- Menswear
-('prod-me-001', 'Men Kurta Pyjama', 'men-kurta-pyjama', 'Traditional kurta pyjama set', 'cat-menswear', 3000, 3000, 3500, 14.29, 'percentage', '["/images/products/men-1.jpg"]', 20, 1, 1, 0, datetime('now'), datetime('now')),
+('prod-me-001', 'Men Kurta Pyjama', 'men-kurta-pyjama', 'Traditional kurta pyjama set', 'cat-menswear', 3000, 3000, 3500, 14.29, 'percentage', '["/images/products/men-1.jpg"]', 20, 1, 1, 1, datetime('now'), datetime('now')),
 ('prod-me-002', 'Nehru Jacket Set', 'nehru-jacket-set', 'Elegant Nehru jacket with kurta', 'cat-menswear', 5000, 5000, 6000, 16.67, 'percentage', '["/images/products/men-2.jpg"]', 15, 1, 1, 0, datetime('now'), datetime('now')),
 ('prod-me-003', 'Sherwani', 'sherwani', 'Traditional sherwani for special occasions', 'cat-menswear', 15000, 15000, 18000, 16.67, 'percentage', '["/images/products/men-3.jpg"]', 8, 1, 1, 1, datetime('now'), datetime('now')),
 ('prod-me-004', 'Waistcoat Set', 'waistcoat-set', 'Stylish waistcoat with kurta', 'cat-menswear', 6000, 6000, null, 0, 'percentage', '["/images/products/men-4.jpg"]', 12, 1, 0, 0, datetime('now'), datetime('now')),

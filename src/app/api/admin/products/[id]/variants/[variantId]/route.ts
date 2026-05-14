@@ -4,6 +4,7 @@ import { getEnv } from '@/lib/cloudflare'
 import { ProductRepository } from '@/db/product.repository'
 import { CategoryRepository } from '@/db/category.repository'
 import { generateSKU, checkSKUConflict } from '@/lib/sku-generator'
+import { logAdminAction } from '@/lib/audit-logger'
 import { z } from 'zod'
 import { queryFirst, queryAll, execute, boolToNumber, numberToBool, parseJSON, stringifyJSON, now, count } from '@/db/db'
 
@@ -200,6 +201,34 @@ export async function PUT(
       )
     }
 
+    // Build details string for audit log
+    const changes: string[] = []
+    if (validatedData.name !== undefined && validatedData.name !== existingVariant.name) {
+      changes.push(`name: "${existingVariant.name}" → "${validatedData.name}"`)
+    }
+    if (validatedData.price !== undefined && validatedData.price !== existingVariant.price) {
+      changes.push(`price: ${existingVariant.price} → ${validatedData.price}`)
+    }
+    if (validatedData.stock !== undefined && validatedData.stock !== existingVariant.stock) {
+      changes.push(`stock: ${existingVariant.stock} → ${validatedData.stock}`)
+    }
+    if (validatedData.isActive !== undefined) {
+      const oldActive = numberToBool(existingVariant.isActive)
+      changes.push(`active: ${oldActive} → ${validatedData.isActive}`)
+    }
+    const details = changes.length > 0 ? changes.join(', ') : 'Updated variant'
+
+    // Log audit event
+    await logAdminAction(
+      env,
+      request,
+      userOrResponse.id,
+      'UPDATE',
+      'ProductVariant',
+      variantId,
+      `Updated variant "${variant.name}" (SKU: ${variant.sku}) for product "${existingVariant.productName}": ${details}`
+    )
+
     return NextResponse.json({
       success: true,
       data: {
@@ -315,6 +344,17 @@ export async function DELETE(
     if (remainingVariants === 0) {
       await ProductRepository.update(env, id, { hasVariants: boolToNumber(false) })
     }
+
+    // Log audit event
+    await logAdminAction(
+      env,
+      request,
+      userOrResponse.id,
+      'DELETE',
+      'ProductVariant',
+      variantId,
+      `Deleted variant "${variant.name}" (SKU: ${variant.sku}) from product "${id}"`
+    )
 
     return NextResponse.json({
       success: true,

@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { successResponse } from '@/lib/api-response';
 import { getEnv } from '@/lib/cloudflare';
 
 /**
@@ -40,5 +40,5 @@ export async function GET() {
     }
   }
 
-  return NextResponse.json(health);
+  return successResponse(health);
 }

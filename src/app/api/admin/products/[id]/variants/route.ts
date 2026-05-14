@@ -4,6 +4,7 @@ import { getEnv } from '@/lib/cloudflare'
 import { ProductRepository } from '@/db/product.repository'
 import { CategoryRepository } from '@/db/category.repository'
 import { generateSKU, checkSKUConflict } from '@/lib/sku-generator'
+import { logAdminAction } from '@/lib/audit-logger'
 import { z } from 'zod'
 import { queryFirst, queryAll, execute, boolToNumber, parseJSON, stringifyJSON, now } from '@/db/db'
 
@@ -205,6 +206,17 @@ export async function POST(
     if (!product.hasVariants) {
       await ProductRepository.update(env, id, { hasVariants: boolToNumber(true) })
     }
+
+    // Log audit event
+    await logAdminAction(
+      env,
+      request,
+      userOrResponse.id,
+      'CREATE',
+      'ProductVariant',
+      variant.id,
+      `Created variant "${validatedData.name}" (SKU: ${sku}) for product "${product.name}"`
+    )
 
     return NextResponse.json({
       success: true,

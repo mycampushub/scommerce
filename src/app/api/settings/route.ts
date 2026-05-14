@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { successResponse, errorResponse, validationErrorResponse } from '@/lib/api-response';
 import { getEnv } from '@/lib/cloudflare';
 import { SettingsRepository } from '@/db/settings.repository';
 import { addCacheHeaders, CachePresets } from '@/lib/http-cache';
 import { verifyAdminAuth } from '@/lib/admin-auth';
-;
 import prisma from '@/lib/database';
 
 
@@ -17,22 +17,13 @@ export async function GET(request: NextRequest) {
   try {
     const settings = await SettingsRepository.getSettings(env);
 
-    const response = NextResponse.json({
-      success: true,
-      data: settings
-    });
+    const response = successResponse(settings, 'Settings retrieved successfully');
 
     // Add caching headers for settings (long-term static - 24 hours)
     return addCacheHeaders(response, CachePresets.LONG_TERM);
   } catch (error) {
     console.error('Error fetching settings:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to fetch settings'
-      },
-      { status: 500 }
-    );
+    return errorResponse('Failed to fetch settings', 500);
   }
 }
 
@@ -56,19 +47,9 @@ export async function POST(request: NextRequest) {
     // Update settings
     const updatedSettings = await SettingsRepository.updateSettings(env, body);
 
-    return NextResponse.json({
-      success: true,
-      data: updatedSettings,
-      message: 'Settings updated successfully'
-    });
+    return successResponse(updatedSettings, 'Settings updated successfully');
   } catch (error) {
     console.error('Error updating settings:', error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to update settings'
-      },
-      { status: 500 }
-    );
+    return errorResponse('Failed to update settings', 500);
   }
 }
