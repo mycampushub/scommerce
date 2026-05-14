@@ -6,7 +6,7 @@ import { addCacheHeaders, CachePresets } from '@/lib/http-cache'
 
 export async function GET() {
   // Get D1 database from request context
-  const env = getEnv(new Request('https://example.com'))
+  const env = await getEnv(new Request('https://example.com'))
 
   try {
     const promotions = await queryAll(

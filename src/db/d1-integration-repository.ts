@@ -68,7 +68,7 @@ export interface EmailService {
   updatedAt: string;
 }
 
-function getEnvOrThrow(): any {
+async function getEnvOrThrow(): Promise<any> {
   const env = await getEnv();
   if (!env) throw new Error('Environment/D1 binding not available');
   return env;
@@ -80,25 +80,25 @@ function nowISO(): string {
 
 export class D1IntegrationRepository {
   static async getPaymentGateways(): Promise<PaymentGateway[]> {
-    const env = getEnvOrThrow();
+    const env = await getEnvOrThrow();
     const rows = await queryAll<PaymentGateway>(env, 'SELECT * FROM payment_gateways ORDER BY createdAt DESC');
     return rows;
   }
 
   static async getPaymentGatewayById(id: string): Promise<PaymentGateway | null> {
-    const env = getEnvOrThrow();
+    const env = await getEnvOrThrow();
     const rows = await queryAll<any>(env, 'SELECT * FROM payment_gateways WHERE id = ?', id);
     return rows.length > 0 ? rows[0] : null;
   }
 
   static async getDefaultPaymentGateway(): Promise<PaymentGateway | null> {
-    const env = getEnvOrThrow();
+    const env = await getEnvOrThrow();
     const rows = await queryAll<any>(env, 'SELECT * FROM payment_gateways WHERE isDefault = 1 LIMIT 1');
     return rows.length > 0 ? rows[0] : null;
   }
 
   static async createPaymentGateway(data: Omit<PaymentGateway, 'id' | 'createdAt' | 'updatedAt' | 'lastTested' | 'testStatus'>): Promise<PaymentGateway> {
-    const env = getEnvOrThrow();
+    const env = await getEnvOrThrow();
     const id = generateSecureId();
     const now = nowISO();
     await execute(
@@ -112,7 +112,7 @@ export class D1IntegrationRepository {
   }
 
   static async updatePaymentGateway(id: string, data: Partial<Omit<PaymentGateway, 'id' | 'createdAt' | 'updatedAt'>>): Promise<PaymentGateway | null> {
-    const env = getEnvOrThrow();
+    const env = await getEnvOrThrow();
     const existing = await this.getPaymentGatewayById(id);
     if (!existing) return null;
 
@@ -139,36 +139,36 @@ export class D1IntegrationRepository {
   }
 
   static async deletePaymentGateway(id: string): Promise<void> {
-    const env = getEnvOrThrow();
+    const env = await getEnvOrThrow();
     await execute(env, 'DELETE FROM payment_gateways WHERE id = ?', id);
   }
 
   static async setDefaultPaymentGateway(id: string): Promise<void> {
-    const env = getEnvOrThrow();
+    const env = await getEnvOrThrow();
     await execute(env, 'UPDATE payment_gateways SET isDefault = 0');
     await execute(env, 'UPDATE payment_gateways SET isDefault = 1 WHERE id = ?', id);
   }
 
   static async getShippingCarriers(): Promise<ShippingCarrier[]> {
-    const env = getEnvOrThrow();
+    const env = await getEnvOrThrow();
     const rows = await queryAll<ShippingCarrier>(env, 'SELECT * FROM shipping_carriers ORDER BY createdAt DESC');
     return rows;
   }
 
   static async getShippingCarrierById(id: string): Promise<ShippingCarrier | null> {
-    const env = getEnvOrThrow();
+    const env = await getEnvOrThrow();
     const rows = await queryAll<any>(env, 'SELECT * FROM shipping_carriers WHERE id = ?', id);
     return rows.length > 0 ? rows[0] : null;
   }
 
   static async getDefaultShippingCarrier(): Promise<ShippingCarrier | null> {
-    const env = getEnvOrThrow();
+    const env = await getEnvOrThrow();
     const rows = await queryAll<any>(env, 'SELECT * FROM shipping_carriers WHERE isDefault = 1 LIMIT 1');
     return rows.length > 0 ? rows[0] : null;
   }
 
   static async createShippingCarrier(data: Omit<ShippingCarrier, 'id' | 'createdAt' | 'updatedAt' | 'lastTested' | 'testStatus'>): Promise<ShippingCarrier> {
-    const env = getEnvOrThrow();
+    const env = await getEnvOrThrow();
     const id = generateSecureId();
     const now = nowISO();
     await execute(
@@ -182,7 +182,7 @@ export class D1IntegrationRepository {
   }
 
   static async updateShippingCarrier(id: string, data: Partial<Omit<ShippingCarrier, 'id' | 'createdAt' | 'updatedAt'>>): Promise<ShippingCarrier | null> {
-    const env = getEnvOrThrow();
+    const env = await getEnvOrThrow();
     const existing = await this.getShippingCarrierById(id);
     if (!existing) return null;
 
@@ -209,30 +209,30 @@ export class D1IntegrationRepository {
   }
 
   static async deleteShippingCarrier(id: string): Promise<void> {
-    const env = getEnvOrThrow();
+    const env = await getEnvOrThrow();
     await execute(env, 'DELETE FROM shipping_carriers WHERE id = ?', id);
   }
 
   static async setDefaultShippingCarrier(id: string): Promise<void> {
-    const env = getEnvOrThrow();
+    const env = await getEnvOrThrow();
     await execute(env, 'UPDATE shipping_carriers SET isDefault = 0');
     await execute(env, 'UPDATE shipping_carriers SET isDefault = 1 WHERE id = ?', id);
   }
 
   static async getAnalyticsIntegrations(): Promise<AnalyticsIntegration[]> {
-    const env = getEnvOrThrow();
+    const env = await getEnvOrThrow();
     const rows = await queryAll<AnalyticsIntegration>(env, 'SELECT * FROM analytics_integrations ORDER BY createdAt DESC');
     return rows;
   }
 
   static async getAnalyticsIntegrationById(id: string): Promise<AnalyticsIntegration | null> {
-    const env = getEnvOrThrow();
+    const env = await getEnvOrThrow();
     const rows = await queryAll<any>(env, 'SELECT * FROM analytics_integrations WHERE id = ?', id);
     return rows.length > 0 ? rows[0] : null;
   }
 
   static async createAnalyticsIntegration(data: Omit<AnalyticsIntegration, 'id' | 'createdAt' | 'updatedAt'>): Promise<AnalyticsIntegration> {
-    const env = getEnvOrThrow();
+    const env = await getEnvOrThrow();
     const id = generateSecureId();
     const now = nowISO();
     await execute(
@@ -246,7 +246,7 @@ export class D1IntegrationRepository {
   }
 
   static async updateAnalyticsIntegration(id: string, data: Partial<Omit<AnalyticsIntegration, 'id' | 'createdAt' | 'updatedAt'>>): Promise<AnalyticsIntegration | null> {
-    const env = getEnvOrThrow();
+    const env = await getEnvOrThrow();
     const existing = await this.getAnalyticsIntegrationById(id);
     if (!existing) return null;
 
@@ -273,30 +273,30 @@ export class D1IntegrationRepository {
   }
 
   static async deleteAnalyticsIntegration(id: string): Promise<void> {
-    const env = getEnvOrThrow();
+    const env = await getEnvOrThrow();
     await execute(env, 'DELETE FROM analytics_integrations WHERE id = ?', id);
   }
 
   static async getEmailServices(): Promise<EmailService[]> {
-    const env = getEnvOrThrow();
+    const env = await getEnvOrThrow();
     const rows = await queryAll<EmailService>(env, 'SELECT * FROM email_services ORDER BY createdAt DESC');
     return rows;
   }
 
   static async getEmailServiceById(id: string): Promise<EmailService | null> {
-    const env = getEnvOrThrow();
+    const env = await getEnvOrThrow();
     const rows = await queryAll<any>(env, 'SELECT * FROM email_services WHERE id = ?', id);
     return rows.length > 0 ? rows[0] : null;
   }
 
   static async getDefaultEmailService(): Promise<EmailService | null> {
-    const env = getEnvOrThrow();
+    const env = await getEnvOrThrow();
     const rows = await queryAll<any>(env, 'SELECT * FROM email_services WHERE isDefault = 1 LIMIT 1');
     return rows.length > 0 ? rows[0] : null;
   }
 
   static async createEmailService(data: Omit<EmailService, 'id' | 'createdAt' | 'updatedAt' | 'lastTested' | 'testStatus'>): Promise<EmailService> {
-    const env = getEnvOrThrow();
+    const env = await getEnvOrThrow();
     const id = generateSecureId();
     const now = nowISO();
     await execute(
@@ -310,7 +310,7 @@ export class D1IntegrationRepository {
   }
 
   static async updateEmailService(id: string, data: Partial<Omit<EmailService, 'id' | 'createdAt' | 'updatedAt'>>): Promise<EmailService | null> {
-    const env = getEnvOrThrow();
+    const env = await getEnvOrThrow();
     const existing = await this.getEmailServiceById(id);
     if (!existing) return null;
 
@@ -337,12 +337,12 @@ export class D1IntegrationRepository {
   }
 
   static async deleteEmailService(id: string): Promise<void> {
-    const env = getEnvOrThrow();
+    const env = await getEnvOrThrow();
     await execute(env, 'DELETE FROM email_services WHERE id = ?', id);
   }
 
   static async setDefaultEmailService(id: string): Promise<void> {
-    const env = getEnvOrThrow();
+    const env = await getEnvOrThrow();
     await execute(env, 'UPDATE email_services SET isDefault = 0');
     await execute(env, 'UPDATE email_services SET isDefault = 1 WHERE id = ?', id);
   }
