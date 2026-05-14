@@ -262,20 +262,20 @@ function HeroCarousel({ banners, autoPlay = 5000 }: { banners: Banner[], autoPla
   const [isTransitioning, setIsTransitioning] = useState(false)
 
   const nextSlide = useCallback(() => {
-    if (!isTransitioning) {
+    if (!isTransitioning && banners && banners.length > 0) {
       setIsTransitioning(true)
       setCurrentIndex((prev) => (prev + 1) % banners.length)
       setTimeout(() => setIsTransitioning(false), 500)
     }
-  }, [isTransitioning, banners.length])
+  }, [isTransitioning, banners?.length])
 
   const prevSlide = useCallback(() => {
-    if (!isTransitioning) {
+    if (!isTransitioning && banners && banners.length > 0) {
       setIsTransitioning(true)
       setCurrentIndex((prev) => (prev - 1 + banners.length) % banners.length)
       setTimeout(() => setIsTransitioning(false), 500)
     }
-  }, [isTransitioning, banners.length])
+  }, [isTransitioning, banners?.length])
 
   useEffect(() => {
     if (!autoPlay) return
@@ -445,7 +445,7 @@ function Stories({ stories, autoPlay = 4000 }: { stories: Story[], autoPlay?: nu
   }
 
   const nextImage = () => {
-    if (selectedStory && currentImageIndex < selectedStory.images.length - 1) {
+    if (selectedStory && Array.isArray(selectedStory.images) && currentImageIndex < selectedStory.images.length - 1) {
       setCurrentImageIndex((prev) => prev + 1)
       setProgress(0)
     } else {
@@ -636,7 +636,7 @@ function Stories({ stories, autoPlay = 4000 }: { stories: Story[], autoPlay?: nu
                 <div className="h-full bg-white transition-all" style={{ width: `${progress}%` }} />
               </div>
             ) : (
-              selectedStory.images.map((_, index) => (
+              Array.isArray(selectedStory.images) && selectedStory.images.map((_, index) => (
                 <div key={index} className="flex-1 h-1 bg-white/30 rounded-full overflow-hidden">
                   <div className="h-full bg-white transition-all" style={{ width: index < currentImageIndex ? '100%' : index === currentImageIndex ? `${progress}%` : '0%' }} />
                 </div>
@@ -926,10 +926,12 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
   const [currentIndex, setCurrentIndex] = useState(0)
 
   const handlePrev = () => {
+    if (!reels || reels.length === 0) return
     setCurrentIndex((prev) => (prev - 1 + reels.length) % reels.length)
   }
 
   const handleNext = () => {
+    if (!reels || reels.length === 0) return
     setCurrentIndex((prev) => (prev + 1) % reels.length)
   }
 
@@ -1376,11 +1378,13 @@ function UnifiedCarousel() {
   const [progress, setProgress] = useState(0)
   
   const nextSlide = () => {
+    if (carouselSlides.length === 0) return
     setCurrentIndex((prev) => (prev + 1) % carouselSlides.length)
     setProgress(0)
   }
-  
+
   const prevSlide = () => {
+    if (carouselSlides.length === 0) return
     setCurrentIndex((prev) => (prev - 1 + carouselSlides.length) % carouselSlides.length)
     setProgress(0)
   }

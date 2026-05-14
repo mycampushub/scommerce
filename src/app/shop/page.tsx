@@ -17,7 +17,22 @@ import { PriceDisplay } from '@/components/price-display'
 
 // Use Product type from QuickViewModal component
 
-const categories = ['All', 'Sarees', 'Salwar Suits', 'Lehengas', 'Gowns', 'Kurtas', 'Menswear', 'Dresses', 'Traditional Wear']
+const categories = [
+  { name: 'All', slug: 'all' },
+  { name: 'Sarees', slug: 'saree' },
+  { name: 'Salwar Suits', slug: 'salwar' },
+  { name: 'Lehengas', slug: 'lehengas' },
+  { name: 'Gowns', slug: 'gowns' },
+  { name: 'Kurtas', slug: 'kurtas' },
+  { name: 'Menswear', slug: 'menswear' },
+  { name: 'Dresses', slug: 'dresses' },
+  { name: 'Traditional Wear', slug: 'traditional-wear' }
+]
+
+const categorySlugMap: Record<string, string> = categories.reduce((acc, cat) => {
+  acc[cat.name] = cat.slug
+  return acc
+}, {} as Record<string, string>)
 const sortOptions = [
   { label: 'Featured', value: 'featured' },
   { label: 'Price: Low to High', value: 'price-asc' },
@@ -77,7 +92,7 @@ export default function ShopPage() {
 
   // Fetch products using React Query
   const filters = {
-    category: (categoryParam && categoryParam !== 'all') ? categoryParam : (selectedCategory !== 'All' ? selectedCategory.toLowerCase() : undefined),
+    category: (categoryParam && categoryParam !== 'all') ? categoryParam : (selectedCategory !== 'All' ? categorySlugMap[selectedCategory] : undefined),
     search: searchParam || debouncedSearchQuery || undefined,
   }
   
@@ -118,16 +133,10 @@ export default function ShopPage() {
   }
 
   const filteredProducts = products.filter(product => {
-    // Apply category filter
-    let categoryMatch = true
-    if (selectedCategory !== 'All' && !categoryParam) {
-      categoryMatch = product.category?.toLowerCase() === selectedCategory.toLowerCase()
-    }
-    
-    // Apply price range filter
+    // Apply price range filter (API doesn't support this, so we filter client-side)
     const priceMatch = !priceRange || (product.price >= priceRange.min && product.price <= priceRange.max)
-    
-    return categoryMatch && priceMatch
+
+    return priceMatch
   })
 
   let sortedProducts = [...filteredProducts]
@@ -176,19 +185,19 @@ export default function ShopPage() {
                   <h3 className="font-semibold mb-3 text-gray-900">Categories</h3>
                   <ul className="space-y-2">
                     {categories.map((category) => (
-                      <li key={category}>
+                      <li key={category.slug}>
                         <button
                           onClick={() => {
-                            setSelectedCategory(category)
+                            setSelectedCategory(category.name)
                             setCurrentPage(0)
                           }}
                           className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                            selectedCategory === category || (categoryParam && category.toLowerCase() === categoryParam.toLowerCase())
+                            selectedCategory === category.name || (categoryParam && category.slug === categoryParam)
                               ? 'bg-pink-600 text-white'
                               : 'text-gray-700 hover:bg-gray-100'
                           }`}
                         >
-                          {category}
+                          {category.name}
                         </button>
                       </li>
                     ))}
@@ -425,19 +434,19 @@ export default function ShopPage() {
                 <h3 className="font-semibold mb-3 text-gray-900">Categories</h3>
                 <ul className="space-y-2">
                   {categories.map((category) => (
-                    <li key={category}>
+                    <li key={category.slug}>
                       <button
                         onClick={() => {
-                          setSelectedCategory(category)
+                          setSelectedCategory(category.name)
                           setCurrentPage(0)
                         }}
                         className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                          selectedCategory === category
+                          selectedCategory === category.name
                             ? 'bg-pink-600 text-white'
                             : 'text-gray-700 hover:bg-gray-100'
                         }`}
                       >
-                        {category}
+                        {category.name}
                       </button>
                     </li>
                   ))}

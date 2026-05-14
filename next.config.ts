@@ -1,8 +1,20 @@
 import type { NextConfig } from "next";
 import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
+import withPWAInit from "@ducanh2912/next-pwa";
 
 // Initialize Cloudflare for development mode
 initOpenNextCloudflareForDev();
+
+const withPWA = withPWAInit({
+  dest: "public",
+  register: true,
+  disable: process.env.NODE_ENV === "development",
+  sw: "sw.js",
+  scope: "/",
+  fallbacks: {
+    document: "/offline",
+  },
+});
 
 const nextConfig: NextConfig = {
   typescript: {
@@ -65,6 +77,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-// Note: PWA disabled due to transpilation issues with service worker
-// Using custom service worker at public/sw-custom.js instead
-export default nextConfig;
+export default withPWA(nextConfig);
