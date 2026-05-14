@@ -5,19 +5,34 @@ import { prisma, isCloudflareEnv } from './database';
 export { isCloudflareEnv };
 
 /**
+ * Safely get Cloudflare context, handling build-time scenarios
+ */
+function safelyGetCloudflareContext() {
+  try {
+    return getCloudflareContext();
+  } catch (error: any) {
+    // If called during static build or in sync mode, return null
+    const errorMsg = error?.message || '';
+    if (errorMsg.includes('sync mode') || errorMsg.includes('static route') || errorMsg.includes('top level')) {
+      // Silently return null during build
+      return null;
+    }
+    // Log other errors but still return null
+    console.error('[cloudflare.ts] Error getting Cloudflare context:', error);
+    return null;
+  }
+}
+
+/**
  * Get D1 database from Cloudflare context
  * Falls back to Prisma for local development
  */
 export function getDB(_request?: Request): any | null {
-  try {
-    // First, try Cloudflare D1
-    const { env } = getCloudflareContext();
-    if (env && env['DB']) {
-      console.log('[cloudflare.ts] Using Cloudflare D1 database');
-      return env['DB'];
-    }
-  } catch (error) {
-    console.error('[cloudflare.ts] Error getting D1 binding:', error);
+  // First, try Cloudflare D1
+  const context = safelyGetCloudflareContext();
+  if (context?.env?.['DB']) {
+    console.log('[cloudflare.ts] Using Cloudflare D1 database');
+    return context.env['DB'];
   }
 
   // Fallback to Prisma for local development
@@ -42,18 +57,14 @@ export function getEnv(_request?: Request): any | null {
   }
 
   // Then try Cloudflare bindings
-  try {
-    const { env } = getCloudflareContext();
-    if (env && (env['DB'] || env['KV'] || env['BUCKET'])) {
-      console.log('[cloudflare.ts] Using Cloudflare bindings', {
-        hasDB: !!env['DB'],
-        hasKV: !!env['KV'],
-        hasBUCKET: !!env['BUCKET'],
-      });
-      return env;
-    }
-  } catch (error) {
-    console.error('[cloudflare.ts] Error getting env:', error);
+  const context = safelyGetCloudflareContext();
+  if (context?.env && (context.env['DB'] || context.env['KV'] || context.env['BUCKET'])) {
+    console.log('[cloudflare.ts] Using Cloudflare bindings', {
+      hasDB: !!context.env['DB'],
+      hasKV: !!context.env['KV'],
+      hasBUCKET: !!context.env['BUCKET'],
+    });
+    return context.env;
   }
 
   console.error('[cloudflare.ts] Env not found and no fallback available');
@@ -66,13 +77,9 @@ export function getEnv(_request?: Request): any | null {
  */
 export function getEnvVar(key: string): string | undefined {
   // Try Cloudflare env context first
-  try {
-    const { env } = getCloudflareContext();
-    if (env && key in env) {
-      return env[key];
-    }
-  } catch (error) {
-    // Ignore errors
+  const context = safelyGetCloudflareContext();
+  if (context?.env && key in context.env) {
+    return context.env[key];
   }
 
   // Fallback to process.env
