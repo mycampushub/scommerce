@@ -3,6 +3,7 @@
 import { useAuth } from '@/hooks/use-auth';
 import { hasPermission, type Permission } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
+import type { UserRole } from '@/db/types';
 
 interface PermissionGateProps {
   permission?: Permission;
@@ -39,7 +40,7 @@ export function PermissionGate({
   className,
 }: PermissionGateProps) {
   const { user } = useAuth();
-  const userRole = user?.role || 'user';
+  const userRole = (user?.role || 'user') as UserRole;
 
   // Check single permission
   if (permission && !hasPermission(userRole, permission)) {
@@ -69,7 +70,7 @@ export function PermissionGate({
  */
 export function usePermission(permission: Permission) {
   const { user } = useAuth();
-  const userRole = user?.role || 'user';
+  const userRole = (user?.role || 'user') as UserRole;
   return {
     hasPermission: hasPermission(userRole, permission),
   };
@@ -84,7 +85,7 @@ export function usePermission(permission: Permission) {
  */
 export function usePermissions(permissions: Permission[]) {
   const { user } = useAuth();
-  const userRole = user?.role || 'user';
+  const userRole = (user?.role || 'user') as UserRole;
 
   return {
     hasAll: permissions.every((p) => hasPermission(userRole, p)),

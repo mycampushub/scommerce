@@ -133,8 +133,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  // Verify admin authentication (admin only)
-  const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff'])
+  // Verify admin authentication (admin only for creating alerts)
+  const userOrResponse = await verifyAdminAuth(request, ['admin'])
   if (userOrResponse instanceof NextResponse) {
     return userOrResponse
   }
@@ -173,74 +173,95 @@ export async function POST(request: NextRequest) {
     if (!env || !env.DB) {
       console.log('[inventory alerts API] Using Prisma to create alert')
 
-      // Check if alert already exists for this product and type
-      const existingAlert = await prisma.inventory_alerts.findFirst({
-        where: {
-          productId: body.productId,
-          alertType: body.alertType,
-          isResolved: 0
-        }
-      })
-
-      if (existingAlert) {
-        return NextResponse.json({
-          success: false,
-          error: 'Alert already exists for this product',
+      // Try to create alert, if duplicate constraint violation, fetch existing
+      try {
+        alert = await prisma.inventory_alerts.create({
+          data: {
+            id: generateId(),
+            productId: body.productId,
+            variantId: body.variantId || null,
+            alertType: body.alertType,
+            quantity: body.quantity || 0,
+            isRead: 0,
+            isResolved: 0
+          }
         })
-      }
+      } catch (error: any) {
+        // If duplicate constraint violation, fetch existing alert
+        if (error.code === 'P2002' || error.message?.includes('Unique constraint')) {
+          console.log('[inventory alerts API] Duplicate alert detected, fetching existing')
+          const existingAlert = await prisma.inventory_alerts.findFirst({
+            where: {
+              productId: body.productId,
+              variantId: body.variantId || null,
+              alertType: body.alertType
+            }
+          })
 
-      // Create alert using Prisma
-      alert = await prisma.inventory_alerts.create({
-        data: {
-          id: generateId(),
-          productId: body.productId,
-          alertType: body.alertType,
-          quantity: body.quantity || 0,
-          isRead: 0,
-          isResolved: 0
+          if (existingAlert) {
+            alert = existingAlert
+          } else {
+            // Fallback: try again with new ID
+            alert = await prisma.inventory_alerts.create({
+              data: {
+                id: generateId(),
+                productId: body.productId,
+                variantId: body.variantId || null,
+                alertType: body.alertType,
+                quantity: body.quantity || 0,
+                isRead: 0,
+                isResolved: 0
+              }
+            })
+          }
+        } else {
+          throw error
         }
-      })
+      }
     } else {
       console.log('[inventory alerts API] Using D1 to create alert')
 
-      // Check if alert already exists for this product and type
-      const existingAlert = await queryFirst<any>(
-        env,
-        'SELECT * FROM inventory_alerts WHERE productId = ? AND alertType = ? AND isResolved = 0 LIMIT 1',
-        body.productId,
-        body.alertType
-      )
-
-      if (existingAlert) {
-        return NextResponse.json({
-          success: false,
-          error: 'Alert already exists for this product',
-        })
-      }
-
-      // Create alert using D1
       const id = generateId()
       const currentTime = now()
 
-      await execute(
-        env,
-        `INSERT INTO inventory_alerts (id, productId, alertType, quantity, isRead, isResolved, createdAt, updatedAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        id,
-        body.productId,
-        body.alertType,
-        body.quantity || 0,
-        boolToNumber(false),
-        boolToNumber(false),
-        currentTime,
-        currentTime
-      )
+      // Try to insert, if duplicate constraint violation, fetch existing
+      try {
+        await execute(
+          env,
+          `INSERT OR IGNORE INTO inventory_alerts (id, productId, variantId, alertType, quantity, isRead, isResolved, createdAt, updatedAt)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          id,
+          body.productId,
+          body.variantId || null,
+          body.alertType,
+          body.quantity || 0,
+          boolToNumber(false),
+          boolToNumber(false),
+          currentTime,
+          currentTime
+        )
 
-      alert = await queryFirst<any>(
-        env,
-        'SELECT * FROM inventory_alerts WHERE id = ? LIMIT 1',
-        id
-      )
+        // Fetch the alert (either newly created or existing)
+        alert = await queryFirst<any>(
+          env,
+          'SELECT * FROM inventory_alerts WHERE productId = ? AND (variantId = ? OR (variantId IS NULL AND ? IS NULL)) AND alertType = ? ORDER BY createdAt DESC LIMIT 1',
+          body.productId,
+          body.variantId || null,
+          body.variantId || null,
+          body.alertType
+        )
+      } catch (error: any) {
+        console.error('[inventory alerts API] Error creating alert:', error)
+        // If constraint violation, try to fetch existing alert
+        alert = await queryFirst<any>(
+          env,
+          'SELECT * FROM inventory_alerts WHERE productId = ? AND (variantId = ? OR (variantId IS NULL AND ? IS NULL)) AND alertType = ? ORDER BY createdAt DESC LIMIT 1',
+          body.productId,
+          body.variantId || null,
+          body.variantId || null,
+          body.alertType
+        )
+      }
     }
 
     // Enrich with product data

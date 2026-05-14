@@ -120,28 +120,28 @@ export async function releaseAllUserReservations(env: Env | null, userId: string
  * Release all cart reservations for a user
  */
 export async function releaseCartReservations(env: Env | null, userId: string, orderItems: any[]): Promise<void> {
-  const itemIds = orderItems.map(item => item.productId || item.id);
-  const variantIds = orderItems.map(item => item.variantId).filter(Boolean) as string[];
+  if (orderItems.length === 0) {
+    return;
+  }
 
-  if (variantIds.length > 0) {
-    // For products with variants - release by variantId
-    await execute(
-      env,
-      `DELETE FROM inventory_reservations
-       WHERE userId = ? AND variantId IN (${variantIds.map(() => '?').join(',')})`,
-      userId,
-      ...variantIds
-    );
+  // Build conditions for each item
+  const conditions: string[] = [];
+  const params: any[] = [userId];
+
+  for (const item of orderItems) {
+    const variantId = item.variantId || item.variantId === null ? (item.variantId || null) : null;
+    const productId = item.productId || item.id;
+
+    if (variantId) {
+      conditions.push('(variantId = ?)');
+      params.push(variantId);
+    } else {
+      conditions.push('(productId = ? AND variantId IS NULL)');
+      params.push(productId);
+    }
   }
-  if (itemIds.length > 0) {
-    // For products without variants - release by productId where variantId IS NULL
-    await execute(
-      env,
-      `DELETE FROM inventory_reservations
-       WHERE userId = ? AND productId IN (${itemIds.map(() => '?').join(',')})
-       AND variantId IS NULL`,
-      userId,
-      ...itemIds
-    );
-  }
+
+  // Single DELETE query with OR conditions
+  const query = `DELETE FROM inventory_reservations WHERE userId = ? AND (${conditions.join(' OR ')})`;
+  await execute(env, query, ...params);
 }

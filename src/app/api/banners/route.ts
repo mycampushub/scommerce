@@ -18,6 +18,6 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('Error fetching banners:', error);
     // Return empty array on error instead of failing
-    return errorResponse('Failed to fetch banners', 500, { data: [] });
+    return errorResponse("Failed to fetch banners", 500, undefined, { data: [] });
   }
 }

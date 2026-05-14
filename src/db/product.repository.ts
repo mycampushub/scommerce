@@ -85,7 +85,7 @@ export class ProductRepository {
       `INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, costPrice,
        discount, discountType, images, stock, lowStockAlert, reorderLevel, reorderQty,
        isActive, isFeatured, hasVariants, createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       id,
       data.name,
       data.slug,

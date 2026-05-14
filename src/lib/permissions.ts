@@ -1,333 +1,305 @@
 /**
- * Permission Types
- * Define all available permissions in the system
+ * Granular permission system for admin/staff roles
+ *
+ * This system allows fine-grained control over what actions users can perform
+ * based on their role and individual permissions.
  */
 
-export type Permission =
-  // Dashboard
-  | 'dashboard:view'
+import { UserRole } from '@/db/types';
 
-  // Products
-  | 'products:view'
-  | 'products:create'
-  | 'products:update'
-  | 'products:delete'
-  | 'products:manage-variants'
+/**
+ * Permission categories and actions
+ */
+export enum Permission {
+  // Product Management
+  PRODUCTS_VIEW = 'products:view',
+  PRODUCTS_CREATE = 'products:create',
+  PRODUCTS_EDIT = 'products:edit',
+  PRODUCTS_DELETE = 'products:delete',
 
-  // Categories
-  | 'categories:view'
-  | 'categories:create'
-  | 'categories:update'
-  | 'categories:delete'
+  // Category Management
+  CATEGORIES_VIEW = 'categories:view',
+  CATEGORIES_CREATE = 'categories:create',
+  CATEGORIES_EDIT = 'categories:edit',
+  CATEGORIES_DELETE = 'categories:delete',
 
-  // Orders
-  | 'orders:view'
-  | 'orders:create'
-  | 'orders:update'
-  | 'orders:delete'
-  | 'orders:cancel'
-  | 'orders:refund'
-  | 'orders:export'
+  // Order Management
+  ORDERS_VIEW = 'orders:view',
+  ORDERS_UPDATE_STATUS = 'orders:update_status',
+  ORDERS_CANCEL = 'orders:cancel',
+  ORDERS_REFUND = 'orders:refund',
+  ORDERS_DELETE = 'orders:delete',
 
-  // Customers
-  | 'customers:view'
-  | 'customers:create'
-  | 'customers:update'
-  | 'customers:delete'
-  | 'customers:ban'
-  | 'customers:unban'
-
-  // Reviews
-  | 'reviews:view'
-  | 'reviews:approve'
-  | 'reviews:reject'
-  | 'reviews:delete'
-
-  // Banners, Stories, Reels
-  | 'content:view'
-  | 'content:create'
-  | 'content:update'
-  | 'content:delete'
-  | 'content:reorder'
-
-  // Settings
-  | 'settings:view'
-  | 'settings:update'
-  | 'settings:general'
-  | 'settings:homepage'
-
-  // Analytics
-  | 'analytics:view'
-
-  // Audit Logs
-  | 'audit:view'
-  | 'audit:export'
+  // User Management
+  USERS_VIEW = 'users:view',
+  USERS_CREATE = 'users:create',
+  USERS_EDIT = 'users:edit',
+  USERS_DELETE = 'users:delete',
+  USERS_BAN = 'users:ban',
 
   // Staff Management
-  | 'staff:view'
-  | 'staff:create'
-  | 'staff:update'
-  | 'staff:delete'
-  | 'staff:permissions';
+  STAFF_VIEW = 'staff:view',
+  STAFF_CREATE = 'staff:create',
+  STAFF_EDIT = 'staff:edit',
+  STAFF_DELETE = 'staff:delete',
+
+  // Inventory Management
+  INVENTORY_VIEW = 'inventory:view',
+  INVENTORY_EDIT = 'inventory:edit',
+  INVENTORY_ALERTS_MANAGE = 'inventory:alerts_manage',
+
+  // Content Management
+  BANNERS_VIEW = 'banners:view',
+  BANNERS_CREATE = 'banners:create',
+  BANNERS_EDIT = 'banners:edit',
+  BANNERS_DELETE = 'banners:delete',
+
+  PROMOTIONS_VIEW = 'promotions:view',
+  PROMOTIONS_CREATE = 'promotions:create',
+  PROMOTIONS_EDIT = 'promotions:edit',
+  PROMOTIONS_DELETE = 'promotions:delete',
+
+  STORIES_VIEW = 'stories:view',
+  STORIES_CREATE = 'stories:create',
+  STORIES_EDIT = 'stories:edit',
+  STORIES_DELETE = 'stories:delete',
+
+  REELS_VIEW = 'reels:view',
+  REELS_CREATE = 'reels:create',
+  REELS_EDIT = 'reels:edit',
+  REELS_DELETE = 'reels:delete',
+
+  // Analytics & Reports
+  ANALYTICS_VIEW = 'analytics:view',
+  ANALYTICS_EXPORT = 'analytics:export',
+
+  // Settings Management
+  SETTINGS_VIEW = 'settings:view',
+  SETTINGS_EDIT = 'settings:edit',
+  SETTINGS_SHIPPING = 'settings:shipping',
+  SETTINGS_PAYMENT = 'settings:payment',
+
+  // System Operations
+  SYSTEM_LOGS_VIEW = 'system:logs_view',
+  SYSTEM_LOGS_EXPORT = 'system:logs_export',
+  SYSTEM_ARCHIVE_ORDERS = 'system:archive_orders',
+  SYSTEM_BACKUP = 'system:backup',
+}
 
 /**
- * Role Permissions Configuration
- * Define which permissions each role has
+ * Default permissions by role
  */
-
-export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
+const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   admin: [
-    // Admin has ALL permissions
-    'dashboard:view',
-    'products:view',
-    'products:create',
-    'products:update',
-    'products:delete',
-    'products:manage-variants',
-    'categories:view',
-    'categories:create',
-    'categories:update',
-    'categories:delete',
-    'orders:view',
-    'orders:create',
-    'orders:update',
-    'orders:delete',
-    'orders:cancel',
-    'orders:refund',
-    'orders:export',
-    'customers:view',
-    'customers:create',
-    'customers:update',
-    'customers:delete',
-    'customers:ban',
-    'customers:unban',
-    'reviews:view',
-    'reviews:approve',
-    'reviews:reject',
-    'reviews:delete',
-    'content:view',
-    'content:create',
-    'content:update',
-    'content:delete',
-    'content:reorder',
-    'settings:view',
-    'settings:update',
-    'settings:general',
-    'settings:homepage',
-    'analytics:view',
-    'audit:view',
-    'audit:export',
-    'staff:view',
-    'staff:create',
-    'staff:update',
-    'staff:delete',
-    'staff:permissions',
+    // Admin has all permissions
+    ...Object.values(Permission),
   ],
-
   staff: [
-    // Staff has limited permissions
-    'dashboard:view',
-    'products:view',
-    'products:update',
-    'products:manage-variants',
-    'categories:view',
-    'categories:update',
-    'orders:view',
-    'orders:update',
-    'orders:cancel',
-    'customers:view',
-    'customers:update',
-    'reviews:view',
-    'reviews:approve',
-    'reviews:reject',
-    'content:view',
-    'content:update',
-    'settings:view',
-    'analytics:view',
-    'audit:view',
-  ],
+    // Staff has limited permissions - can view and edit but not delete
+    // Products
+    Permission.PRODUCTS_VIEW,
+    Permission.PRODUCTS_CREATE,
+    Permission.PRODUCTS_EDIT,
 
-  user: [], // Regular users have no admin permissions
+    // Categories
+    Permission.CATEGORIES_VIEW,
+    Permission.CATEGORIES_CREATE,
+    Permission.CATEGORIES_EDIT,
+
+    // Orders
+    Permission.ORDERS_VIEW,
+    Permission.ORDERS_UPDATE_STATUS,
+
+    // Users
+    Permission.USERS_VIEW,
+
+    // Inventory
+    Permission.INVENTORY_VIEW,
+    Permission.INVENTORY_EDIT,
+    Permission.INVENTORY_ALERTS_MANAGE,
+
+    // Content
+    Permission.BANNERS_VIEW,
+    Permission.BANNERS_CREATE,
+    Permission.BANNERS_EDIT,
+    Permission.PROMOTIONS_VIEW,
+    Permission.PROMOTIONS_CREATE,
+    Permission.PROMOTIONS_EDIT,
+    Permission.STORIES_VIEW,
+    Permission.STORIES_CREATE,
+    Permission.STORIES_EDIT,
+    Permission.REELS_VIEW,
+    Permission.REELS_CREATE,
+    Permission.REELS_EDIT,
+
+    // Analytics
+    Permission.ANALYTICS_VIEW,
+
+    // Settings
+    Permission.SETTINGS_VIEW,
+  ],
+  user: [],
 };
 
 /**
- * Permission Groups
- * Group permissions for UI organization
+ * Check if a role has a specific permission
  */
-export const PERMISSION_GROUPS = {
-  dashboard: ['dashboard:view'] as Permission[],
+export function hasPermission(role: UserRole, permission: Permission): boolean {
+  const permissions = ROLE_PERMISSIONS[role] || [];
+  return permissions.includes(permission);
+}
+
+/**
+ * Check if a role has any of the specified permissions
+ */
+export function hasAnyPermission(role: UserRole, permissions: Permission[]): boolean {
+  return permissions.some(permission => hasPermission(role, permission));
+}
+
+/**
+ * Check if a role has all of the specified permissions
+ */
+export function hasAllPermissions(role: UserRole, permissions: Permission[]): boolean {
+  return permissions.every(permission => hasPermission(role, permission));
+}
+
+/**
+ * Get all permissions for a role
+ */
+export function getPermissions(role: UserRole): Permission[] {
+  return ROLE_PERMISSIONS[role] || [];
+}
+
+/**
+ * Permission middleware for API routes
+ * Returns true if authorized, false if not
+ */
+export function requirePermission(role: UserRole, permission: Permission): boolean {
+  return hasPermission(role, permission);
+}
+
+/**
+ * Permission middleware requiring admin or staff role
+ */
+export function requireAdminOrStaff(role: UserRole): boolean {
+  return role === 'admin' || role === 'staff';
+}
+
+/**
+ * Permission middleware requiring admin role only
+ */
+export function requireAdmin(role: UserRole): boolean {
+  return role === 'admin';
+}
+
+/**
+ * Permission groups for easier checking
+ */
+export const PermissionGroups = {
+  // Can manage products
   products: [
-    'products:view',
-    'products:create',
-    'products:update',
-    'products:delete',
-    'products:manage-variants',
-  ] as Permission[],
+    Permission.PRODUCTS_VIEW,
+    Permission.PRODUCTS_CREATE,
+    Permission.PRODUCTS_EDIT,
+    Permission.PRODUCTS_DELETE,
+  ],
+
+  // Can manage categories
   categories: [
-    'categories:view',
-    'categories:create',
-    'categories:update',
-    'categories:delete',
-  ] as Permission[],
+    Permission.CATEGORIES_VIEW,
+    Permission.CATEGORIES_CREATE,
+    Permission.CATEGORIES_EDIT,
+    Permission.CATEGORIES_DELETE,
+  ],
+
+  // Can manage orders
   orders: [
-    'orders:view',
-    'orders:create',
-    'orders:update',
-    'orders:delete',
-    'orders:cancel',
-    'orders:refund',
-    'orders:export',
-  ] as Permission[],
-  customers: [
-    'customers:view',
-    'customers:create',
-    'customers:update',
-    'customers:delete',
-    'customers:ban',
-    'customers:unban',
-  ] as Permission[],
-  reviews: [
-    'reviews:view',
-    'reviews:approve',
-    'reviews:reject',
-    'reviews:delete',
-  ] as Permission[],
-  content: [
-    'content:view',
-    'content:create',
-    'content:update',
-    'content:delete',
-    'content:reorder',
-  ] as Permission[],
-  settings: [
-    'settings:view',
-    'settings:update',
-    'settings:general',
-    'settings:homepage',
-  ] as Permission[],
-  analytics: ['analytics:view'] as Permission[],
-  audit: ['audit:view', 'audit:export'] as Permission[],
+    Permission.ORDERS_VIEW,
+    Permission.ORDERS_UPDATE_STATUS,
+    Permission.ORDERS_CANCEL,
+    Permission.ORDERS_REFUND,
+    Permission.ORDERS_DELETE,
+  ],
+
+  // Can manage users
+  users: [
+    Permission.USERS_VIEW,
+    Permission.USERS_CREATE,
+    Permission.USERS_EDIT,
+    Permission.USERS_DELETE,
+    Permission.USERS_BAN,
+  ],
+
+  // Can manage staff
   staff: [
-    'staff:view',
-    'staff:create',
-    'staff:update',
-    'staff:delete',
-    'staff:permissions',
-  ] as Permission[],
+    Permission.STAFF_VIEW,
+    Permission.STAFF_CREATE,
+    Permission.STAFF_EDIT,
+    Permission.STAFF_DELETE,
+  ],
+
+  // Can manage inventory
+  inventory: [
+    Permission.INVENTORY_VIEW,
+    Permission.INVENTORY_EDIT,
+    Permission.INVENTORY_ALERTS_MANAGE,
+  ],
+
+  // Can manage content (banners, promotions, stories, reels)
+  content: [
+    Permission.BANNERS_VIEW,
+    Permission.BANNERS_CREATE,
+    Permission.BANNERS_EDIT,
+    Permission.BANNERS_DELETE,
+    Permission.PROMOTIONS_VIEW,
+    Permission.PROMOTIONS_CREATE,
+    Permission.PROMOTIONS_EDIT,
+    Permission.PROMOTIONS_DELETE,
+    Permission.STORIES_VIEW,
+    Permission.STORIES_CREATE,
+    Permission.STORIES_EDIT,
+    Permission.STORIES_DELETE,
+    Permission.REELS_VIEW,
+    Permission.REELS_CREATE,
+    Permission.REELS_EDIT,
+    Permission.REELS_DELETE,
+  ],
+
+  // Can access analytics
+  analytics: [
+    Permission.ANALYTICS_VIEW,
+    Permission.ANALYTICS_EXPORT,
+  ],
+
+  // Can manage settings
+  settings: [
+    Permission.SETTINGS_VIEW,
+    Permission.SETTINGS_EDIT,
+    Permission.SETTINGS_SHIPPING,
+    Permission.SETTINGS_PAYMENT,
+  ],
+
+  // Can perform system operations
+  system: [
+    Permission.SYSTEM_LOGS_VIEW,
+    Permission.SYSTEM_LOGS_EXPORT,
+    Permission.SYSTEM_ARCHIVE_ORDERS,
+    Permission.SYSTEM_BACKUP,
+  ],
 };
 
 /**
- * Check if a user has a specific permission
+ * Check if role has permission for a group
  */
-export function hasPermission(
-  userRole: string,
-  permission: Permission
-): boolean {
-  const rolePermissions = ROLE_PERMISSIONS[userRole] || [];
-  return rolePermissions.includes(permission);
+export function hasPermissionGroup(role: UserRole, group: keyof typeof PermissionGroups): boolean {
+  const permissions = PermissionGroups[group];
+  return hasAllPermissions(role, permissions);
 }
 
 /**
- * Check if a user has ANY of the specified permissions
+ * Check if role has at least one permission from a group
  */
-export function hasAnyPermission(
-  userRole: string,
-  permissions: Permission[]
-): boolean {
-  const rolePermissions = ROLE_PERMISSIONS[userRole] || [];
-  return permissions.some((permission) => rolePermissions.includes(permission));
+export function hasAnyPermissionInGroup(role: UserRole, group: keyof typeof PermissionGroups): boolean {
+  const permissions = PermissionGroups[group];
+  return hasAnyPermission(role, permissions);
 }
-
-/**
- * Check if a user has ALL of the specified permissions
- */
-export function hasAllPermissions(
-  userRole: string,
-  permissions: Permission[]
-): boolean {
-  const rolePermissions = ROLE_PERMISSIONS[userRole] || [];
-  return permissions.every((permission) => rolePermissions.includes(permission));
-}
-
-/**
- * Get user permissions as an array
- */
-export function getUserPermissions(userRole: string): Permission[] {
-  return ROLE_PERMISSIONS[userRole] || [];
-}
-
-/**
- * Check if user can perform action on entity
- */
-export function canPerformAction(
-  userRole: string,
-  action: 'view' | 'create' | 'update' | 'delete',
-  entity: string
-): boolean {
-  const permission = `${entity}:${action}` as Permission;
-  return hasPermission(userRole, permission);
-}
-
-/**
- * Filter items based on user permissions
- */
-export function filterByPermission<T extends { permission?: Permission }>(
-  items: T[],
-  userRole: string
-): T[] {
-  const userPermissions = getUserPermissions(userRole);
-  return items.filter((item) => {
-    if (!item.permission) return true;
-    return userPermissions.includes(item.permission);
-  });
-}
-
-/**
- * Permission descriptions for UI
- */
-export const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
-  'dashboard:view': 'View dashboard',
-  'products:view': 'View products',
-  'products:create': 'Create new products',
-  'products:update': 'Update existing products',
-  'products:delete': 'Delete products',
-  'products:manage-variants': 'Manage product variants',
-  'categories:view': 'View categories',
-  'categories:create': 'Create new categories',
-  'categories:update': 'Update existing categories',
-  'categories:delete': 'Delete categories',
-  'orders:view': 'View orders',
-  'orders:create': 'Create orders',
-  'orders:update': 'Update order status',
-  'orders:delete': 'Delete orders',
-  'orders:cancel': 'Cancel orders',
-  'orders:refund': 'Process refunds',
-  'orders:export': 'Export order data',
-  'customers:view': 'View customer details',
-  'customers:create': 'Create customer accounts',
-  'customers:update': 'Update customer information',
-  'customers:delete': 'Delete customer accounts',
-  'customers:ban': 'Ban customers',
-  'customers:unban': 'Unban customers',
-  'reviews:view': 'View product reviews',
-  'reviews:approve': 'Approve reviews',
-  'reviews:reject': 'Reject reviews',
-  'reviews:delete': 'Delete reviews',
-  'content:view': 'View banners, stories, reels',
-  'content:create': 'Create banners, stories, reels',
-  'content:update': 'Update banners, stories, reels',
-  'content:delete': 'Delete banners, stories, reels',
-  'content:reorder': 'Reorder banners, stories, reels',
-  'settings:view': 'View system settings',
-  'settings:update': 'Update system settings',
-  'settings:general': 'Manage general settings',
-  'settings:homepage': 'Manage homepage configuration',
-  'analytics:view': 'View analytics and reports',
-  'audit:view': 'View audit logs',
-  'audit:export': 'Export audit logs',
-  'staff:view': 'View staff members',
-  'staff:create': 'Add new staff members',
-  'staff:update': 'Update staff information',
-  'staff:delete': 'Remove staff members',
-  'staff:permissions': 'Manage staff permissions',
-};

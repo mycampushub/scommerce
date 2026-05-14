@@ -12,6 +12,7 @@ export interface ApiSuccessResponse<T = any> {
 export interface ApiErrorResponse {
   success: false;
   error: string;
+  code?: string;
   details?: any;
 }
 
@@ -23,6 +24,61 @@ export interface PaginatedResponse<T = any> {
   totalPages: number;
   hasNextPage: boolean;
   hasPrevPage: boolean;
+}
+
+/**
+ * Common error codes
+ */
+export enum ErrorCode {
+  // Validation errors (4xx)
+  VALIDATION_ERROR = 'VALIDATION_ERROR',
+  INVALID_INPUT = 'INVALID_INPUT',
+  MISSING_REQUIRED_FIELD = 'MISSING_REQUIRED_FIELD',
+  INVALID_EMAIL = 'INVALID_EMAIL',
+  INVALID_PHONE = 'INVALID_PHONE',
+  PASSWORD_MISMATCH = 'PASSWORD_MISMATCH',
+  PASSWORD_WEAK = 'PASSWORD_WEAK',
+
+  // Authentication errors (401)
+  UNAUTHORIZED = 'UNAUTHORIZED',
+  INVALID_TOKEN = 'INVALID_TOKEN',
+  TOKEN_EXPIRED = 'TOKEN_EXPIRED',
+  INVALID_CREDENTIALS = 'INVALID_CREDENTIALS',
+
+  // Authorization errors (403)
+  FORBIDDEN = 'FORBIDDEN',
+  INSUFFICIENT_PERMISSIONS = 'INSUFFICIENT_PERMISSIONS',
+
+  // Not found errors (404)
+  NOT_FOUND = 'NOT_FOUND',
+  USER_NOT_FOUND = 'USER_NOT_FOUND',
+  PRODUCT_NOT_FOUND = 'PRODUCT_NOT_FOUND',
+  ORDER_NOT_FOUND = 'ORDER_NOT_FOUND',
+  CATEGORY_NOT_FOUND = 'CATEGORY_NOT_FOUND',
+
+  // Conflict errors (409)
+  CONFLICT = 'CONFLICT',
+  DUPLICATE_EMAIL = 'DUPLICATE_EMAIL',
+  DUPLICATE_PHONE = 'DUPLICATE_PHONE',
+  DUPLICATE_SLUG = 'DUPLICATE_SLUG',
+  INSUFFICIENT_STOCK = 'INSUFFICIENT_STOCK',
+
+  // Rate limiting (429)
+  RATE_LIMIT_EXCEEDED = 'RATE_LIMIT_EXCEEDED',
+
+  // Server errors (5xx)
+  INTERNAL_ERROR = 'INTERNAL_ERROR',
+  DATABASE_ERROR = 'DATABASE_ERROR',
+  EXTERNAL_SERVICE_ERROR = 'EXTERNAL_SERVICE_ERROR',
+
+  // File upload errors
+  INVALID_FILE_TYPE = 'INVALID_FILE_TYPE',
+  FILE_TOO_LARGE = 'FILE_TOO_LARGE',
+  UPLOAD_FAILED = 'UPLOAD_FAILED',
+
+  // Payment errors
+  PAYMENT_FAILED = 'PAYMENT_FAILED',
+  PAYMENT_CANCELLED = 'PAYMENT_CANCELLED',
 }
 
 /**
@@ -49,12 +105,14 @@ export function successResponse<T = any>(
 export function errorResponse(
   error: string,
   status: number = 500,
+  code?: ErrorCode | string,
   details?: any
 ): NextResponse<ApiErrorResponse> {
   return NextResponse.json(
     {
       success: false,
       error,
+      ...(code && { code }),
       ...(details && { details }),
     },
     { status }
@@ -98,36 +156,39 @@ export function paginatedResponse<T = any>(
  */
 export function validationErrorResponse(
   error: string,
-  status: number = 400
+  details?: any
 ): NextResponse<ApiErrorResponse> {
-  return errorResponse(error, status);
+  return errorResponse(error, 400, ErrorCode.VALIDATION_ERROR, details);
 }
 
 /**
  * Create a 401 unauthorized response
  */
 export function unauthorizedResponse(
-  error: string = 'Unauthorized'
+  error: string = 'Unauthorized',
+  code: ErrorCode = ErrorCode.UNAUTHORIZED
 ): NextResponse<ApiErrorResponse> {
-  return errorResponse(error, 401);
+  return errorResponse(error, 401, code);
 }
 
 /**
  * Create a 403 forbidden response
  */
 export function forbiddenResponse(
-  error: string = 'Forbidden'
+  error: string = 'Forbidden',
+  code: ErrorCode = ErrorCode.FORBIDDEN
 ): NextResponse<ApiErrorResponse> {
-  return errorResponse(error, 403);
+  return errorResponse(error, 403, code);
 }
 
 /**
  * Create a 404 not found response
  */
 export function notFoundResponse(
-  error: string = 'Resource not found'
+  error: string = 'Resource not found',
+  code: ErrorCode = ErrorCode.NOT_FOUND
 ): NextResponse<ApiErrorResponse> {
-  return errorResponse(error, 404);
+  return errorResponse(error, 404, code);
 }
 
 /**
@@ -147,7 +208,19 @@ export function rateLimitResponse(
     {
       success: false,
       error,
+      code: ErrorCode.RATE_LIMIT_EXCEEDED,
     },
     { status: 429, headers }
   );
+}
+
+/**
+ * Create a conflict error response (409)
+ */
+export function conflictResponse(
+  error: string,
+  code: ErrorCode = ErrorCode.CONFLICT,
+  details?: any
+): NextResponse<ApiErrorResponse> {
+  return errorResponse(error, 409, code, details);
 }

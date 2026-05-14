@@ -1,7 +1,6 @@
 /**
  * Distributed rate limiter for Next.js API routes
- * Uses Cloudflare KV for production
- * No in-memory fallback - requires KV to be configured
+ * Uses Cloudflare KV for production with in-memory fallback for development
  */
 
 import { Env } from '@/db/types';
@@ -22,10 +21,54 @@ export interface RateLimitResult {
   resetTime?: number;
 }
 
+// In-memory rate limit storage (fallback when KV is not available)
+interface InMemoryEntry {
+  count: number;
+  window: number;
+  resetTime: number;
+}
+
+const inMemoryStore = new Map<string, InMemoryEntry>();
+const IN_MEMORY_TTL = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Clean up expired in-memory entries
+ */
+function cleanupInMemoryStore(): void {
+  const now = Date.now();
+  for (const [key, entry] of inMemoryStore.entries()) {
+    if (now > entry.resetTime) {
+      inMemoryStore.delete(key);
+    }
+  }
+}
+
+/**
+ * Get or create in-memory entry
+ */
+function getInMemoryEntry(identifier: string, window: number, maxRequests: number): InMemoryEntry {
+  const now = Date.now();
+  const entry = inMemoryStore.get(identifier);
+
+  // If entry exists and is in current window, update it
+  if (entry && entry.window === window && now < entry.resetTime) {
+    return entry;
+  }
+
+  // Create new entry
+  const newEntry: InMemoryEntry = {
+    count: 0,
+    window,
+    resetTime: now + Math.ceil(now / 60000) * 60000, // End of current minute
+  };
+  inMemoryStore.set(identifier, newEntry);
+  return newEntry;
+}
+
 /**
  * Rate limit middleware for API routes
- * Uses Cloudflare KV for distributed rate limiting
- * @param env - Environment object containing KV binding (REQUIRED)
+ * Uses Cloudflare KV for distributed rate limiting with in-memory fallback
+ * @param env - Environment object containing KV binding (optional)
  * @param identifier - Unique identifier (e.g., IP address, user ID, email)
  * @param options - Rate limiting options
  * @returns Rate limit result
@@ -35,18 +78,6 @@ export async function rateLimit(
   identifier: string,
   options: RateLimitOptions = {}
 ): Promise<RateLimitResult> {
-  // KV is recommended for rate limiting but not required
-  if (!env || !env.KV) {
-    const errorMsg = 'Rate limiting requires KV namespace. Configure wrangler.toml with KV binding.';
-
-    // Log warning but allow requests to proceed
-    console.warn('WARNING: Rate limiting disabled - KV namespace not available');
-    return {
-      success: true,
-      remainingRequests: Number.MAX_SAFE_INTEGER,
-    };
-  }
-
   const {
     maxRequests = 5, // Default: 5 requests per window
     windowMs = 60 * 1000, // Default: 1 minute window
@@ -56,45 +87,68 @@ export async function rateLimit(
   const window = Math.floor(now / windowMs);
   const rateLimitKey = `ratelimit:${identifier}:${window}`;
 
-  const KV = env.KV;
+  // Use KV if available
+  if (env?.KV) {
+    try {
+      const KV = env.KV;
 
-  try {
-    // Get current count from KV
-    const currentValue = await KV.get(rateLimitKey, 'text');
-    const count = (currentValue && typeof currentValue === 'string') ? parseInt(currentValue) : 0;
+      // Get current count from KV
+      const currentValue = await KV.get(rateLimitKey, 'text');
+      const count = (currentValue && typeof currentValue === 'string') ? parseInt(currentValue) : 0;
 
-    // Check if limit exceeded
-    if (count >= maxRequests) {
-      const nextWindow = Math.floor((now + windowMs) / windowMs) * windowMs;
+      // Check if limit exceeded
+      if (count >= maxRequests) {
+        const nextWindow = Math.floor((now + windowMs) / windowMs) * windowMs;
+        return {
+          success: false,
+          remainingRequests: 0,
+          resetTime: nextWindow,
+        };
+      }
+
+      // Increment count in KV with TTL
+      const newCount = count + 1;
+      const ttl = Math.ceil(windowMs / 1000); // Convert to seconds
+      await KV.put(rateLimitKey, newCount.toString(), {
+        expirationTtl: ttl,
+      });
+
       return {
-        success: false,
-        remainingRequests: 0,
-        resetTime: nextWindow,
+        success: true,
+        remainingRequests: maxRequests - newCount,
+        resetTime: now + windowMs,
       };
+    } catch (error) {
+      console.error('KV rate limit error:', error);
+
+      // Fall back to in-memory storage on KV error
+      console.warn('Falling back to in-memory rate limiting due to KV error');
     }
+  }
 
-    // Increment count in KV with TTL
-    const newCount = count + 1;
-    const ttl = Math.ceil(windowMs / 1000); // Convert to seconds
-    await KV.put(rateLimitKey, newCount.toString(), {
-      expirationTtl: ttl,
-    });
+  // In-memory fallback (development or when KV is not available)
+  cleanupInMemoryStore();
 
+  const entry = getInMemoryEntry(identifier, window, maxRequests);
+
+  // Check if limit exceeded
+  if (entry.count >= maxRequests) {
     return {
-      success: true,
-      remainingRequests: maxRequests - newCount,
-      resetTime: now + windowMs,
-    };
-  } catch (error) {
-    console.error('KV rate limit error:', error);
-
-    // Log warning but allow requests to proceed
-    console.warn('WARNING: Rate limiting error - allowing request to proceed');
-    return {
-      success: true,
-      remainingRequests: Number.MAX_SAFE_INTEGER,
+      success: false,
+      remainingRequests: 0,
+      resetTime: entry.resetTime,
     };
   }
+
+  // Increment count
+  entry.count += 1;
+  inMemoryStore.set(identifier, entry);
+
+  return {
+    success: true,
+    remainingRequests: maxRequests - entry.count,
+    resetTime: entry.resetTime,
+  };
 }
 
 /**
@@ -106,20 +160,20 @@ export async function resetRateLimit(
   env: Env | null,
   identifier: string
 ): Promise<void> {
-  if (!env || !env.KV) {
-    console.warn('KV namespace not available for rate limit reset');
-    return;
+  if (env?.KV) {
+    const now = Date.now();
+    const window = Math.floor(now / 60000); // 1-minute window
+    const rateLimitKey = `ratelimit:${identifier}:${window}`;
+
+    try {
+      await env.KV.delete(rateLimitKey);
+    } catch (error) {
+      console.error('KV delete error:', error);
+    }
   }
 
-  const now = Date.now();
-  const window = Math.floor(now / 60000); // 1-minute window
-  const rateLimitKey = `ratelimit:${identifier}:${window}`;
-
-  try {
-    await env.KV.delete(rateLimitKey);
-  } catch (error) {
-    console.error('KV delete error:', error);
-  }
+  // Also clear from in-memory store
+  inMemoryStore.delete(identifier);
 }
 
 /**
@@ -168,4 +222,15 @@ export function createRateLimitResponse(result: RateLimitResult): Response {
       },
     }
   );
+}
+
+/**
+ * Get rate limit statistics (for debugging/monitoring)
+ */
+export function getRateLimitStats(): { inMemoryEntries: number; keys: string[] } {
+  cleanupInMemoryStore();
+  return {
+    inMemoryEntries: inMemoryStore.size,
+    keys: Array.from(inMemoryStore.keys()),
+  };
 }
