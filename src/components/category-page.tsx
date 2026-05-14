@@ -63,7 +63,8 @@ export function CategoryPage({ categoryName, categoryTitle, categoryDescription,
         }
 
         const data = await response.json() as any
-        const productsArray = Array.isArray(data.products) ? data.products : (Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []))
+        // API returns { success: true, data: { products: [...] } }
+        const productsArray = Array.isArray(data.data?.products) ? data.data.products : (Array.isArray(data.products) ? data.products : (Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : [])))
         setProducts(productsArray)
       } catch (err) {
         console.error('Error fetching products:', err)

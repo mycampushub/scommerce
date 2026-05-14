@@ -202,7 +202,7 @@ export default function ProductPage() {
         slug: product.slug,
         price: product.basePrice || product.price,
         comparePrice: product.comparePrice,
-        image: product.images[0] || product.image,
+        image: Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : product.image,
         rating: product.rating,
         reviews: product.reviews,
         categoryId: product.categoryId,
@@ -239,7 +239,7 @@ export default function ProductPage() {
   const currentPrice = selectedVariant ? selectedVariant.price : product?.basePrice || product?.price || 0
   const currentComparePrice = selectedVariant ? selectedVariant.comparePrice : product?.comparePrice || null
   const currentStock = selectedVariant ? selectedVariant.stock : product?.stock || 0
-  const currentImages = selectedVariant?.images && selectedVariant.images.length > 0 ? selectedVariant.images : product?.images || []
+  const currentImages = (selectedVariant?.images && Array.isArray(selectedVariant.images) && selectedVariant.images.length > 0 ? selectedVariant.images : null) || (product?.images && Array.isArray(product.images) ? product.images : [])
 
   // Check if user has purchased this product
   async function checkUserPurchase() {
@@ -280,7 +280,7 @@ export default function ProductPage() {
         name: product.name,
         price: selectedVariant.price,
         originalPrice: selectedVariant.comparePrice || product.comparePrice,
-        image: (selectedVariant.images && selectedVariant.images[0]) || product.images[0] || product.image,
+        image: (Array.isArray(selectedVariant.images) && selectedVariant.images.length > 0 ? selectedVariant.images[0] : null) || (Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : product.image),
         variantId: selectedVariant.id,
         variantSku: selectedVariant.sku,
         size: selectedVariant.size,
@@ -294,7 +294,7 @@ export default function ProductPage() {
         name: product.name,
         price: product.basePrice || product.price,
         originalPrice: product.comparePrice,
-        image: product.images[0] || product.image,
+        image: Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : product.image,
         quantity,
       })
     }

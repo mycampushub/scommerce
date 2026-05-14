@@ -39,28 +39,29 @@ export interface ProductFilters {
 // Fetch all products with optional filters
 export async function fetchProducts(filters?: ProductFilters): Promise<Product[]> {
   const params = new URLSearchParams()
-  
+
   if (filters?.category) {
     params.append('category', filters.category)
   }
-  
+
   if (filters?.search) {
     params.append('search', filters.search)
   }
-  
+
   if (filters?.limit) {
     params.append('limit', filters.limit.toString())
   }
-  
+
   const url = `/api/products${params.toString() ? '?' + params.toString() : ''}`
   const response = await fetch(url)
-  
+
   if (!response.ok) {
     throw new Error('Failed to fetch products')
   }
-  
+
   const data = await response.json() as any
-  return Array.isArray(data.products) ? data.products : (Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []))
+  // API returns { success: true, data: { products: [...] } }
+  return Array.isArray(data.data?.products) ? data.data.products : (Array.isArray(data.products) ? data.products : (Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : [])))
 }
 
 // Custom hook to fetch products with filters
