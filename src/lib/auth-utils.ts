@@ -64,7 +64,7 @@ export async function verifyAuth(request: NextRequest): Promise<AuthResult> {
     console.log('[verifyAuth] Token verified successfully, userId:', payload.userId, 'email:', payload.email, 'role:', payload.role)
 
     // Fetch user from database to ensure account exists and is valid
-    const env = getEnv()
+    const env = await getEnv()
     const user = await UserRepository.findById(env, payload.userId)
 
     if (!user) {

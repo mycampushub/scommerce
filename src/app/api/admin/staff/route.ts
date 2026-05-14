@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const env = getEnv()
+    const env = await getEnv()
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search') || ''
     const role = searchParams.get('role') || ''
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const env = getEnv()
+    const env = await getEnv()
     const body: any = await request.json() as any
     const { email, name, password, role } = body
 

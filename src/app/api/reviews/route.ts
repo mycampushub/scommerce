@@ -8,7 +8,7 @@ import { sanitizeHTML, sanitizeForDB } from '@/lib/sanitize'
 // GET /api/reviews?productId={id} - Get reviews for a product
 export async function GET(request: NextRequest) {
   // Get D1 database from request context
-  const env = getEnv()
+  const env = await getEnv()
 
   try {
     const { searchParams } = new URL(request.url)
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
 // POST /api/reviews - Submit new review
 export async function POST(request: NextRequest) {
   // Get D1 database from request context
-  const env = getEnv()
+  const env = await getEnv()
 
   try {
     const body = await request.json() as any

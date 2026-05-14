@@ -38,7 +38,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const env = getEnv()
+    const env = await getEnv()
     const { id } = await params
 
     // Fetch product to check if it exists
@@ -129,7 +129,7 @@ export async function POST(
     return userOrResponse
   }
 
-  const env = getEnv()
+  const env = await getEnv()
 
   try {
     const { id } = await params

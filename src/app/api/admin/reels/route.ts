@@ -7,7 +7,7 @@ import { queryFirst } from '@/db/db'
 
 export async function GET(request: NextRequest) {
   try {
-    const env = getEnv()
+    const env = await getEnv()
     const searchParams = request.nextUrl.searchParams
     const activeOnly = searchParams.get('activeOnly') === 'true'
 
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
 
 
   try {
-    const env = getEnv()
+    const env = await getEnv()
     const body = await request.json() as any
     const { title, thumbnail, videoUrl, productIds, isActive, order } = body
 

@@ -15,7 +15,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const env = getEnv()
+  const env = await getEnv()
 
   try {
     const orderId = (await params).id

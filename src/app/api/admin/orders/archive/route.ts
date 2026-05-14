@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const env = getEnv()
+    const env = await getEnv()
     const body = await request.json().catch(() => ({})) as Partial<ArchiveApiRequest>
 
     const operation = body.operation || 'archive'
@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const env = getEnv()
+    const env = await getEnv()
     const archivedCount = await OrderRepository.getArchivedCount(env)
 
     return NextResponse.json({

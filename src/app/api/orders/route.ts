@@ -18,7 +18,7 @@ const ALLOWED_PAYMENT_METHODS = ['CASH_ON_DELIVERY', 'ONLINE_PAYMENT', 'CARD', '
 
 export async function POST(request: NextRequest) {
   // Get D1 database from request context (Cloudflare Pages/Workers)
-  const env = getEnv();
+  const env = await getEnv();
 
   // Rate limiting: 10 orders per hour per user/IP
   const authHeader = request.headers.get('authorization');
@@ -318,7 +318,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   // Get D1 database from request context (Cloudflare Pages/Workers)
-  const env = getEnv();
+  const env = await getEnv();
 
   try {
     const searchParams = request.nextUrl.searchParams;

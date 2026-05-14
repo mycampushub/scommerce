@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Get D1 database from request context
-  const env = getEnv()
+  const env = await getEnv()
 
   try {
     const searchParams = request.nextUrl.searchParams
@@ -75,7 +75,8 @@ export async function GET(request: NextRequest) {
 
         // Transform and filter out inactive or out-of-stock items
         const transformedItems = cartItems.map((item: any) => {
-          const images = parseJSON<string[]>(item.images) || []
+          const parsedImages = parseJSON<string[]>(item.images)
+          const images = Array.isArray(parsedImages) ? parsedImages : []
           return {
             id: item.id,
             productId: item.productId,
@@ -171,7 +172,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Get D1 database from request context
-  const env = getEnv()
+  const env = await getEnv()
 
 
   try {

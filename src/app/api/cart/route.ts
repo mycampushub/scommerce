@@ -49,7 +49,7 @@ interface StockCheckResult {
  */
 export async function GET(request: NextRequest) {
   // Get D1 database from request context (Cloudflare Pages/Workers)
-  const env = getEnv();
+  const env = await getEnv();
 
   try {
     // Get token from Authorization header or cookie
@@ -127,7 +127,8 @@ export async function GET(request: NextRequest) {
           if (!product) return null;
 
           const variant = item.variantId ? variantsMap.get(item.variantId) : null;
-          const images = parseJSON<string[]>(product.images) || [];
+          const parsedImages = parseJSON<string[]>(product.images);
+          const images = Array.isArray(parsedImages) ? parsedImages : [];
 
           return {
             id: item.productId,
@@ -181,7 +182,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   // Get D1 database from request context (Cloudflare Pages/Workers)
-  const env = getEnv();
+  const env = await getEnv();
 
   try {
     const body: CartRequestBody = await request.json() as CartRequestBody;

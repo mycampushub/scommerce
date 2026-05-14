@@ -197,7 +197,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
   const userId = userOrResponse.id;
   console.log('[Upload API] Auth verified for user:', userId, userOrResponse.role);
 
-  const env = getEnv();
+  const env = await getEnv();
 
   // Rate limiting: 20 uploads per minute per user
   const rateLimitResult = await rateLimit(env, `upload:${userId}`, {
@@ -318,7 +318,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
         });
 
         // Get R2 public URL from environment variable or fallback
-        const r2PublicUrl = getEnvVar('R2_PUBLIC_URL');
+        const r2PublicUrl = await getEnvVar('R2_PUBLIC_URL');
         if (r2PublicUrl) {
           fileUrl = `${r2PublicUrl}/${filename}`;
         } else {
@@ -438,7 +438,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse<DeleteR
   const userId = userOrResponse.id;
   console.log('[Upload API] Auth verified for user:', userId, userOrResponse.role);
 
-  const env = getEnv();
+  const env = await getEnv();
   console.log('[Upload API] Environment:', env ? 'Cloudflare' : 'Local', 'Has R2:', !!env?.BUCKET);
 
   try {

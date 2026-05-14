@@ -19,7 +19,7 @@ export async function GET(
   }
 
   try {
-    const env = getEnv()
+    const env = await getEnv()
     const category = await CategoryRepository.findById(env, (await params).id)
 
     if (!category) {
@@ -69,7 +69,7 @@ export async function PUT(
 
 
   try {
-    const env = getEnv()
+    const env = await getEnv()
     const body = await request.json() as any
 
     // Validate with Zod
@@ -157,7 +157,7 @@ export async function DELETE(
 
 
   try {
-    const env = getEnv()
+    const env = await getEnv()
     const id = (await params).id
 
     // Check if category exists

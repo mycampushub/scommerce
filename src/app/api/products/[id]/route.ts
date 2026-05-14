@@ -12,7 +12,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   // Get D1 database from request context (Cloudflare Pages/Workers)
-  const env = getEnv();
+  const env = await getEnv();
 
   try {
     const productId = (await params).id;
@@ -33,7 +33,8 @@ export async function GET(
     const category = await CategoryRepository.findById(env, product.categoryId);
 
     // Parse images
-    const images = parseJSON<string[]>(product.images) || [];
+    const parsedImages = parseJSON<string[]>(product.images);
+    const images = Array.isArray(parsedImages) ? parsedImages : [];
 
     // Fetch real review data
     const { queryFirst } = await import('@/db/db');

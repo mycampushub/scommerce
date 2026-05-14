@@ -480,8 +480,9 @@ function Stories({ stories, autoPlay = 4000 }: { stories: Story[], autoPlay?: nu
 
       // For YouTube videos, set up player with onStateChange listener
       if (selectedStory.videoUrl) {
-        const videoId = selectedStory.videoUrl.split('/embed/')[1]
-        
+        const urlParts = selectedStory.videoUrl.split('/embed/');
+        const videoId = urlParts.length > 1 ? urlParts[1] : urlParts[0];
+
         const onPlayerReady = (event: any) => {
           event.target.playVideo()
         }
@@ -653,7 +654,12 @@ function Stories({ stories, autoPlay = 4000 }: { stories: Story[], autoPlay?: nu
               <div id={`youtube-player-${selectedStory.id}`} className="w-full h-full" />
             ) : (
               <div className="relative w-full h-full md:h-[90vh] md:max-w-md bg-black flex items-center justify-center" onClick={nextImage}>
-                <img src={selectedStory.images[currentImageIndex]} alt={selectedStory.title} className="w-full h-full object-contain md:object-cover" loading="eager" />
+                <img 
+                  src={selectedStory.images && selectedStory.images[currentImageIndex] ? selectedStory.images[currentImageIndex] : selectedStory.thumbnail} 
+                  alt={selectedStory.title} 
+                  className="w-full h-full object-contain md:object-cover" 
+                  loading="eager" 
+                />
               </div>
             )}
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6 pointer-events-none">
@@ -682,20 +688,22 @@ function CategoryCarousel({ categories, products }: { categories: Category[]; pr
 
   // Auto-scroll effect
   useEffect(() => {
-    if (isPaused) return
+    if (isPaused || !categories || categories.length === 0) return
 
     const interval = setInterval(() => {
       setCurrentIndex(prev => (prev + 1) % categories.length)
     }, 4000)
 
     return () => clearInterval(interval)
-  }, [isPaused, categories.length])
+  }, [isPaused, categories?.length || 0])
 
   const nextSlide = () => {
+    if (!categories || categories.length === 0) return
     setCurrentIndex(prev => (prev + 1) % categories.length)
   }
 
   const prevSlide = () => {
+    if (!categories || categories.length === 0) return
     setCurrentIndex(prev => (prev - 1 + categories.length) % categories.length)
   }
 
@@ -705,8 +713,8 @@ function CategoryCarousel({ categories, products }: { categories: Category[]; pr
 
   if (!categories || categories.length === 0) return null
 
-  const currentCategory = categories[currentIndex]
-  const categoryProducts = products.filter(p =>
+  const currentCategory = categories && categories[currentIndex]
+  const categoryProducts = (products || []).filter(p =>
     currentCategory && p.categoryId === currentCategory.id
   ).slice(0, 4)
 
@@ -1700,21 +1708,22 @@ export default function Home() {
           settingsRes.json() as any
         ])
 
-        // Set products and categories
-        setFeaturedProducts(featuredData.data?.products || featuredData.products || [])
-        setSaleProducts(saleData.data?.products || saleData.products || [])
-        setNewProducts(newData.data?.products || newData.products || [])
-        setTrendingProducts(trendingData.data?.products || trendingData.products || [])
+        // Set products and categories with defensive checks
+        setFeaturedProducts(Array.isArray(featuredData.data?.products) ? featuredData.data.products : [])
+        setSaleProducts(Array.isArray(saleData.data?.products) ? saleData.data.products : [])
+        setNewProducts(Array.isArray(newData.data?.products) ? newData.data.products : [])
+        setTrendingProducts(Array.isArray(trendingData.data?.products) ? trendingData.data.products : [])
 
-        // Transform categories to include href
-        const categoriesWithHref = (categoriesData.data || categoriesData || []).map((cat: any) => ({
+        // Transform categories to include href with defensive checks
+        const categoriesRaw = Array.isArray(categoriesData.data) ? categoriesData.data : []
+        const categoriesWithHref = categoriesRaw.map((cat: any) => ({
           ...cat,
           href: `/collections/${cat.slug}`
         }))
         setCategories(categoriesWithHref)
 
-        // Set homepage content
-        const bannerList = bannersData.data || []
+        // Set homepage content with defensive checks
+        const bannerList = Array.isArray(bannersData.data) ? bannersData.data : []
         setBanners(bannerList.map((b: any) => ({
           id: b.id,
           title: b.title,
@@ -1725,7 +1734,7 @@ export default function Home() {
             : []
         })))
 
-        const storyList = storiesData.data || []
+        const storyList = Array.isArray(storiesData.data) ? storiesData.data : []
         setStories(storyList.map((s: any) => {
           // Parse images from JSON string or use as-is if already an array
           let images: string[] = []
@@ -1749,7 +1758,7 @@ export default function Home() {
           }
         }))
 
-        const reelList = reelsData.data || []
+        const reelList = Array.isArray(reelsData.data) ? reelsData.data : []
         setReels(reelList.map((r: any) => ({
           id: r.id,
           thumbnail: r.thumbnail,
@@ -1758,7 +1767,7 @@ export default function Home() {
           product: { name: 'Featured Product', price: 99.99, image: r.thumbnail }
         })))
 
-        const promotionList = promotionsData.data || []
+        const promotionList = Array.isArray(promotionsData.data) ? promotionsData.data : []
         setPromotions(promotionList.map((p: any) => ({
           id: p.id,
           title: p.title,
@@ -1767,10 +1776,21 @@ export default function Home() {
           href: p.ctaLink || '#'
         })))
 
-        // Set homepage settings
+        // Set homepage settings with defensive checks
         setHomepageSettings(settingsData.data || {})
       } catch (err) {
         console.error('Error fetching data:', err)
+        // Set all to empty arrays on error to prevent crashes
+        setFeaturedProducts([])
+        setSaleProducts([])
+        setNewProducts([])
+        setTrendingProducts([])
+        setCategories([])
+        setBanners([])
+        setStories([])
+        setReels([])
+        setPromotions([])
+        setHomepageSettings({})
       }
     }
 

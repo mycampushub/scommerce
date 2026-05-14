@@ -10,7 +10,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const env = getEnv()
+    const env = await getEnv()
     const { id } = await params
     const promotion = await queryFirst<any>(
       env,
@@ -62,7 +62,7 @@ export async function PUT(
 
 
   try {
-    const env = getEnv()
+    const env = await getEnv()
     const { id } = await params
     const body = await request.json() as any
 
@@ -208,7 +208,7 @@ export async function DELETE(
 
 
   try {
-    const env = getEnv()
+    const env = await getEnv()
     const { id } = await params
     await execute(env, 'DELETE FROM promotions WHERE id = ?', id)
 

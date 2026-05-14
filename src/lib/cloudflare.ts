@@ -6,8 +6,9 @@ export { isCloudflareEnv };
 
 /**
  * Safely get Cloudflare context, handling build-time scenarios
+ * Always uses async mode to avoid build errors
  */
-async function safelyGetCloudflareContextAsync() {
+async function safelyGetCloudflareContext() {
   try {
     const context = await getCloudflareContext({ async: true });
     console.log('[cloudflare.ts] getCloudflareContext(async: true) result:', {
@@ -15,36 +16,7 @@ async function safelyGetCloudflareContextAsync() {
       hasEnv: !!context?.env,
       envKeys: context?.env ? Object.keys(context.env).filter(k => k === 'DB' || k === 'KV' || k === 'BUCKET') : []
     });
-    
-    // Validate that the context has the expected structure
-    if (!context || typeof context !== 'object') {
-      console.warn('[cloudflare.ts] Invalid Cloudflare context structure');
-      return null;
-    }
-    if (!context.env || typeof context.env !== 'object') {
-      console.warn('[cloudflare.ts] Cloudflare context missing env object');
-      return null;
-    }
-    return context;
-  } catch (error: any) {
-    const errorMsg = error?.message || '';
-    console.error('[cloudflare.ts] Error getting Cloudflare context (async):', errorMsg);
-    return null;
-  }
-}
 
-/**
- * Safely get Cloudflare context, handling build-time scenarios
- */
-function safelyGetCloudflareContext() {
-  try {
-    const context = getCloudflareContext();
-    console.log('[cloudflare.ts] getCloudflareContext result:', {
-      hasContext: !!context,
-      hasEnv: !!context?.env,
-      envKeys: context?.env ? Object.keys(context.env).filter(k => k === 'DB' || k === 'KV' || k === 'BUCKET') : []
-    });
-    
     // Validate that the context has the expected structure
     if (!context || typeof context !== 'object') {
       console.warn('[cloudflare.ts] Invalid Cloudflare context structure');
@@ -56,18 +28,16 @@ function safelyGetCloudflareContext() {
     }
     return context;
   } catch (error: any) {
-    // If called during static build or in sync mode, return null
     const errorMsg = error?.message || '';
+    // Silently return null during build or when context isn't initialized
     if (errorMsg.includes('sync mode') ||
         errorMsg.includes('static route') ||
         errorMsg.includes('top level') ||
         errorMsg.includes('initOpenNextCloudflareForDev')) {
-      // Silently return null during build or when context isn't initialized
       console.debug('[cloudflare.ts] Context not available:', errorMsg.substring(0, 100));
       return null;
     }
-    // Log other errors but still return null
-    console.error('[cloudflare.ts] Error getting Cloudflare context:', error);
+    console.error('[cloudflare.ts] Error getting Cloudflare context:', errorMsg);
     return null;
   }
 }
@@ -75,10 +45,11 @@ function safelyGetCloudflareContext() {
 /**
  * Get D1 database from Cloudflare context
  * Falls back to Prisma for local development
+ * Must be called as async to avoid build errors
  */
-export function getDB(_request?: Request): any | null {
+export async function getDB(_request?: Request): Promise<any | null> {
   // First, try Cloudflare D1
-  const context = safelyGetCloudflareContext();
+  const context = await safelyGetCloudflareContext();
   if (context?.env?.['DB']) {
     console.log('[cloudflare.ts] Using Cloudflare D1 database');
     return context.env['DB'];
@@ -99,30 +70,10 @@ export function getDB(_request?: Request): any | null {
  * Falls back to a mock env with Prisma for local development
  */
 export async function getEnvAsync(_request?: Request): Promise<any | null> {
-  // First try async Cloudflare context
-  const context = await safelyGetCloudflareContextAsync();
+  // Try Cloudflare bindings
+  const context = await safelyGetCloudflareContext();
   if (context?.env && (context.env['DB'] || context.env['KV'] || context.env['BUCKET'])) {
-    console.log('[cloudflare.ts] Using Cloudflare bindings (async)', {
-      hasDB: !!context.env['DB'],
-      hasKV: !!context.env['KV'],
-      hasBUCKET: !!context.env['BUCKET'],
-    });
-    return context.env;
-  }
-
-  // Fallback to sync context
-  return getEnv(_request);
-}
-
-/**
- * Helper to get env from Cloudflare context
- * Falls back to a mock env with Prisma for local development
- */
-export function getEnv(_request?: Request): any | null {
-  // First try Cloudflare bindings regardless of environment detection
-  const context = safelyGetCloudflareContext();
-  if (context?.env && (context.env['DB'] || context.env['KV'] || context.env['BUCKET'])) {
-    console.log('[cloudflare.ts] Using Cloudflare bindings (sync)', {
+    console.log('[cloudflare.ts] Using Cloudflare bindings', {
       hasDB: !!context.env['DB'],
       hasKV: !!context.env['KV'],
       hasBUCKET: !!context.env['BUCKET'],
@@ -141,12 +92,21 @@ export function getEnv(_request?: Request): any | null {
 }
 
 /**
+ * Helper to get env from Cloudflare context
+ * Falls back to a mock env with Prisma for local development
+ * This is now an alias for getEnvAsync to ensure async mode is always used
+ */
+export async function getEnv(_request?: Request): Promise<any | null> {
+  return getEnvAsync(_request);
+}
+
+/**
  * Get environment variable from Cloudflare or process.env
  * Cloudflare Workers/Pages store env vars in the cloudflare context
  */
-export function getEnvVar(key: string): string | undefined {
+export async function getEnvVar(key: string): Promise<string | undefined> {
   // Try Cloudflare env context first
-  const context = safelyGetCloudflareContext();
+  const context = await safelyGetCloudflareContext();
   if (context?.env && key in context.env) {
     return context.env[key];
   }

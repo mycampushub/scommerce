@@ -69,7 +69,7 @@ export interface EmailService {
 }
 
 function getEnvOrThrow(): any {
-  const env = getEnv();
+  const env = await getEnv();
   if (!env) throw new Error('Environment/D1 binding not available');
   return env;
 }

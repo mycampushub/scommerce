@@ -17,7 +17,7 @@ import { CartItem, Product, ProductVariant } from '@/types/common'
  */
 export async function POST(request: NextRequest) {
   // Get D1 database from request context
-  const env = getEnv()
+  const env = await getEnv()
 
 
   try {

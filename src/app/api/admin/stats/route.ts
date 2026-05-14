@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const env = getEnv()
+    const env = await getEnv()
     const searchParams = request.nextUrl.searchParams
     const period = parseInt(searchParams.get('period') || '30')
 

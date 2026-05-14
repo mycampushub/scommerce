@@ -18,7 +18,7 @@ export async function GET(
   }
 
   try {
-    const env = getEnv()
+    const env = await getEnv()
     const { id } = await params
 
     const product = await queryFirst<any>(
@@ -68,7 +68,7 @@ export async function PUT(
   const admin = userOrResponse as { id: string; email: string; role: string; name?: string }
 
   try {
-    const env = getEnv()
+    const env = await getEnv()
     const { id } = await params
 
     const existing = await ProductRepository.findById(env, id)
@@ -156,7 +156,7 @@ export async function DELETE(
   const admin = userOrResponse as { id: string; email: string; role: string; name?: string }
 
   try {
-    const env = getEnv()
+    const env = await getEnv()
     const { id } = await params
 
     const product = await queryFirst<any>(

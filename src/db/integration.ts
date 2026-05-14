@@ -4,7 +4,7 @@ import { D1IntegrationRepository } from './d1-integration-repository';
 
 function isProductionD1(): boolean {
   try {
-    const env = getEnv();
+    const env = await getEnv();
     return !!(env && env.DB);
   } catch {
     return false;

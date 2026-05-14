@@ -7,7 +7,7 @@ import { execute } from '@/db/db'
  * POST /api/contact - Handle contact form submissions
  */
 export async function POST(request: NextRequest) {
-  const env = getEnv()
+  const env = await getEnv()
 
   try {
     const body = await request.json() as {

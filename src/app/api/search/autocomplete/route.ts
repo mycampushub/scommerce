@@ -15,7 +15,7 @@ import { Product, Category } from '@/types/common'
  */
 
 export async function GET(request: NextRequest) {
-  const env = getEnv()
+  const env = await getEnv()
   try {
     const searchParams = request.nextUrl.searchParams
     const rawQuery = searchParams.get('q') || ''

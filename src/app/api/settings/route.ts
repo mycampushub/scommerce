@@ -12,7 +12,7 @@ import prisma from '@/lib/database';
  * Get site settings
  */
 export async function GET(request: NextRequest) {
-  const env = getEnv();
+  const env = await getEnv();
 
   try {
     const settings = await SettingsRepository.getSettings(env);
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     return userOrResponse
   }
 
-  const env = getEnv();
+  const env = await getEnv();
 
 
   try {

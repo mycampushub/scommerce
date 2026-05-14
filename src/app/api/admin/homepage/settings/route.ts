@@ -35,7 +35,7 @@ const DEFAULT_SETTINGS = {
 
 export async function GET(request: NextRequest) {
   try {
-    const env = getEnv()
+    const env = await getEnv()
     const settings = await queryAll<any>(
       env,
       'SELECT * FROM homepage_settings'
@@ -79,7 +79,7 @@ export async function PUT(request: NextRequest) {
     return userOrResponse
   }
 
-  const env = getEnv()
+  const env = await getEnv()
 
   // Rate limiting: 10 requests per minute per admin
   const clientIp = getClientIp(request);

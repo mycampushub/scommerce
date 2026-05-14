@@ -10,7 +10,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const env = getEnv()
+    const env = await getEnv()
     const story = await MediaRepository.findStoryById(env, id)
 
     if (!story) {
@@ -51,7 +51,7 @@ export async function PUT(
 
 
   try {
-    const env = getEnv()
+    const env = await getEnv()
     const { id } = await params
     const body = await request.json() as any
     const { title, thumbnail, images, isActive, order } = body
@@ -167,7 +167,7 @@ export async function DELETE(
 
 
   try {
-    const env = getEnv()
+    const env = await getEnv()
     const { id } = await params
     await MediaRepository.deleteStory(env, id)
 

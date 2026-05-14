@@ -24,7 +24,7 @@ export async function DELETE(
   }
 
   const userId = (await params).id
-  const env = getEnv()
+  const env = await getEnv()
   const hardDelete = request.nextUrl.searchParams.get('hard') === 'true'
 
   try {

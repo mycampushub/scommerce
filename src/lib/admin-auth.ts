@@ -54,7 +54,7 @@ export async function verifyAdminAuth(
     console.log('[verifyAdminAuth] Token verified, userId:', payload.userId, 'role:', payload.role);
 
     // Verify user exists and has valid role
-    const env = getEnv()
+    const env = await getEnv()
     const user = await UserRepository.findById(env, payload.userId)
 
     if (!user) {

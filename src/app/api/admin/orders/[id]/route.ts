@@ -15,7 +15,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const env = getEnv()
+    const env = await getEnv()
     const order = await OrderRepository.findById(env, id)
 
     if (!order) {
@@ -82,7 +82,7 @@ export async function PUT(
   const admin = userOrResponse as { id: string; email: string; role: string; name?: string }
 
   try {
-    const env = getEnv()
+    const env = await getEnv()
     const { id } = await params
     const body: any = await request.json() as any
 
@@ -265,7 +265,7 @@ export async function DELETE(
   const admin = userOrResponse as { id: string; email: string; role: string; name?: string }
 
   try {
-    const env = getEnv()
+    const env = await getEnv()
     const { id } = await params
     const body = await request.json().catch(() => ({}))
 

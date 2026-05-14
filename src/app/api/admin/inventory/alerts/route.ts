@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const env = getEnv()
+    const env = await getEnv()
     const searchParams = request.nextUrl.searchParams
     const alertType = searchParams.get('alertType')
     const isRead = searchParams.get('isRead')
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const env = getEnv()
+    const env = await getEnv()
     const body: any = await request.json() as any
 
     console.log('[inventory alerts API] Creating alert:', body)

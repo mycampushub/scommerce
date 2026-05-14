@@ -12,7 +12,7 @@ import type { Env } from '@/db/types';
 export async function POST(request: NextRequest) {
   let env: Env | null = null;
   try {
-    env = getEnv() as Env | null;
+    env = await getEnv() as Env | null;
     // Note: env can be null in both local development and some production scenarios
     // The repositories will fall back to Prisma when env is null
     console.log('[login] Environment check:', {

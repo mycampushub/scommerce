@@ -10,7 +10,7 @@ import { rateLimit, createRateLimitResponse, getClientIp } from '@/lib/rate-limi
 const TOKEN_EXPIRY_HOURS = 1;
 
 export async function POST(request: NextRequest) {
-  const env = getEnv();
+  const env = await getEnv();
   
   // Apply rate limiting to prevent abuse
   const clientIp = getClientIp(request);

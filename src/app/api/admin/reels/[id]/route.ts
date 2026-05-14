@@ -9,7 +9,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const env = getEnv()
+    const env = await getEnv()
     const { id } = await params
     const reel = await MediaRepository.findReelById(env, id)
 
@@ -51,7 +51,7 @@ export async function PUT(
 
 
   try {
-    const env = getEnv()
+    const env = await getEnv()
     const { id } = await params
     const body = await request.json() as any
     const { title, thumbnail, videoUrl, productIds, isActive, order } = body
@@ -176,7 +176,7 @@ export async function DELETE(
 
 
   try {
-    const env = getEnv()
+    const env = await getEnv()
     const { id } = await params
     await MediaRepository.deleteReel(env, id)
 

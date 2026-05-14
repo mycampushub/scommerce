@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const env = getEnv()
+    const env = await getEnv()
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search') || ''
     const categorySlug = searchParams.get('category') || ''
@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
   const admin = userOrResponse as { id: string; email: string; role: string; name?: string }
 
   try {
-    const env = getEnv()
+    const env = await getEnv()
     const contentType = request.headers.get('content-type') || ''
 
     // Handle multipart/form-data for image uploads
@@ -224,7 +224,7 @@ export async function POST(request: NextRequest) {
           const uploadFormData = new FormData()
           uploadFormData.append('file', file)
 
-          const baseUrl = getEnvVar('NEXT_PUBLIC_BASE_URL') || request.headers.get('host')
+          const baseUrl = await getEnvVar('NEXT_PUBLIC_BASE_URL') || request.headers.get('host')
           const uploadUrl = baseUrl ? `https://${baseUrl}/api/admin/upload` : 'http://localhost:3000/api/admin/upload'
 
           const uploadResponse = await fetch(uploadUrl, {

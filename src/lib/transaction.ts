@@ -31,7 +31,7 @@ export type TransactionCallback<T = any> = (
 export async function runTransaction<T = any>(
   callback: TransactionCallback<T>
 ): Promise<TransactionResult<T>> {
-  const env = getEnv();
+  const env = await getEnv();
 
   // Use Prisma transaction for local development
   if (!env || !env.DB) {

@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const env = getEnv()
+    const env = await getEnv()
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search') || ''
 
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
 
 
   try {
-    const env = getEnv()
+    const env = await getEnv()
     const body = await request.json() as any
 
     // Validate with Zod

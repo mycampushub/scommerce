@@ -20,7 +20,7 @@ export async function GET(
       )
     }
 
-    const env = getEnv()
+    const env = await getEnv()
     const user = await UserRepository.findById(env, (await params).id)
 
     if (!user) {
@@ -70,7 +70,7 @@ export async function PUT(
       )
     }
 
-    const env = getEnv()
+    const env = await getEnv()
     const body: any = await request.json() as any
     const { email, name, password, role, phone, address } = body
 
@@ -181,7 +181,7 @@ export async function DELETE(
       )
     }
 
-    const env = getEnv()
+    const env = await getEnv()
     // Check if user exists
     const existingUser = await UserRepository.findById(env, (await params).id)
 

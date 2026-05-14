@@ -4,7 +4,7 @@ import { validatePromoCode, getUserPromoCodes } from '@/lib/promotion-validation
 import { verifyToken, extractTokenFromHeader } from '@/lib/auth'
 
 export async function POST(request: NextRequest) {
-  const env = getEnv()
+  const env = await getEnv()
 
 
   try {
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
  * GET /api/cart/apply-promo - Get available promo codes for user
  */
 export async function GET(request: NextRequest) {
-  const env = getEnv()
+  const env = await getEnv()
 
   try {
     // Get user ID if authenticated

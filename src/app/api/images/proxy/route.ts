@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Get R2 public URL from environment
-  const r2PublicUrl = getEnvVar('R2_PUBLIC_URL');
+  const r2PublicUrl = await getEnvVar('R2_PUBLIC_URL');
 
   if (!r2PublicUrl) {
     return NextResponse.json(

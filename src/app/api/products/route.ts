@@ -10,7 +10,7 @@ import { errorResponse } from '@/lib/api-response';
 
 export async function GET(request: Request) {
   // Get D1 database from request context (Cloudflare Pages/Workers)
-  const env = getEnv();
+  const env = await getEnv();
   
   console.log('[products API] Environment check:', {
     hasEnv: !!env,
@@ -178,7 +178,8 @@ export async function GET(request: Request) {
 
     // Transform products to match expected frontend format
     const transformedProducts = products.map((product: any) => {
-      const images = parseJSON<string[]>(product.images) || [];
+      const parsedImages = parseJSON<string[]>(product.images);
+      const images = Array.isArray(parsedImages) ? parsedImages : [];
       const productCategory = categoriesMap.get(product.categoryId);
       let attributes: any = {};
 

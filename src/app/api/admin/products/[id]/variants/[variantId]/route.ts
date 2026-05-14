@@ -38,7 +38,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string; variantId: string }> }
 ) {
   try {
-    const env = getEnv()
+    const env = await getEnv()
     const { id, variantId } = await params
 
     // Fetch variant
@@ -105,7 +105,7 @@ export async function PUT(
     return userOrResponse
   }
 
-  const env = getEnv()
+  const env = await getEnv()
 
   try {
     const { id, variantId } = await params
@@ -290,10 +290,10 @@ export async function DELETE(
   }
 
 
-  const env = getEnv()
+  const env = await getEnv()
 
   try {
-    const env = getEnv()
+    const env = await getEnv()
     const { id, variantId } = await params
 
     // Check if variant exists

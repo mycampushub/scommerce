@@ -5,7 +5,7 @@ import { parseJSON } from '@/db/db'
 
 
 export async function GET(request: NextRequest) {
-  const env = getEnv()
+  const env = await getEnv()
   try {
     const searchParams = request.nextUrl.searchParams
     const productId = searchParams.get('productId')
@@ -158,7 +158,7 @@ export async function GET(request: NextRequest) {
     // Format product data
     const formattedProducts = finalProducts.map((product: any) => {
       const parsedImages = parseJSON<string[]>(product.images)
-      const images = parsedImages || []
+      const images = Array.isArray(parsedImages) ? parsedImages : []
       return {
         id: product.id,
         name: product.name,

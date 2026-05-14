@@ -10,7 +10,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    const env = getEnv()
+    const env = await getEnv()
     const banner = await BannerRepository.findById(env, id)
 
     if (!banner) {
@@ -50,7 +50,7 @@ export async function PUT(
       return userOrResponse
     }
 
-    const env = getEnv()
+    const env = await getEnv()
     const body = await request.json() as any
     const { id } = await params
     const { title, image, mobileImage } = body
@@ -156,7 +156,7 @@ export async function DELETE(
       return userOrResponse
     }
 
-    const env = getEnv()
+    const env = await getEnv()
     const { id } = await params
     await BannerRepository.delete(env, id)
 

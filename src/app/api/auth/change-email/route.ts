@@ -10,7 +10,7 @@ import { generateEmailToken } from '@/lib/crypto-utils'
 
 
 export async function POST(request: NextRequest) {
-  const env = getEnv()
+  const env = await getEnv()
   const clientIp = getClientIp(request)
   const rateLimitResult = await rateLimit(env, 'change-email:' + clientIp, {
     maxRequests: 3,

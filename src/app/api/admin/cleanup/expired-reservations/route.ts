@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     return userOrResponse
   }
 
-  const env = getEnv()
+  const env = await getEnv()
 
   try {
     // Use the existing cleanup function
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
     return userOrResponse
   }
 
-  const env = getEnv()
+  const env = await getEnv()
 
   try {
     let expiredCount = 0

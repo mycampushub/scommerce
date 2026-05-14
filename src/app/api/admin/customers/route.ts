@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const env = getEnv()
+    const env = await getEnv()
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search') || ''
     const status = searchParams.get('status') || ''
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
 
 
   try {
-    const env = getEnv()
+    const env = await getEnv()
     const body: any = await request.json() as any
 
     // Generate secure random temporary password (16 characters)
