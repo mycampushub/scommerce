@@ -120,7 +120,7 @@ export const ReviewsSection = forwardRef<ReviewsSectionHandle, ReviewsSectionPro
                   ))}
                 </div>
                 <span className="text-gray-600">
-                  {averageRating.toFixed(1)} average based on {reviewCount} reviews
+                  {(typeof averageRating === 'number' && !isNaN(averageRating) ? averageRating : 0).toFixed(1)} average based on {reviewCount} reviews
                 </span>
               </div>
             )}

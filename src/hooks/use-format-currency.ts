@@ -17,14 +17,16 @@ export function useFormatCurrency() {
    */
   const formatCurrency = (value: number, showDecimals: boolean = true): string => {
     const currencySymbol = settings?.currencySymbol || '৳'
-    const absoluteValue = Math.abs(value)
+    // Ensure value is a valid number
+    const safeValue = (typeof value === 'number' && !isNaN(value)) ? value : 0
+    const absoluteValue = Math.abs(safeValue)
 
     const formattedAmount = absoluteValue.toLocaleString('en-BD', {
       minimumFractionDigits: showDecimals ? 2 : 0,
       maximumFractionDigits: showDecimals ? 2 : 0,
     })
 
-    return value < 0
+    return safeValue < 0
       ? `-${currencySymbol}${formattedAmount}`
       : `${currencySymbol}${formattedAmount}`
   }

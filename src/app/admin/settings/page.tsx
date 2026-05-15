@@ -550,7 +550,7 @@ export default function AdminSettingsPage() {
                     className="max-w-32"
                   />
                   <span className="text-gray-600">
-                    ({(settings.taxRate * 100).toFixed(0)}%)
+                    ({((settings.taxRate || 0) * 100).toFixed(0)}%)
                   </span>
                 </div>
                 <p className="text-sm text-gray-500 mt-1">
@@ -1321,7 +1321,7 @@ export default function AdminSettingsPage() {
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span>Tax ({(settings.taxRate * 100).toFixed(0)}%):</span>
+              <span>Tax ({((settings.taxRate || 0) * 100).toFixed(0)}%):</span>
               <span className="text-sm text-gray-600">
                 Applied at checkout
               </span>

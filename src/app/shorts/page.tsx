@@ -92,6 +92,7 @@ function transformReelToShortVideo(reel: ReelApiResponse): ShortVideo {
 }
 
 function formatNumber(num: number): string {
+  if (typeof num !== 'number' || isNaN(num)) return '0'
   if (num >= 1000000) {
     return (num / 1000000).toFixed(1) + 'M'
   }
@@ -450,7 +451,7 @@ export default function ShortsPage() {
                               {currentVideo.product.name}
                             </p>
                             <p className="text-violet-600 font-bold text-lg">
-                              ${currentVideo.product.price.toFixed(2)}
+                              ${typeof currentVideo.product.price === 'number' ? currentVideo.product.price.toFixed(2) : '0.00'}
                             </p>
                           </div>
                           <button

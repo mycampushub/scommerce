@@ -22,8 +22,15 @@ export function ProductStructuredData({ product, siteUrl = 'https://yourdomain.c
 
   const productUrl = `${siteUrl}/product/${product.slug}`
   const mainImage = product.images?.[0] || ''
-  const lowPrice = product.comparePrice ? Math.min(product.price, product.comparePrice) : product.price
-  const highPrice = product.comparePrice ? Math.max(product.price, product.comparePrice) : product.price
+  const safePrice = typeof product.price === 'number' && !isNaN(product.price) ? product.price : 0
+  const safeComparePrice = (typeof product.comparePrice === 'number' && !isNaN(product.comparePrice)) ? product.comparePrice : null
+
+  const lowPrice = safeComparePrice ? Math.min(safePrice, safeComparePrice) : safePrice
+  const highPrice = safeComparePrice ? Math.max(safePrice, safeComparePrice) : safePrice
+
+  // Ensure prices are valid numbers
+  const validLowPrice = typeof lowPrice === 'number' && !isNaN(lowPrice) ? lowPrice : 0
+  const validHighPrice = typeof highPrice === 'number' && !isNaN(highPrice) ? highPrice : 0
 
   const structuredData = {
     '@context': 'https://schema.org',
@@ -36,7 +43,7 @@ export function ProductStructuredData({ product, siteUrl = 'https://yourdomain.c
       '@type': 'Offer',
       url: productUrl,
       priceCurrency: 'BDT',
-      price: lowPrice.toFixed(2),
+      price: validLowPrice.toFixed(2),
       availability: (product.stock || 0) > 0
         ? 'https://schema.org/InStock'
         : 'https://schema.org/OutOfStock',
@@ -57,13 +64,13 @@ export function ProductStructuredData({ product, siteUrl = 'https://yourdomain.c
   }
 
   // Add price range if compare price exists
-  if (product.comparePrice && product.comparePrice > product.price) {
+  if (safeComparePrice && safeComparePrice > safePrice) {
     structuredData.offers = {
       '@type': 'AggregateOffer',
       lowPrice: {
         '@type': 'Offer',
         priceCurrency: 'BDT',
-        price: lowPrice.toFixed(2),
+        price: validLowPrice.toFixed(2),
         availability: (product.stock || 0) > 0
           ? 'https://schema.org/InStock'
           : 'https://schema.org/OutOfStock',
@@ -71,7 +78,7 @@ export function ProductStructuredData({ product, siteUrl = 'https://yourdomain.c
       highPrice: {
         '@type': 'Offer',
         priceCurrency: 'BDT',
-        price: highPrice.toFixed(2),
+        price: validHighPrice.toFixed(2),
         availability: (product.stock || 0) > 0
           ? 'https://schema.org/InStock'
           : 'https://schema.org/OutOfStock',

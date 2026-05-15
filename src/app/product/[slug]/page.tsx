@@ -146,15 +146,17 @@ export default function ProductPage() {
     try {
       setLoading(true)
       setError(null)
-        
+
         const productResponse = await fetch(`/api/products/${productSlug}`)
-        
+
         if (!productResponse.ok) {
           throw new Error('Failed to fetch product')
         }
-        
+
         const productData = await productResponse.json() as any
-        setProduct(productData as any)
+        // API returns { success: true, data: {...productData } }
+        const actualProduct = productData.data || productData
+        setProduct(actualProduct as any)
         
         // Fetch variants
         const variantsResponse = await fetch(`/api/products/${productSlug}/variants`)
@@ -173,12 +175,12 @@ export default function ProductPage() {
         }
 
         // Fetch related products from the same category
-        if (productData.categorySlug) {
-          fetchRelatedProducts(productData.categoryId, productData.id)
+        if (actualProduct.categorySlug) {
+          fetchRelatedProducts(actualProduct.categoryId, actualProduct.id)
         }
 
         // Fetch recommended products
-        fetchRecommendedProducts(productData.slug, productData.categoryId)
+        fetchRecommendedProducts(actualProduct.slug, actualProduct.categoryId)
       } catch (err) {
         console.error('Error fetching product:', err)
         setError('Unable to load product. Please try again later.')

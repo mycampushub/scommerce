@@ -191,8 +191,8 @@ function OrderConfirmationContent() {
       return
     }
 
-    if (amount > order.total) {
-      toast.error(`Refund amount cannot exceed order total of ${order.total.toFixed(2)}`)
+    if (typeof order.total !== 'number' || amount > order.total) {
+      toast.error(`Refund amount cannot exceed order total of ${typeof order.total === 'number' ? order.total.toFixed(2) : '0.00'}`)
       return
     }
 
@@ -627,7 +627,7 @@ function OrderConfirmationContent() {
                 id="refund-amount"
                 type="number"
                 step="0.01"
-                placeholder={`Max: ${order?.total.toFixed(2) || '0.00'}`}
+                placeholder={`Max: ${typeof order?.total === 'number' ? order.total.toFixed(2) : '0.00'}`}
                 value={refundAmount}
                 onChange={(e) => setRefundAmount(e.target.value)}
                 disabled={refundLoading}
