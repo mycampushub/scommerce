@@ -511,3 +511,24 @@ model wishlist_items {
 
   @@unique([userId, productId])
 }
+
+model media {
+  id          String   @id
+  filename    String
+  originalName String
+  url         String   @unique
+  mimeType    String
+  size        Int      // in bytes
+  width       Int?
+  height      Int?
+  alt         String?
+  tags        String?  // JSON array of tags
+  category    String?  // e.g., "product", "category", "banner", "story"
+  uploadedBy  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@index([createdAt(sort: Desc)])
+  @@index([uploadedBy])
+}

@@ -73,10 +73,10 @@ export const addressSchemaFlexible = z.union([
   z.object({
     address: z.string().min(1, 'Address is required'),
     city: z.string().min(1, 'City is required'),
-    district: z.string().optional(),
-    division: z.string().min(1, 'Division is required'),
-    zipCode: z.string().min(1, 'Zip code is required'),
-    country: z.string().optional(),
+    district: z.string().trim().optional(),
+    division: z.string().min(1, 'Please select a division'),
+    zipCode: z.string().min(1, 'ZIP/postal code is required'),
+    country: z.string().trim().optional(),
   }),
 ]);
 

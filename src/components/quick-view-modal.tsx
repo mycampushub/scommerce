@@ -108,7 +108,25 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
   const currentPrice = selectedVariant ? selectedVariant.price : (product?.basePrice || product?.price || 0)
   const currentComparePrice = selectedVariant ? selectedVariant.comparePrice : (product?.comparePrice || product?.originalPrice || undefined)
   const currentStock = selectedVariant ? selectedVariant.stock : (product?.stock || 0)
-  const currentImages = selectedVariant?.images && selectedVariant.images.length > 0 ? selectedVariant.images : (product?.images?.length ? product.images : [product?.image || ''])
+  
+  // Helper to parse images from string or use array
+  const parseImages = (imgData: any): string[] => {
+    if (Array.isArray(imgData)) return imgData;
+    if (typeof imgData === 'string' && imgData) {
+      try {
+        const parsed = JSON.parse(imgData);
+        return Array.isArray(parsed) ? parsed : [imgData];
+      } catch {
+        return [imgData];
+      }
+    }
+    return [];
+  };
+
+  const variantImages = selectedVariant?.images ? parseImages(selectedVariant.images) : [];
+  const productImages = product?.images ? parseImages(product.images) : [];
+  const fallback = product?.image ? [product.image] : [];
+  const currentImages = variantImages.length > 0 ? variantImages : (productImages.length > 0 ? productImages : fallback);
 
   // Calculate discount percentage
   const discountPercentage = currentComparePrice

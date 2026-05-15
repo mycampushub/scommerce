@@ -272,6 +272,38 @@ export default function CheckoutPage() {
       return
     }
     
+    // ADD DEFENSIVE VALIDATION: Validate address fields are not empty
+    if (!shippingInfo.division || shippingInfo.division.trim() === '') {
+      toast.error('Please select a division')
+      return
+    }
+    
+    if (!shippingInfo.address || shippingInfo.address.trim() === '') {
+      toast.error('Please enter your address')
+      return
+    }
+    
+    if (!shippingInfo.city || shippingInfo.city.trim() === '') {
+      toast.error('Please enter your city')
+      return
+    }
+    
+    if (!shippingInfo.zipCode || shippingInfo.zipCode.trim() === '') {
+      toast.error('Please enter your ZIP/postal code')
+      return
+    }
+    
+    if (!shippingInfo.email || shippingInfo.email.trim() === '') {
+      toast.error('Please enter your email')
+      return
+    }
+    
+    if (!shippingInfo.firstName || !shippingInfo.lastName || 
+        shippingInfo.firstName.trim() === '' || shippingInfo.lastName.trim() === '') {
+      toast.error('Please enter your full name')
+      return
+    }
+    
     setIsProcessing(true)
     
     try {

@@ -69,6 +69,7 @@ import {
   AlertCircle
 } from 'lucide-react'
 import { ImageUpload } from '@/components/admin/image-upload'
+import { VariantBuilder, GeneratedVariant } from '@/components/admin/variant-builder'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
@@ -756,6 +757,53 @@ export default function ProductsPage() {
       setMatrixStock('')
     } catch (err: any) {
       console.error('Error generating matrix:', err)
+      toast({
+        title: 'Error',
+        description: err.message || 'Failed to generate variants',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleVariantBuilderGenerate = async (variants: GeneratedVariant[]) => {
+    if (!selectedProductForVariants) return
+
+    try {
+      // Create each variant via API
+      for (const variant of variants) {
+        const payload = {
+          name: variant.name,
+          price: variant.price,
+          comparePrice: variant.comparePrice || null,
+          costPrice: variant.costPrice || null,
+          stock: variant.stock,
+          size: variant.size || null,
+          color: variant.color || null,
+          material: variant.material || null,
+          images: variant.images || [],
+          isDefault: variant.isDefault,
+          isActive: variant.isActive,
+          lowStockAlert: variant.lowStockAlert || 10,
+          reorderLevel: variant.reorderLevel || 5,
+          reorderQty: variant.reorderQty || 20,
+        }
+
+        await apiFetch(`/api/admin/products/${selectedProductForVariants.id}/variants`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+      }
+
+      toast({
+        title: 'Success',
+        description: `Created ${variants.length} variants successfully`,
+      })
+
+      await fetchVariants(selectedProductForVariants.id)
+      setActiveVariantTab('list') // Switch to list tab to see results
+    } catch (err: any) {
+      console.error('Error generating variants:', err)
       toast({
         title: 'Error',
         description: err.message || 'Failed to generate variants',
@@ -1668,137 +1716,38 @@ export default function ProductsPage() {
               )}
             </TabsContent>
 
-            {/* Matrix Builder Tab */}
+            {/* Matrix Builder Tab - Visual Variant Builder */}
             <TabsContent value="matrix" className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold mb-2">Variant Matrix Builder</h3>
+                <h3 className="text-lg font-semibold mb-2">Visual Variant Builder</h3>
                 <p className="text-sm text-gray-600">
-                  Create multiple variants at once by combining sizes, colors, and materials.
+                  Create multiple variants at once by defining attributes like Size, Color, and Material. The builder will automatically generate all combinations.
                 </p>
               </div>
 
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label>Sizes (comma-separated)</Label>
-                      <Textarea
-                        value={matrixSizes}
-                        onChange={(e) => setMatrixSizes(e.target.value)}
-                        placeholder="S, M, L, XL, XXL"
-                        rows={3}
-                      />
-                      <p className="text-xs text-gray-500">Example: S, M, L, XL, XXL</p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Colors (comma-separated)</Label>
-                      <Textarea
-                        value={matrixColors}
-                        onChange={(e) => setMatrixColors(e.target.value)}
-                        placeholder="Red, Blue, Green, Black"
-                        rows={3}
-                      />
-                      <p className="text-xs text-gray-500">Example: Red, Blue, Green, Black</p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Materials (comma-separated)</Label>
-                      <Textarea
-                        value={matrixMaterials}
-                        onChange={(e) => setMatrixMaterials(e.target.value)}
-                        placeholder="Cotton, Silk, Wool, Polyester"
-                        rows={3}
-                      />
-                      <p className="text-xs text-gray-500">Example: Cotton, Silk, Wool, Polyester</p>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label>Base Price</Label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={matrixBasePrice}
-                          onChange={(e) => setMatrixBasePrice(e.target.value)}
-                          placeholder={selectedProductForVariants?.price.toString()}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Stock per Variant</Label>
-                        <Input
-                          type="number"
-                          value={matrixStock}
-                          onChange={(e) => setMatrixStock(e.target.value)}
-                          placeholder="0"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                    <h4 className="font-semibold mb-2">Preview</h4>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex items-center gap-2">
-                        <AlertCircle className="h-4 w-4 text-gray-500" />
-                        <span className="text-gray-600">
-                          Sizes: <strong>{matrixSizes ? matrixSizes.split(',').length : 0}</strong>
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <AlertCircle className="h-4 w-4 text-gray-500" />
-                        <span className="text-gray-600">
-                          Colors: <strong>{matrixColors ? matrixColors.split(',').length : 0}</strong>
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <AlertCircle className="h-4 w-4 text-gray-500" />
-                        <span className="text-gray-600">
-                          Materials: <strong>{matrixMaterials ? matrixMaterials.split(',').length : 0}</strong>
-                        </span>
-                      </div>
-                      <div className="pt-2 border-t border-gray-200 mt-2">
-                        <p className="text-gray-600">
-                          Total variants to create: <strong className="text-violet-600">
-                            {matrixSizes.split(',').filter(Boolean).length *
-                             matrixColors.split(',').filter(Boolean).length *
-                             matrixMaterials.split(',').filter(Boolean).length ||
-                             Math.max(
-                               matrixSizes.split(',').filter(Boolean).length,
-                               matrixColors.split(',').filter(Boolean).length,
-                               matrixMaterials.split(',').filter(Boolean).length
-                             )}
-                          </strong>
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2 mt-6">
-                    <Button
-                      onClick={handleGenerateMatrix}
-                      disabled={!matrixSizes && !matrixColors && !matrixMaterials}
-                      className="flex-1 bg-gradient-to-r from-violet-600 to-indigo-600"
-                    >
-                      <Layers className="h-4 w-4 mr-2" />
-                      Generate Variants
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setMatrixSizes('')
-                        setMatrixColors('')
-                        setMatrixMaterials('')
-                        setMatrixBasePrice('')
-                        setMatrixStock('')
-                      }}
-                    >
-                      Reset
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+              <VariantBuilder
+                basePrice={selectedProductForVariants?.price}
+                existingVariants={variants.map(v => ({
+                  id: v.id,
+                  sku: v.sku,
+                  name: v.name,
+                  price: v.price,
+                  comparePrice: v.comparePrice || undefined,
+                  costPrice: v.costPrice || undefined,
+                  stock: v.stock,
+                  size: v.size || undefined,
+                  color: v.color || undefined,
+                  material: v.material || undefined,
+                  images: v.images || undefined,
+                  isDefault: v.isDefault,
+                  isActive: v.isActive,
+                  lowStockAlert: v.lowStockAlert,
+                  reorderLevel: v.reorderLevel,
+                  reorderQty: v.reorderQty,
+                }))}
+                onGenerate={handleVariantBuilderGenerate}
+                loading={variantsLoading}
+              />
             </TabsContent>
           </Tabs>
         </DialogContent>

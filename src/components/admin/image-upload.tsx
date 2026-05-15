@@ -24,6 +24,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { apiFetch } from '@/lib/api-client'
+import { GallerySelector } from '@/components/admin/gallery-selector'
 
 interface UploadedImage {
   url: string
@@ -323,6 +324,19 @@ export function ImageUpload({
           </div>
         </CardContent>
       </Card>
+
+      {/* Gallery Selector */}
+      <div className="flex items-center gap-4">
+        <GallerySelector
+          onSelect={(url) => {
+            const updatedImages = [...images, { url, isNew: false, size: 0, type: 'image', name: 'Gallery Image' }]
+            setImages(updatedImages)
+            onImagesChange?.(updatedImages.map(img => typeof img === 'string' ? img : img.url))
+          }}
+          category="product"
+          className="flex-1"
+        />
+      </div>
 
       {/* Uploaded Images */}
       {images.length > 0 && (

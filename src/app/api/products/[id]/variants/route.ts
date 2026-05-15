@@ -38,20 +38,27 @@ export async function GET(
       data: {
         hasVariants: product.hasVariants,
         basePrice: product.basePrice || product.price,
-        variants: variants.map((variant: any) => ({
-          id: variant.id,
-          sku: variant.sku,
-          name: variant.name,
-          price: variant.price,
-          comparePrice: variant.comparePrice,
-          stock: variant.stock,
-          images: variant.images,
-          size: variant.size,
-          color: variant.color,
-          material: variant.material,
-          isDefault: variant.isDefault,
-          isActive: variant.isActive,
-        })),
+        variants: variants.map((variant: any) => {
+          // Parse images from JSON string to array
+          const parsedImages = variant.images 
+            ? (typeof variant.images === 'string' ? JSON.parse(variant.images) : variant.images)
+            : [];
+          
+          return {
+            id: variant.id,
+            sku: variant.sku,
+            name: variant.name,
+            price: variant.price,
+            comparePrice: variant.comparePrice,
+            stock: variant.stock,
+            images: parsedImages,  // Use parsed array instead of raw string
+            size: variant.size,
+            color: variant.color,
+            material: variant.material,
+            isDefault: variant.isDefault,
+            isActive: variant.isActive,
+          };
+        }),
       },
     })
   } catch (error) {

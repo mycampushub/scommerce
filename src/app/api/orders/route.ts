@@ -95,10 +95,17 @@ export async function POST(request: NextRequest) {
     // Validate using Zod schema
     const validation = createOrderSchema.safeParse(sanitized);
     if (!validation.success) {
+      // Log detailed validation errors for debugging
+      console.error('Order validation errors:', validation.error.issues);
+      
+      // Return the first validation error with more context
+      const firstError = validation.error.issues[0];
       return NextResponse.json(
         {
           success: false,
-          error: validation.error.issues[0].message,
+          error: firstError.message,
+          field: firstError.path.join('.'),
+          details: process.env.NODE_ENV === 'development' ? validation.error.issues : undefined,
         },
         { status: 400 }
       );

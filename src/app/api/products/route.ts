@@ -46,14 +46,28 @@ export async function GET(request: Request) {
     const type = searchParams.get('type') || 'all';
     const categorySlug = searchParams.get('category');
     const search = searchParams.get('search');
+    const ids = searchParams.get('ids'); // Comma-separated product IDs
     const sortBy = validatedParams.sortBy || 'createdAt';
     const sortOrder = validatedParams.sortOrder || 'desc';
     const minPrice = validatedParams.minPrice;
     const maxPrice = validatedParams.maxPrice;
 
+    // Parse IDs if provided
+    let idList: string[] = [];
+    if (ids) {
+      idList = ids.split(',').map(id => id.trim()).filter(id => id);
+    }
+
     // Build WHERE clause conditions
     const conditions: string[] = ['isActive = 1'];
     const params: unknown[] = [];
+
+    // Filter by product IDs
+    if (idList.length > 0) {
+      const idPlaceholders = idList.map(() => '?').join(',');
+      conditions.push(`id IN (${idPlaceholders})`);
+      params.push(...idList);
+    }
 
     // Filter by type
     if (type === 'featured') {
@@ -113,28 +127,44 @@ export async function GET(request: Request) {
 
     const whereClause = `WHERE ${conditions.join(' AND ')}`;
 
+    // Build ORDER BY clause
+    let orderByClause = '';
+
+    // If fetching by IDs, preserve the order from the request
+    if (idList.length > 0) {
+      const caseStatement = idList.map((id, index) => `WHEN id = ? THEN ${index}`).join(' ');
+      orderByClause = `ORDER BY CASE ${caseStatement} END`;
+      // Add ID list again for ORDER BY CASE
+      params.push(...idList);
+    }
+
+    // Default ordering if not fetching by IDs
+    if (!orderByClause) {
+      const validSortColumns = ['createdAt', 'name', 'basePrice', 'comparePrice'];
+      const validSortOrders = ['asc', 'desc'];
+      const sortColumn = validSortColumns.includes(sortBy) ? sortBy : 'createdAt';
+      const sortDirection = validSortOrders.includes(sortOrder) ? sortOrder : 'desc';
+      orderByClause = `ORDER BY ${sortColumn} ${sortDirection.toUpperCase()}`;
+    }
+
     // Get total count for pagination
     const totalCount = await count(
       env,
       `SELECT COUNT(*) as count FROM products ${whereClause}`,
-      ...params
+      ...params.filter((_, i) => i < conditions.length) // Only use params for WHERE clause
     );
-
-    // Build ORDER BY clause
-    const validSortColumns = ['createdAt', 'name', 'basePrice', 'comparePrice'];
-    const validSortOrders = ['asc', 'desc'];
-    const sortColumn = validSortColumns.includes(sortBy) ? sortBy : 'createdAt';
-    const sortDirection = validSortOrders.includes(sortOrder) ? sortOrder : 'desc';
-    const orderByClause = `ORDER BY ${sortColumn} ${sortDirection.toUpperCase()}`;
 
     // Fetch products from database with pagination
     const { queryAll } = await import('@/db/db');
+
+    // When fetching by IDs, don't use pagination - return all matching products
     const products = await queryAll(
       env,
-      `SELECT * FROM products ${whereClause} ${orderByClause} LIMIT ? OFFSET ?`,
+      idList.length > 0
+        ? `SELECT * FROM products ${whereClause} ${orderByClause}`
+        : `SELECT * FROM products ${whereClause} ${orderByClause} LIMIT ? OFFSET ?`,
       ...params,
-      limit,
-      offset
+      ...(idList.length > 0 ? [] : [limit, offset])
     );
 
     // Batch fetch rating data for all products to avoid N+1 queries

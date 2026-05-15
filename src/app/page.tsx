@@ -363,11 +363,39 @@ function HeroCarousel({ banners, autoPlay = 5000 }: { banners: Banner[], autoPla
 
 // 2. Section Marquee Component
 function SectionMarquee() {
-  const marqueeText = "FREE SHIPPING WORLDWIDE | EASY RETURNS & EXCHANGES | CUSTOM STITCHING AVAILABLE"
-  
+  const [marqueeText, setMarqueeText] = useState("FREE SHIPPING WORLDWIDE | EASY RETURNS & EXCHANGES | CUSTOM STITCHING AVAILABLE")
+  const [isEnabled, setIsEnabled] = useState(true)
+  const [animationSpeed, setAnimationSpeed] = useState(20)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchMarquee = async () => {
+      try {
+        const res = await fetch('/api/admin/homepage/marquee')
+        const data = await res.json() as any
+        if (data.success) {
+          setMarqueeText(data.data.text || "FREE SHIPPING WORLDWIDE | EASY RETURNS & EXCHANGES | CUSTOM STITCHING AVAILABLE")
+          setIsEnabled(data.data.isEnabled !== undefined ? data.data.isEnabled : true)
+          setAnimationSpeed(data.data.animationSpeed || 20)
+        }
+      } catch (error) {
+        console.error('Error fetching marquee settings:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchMarquee()
+  }, [])
+
+  // Don't render if disabled or loading
+  if (loading || !isEnabled) {
+    return null
+  }
+
   return (
     <section className="bg-pink-600 overflow-hidden py-3">
-      <div className="animate-marquee flex whitespace-nowrap" style={{ animation: 'marquee 20s linear infinite' }}>
+      <div className="animate-marquee flex whitespace-nowrap" style={{ animation: `marquee ${animationSpeed}s linear infinite` }}>
         {[...Array(6)].map((_, i) => (
           <span key={i} className="text-white text-sm md:text-base font-medium px-8">
             {marqueeText}
@@ -682,20 +710,56 @@ function Stories({ stories, autoPlay = 4000 }: { stories: Story[], autoPlay?: nu
 }
 
 // 4b. Category Carousel with Products Component
-function CategoryCarousel({ categories, products }: { categories: Category[]; products: Product[] }) {
+function CategoryCarousel({ allCategories, products }: { allCategories: Category[]; products: Product[] }) {
+  const [categories, setCategories] = useState<Category[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
+  const [autoScroll, setAutoScroll] = useState(true)
+  const [scrollInterval, setScrollInterval] = useState(4000)
+  const [loading, setLoading] = useState(true)
+
+  // Fetch category carousel settings
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch('/api/admin/homepage/category-carousel')
+        const data = await res.json() as any
+        if (data.success) {
+          const selectedIds = data.data.categoryIds || []
+          setAutoScroll(data.data.autoScroll !== undefined ? data.data.autoScroll : true)
+          setScrollInterval(data.data.scrollInterval || 4000)
+
+          // Filter categories based on selected IDs
+          if (selectedIds.length > 0 && allCategories) {
+            const filtered = allCategories.filter(cat => selectedIds.includes(cat.id))
+            setCategories(filtered)
+          } else {
+            // If no categories selected, show none
+            setCategories([])
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching category carousel settings:', error)
+        // On error, show all categories as fallback
+        setCategories(allCategories || [])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchSettings()
+  }, [allCategories])
 
   // Auto-scroll effect
   useEffect(() => {
-    if (isPaused || !categories || categories.length === 0) return
+    if (!autoScroll || isPaused || loading || !categories || categories.length === 0) return
 
     const interval = setInterval(() => {
       setCurrentIndex(prev => (prev + 1) % categories.length)
-    }, 4000)
+    }, scrollInterval)
 
     return () => clearInterval(interval)
-  }, [isPaused, categories?.length || 0])
+  }, [isPaused, categories?.length || 0, autoScroll, scrollInterval, loading])
 
   const nextSlide = () => {
     if (!categories || categories.length === 0) return
@@ -711,7 +775,7 @@ function CategoryCarousel({ categories, products }: { categories: Category[]; pr
     setCurrentIndex(index)
   }
 
-  if (!categories || categories.length === 0) return null
+  if (loading || !categories || categories.length === 0) return null
 
   const currentCategory = categories && categories[currentIndex]
   const categoryProducts = (products || []).filter(p =>
@@ -1679,12 +1743,15 @@ export default function Home() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch all data in parallel
+        // Fetch featured products settings first
+        const featuredSettingsRes = await fetch('/api/admin/homepage/featured-products')
+        const featuredSettingsData = await featuredSettingsRes.json() as any
+
+        // Fetch all other data in parallel
         const [
-          featuredRes, saleRes, newRes, trendingRes, categoriesRes,
+          saleRes, newRes, trendingRes, categoriesRes,
           bannersRes, storiesRes, reelsRes, promotionsRes, settingsRes
         ] = await Promise.all([
-          fetch('/api/products?type=featured'),
           fetch('/api/products?type=sale'),
           fetch('/api/products?type=new'),
           fetch('/api/products?type=trending'),
@@ -1697,10 +1764,9 @@ export default function Home() {
         ])
 
         const [
-          featuredData, saleData, newData, trendingData, categoriesData,
+          saleData, newData, trendingData, categoriesData,
           bannersData, storiesData, reelsData, promotionsData, settingsData
         ] = await Promise.all([
-          featuredRes.json() as any,
           saleRes.json() as any,
           newRes.json() as any,
           trendingRes.json() as any,
@@ -1712,8 +1778,26 @@ export default function Home() {
           settingsRes.json() as any
         ])
 
-        // Set products and categories with defensive checks
-        setFeaturedProducts(Array.isArray(featuredData.data?.products) ? featuredData.data.products : [])
+        // Set featured products based on admin selection
+        if (featuredSettingsData.success && featuredSettingsData.data.isEnabled !== false) {
+          const featuredIds = featuredSettingsData.data.productIds || []
+          if (featuredIds.length > 0) {
+            // Fetch specific featured products by IDs
+            const featuredRes = await fetch(`/api/products?ids=${featuredIds.join(',')}`)
+            const featuredData = await featuredRes.json() as any
+            setFeaturedProducts(Array.isArray(featuredData.data?.products) ? featuredData.data.products : [])
+          } else {
+            // Fallback to old behavior if no products selected
+            const featuredRes = await fetch('/api/products?type=featured')
+            const featuredData = await featuredRes.json() as any
+            setFeaturedProducts(Array.isArray(featuredData.data?.products) ? featuredData.data.products : [])
+          }
+        } else {
+          // Featured products disabled, set empty
+          setFeaturedProducts([])
+        }
+
+        // Set other products and categories with defensive checks
         setSaleProducts(Array.isArray(saleData.data?.products) ? saleData.data.products : [])
         setNewProducts(Array.isArray(newData.data?.products) ? newData.data.products : [])
         setTrendingProducts(Array.isArray(trendingData.data?.products) ? trendingData.data.products : [])
@@ -1833,7 +1917,7 @@ export default function Home() {
         )}
         {/* Category Carousel with Products */}
         {categories.length > 0 && featuredProducts.length > 0 && (
-          <CategoryCarousel categories={categories} products={[...featuredProducts, ...saleProducts, ...newProducts, ...trendingProducts]} />
+          <CategoryCarousel allCategories={categories} products={[...featuredProducts, ...saleProducts, ...newProducts, ...trendingProducts]} />
         )}
         <FullscreenVideo />
         {categories.length > 0 && <Categories categories={categories} />}

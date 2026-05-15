@@ -70,7 +70,26 @@ interface HomepageSetting {
 interface Product {
   id: string
   name: string
+  slug: string
   price: number
+  images: string | null
+}
+
+// Helper function to get first image from product
+const getProductImage = (product: Product): string | null => {
+  if (!product.images) return null
+  try {
+    const parsed = JSON.parse(product.images)
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      return parsed[0]
+    }
+  } catch {
+    // If parsing fails, return the raw string if it looks like a URL
+    if (product.images.startsWith('http')) {
+      return product.images
+    }
+  }
+  return null
 }
 
 export default function HomepageManagementPage() {
@@ -78,6 +97,25 @@ export default function HomepageManagementPage() {
   const [activeTab, setActiveTab] = useState('banners')
   const [loading, setLoading] = useState(false)
   const [products, setProducts] = useState<Product[]>([])
+
+  // Marquee state
+  const [marqueeText, setMarqueeText] = useState('')
+  const [marqueeEnabled, setMarqueeEnabled] = useState(true)
+  const [marqueeAnimationSpeed, setMarqueeAnimationSpeed] = useState(20)
+  const [savingMarquee, setSavingMarquee] = useState(false)
+
+  // Category Carousel state
+  const [categories, setCategories] = useState<any[]>([])
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([])
+  const [categoryCarouselEnabled, setCategoryCarouselEnabled] = useState(true)
+  const [categoryCarouselAutoScroll, setCategoryCarouselAutoScroll] = useState(true)
+  const [categoryCarouselScrollInterval, setCategoryCarouselScrollInterval] = useState(4000)
+  const [savingCategoryCarousel, setSavingCategoryCarousel] = useState(false)
+
+  // Featured Products state
+  const [selectedFeaturedProductIds, setSelectedFeaturedProductIds] = useState<string[]>([])
+  const [featuredProductsEnabled, setFeaturedProductsEnabled] = useState(true)
+  const [savingFeaturedProducts, setSavingFeaturedProducts] = useState(false)
 
   // Banners state
   const [banners, setBanners] = useState<Banner[]>([])
@@ -139,6 +177,138 @@ export default function HomepageManagementPage() {
       }
     } catch (error) {
       console.error('Error fetching products:', error)
+    }
+  }
+
+  const fetchCategories = async () => {
+    try {
+      const res = await fetch('/api/admin/categories?limit=100')
+      const data = await res.json() as any
+      if (data.success) {
+        setCategories(data.data)
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error)
+    }
+  }
+
+  const fetchCategoryCarousel = async () => {
+    try {
+      const res = await fetch('/api/admin/homepage/category-carousel')
+      const data = await res.json() as any
+      if (data.success) {
+        setSelectedCategoryIds(data.data.categoryIds || [])
+        setCategoryCarouselEnabled(data.data.isEnabled !== undefined ? data.data.isEnabled : true)
+        setCategoryCarouselAutoScroll(data.data.autoScroll !== undefined ? data.data.autoScroll : true)
+        setCategoryCarouselScrollInterval(data.data.scrollInterval || 4000)
+      }
+    } catch (error) {
+      console.error('Error fetching category carousel settings:', error)
+    }
+  }
+
+  const handleSaveCategoryCarousel = async () => {
+    setSavingCategoryCarousel(true)
+    try {
+      const res = await fetch('/api/admin/homepage/category-carousel', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          categoryIds: selectedCategoryIds,
+          isEnabled: categoryCarouselEnabled,
+          autoScroll: categoryCarouselAutoScroll,
+          scrollInterval: categoryCarouselScrollInterval
+        })
+      })
+      const data = await res.json() as any
+      if (data.success) {
+        toast.success('Category carousel settings saved successfully')
+      } else {
+        toast.error(data.error || 'Failed to save category carousel settings')
+      }
+    } catch (error) {
+      console.error('Error saving category carousel settings:', error)
+      toast.error('Failed to save category carousel settings')
+    } finally {
+      setSavingCategoryCarousel(false)
+    }
+  }
+
+  const fetchFeaturedProducts = async () => {
+    try {
+      const res = await fetch('/api/admin/homepage/featured-products')
+      const data = await res.json() as any
+      if (data.success) {
+        setSelectedFeaturedProductIds(data.data.productIds || [])
+        setFeaturedProductsEnabled(data.data.isEnabled !== undefined ? data.data.isEnabled : true)
+      }
+    } catch (error) {
+      console.error('Error fetching featured products settings:', error)
+    }
+  }
+
+  const handleSaveFeaturedProducts = async () => {
+    setSavingFeaturedProducts(true)
+    try {
+      const res = await fetch('/api/admin/homepage/featured-products', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productIds: selectedFeaturedProductIds,
+          isEnabled: featuredProductsEnabled
+        })
+      })
+      const data = await res.json() as any
+      if (data.success) {
+        toast.success('Featured products saved successfully')
+      } else {
+        toast.error(data.error || 'Failed to save featured products')
+      }
+    } catch (error) {
+      console.error('Error saving featured products settings:', error)
+      toast.error('Failed to save featured products')
+    } finally {
+      setSavingFeaturedProducts(false)
+    }
+  }
+
+  const fetchMarquee = async () => {
+    try {
+      const res = await fetch('/api/admin/homepage/marquee')
+      const data = await res.json() as any
+      if (data.success) {
+        setMarqueeText(data.data.text || '')
+        setMarqueeEnabled(data.data.isEnabled !== undefined ? data.data.isEnabled : true)
+        setMarqueeAnimationSpeed(data.data.animationSpeed || 20)
+      }
+    } catch (error) {
+      console.error('Error fetching marquee settings:', error)
+    }
+  }
+
+  const handleSaveMarquee = async () => {
+    setSavingMarquee(true)
+    try {
+      const res = await fetch('/api/admin/homepage/marquee', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: marqueeText,
+          isEnabled: marqueeEnabled,
+          animationSpeed: marqueeAnimationSpeed
+        })
+      })
+      const data = await res.json() as any
+      if (data.success) {
+        toast.success('Marquee settings saved successfully')
+      } else {
+        toast.error(data.error || 'Failed to save marquee settings')
+      }
+    } catch (error) {
+      console.error('Error saving marquee settings:', error)
+      toast.error('Failed to save marquee settings')
+    } finally {
+      setSavingMarquee(false)
     }
   }
 
@@ -212,6 +382,10 @@ export default function HomepageManagementPage() {
   }
 
   useEffect(() => {
+    fetchMarquee()
+    fetchCategories()
+    fetchCategoryCarousel()
+    fetchFeaturedProducts()
     fetchBanners()
     fetchStories()
     fetchReels()
@@ -543,13 +717,330 @@ export default function HomepageManagementPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-8">
+          <TabsTrigger value="marquee">Marquee</TabsTrigger>
+          <TabsTrigger value="category-carousel">Categories</TabsTrigger>
+          <TabsTrigger value="featured-products">Featured</TabsTrigger>
           <TabsTrigger value="banners">Banners</TabsTrigger>
           <TabsTrigger value="stories">Stories</TabsTrigger>
           <TabsTrigger value="reels">Reels</TabsTrigger>
           <TabsTrigger value="promotions">Promotions</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
+
+        {/* Marquee Tab */}
+        <TabsContent value="marquee" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold">Section Marquee</h2>
+            <Button onClick={handleSaveMarquee} disabled={savingMarquee}>
+              {savingMarquee ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Marquee
+                </>
+              )}
+            </Button>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Marquee Settings</CardTitle>
+              <CardDescription>Configure the scrolling text that appears below the banner carousel</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="marquee-enabled">Enable Marquee</Label>
+                <Switch
+                  id="marquee-enabled"
+                  checked={marqueeEnabled}
+                  onCheckedChange={setMarqueeEnabled}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="marquee-text">Marquee Text</Label>
+                <Textarea
+                  id="marquee-text"
+                  value={marqueeText}
+                  onChange={(e) => setMarqueeText(e.target.value)}
+                  placeholder="FREE SHIPPING WORLDWIDE | EASY RETURNS & EXCHANGES | CUSTOM STITCHING AVAILABLE"
+                  rows={3}
+                  className="mt-2"
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  Use the | character to separate different messages
+                </p>
+              </div>
+
+              <div>
+                <Label htmlFor="animation-speed">Animation Speed ({marqueeAnimationSpeed} seconds)</Label>
+                <Input
+                  id="animation-speed"
+                  type="range"
+                  min="5"
+                  max="60"
+                  step="1"
+                  value={marqueeAnimationSpeed}
+                  onChange={(e) => setMarqueeAnimationSpeed(parseInt(e.target.value))}
+                  className="mt-2"
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  Lower values make the text scroll faster
+                </p>
+              </div>
+
+              <div className="bg-pink-50 border border-pink-200 rounded-lg p-4">
+                <p className="text-sm text-pink-800 font-medium mb-2">Preview:</p>
+                <div className="bg-pink-600 overflow-hidden py-2 rounded">
+                  <div className="animate-marquee flex whitespace-nowrap" style={{ animation: `marquee ${marqueeAnimationSpeed}s linear infinite` }}>
+                    {[...Array(6)].map((_, i) => (
+                      <span key={i} className="text-white text-sm font-medium px-8">
+                        {marqueeText || 'FREE SHIPPING WORLDWIDE | EASY RETURNS & EXCHANGES | CUSTOM STITCHING AVAILABLE'}
+                      </span>
+                    ))}
+                  </div>
+                  <style jsx>{`
+                    @keyframes marquee {
+                      0% { transform: translateX(0); }
+                      100% { transform: translateX(-50%); }
+                    }
+                  `}</style>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Category Carousel Tab */}
+        <TabsContent value="category-carousel" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold">Category Carousel</h2>
+            <Button onClick={handleSaveCategoryCarousel} disabled={savingCategoryCarousel}>
+              {savingCategoryCarousel ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Categories
+                </>
+              )}
+            </Button>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Carousel Settings</CardTitle>
+                <CardDescription>Configure category carousel behavior</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="category-carousel-enabled">Enable Carousel</Label>
+                  <Switch
+                    id="category-carousel-enabled"
+                    checked={categoryCarouselEnabled}
+                    onCheckedChange={setCategoryCarouselEnabled}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="category-carousel-autoscroll">Auto-scroll</Label>
+                  <Switch
+                    id="category-carousel-autoscroll"
+                    checked={categoryCarouselAutoScroll}
+                    onCheckedChange={setCategoryCarouselAutoScroll}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="scroll-interval">Scroll Interval ({categoryCarouselScrollInterval / 1000}s)</Label>
+                  <Input
+                    id="scroll-interval"
+                    type="range"
+                    min="2000"
+                    max="10000"
+                    step="500"
+                    value={categoryCarouselScrollInterval}
+                    onChange={(e) => setCategoryCarouselScrollInterval(parseInt(e.target.value))}
+                    className="mt-2"
+                  />
+                  <p className="text-sm text-gray-500 mt-1">
+                    How often to auto-rotate to the next category
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Select Categories</CardTitle>
+                <CardDescription>Choose which categories to feature in the carousel</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="border rounded-lg p-4 max-h-[400px] overflow-y-auto">
+                  {categories.length === 0 ? (
+                    <p className="text-gray-500 text-center py-4">No categories available</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {categories.map((category) => (
+                        <div
+                          key={category.id}
+                          className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                            selectedCategoryIds.includes(category.id)
+                              ? 'bg-pink-50 border-pink-300'
+                              : 'hover:bg-gray-50'
+                          }`}
+                          onClick={() => {
+                            if (selectedCategoryIds.includes(category.id)) {
+                              setSelectedCategoryIds(selectedCategoryIds.filter(id => id !== category.id))
+                            } else {
+                              setSelectedCategoryIds([...selectedCategoryIds, category.id])
+                            }
+                          }}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                              selectedCategoryIds.includes(category.id)
+                                ? 'bg-pink-500 border-pink-500'
+                                : 'border-gray-300'
+                            }`}>
+                              {selectedCategoryIds.includes(category.id) && (
+                                <div className="w-3 h-3 bg-white rounded-sm" />
+                              )}
+                            </div>
+                            {category.image && (
+                              <img
+                                src={category.image}
+                                alt={category.name}
+                                className="w-10 h-10 object-cover rounded"
+                              />
+                            )}
+                            <div className="flex-1">
+                              <p className="font-medium">{category.name}</p>
+                              <p className="text-sm text-gray-500">{category.slug}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <p className="text-sm text-gray-500 mt-2">
+                  {selectedCategoryIds.length} category{selectedCategoryIds.length !== 1 ? 'ies' : ''} selected
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Featured Products Tab */}
+        <TabsContent value="featured-products" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold">Featured Products</h2>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="featured-enabled" className="text-sm">Enable</Label>
+                <Switch
+                  id="featured-enabled"
+                  checked={featuredProductsEnabled}
+                  onCheckedChange={setFeaturedProductsEnabled}
+                />
+              </div>
+              <Button onClick={handleSaveFeaturedProducts} disabled={savingFeaturedProducts}>
+                {savingFeaturedProducts ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Featured
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Select Featured Products</CardTitle>
+              <CardDescription>Choose which products to highlight in the featured collection</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="border rounded-lg p-4 max-h-[600px] overflow-y-auto">
+                {products.length === 0 ? (
+                  <p className="text-gray-500 text-center py-4">No products available</p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {products.map((product) => (
+                      <div
+                        key={product.id}
+                        className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                          selectedFeaturedProductIds.includes(product.id)
+                            ? 'bg-pink-50 border-pink-300 ring-2 ring-pink-200'
+                            : 'hover:bg-gray-50'
+                        }`}
+                        onClick={() => {
+                          if (selectedFeaturedProductIds.includes(product.id)) {
+                            setSelectedFeaturedProductIds(selectedFeaturedProductIds.filter(id => id !== product.id))
+                          } else {
+                            setSelectedFeaturedProductIds([...selectedFeaturedProductIds, product.id])
+                          }
+                        }}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={`mt-1 w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
+                            selectedFeaturedProductIds.includes(product.id)
+                              ? 'bg-pink-500 border-pink-500'
+                              : 'border-gray-300'
+                          }`}>
+                            {selectedFeaturedProductIds.includes(product.id) && (
+                              <div className="w-3 h-3 bg-white rounded-sm" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            {getProductImage(product) && (
+                              <img
+                                src={getProductImage(product)!}
+                                alt={product.name}
+                                className="w-full h-32 object-cover rounded mb-2"
+                              />
+                            )}
+                            <p className="font-medium text-sm truncate">{product.name}</p>
+                            <p className="text-sm text-pink-600 font-semibold">৳{product.price}</p>
+                            <p className="text-xs text-gray-500 truncate">{product.slug}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                <p className="text-sm text-gray-500">
+                  {selectedFeaturedProductIds.length} product{selectedFeaturedProductIds.length !== 1 ? 's' : ''} selected
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedFeaturedProductIds([])}
+                  disabled={selectedFeaturedProductIds.length === 0}
+                >
+                  Clear Selection
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* Banners Tab */}
         <TabsContent value="banners" className="space-y-4">
