@@ -102,21 +102,21 @@ async function runD1Transaction<T>(
             return {
               first: async () => {
                 console.log(`[${txId}] Executing first()...`);
-                const stmt = env.DB.prepare(sql).bind(params);
+                const stmt = env.DB.prepare(sql).bind(...params);
                 const result = await stmt.first();
                 console.log(`[${txId}] first() result:`, result);
                 return result;
               },
               all: async () => {
                 console.log(`[${txId}] Executing all()...`);
-                const stmt = env.DB.prepare(sql).bind(params);
+                const stmt = env.DB.prepare(sql).bind(...params);
                 const result = await stmt.all();
                 console.log(`[${txId}] all() result count:`, result.results?.length || 0);
                 return result.results || [];
               },
               run: async () => {
                 console.log(`[${txId}] Executing run()...`);
-                const stmt = env.DB.prepare(sql).bind(params);
+                const stmt = env.DB.prepare(sql).bind(...params);
                 const result = await stmt.run();
                 console.log(`[${txId}] run() result:`, result);
                 return result;
