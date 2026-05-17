@@ -106,12 +106,14 @@ export default function CheckoutPage() {
   const total = getTotal()
   const [serverCartItems, setServerCartItems] = useState<any[]>([])
   const [hasFetchedServerCart, setHasFetchedServerCart] = useState(false)
+  const [isFetchingServerCart, setIsFetchingServerCart] = useState(false)
 
 
   // Fetch cart from server for authenticated users (similar to cart page logic)
   useEffect(() => {
     const fetchServerCart = async () => {
       if (user && !hasFetchedServerCart) {
+        setIsFetchingServerCart(true)
         try {
           const response = await fetch('/api/cart', {
             credentials: 'include',
@@ -145,12 +147,15 @@ export default function CheckoutPage() {
           console.error('[Checkout] Error fetching server cart:', error)
           // Fall back to local storage cart
           setServerCartItems(items)
+        } finally {
+          setIsFetchingServerCart(false)
+          setHasFetchedServerCart(true)
         }
-        setHasFetchedServerCart(true)
       } else if (!user) {
         // Not authenticated, use local storage and reset flag
         setServerCartItems(items)
         setHasFetchedServerCart(false)
+        setIsFetchingServerCart(false)
       }
     }
 
@@ -215,8 +220,8 @@ export default function CheckoutPage() {
   // Check stock status for all cart items
   const checkStockStatus = async () => {
     try {
-      // Use server cart items if logged in, otherwise use local storage items
-      const itemsToCheck = user && serverCartItems.length > 0 ? serverCartItems : items
+      // Use effective items (same logic as effectiveItems calculation)
+      const itemsToCheck = user && !isFetchingServerCart && serverCartItems.length > 0 ? serverCartItems : items
 
       if (itemsToCheck.length === 0) {
         return true
@@ -269,11 +274,11 @@ export default function CheckoutPage() {
 
   // Check stock status on mount
   useEffect(() => {
-    const itemsToCheck = user && serverCartItems.length > 0 ? serverCartItems : items
+    const itemsToCheck = user && !isFetchingServerCart && serverCartItems.length > 0 ? serverCartItems : items
     if (itemsToCheck.length > 0) {
       checkStockStatus()
     }
-  }, [user, serverCartItems, items])
+  }, [user, serverCartItems, items, isFetchingServerCart])
 
   const handleShippingSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -384,13 +389,20 @@ export default function CheckoutPage() {
       const total = subtotal + shipping + tax - discount
 
       // Format shipping address as object for API
-      const addressObject = {
+      // Only include fields that have values to avoid validation errors
+      const addressObject: any = {
         address: shippingInfo.address,
         city: shippingInfo.city,
-        district: shippingInfo.district,
         division: shippingInfo.division,
         zipCode: shippingInfo.zipCode,
-        country: shippingInfo.country
+      }
+
+      // Only include optional fields if they have values
+      if (shippingInfo.district && shippingInfo.district.trim() !== '') {
+        addressObject.district = shippingInfo.district
+      }
+      if (shippingInfo.country && shippingInfo.country.trim() !== '') {
+        addressObject.country = shippingInfo.country
       }
 
       // Format order items to match API expectations
@@ -432,6 +444,7 @@ export default function CheckoutPage() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify(orderData),
       })
       
@@ -468,7 +481,20 @@ export default function CheckoutPage() {
   }
 
   // Determine which items to use (server cart for logged-in users, local storage for guests)
-  const effectiveItems = user && serverCartItems.length > 0 ? serverCartItems : items
+  // While fetching server cart, use local items to avoid showing empty cart temporarily
+  const effectiveItems = user && !isFetchingServerCart && serverCartItems.length > 0 ? serverCartItems : items
+
+  // Show loading state while fetching server cart for logged-in users
+  if (user && isFetchingServerCart && items.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your cart...</p>
+        </div>
+      </div>
+    )
+  }
 
   if (effectiveItems.length === 0) {
     return (

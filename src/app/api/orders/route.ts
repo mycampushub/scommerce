@@ -59,13 +59,35 @@ export async function POST(request: NextRequest) {
   try {
     const body: any = await request.json() as any;
 
-    // Helper function to sanitize address (can be object or string)
+    // Helper function to sanitize address - handles both standard and checkout formats
     const sanitizeAddress = (address: unknown) => {
       if (typeof address === 'string') {
         return sanitizeForDB(address);
       }
       if (typeof address === 'object' && address !== null) {
-        return sanitizeAddressData(address as Record<string, unknown>);
+        const addr = address as Record<string, unknown>;
+
+        // Check if it's the checkout format (has 'address' field)
+        if ('address' in addr) {
+          // Checkout format - sanitize individual fields
+          const sanitized: Record<string, unknown> = {};
+          if (addr.address) sanitized.address = sanitizeForDB(String(addr.address));
+          if (addr.city) sanitized.city = sanitizeForDB(String(addr.city));
+          if (addr.district) sanitized.district = sanitizeForDB(String(addr.district));
+          if (addr.division) sanitized.division = sanitizeForDB(String(addr.division));
+          if (addr.zipCode) sanitized.zipCode = sanitizeForDB(String(addr.zipCode));
+          if (addr.country) sanitized.country = sanitizeForDB(String(addr.country));
+          // Filter out empty strings to avoid validation errors
+          Object.keys(sanitized).forEach(key => {
+            if (sanitized[key] === '') {
+              delete sanitized[key];
+            }
+          });
+          return sanitized;
+        } else {
+          // Standard format - use existing sanitization
+          return sanitizeAddressData(addr);
+        }
       }
       return '';
     };
