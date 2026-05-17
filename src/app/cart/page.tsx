@@ -34,6 +34,7 @@ export default function CartPage() {
         const response = await fetch('/api/cart', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({
             action: 'update',
             item: { productId: id, variantId, quantity },
@@ -79,6 +80,7 @@ export default function CartPage() {
         const response = await fetch('/api/cart', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({
             action: 'remove',
             item: { productId: id, variantId },
@@ -144,6 +146,7 @@ export default function CartPage() {
             await fetch('/api/cart', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
               body: JSON.stringify({
                 action: 'sync',
                 items: localItems.map(item => ({
@@ -160,7 +163,9 @@ export default function CartPage() {
           }
 
           // Now fetch the server cart
-          const response = await fetch('/api/cart')
+          const response = await fetch('/api/cart', {
+            credentials: 'include',
+          })
           const data = await response.json() as any
 
           if (data.success && data.source === 'database' && data.items) {

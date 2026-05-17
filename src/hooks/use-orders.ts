@@ -53,26 +53,28 @@ export interface OrderFilters {
 // Fetch orders
 export async function fetchOrders(filters?: OrderFilters): Promise<Order[]> {
   const params = new URLSearchParams()
-  
+
   if (filters?.userId) {
     params.append('userId', filters.userId)
   }
-  
+
   if (filters?.status) {
     params.append('status', filters.status)
   }
-  
+
   if (filters?.search) {
     params.append('search', filters.search)
   }
-  
+
   const url = `/api/orders${params.toString() ? '?' + params.toString() : ''}`
-  const response = await fetch(url)
-  
+  const response = await fetch(url, {
+    credentials: 'include', // Include cookies for authentication
+  })
+
   if (!response.ok) {
     throw new Error('Failed to fetch orders')
   }
-  
+
   const result = await response.json() as any
   return result.data || []
 }
@@ -90,12 +92,14 @@ export function useOrders(filters?: OrderFilters) {
 
 // Fetch single order
 export async function fetchOrder(orderId: string): Promise<Order> {
-  const response = await fetch(`/api/orders/${orderId}`)
-  
+  const response = await fetch(`/api/orders/${orderId}`, {
+    credentials: 'include', // Include cookies for authentication
+  })
+
   if (!response.ok) {
     throw new Error('Failed to fetch order')
   }
-  
+
   const result = await response.json() as any
   return result.data
 }
@@ -115,19 +119,20 @@ export function useOrder(orderId: string) {
 // Create new order
 export function useCreateOrder() {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: async (orderData: any) => {
       const response = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // Include cookies for authentication
         body: JSON.stringify(orderData),
       })
-      
+
       if (!response.ok) {
         throw new Error('Failed to create order')
       }
-      
+
       return await response.json()
     },
     onSuccess: () => {
@@ -144,22 +149,23 @@ export function useCreateOrder() {
 // Cancel order
 export function useCancelOrder() {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: async ({ orderId, reason }: { orderId: string; reason: string }) => {
       const response = await fetch(`/api/orders/${orderId}/cancel`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // Include cookies for authentication
         body: JSON.stringify({
           cancelledBy: 'user',
           reason,
         }),
       })
-      
+
       if (!response.ok) {
         throw new Error('Failed to cancel order')
       }
-      
+
       return await response.json()
     },
     onSuccess: () => {
@@ -176,19 +182,20 @@ export function useCancelOrder() {
 // Request refund
 export function useRefundOrder() {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: async ({ orderId, reason }: { orderId: string; reason: string }) => {
       const response = await fetch(`/api/orders/${orderId}/refund`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // Include cookies for authentication
         body: JSON.stringify({ reason }),
       })
-      
+
       if (!response.ok) {
         throw new Error('Failed to request refund')
       }
-      
+
       return await response.json()
     },
     onSuccess: () => {
