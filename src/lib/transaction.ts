@@ -91,19 +91,22 @@ async function runD1Transaction<T>(
     // Create transaction-aware database wrapper
     const txDb = {
       prepare: (sql: string) => {
-        const stmt = env.DB.prepare(sql);
         return {
-          bind: (params: any[]) => stmt.bind(params),
-          first: async () => {
-            const result = await stmt.first();
-            return result;
-          },
-          all: async () => {
-            const result = await stmt.all();
-            return result.results || [];
-          },
-          run: async () => {
-            return await stmt.run();
+          bind: (params: any[]) => {
+            const boundStmt = env.DB.prepare(sql).bind(params);
+            return {
+              first: async () => {
+                const result = await boundStmt.first();
+                return result;
+              },
+              all: async () => {
+                const result = await boundStmt.all();
+                return result.results || [];
+              },
+              run: async () => {
+                return await boundStmt.run();
+              },
+            };
           },
         };
       },
