@@ -117,7 +117,7 @@ export default function CustomersPage() {
       const result = await response.json() as any
 
       if (result.success) {
-        setCustomers(result.data || [])
+        setCustomers(Array.isArray(result.data) ? result.data : [])
       } else {
         throw new Error(result.error || 'Failed to fetch customers')
       }
@@ -423,7 +423,9 @@ export default function CustomersPage() {
   )
 
   const formatDate = (dateStr: string) => {
+    if (!dateStr) return 'Invalid Date'
     const date = new Date(dateStr)
+    if (isNaN(date.getTime())) return 'Invalid Date'
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',

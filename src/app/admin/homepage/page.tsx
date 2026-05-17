@@ -78,17 +78,35 @@ interface Product {
 // Helper function to get first image from product
 const getProductImage = (product: Product): string | null => {
   if (!product.images) return null
-  try {
-    const parsed = JSON.parse(product.images)
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed[0]
-    }
-  } catch {
-    // If parsing fails, return the raw string if it looks like a URL
-    if (product.images.startsWith('http')) {
-      return product.images
+
+  // If images is already an array, return the first element
+  if (Array.isArray(product.images)) {
+    return product.images.length > 0 ? product.images[0] : null
+  }
+
+  // If images is a string, try to parse it
+  if (typeof product.images === 'string') {
+    try {
+      const parsed = JSON.parse(product.images)
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed[0]
+      }
+      // If parsing returns a single string URL
+      if (typeof parsed === 'string' && parsed.startsWith('http')) {
+        return parsed
+      }
+      // If parsing fails, return the raw string if it looks like a URL
+      if (product.images.startsWith('http')) {
+        return product.images
+      }
+    } catch {
+      // If parsing fails, return the raw string if it looks like a URL
+      if (product.images.startsWith('http')) {
+        return product.images
+      }
     }
   }
+
   return null
 }
 

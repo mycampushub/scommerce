@@ -85,7 +85,7 @@ export const orderItemSchema = z.object({
   quantity: z.number().int().min(1, 'Quantity must be at least 1').max(99, 'Quantity cannot exceed 99'),
   price: z.number().positive('Price must be positive'),
   productName: z.string().min(1, 'Product name is required'),
-  productImage: z.string().min(1, 'Product image is required'),
+  productImage: z.string().optional(), // Made optional to handle missing images
   variantId: z.string().optional(),
   variantSku: z.string().optional(),
   variantSize: z.string().optional(),

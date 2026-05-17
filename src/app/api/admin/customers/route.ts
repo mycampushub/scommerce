@@ -46,6 +46,7 @@ export async function GET(request: NextRequest) {
       customers.map(async (customer) => {
         // Use Prisma if env is null or env.DB doesn't exist (local dev)
         let orderCount = 0
+        let totalSpent = 0
         if (!env || !env.DB) {
           orderCount = await prisma.orders.count({
             where: { userId: customer.id }
@@ -55,9 +56,17 @@ export async function GET(request: NextRequest) {
         }
 
         return {
-          ...customer,
-          _count: { orders: orderCount },
-          emailVerified: numberToBool(customer.emailVerified as number)
+          id: customer.id,
+          name: customer.name || 'Unknown',
+          email: customer.email,
+          phone: customer.phone || null,
+          address: customer.address || null,
+          orders: orderCount,
+          totalSpent: totalSpent,
+          status: customer.isBanned === 1 ? 'banned' : (customer.name ? 'active' : 'inactive'),
+          isVIP: false, // TODO: Implement VIP logic
+          joined: customer.createdAt || new Date().toISOString(),
+          avatar: customer.avatar || null,
         }
       })
     )
