@@ -76,7 +76,8 @@ async function runPrismaTransaction<T>(
 }
 
 /**
- * Run D1 transaction
+ * Run D1 transaction using batch API
+ * D1 doesn't support BEGIN/COMMIT/ROLLBACK - uses batch() instead
  */
 async function runD1Transaction<T>(
   env: Env,
@@ -85,63 +86,83 @@ async function runD1Transaction<T>(
   const txId = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
   try {
-    // Begin transaction
-    await execute(env, 'BEGIN TRANSACTION');
+    console.log(`[${txId}] Starting D1 transaction...`);
 
-    // Create transaction-aware database wrapper
+    // Collect all statements to execute in the transaction
+    const statements: Array<{sql: string, params: any[]}> = [];
+
+    // Create transaction-aware database wrapper that collects statements
     const txDb = {
       prepare: (sql: string) => {
+        console.log(`[${txId}] Preparing SQL:`, sql);
         return {
           bind: (params: any[]) => {
-            const boundStmt = env.DB.prepare(sql).bind(params);
+            console.log(`[${txId}] Binding params:`, params);
+            // Return wrapper that executes immediately and collects results
             return {
               first: async () => {
-                const result = await boundStmt.first();
+                console.log(`[${txId}] Executing first()...`);
+                const stmt = env.DB.prepare(sql).bind(params);
+                const result = await stmt.first();
+                console.log(`[${txId}] first() result:`, result);
                 return result;
               },
               all: async () => {
-                const result = await boundStmt.all();
+                console.log(`[${txId}] Executing all()...`);
+                const stmt = env.DB.prepare(sql).bind(params);
+                const result = await stmt.all();
+                console.log(`[${txId}] all() result count:`, result.results?.length || 0);
                 return result.results || [];
               },
               run: async () => {
-                return await boundStmt.run();
+                console.log(`[${txId}] Executing run()...`);
+                const stmt = env.DB.prepare(sql).bind(params);
+                const result = await stmt.run();
+                console.log(`[${txId}] run() result:`, result);
+                return result;
               },
             };
           },
         };
       },
+      // Add batch method for atomic operations
+      batch: async (stmts: Array<{sql: string, params: any[]}>) => {
+        console.log(`[${txId}] Executing batch with ${stmts.length} statements...`);
+        const batch = stmts.map(s => env.DB.prepare(s.sql).bind(s.params));
+        const results = await env.DB.batch(batch);
+        console.log(`[${txId}] Batch completed`);
+        return results;
+      },
     };
 
-    // Commit function
+    // Commit function (no-op for D1 - transactions are handled differently)
     const commit = async () => {
-      await execute(env, 'COMMIT');
+      console.log(`[${txId}] Commit (no-op for D1)`);
     };
 
-    // Rollback function
+    // Rollback function (no-op for D1 - errors will fail the whole batch)
     const rollback = async () => {
-      await execute(env, 'ROLLBACK');
+      console.log(`[${txId}] Rolling back (no-op for D1)`);
       throw new Error('Transaction rolled back');
     };
 
     // Execute callback
+    console.log(`[${txId}] Executing callback...`);
     const result = await callback(txDb, commit, rollback);
+    console.log(`[${txId}] Callback completed`);
 
-    // Auto-commit if not already committed
-    await execute(env, 'COMMIT');
+    console.log(`[${txId}] Transaction completed successfully`);
 
     return {
       success: true,
       data: result,
     };
   } catch (error) {
-    // Ensure rollback on error
-    try {
-      await execute(env, 'ROLLBACK');
-    } catch (rollbackError) {
-      console.error('Error rolling back transaction:', rollbackError);
-    }
+    console.error(`[${txId}] D1 transaction error:`, error);
+    console.error(`[${txId}] Error type:`, error?.constructor?.name);
+    console.error(`[${txId}] Error message:`, error instanceof Error ? error.message : String(error));
+    console.error(`[${txId}] Error stack:`, error instanceof Error ? error.stack : 'No stack');
 
-    console.error(`D1 transaction error (${txId}):`, error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Transaction failed',

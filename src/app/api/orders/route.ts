@@ -59,6 +59,8 @@ export async function POST(request: NextRequest) {
   try {
     const body: any = await request.json() as any;
 
+    console.log('[Orders API] Received order request body:', JSON.stringify(body, null, 2));
+
     // Helper function to sanitize address - handles both standard and checkout formats
     const sanitizeAddress = (address: unknown) => {
       if (typeof address === 'string') {
@@ -242,6 +244,7 @@ export async function POST(request: NextRequest) {
 
     // Create order with items and stock updates in a transaction
     // This ensures atomicity - either all operations succeed or none do
+    console.log('[Orders API] Starting order creation transaction...');
     const orderResult = await OrderRepository.createOrderWithItems(
       env,
       {
@@ -267,6 +270,7 @@ export async function POST(request: NextRequest) {
       validatedData.orderItems as any[],
       validatedData.userId
     );
+    console.log('[Orders API] Order creation result:', JSON.stringify(orderResult, null, 2));
 
     // If transaction failed, return error
     if (!orderResult) {
