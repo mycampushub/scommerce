@@ -125,10 +125,11 @@ export async function PUT(request: NextRequest) {
 
     // If categoryIds provided, verify they exist
     if (categoryIds && categoryIds.length > 0) {
+      const placeholders = categoryIds.map(() => '?').join(',')
       const categories = await queryAll<any>(
         env,
-        `SELECT id FROM categories WHERE id IN (${categoryIds.map(() => '?').join(',')})`,
-        ...categoryIds
+        `SELECT id FROM categories WHERE id IN (${placeholders})`,
+        ...(categoryIds || [])
       )
 
       if (categories.length !== categoryIds.length) {

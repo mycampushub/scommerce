@@ -189,9 +189,27 @@ export function now(): string {
 
 /**
  * Stringify an object to JSON
+ * Only stringifies if value is not already a string
  */
 export function stringifyJSON(value: unknown): string {
-  return typeof value === 'string' ? value : JSON.stringify(value);
+  if (value === null || value === undefined) {
+    return 'null'
+  }
+
+  // If it's already a string, check if it's valid JSON before re-stringifying
+  if (typeof value === 'string') {
+    try {
+      // Try to parse it - if it's already JSON, use it as-is
+      JSON.parse(value)
+      return value
+    } catch {
+      // If it's not valid JSON, this is a plain string, so stringify it
+      return JSON.stringify(value)
+    }
+  }
+
+  // For objects and arrays, always stringify
+  return JSON.stringify(value)
 }
 
 /**

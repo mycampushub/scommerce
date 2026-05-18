@@ -35,9 +35,10 @@ export async function GET(request: NextRequest) {
     // Ensure media is always an array
     const mediaArray = Array.isArray(media) ? media : []
 
-    // Parse tags from JSON
+    // Parse tags from JSON and ensure URL is always a string
     const mediaWithParsedTags = mediaArray.map((m: any) => ({
       ...m,
+      url: String(m.url || ''),
       tags: m.tags ? parseJSON<string[]>(m.tags) : []
     }))
 
@@ -125,6 +126,9 @@ export async function POST(request: NextRequest) {
     const id = generateId()
     const currentTime = now()
 
+    // Ensure URL is a string
+    const imageUrl = String(uploadResult.url || '')
+
     // Save to media table
     await execute(
       env,
@@ -134,7 +138,7 @@ export async function POST(request: NextRequest) {
         id,
         file.name,
         file.name,
-        uploadResult.url,
+        imageUrl,
         file.type,
         file.size,
         uploadResult.width || 0,

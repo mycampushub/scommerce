@@ -161,6 +161,13 @@ export default function ProductPage() {
         const productData = await productResponse.json() as any
         // API returns { success: true, data: {...productData } }
         const actualProduct = productData.data || productData
+        console.log('[Product Page] Product data received:', {
+          id: actualProduct.id,
+          name: actualProduct.name,
+          hasVariants: actualProduct.hasVariants,
+          hasVariantsType: typeof actualProduct.hasVariants,
+          slug: actualProduct.slug,
+        })
         setProduct(actualProduct as any)
 
         // Fetch variants
@@ -272,7 +279,17 @@ export default function ProductPage() {
       variantsCount: variants.length,
       availableSizes,
       availableColors,
-      availableMaterials
+      availableMaterials,
+      willShowSizeSelector: availableSizes.length > 0,
+      willShowColorSelector: availableColors.length > 0,
+      willShowMaterialSelector: availableMaterials.length > 0,
+    })
+  } else {
+    console.log('[Product Page] Variant selectors will NOT show:', {
+      hasVariants,
+      productHasVariants: product?.hasVariants,
+      variantsLength: variants.length,
+      reason: !product?.hasVariants ? 'Product hasVariants is false' : variants.length === 0 ? 'No variants loaded' : 'Unknown',
     })
   }
 
@@ -606,6 +623,23 @@ export default function ProductPage() {
                   </>
                 )}
               </div>
+
+              {/* Debug Info - Remove in production */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-sm">
+                  <p className="font-semibold text-yellow-900 mb-2">🔍 Variant Debug Info:</p>
+                  <ul className="space-y-1 text-yellow-800">
+                    <li>hasVariants: {String(hasVariants)}</li>
+                    <li>product.hasVariants: {String(product?.hasVariants)} (type: {typeof product?.hasVariants})</li>
+                    <li>variants.length: {variants.length}</li>
+                    <li>loadingVariants: {String(loadingVariants)}</li>
+                    <li>availableSizes: {availableSizes.join(', ')}</li>
+                    <li>availableColors: {availableColors.join(', ')}</li>
+                    <li>availableMaterials: {availableMaterials.join(', ')}</li>
+                    <li>Will show selectors: {String(hasVariants && !loadingVariants)}</li>
+                  </ul>
+                </div>
+              )}
 
               {/* Variant Selectors */}
               {hasVariants && (

@@ -14,9 +14,22 @@
 export function parseImages(
   imgData: string | string[] | null | undefined
 ): string[] {
-  // If already an array, return it
+  // If already an array, filter and convert to strings
   if (Array.isArray(imgData)) {
-    return imgData.filter(img => img && typeof img === 'string')
+    return imgData
+      .filter(img => img != null)
+      .map((img): string => {
+        if (typeof img === 'string') {
+          return img
+        }
+        // If it's an object with url property
+        if (typeof img === 'object' && img !== null && 'url' in img) {
+          return String((img as any).url || '')
+        }
+        // Convert any other type to string
+        return String(img)
+      })
+      .filter(img => img && img.length > 0)
   }
 
   // If null or undefined, return empty array
@@ -37,11 +50,28 @@ export function parseImages(
     try {
       const parsed = JSON.parse(imgData)
       if (Array.isArray(parsed)) {
-        return parsed.filter((img: any) => img && typeof img === 'string')
+        return parsed
+          .filter((img: any) => img != null)
+          .map((img: any) => {
+            if (typeof img === 'string') {
+              return img
+            }
+            // If it's an object with url property
+            if (typeof img === 'object' && img !== null && 'url' in img) {
+              return String(img.url || '')
+            }
+            // Convert any other type to string
+            return String(img)
+          })
+          .filter((img: string) => img && img.length > 0)
       }
       // If parsed but not array, treat as single value
       if (parsed && typeof parsed === 'string') {
         return [parsed]
+      }
+      // If it's an object with url property
+      if (parsed && typeof parsed === 'object' && 'url' in parsed) {
+        return [String(parsed.url || '')]
       }
     } catch (e) {
       // Not valid JSON, treat as single URL
@@ -61,8 +91,21 @@ export function stringifyImages(images: string[] | null | undefined): string | n
     return null
   }
 
-  // Filter out invalid entries
-  const validImages = images.filter(img => img && typeof img === 'string')
+  // Filter and convert to strings
+  const validImages = images
+    .filter(img => img != null)
+    .map((img): string => {
+      if (typeof img === 'string') {
+        return img
+      }
+      // If it's an object with url property
+      if (typeof img === 'object' && img !== null && 'url' in img) {
+        return String((img as any).url || '')
+      }
+      // Convert any other type to string
+      return String(img)
+    })
+    .filter((img: string) => img && img.length > 0)
 
   if (validImages.length === 0) {
     return null

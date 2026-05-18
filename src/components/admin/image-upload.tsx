@@ -215,7 +215,12 @@ export function ImageUpload({
     if (newImages.length > 0) {
       const updatedImages = [...images, ...newImages]
       setImages(updatedImages)
-      onImagesChange?.(updatedImages.map(img => typeof img === 'string' ? img : img.url))
+      // Extract URLs properly - handle both string and object types
+      const imageUrls = updatedImages.map(img => {
+        if (typeof img === 'string') return img
+        return img.url || ''
+      }).filter(url => url && url.length > 0)
+      onImagesChange?.(imageUrls)
     }
 
     setUploading(false)
@@ -241,7 +246,12 @@ export function ImageUpload({
 
     const updatedImages = images.filter((_, i) => i !== index)
     setImages(updatedImages)
-    onImagesChange?.(updatedImages.map(img => typeof img === 'string' ? img : img.url))
+    // Extract URLs properly - handle both string and object types
+    const imageUrls = updatedImages.map(img => {
+      if (typeof img === 'string') return img
+      return img.url || ''
+    }).filter(url => url && url.length > 0)
+    onImagesChange?.(imageUrls)
   }
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -253,7 +263,12 @@ export function ImageUpload({
 
       const reorderedImages = arrayMove(images, oldIndex, newIndex)
       setImages(reorderedImages)
-      onImagesChange?.(reorderedImages.map(img => typeof img === 'string' ? img : img.url))
+      // Extract URLs properly - handle both string and object types
+      const imageUrls = reorderedImages.map(img => {
+        if (typeof img === 'string') return img
+        return img.url || ''
+      }).filter(url => url && url.length > 0)
+      onImagesChange?.(imageUrls)
     }
   }
 
@@ -333,9 +348,16 @@ export function ImageUpload({
       <div className="flex items-center gap-4">
         <GallerySelector
           onSelect={(url) => {
-            const updatedImages = [...images, { url, isNew: false, size: 0, type: 'image', name: 'Gallery Image' }]
+            // Ensure URL is a string
+            const urlString = typeof url === 'string' ? url : String(url || '')
+            const updatedImages = [...images, { url: urlString, isNew: false, size: 0, type: 'image', name: 'Gallery Image' }]
             setImages(updatedImages)
-            onImagesChange?.(updatedImages.map(img => typeof img === 'string' ? img : img.url))
+            // Extract URLs properly - handle both string and object types
+            const imageUrls = updatedImages.map(img => {
+              if (typeof img === 'string') return img
+              return img.url || ''
+            }).filter((u: string) => u && u.length > 0)
+            onImagesChange?.(imageUrls)
           }}
           category="product"
           className="flex-1"

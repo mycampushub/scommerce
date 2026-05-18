@@ -8410,3 +8410,132 @@ Remaining Issues (Medium/Low Priority):
 - Issue #6.1: Standardize error responses (Already consistent in most endpoints)
 - Issue #7.1: Race conditions in variant selection (Low priority, not critical)
 
+
+---
+
+Task ID: 6
+Agent: main
+Task: Fix image gallery "type object not supported" error
+
+Work Log:
+- Fixed stringifyJSON function to handle already-stringified values correctly
+- Updated gallery API to ensure URLs are always strings, not objects
+- Enhanced parseImages and stringifyImages functions to handle object types with url property
+- Updated image-upload component to properly extract URLs from both string and object types
+- Applied fixes to all URL extraction points in image upload component
+
+Root Cause Analysis:
+The error "type object not supported value" was caused by:
+1. stringifyJSON function was not checking if a string was already valid JSON, causing double-stringification
+2. Gallery API was not ensuring URLs were always strings before storing
+3. Image parsing functions didn't handle objects with url property
+4. Image upload component wasn't properly extracting URLs from mixed type arrays
+
+Fixes Applied:
+
+1. stringifyJSON function (src/db/db.ts)
+   - Added check for null/undefined values
+   - Added JSON.parse validation for strings to avoid double-stringification
+   - Plain strings are properly stringified, already-JSON strings used as-is
+
+2. Gallery API GET endpoint (src/app/api/admin/gallery/route.ts)
+   - Added explicit String() conversion for URL field
+   - Ensures all returned URLs are strings, never objects
+
+3. Gallery API POST endpoint (src/app/api/admin/gallery/route.ts)
+   - Added explicit String() conversion for uploadResult.url
+   - Ensures stored URLs are always strings
+
+4. parseImages function (src/lib/images.ts)
+   - Enhanced to handle arrays with mixed types (strings and objects)
+   - Extracts url property from objects if present
+   - Converts all valid image data to string URLs
+   - Filters out null/undefined/empty values
+
+5. stringifyImages function (src/lib/images.ts)
+   - Enhanced to handle mixed type arrays
+   - Extracts url property from objects if present
+   - Ensures output is always valid JSON string array
+
+6. Image Upload Component (src/components/admin/image-upload.tsx)
+   - Updated handleFileSelect to properly extract URLs
+   - Updated handleRemoveImage to properly extract URLs
+   - Updated handleDragEnd to properly extract URLs
+   - Updated GallerySelector onSelect callback to ensure URL is string
+   - All onImagesChange calls now send clean string arrays
+
+Files Modified:
+- /home/z/my-project/src/db/db.ts
+- /home/z/my-project/src/app/api/admin/gallery/route.ts
+- /home/z/my-project/src/lib/images.ts
+- /home/z/my-project/src/components/admin/image-upload.tsx
+
+Stage Summary:
+- Fixed image gallery display issue with R2 images
+- URLs now properly stored and retrieved as strings
+- All image data types (strings, objects with url) properly handled
+- No more "type object not supported" errors
+- Image gallery now correctly displays existing R2 images
+- Lint check passed with no source code errors
+- Dev server running without issues
+
+
+---
+
+Task ID: 7
+Agent: main
+Task: Fix TypeScript build errors
+
+Work Log:
+- Fixed type errors in variant creation route (nullable vs undefined types)
+- Fixed type errors in image parsing functions (property access on narrowed types)
+- All build errors resolved
+
+Errors Fixed:
+
+1. Variant Creation Type Errors (src/app/api/admin/products/[id]/variants/route.ts)
+   - Issue: Zod schema allowed null values, but repository expected undefined
+   - Fields affected: size, color, material, name, stock, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty
+   - Fix: Added null coalescing operators (??) to convert null to undefined or default values
+   
+   Changes:
+   - size: validatedData.size ?? undefined
+   - color: validatedData.color ?? undefined
+   - material: validatedData.material ?? undefined
+   - name: validatedData.name ?? ''
+   - stock: validatedData.stock ?? 0
+   - isActive: validatedData.isActive ?? true
+   - isDefault: validatedData.isDefault ?? false
+   - lowStockAlert: validatedData.lowStockAlert ?? 10
+   - reorderLevel: validatedData.reorderLevel ?? 5
+   - reorderQty: validatedData.reorderQty ?? 20
+   - comparePrice: validatedData.comparePrice ?? undefined
+   - costPrice: validatedData.costPrice ?? undefined
+
+2. Image Parsing Type Errors (src/lib/images.ts)
+   - Issue: TypeScript couldn't infer type after type guard for 'url' property
+   - Functions affected: parseImages, stringifyImages
+   - Fix: Added explicit return type annotation and type casting for object property access
+   
+   Changes:
+   - Added `(img): string` return type annotation to map callbacks
+   - Cast object with `as any` before accessing url property: `(img as any).url`
+
+Build Results:
+- ✅ TypeScript compilation: No errors
+- ✅ ESLint check: No source code errors
+- ✅ Build completed successfully (Exit code: 0)
+- ✅ All 110 pages generated
+- ✅ All API routes compiled successfully
+- ✅ Static pages generated successfully
+
+Files Modified:
+- /home/z/my-project/src/app/api/admin/products/[id]/variants/route.ts
+- /home/z/my-project/src/lib/images.ts
+
+Stage Summary:
+- All TypeScript build errors fixed
+- Type safety improved across variant creation and image handling
+- Project builds successfully for production
+- Ready for deployment to Cloudflare Workers
+

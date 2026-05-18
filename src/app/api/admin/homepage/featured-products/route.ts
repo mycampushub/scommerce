@@ -99,10 +99,11 @@ export async function PUT(request: NextRequest) {
 
     // If productIds provided, verify they exist
     if (productIds && productIds.length > 0) {
+      const placeholders = productIds.map(() => '?').join(',')
       const products = await queryAll<any>(
         env,
-        `SELECT id FROM products WHERE id IN (${productIds.map(() => '?').join(',')})`,
-        ...productIds
+        `SELECT id FROM products WHERE id IN (${placeholders})`,
+        ...(productIds || [])
       )
 
       if (products.length !== productIds.length) {

@@ -13,20 +13,20 @@ import { queryFirst, queryAll, execute, boolToNumber, parseJSON, stringifyJSON, 
  * Schema for variant creation
  */
 const createVariantSchema = z.object({
-  name: z.string().optional().default(''),
-  price: z.number().min(0, 'Price must be positive').optional().default(0),
-  comparePrice: z.number().optional(),
-  costPrice: z.number().min(0).optional(),
-  stock: z.number().int().min(0, 'Stock must be a non-negative integer').default(0),
-  images: z.union([z.array(z.string()), z.string()]).optional().default([]),
-  size: z.string().optional(),
-  color: z.string().optional(),
-  material: z.string().optional(),
-  isDefault: z.boolean().default(false),
-  isActive: z.boolean().default(true),
-  lowStockAlert: z.number().int().min(0).default(10),
-  reorderLevel: z.number().int().min(0).default(5),
-  reorderQty: z.number().int().min(0).default(20),
+  name: z.string().nullable().optional().default(''),
+  price: z.union([z.number().min(0, 'Price must be positive'), z.null()]).optional().default(0),
+  comparePrice: z.union([z.number(), z.null()]).optional(),
+  costPrice: z.union([z.number().min(0), z.null()]).optional(),
+  stock: z.union([z.number().int().min(0, 'Stock must be a non-negative integer'), z.null()]).default(0),
+  images: z.union([z.array(z.string()), z.string(), z.null()]).optional().default([]),
+  size: z.union([z.string(), z.null()]).optional(),
+  color: z.union([z.string(), z.null()]).optional(),
+  material: z.union([z.string(), z.null()]).optional(),
+  isDefault: z.union([z.boolean(), z.null()]).default(false),
+  isActive: z.union([z.boolean(), z.null()]).default(true),
+  lowStockAlert: z.union([z.number().int().min(0), z.null()]).default(10),
+  reorderLevel: z.union([z.number().int().min(0), z.null()]).default(5),
+  reorderQty: z.union([z.number().int().min(0), z.null()]).default(20),
 })
 
 /**
@@ -171,22 +171,35 @@ export async function POST(
     const variantParts = [body.size, body.color, body.material].filter(Boolean)
     const variantName = body.name || variantParts.join(' - ') || 'Default'
 
-    // Validate input with normalized data
-    const validatedData = createVariantSchema.parse({
-      ...body,
+    // Preprocess data to handle null values
+    const preprocessedData = {
       name: variantName,
-      price: body.price || 0,
-      images,
-    })
+      price: body.price ?? 0,
+      comparePrice: body.comparePrice ?? undefined,
+      costPrice: body.costPrice ?? undefined,
+      stock: body.stock ?? 0,
+      images: images.length > 0 ? images : [],
+      size: body.size ?? undefined,
+      color: body.color ?? undefined,
+      material: body.material ?? undefined,
+      isDefault: body.isDefault ?? false,
+      isActive: body.isActive ?? true,
+      lowStockAlert: body.lowStockAlert ?? 10,
+      reorderLevel: body.reorderLevel ?? 5,
+      reorderQty: body.reorderQty ?? 20,
+    }
+
+    // Validate input with normalized data
+    const validatedData = createVariantSchema.parse(preprocessedData)
 
     // Generate SKU
     const sku = generateSKU(
       category?.slug || 'GEN',
       product.name,
       {
-        size: validatedData.size,
-        color: validatedData.color,
-        material: validatedData.material,
+        size: validatedData.size ?? undefined,
+        color: validatedData.color ?? undefined,
+        material: validatedData.material ?? undefined,
       }
     )
 
@@ -212,20 +225,20 @@ export async function POST(
     const variant = await ProductRepository.createVariant(env, {
       productId: id,
       sku,
-      name: validatedData.name,
+      name: validatedData.name ?? '',
       price: validatedData.price || 0,
-      comparePrice: validatedData.comparePrice,
-      costPrice: validatedData.costPrice,
-      stock: validatedData.stock,
+      comparePrice: validatedData.comparePrice ?? undefined,
+      costPrice: validatedData.costPrice ?? undefined,
+      stock: validatedData.stock ?? 0,
       images: Array.isArray(validatedData.images) ? validatedData.images : [],
-      size: validatedData.size,
-      color: validatedData.color,
-      material: validatedData.material,
-      isActive: validatedData.isActive,
-      isDefault: validatedData.isDefault,
-      lowStockAlert: validatedData.lowStockAlert,
-      reorderLevel: validatedData.reorderLevel,
-      reorderQty: validatedData.reorderQty,
+      size: validatedData.size ?? undefined,
+      color: validatedData.color ?? undefined,
+      material: validatedData.material ?? undefined,
+      isActive: validatedData.isActive ?? true,
+      isDefault: validatedData.isDefault ?? false,
+      lowStockAlert: validatedData.lowStockAlert ?? 10,
+      reorderLevel: validatedData.reorderLevel ?? 5,
+      reorderQty: validatedData.reorderQty ?? 20,
     })
 
     // Update product to indicate it has variants
