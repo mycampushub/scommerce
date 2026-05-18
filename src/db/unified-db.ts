@@ -29,7 +29,7 @@ export interface PreparedStatement {
 export interface BoundStatement {
   first<T = Record<string, unknown>>(): Promise<T | null>;
   all<T = Record<string, unknown>>(): Promise<{ results: T[] }>;
-  run(): Promise<{ meta: { changes: number } }>;
+  run(): Promise<{ meta: { changes: number }, error?: Error }>;
 }
 
 /**
@@ -82,13 +82,14 @@ class PrismaPreparedStatement implements PreparedStatement {
     }
   }
 
-  async run(): Promise<{ meta: { changes: number } }> {
+  async run(): Promise<{ meta: { changes: number }, error?: Error }> {
     try {
       const result = await this.prisma.$executeRawUnsafe(this.sql, ...this.params);
       return { meta: { changes: result as number } };
     } catch (error) {
-      console.error('[PrismaPreparedStatement] run() error:', error);
-      return { meta: { changes: 0 } };
+      const err = error instanceof Error ? error : new Error(String(error));
+      console.error('[PrismaPreparedStatement] run() error:', err);
+      return { meta: { changes: 0 }, error: err };
     }
   }
 }

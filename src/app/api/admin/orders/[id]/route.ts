@@ -5,7 +5,6 @@ import { OrderRepository } from '@/db/order.repository'
 import { UserRepository } from '@/db/user.repository'
 import { execute, parseJSON } from '@/db/db'
 import { updateTrackingSchema } from '@/lib/validations'
-import prisma from '@/lib/database'
 import { logAdminAction } from '@/lib/audit-logger'
 
 
@@ -139,12 +138,15 @@ export async function PUT(
 
     if (body.trackingNumber !== undefined || body.trackingStatus) {
       // Validate tracking number and status
+      // Only validate tracking number if it's provided and not empty
+      const shouldValidateTracking = body.trackingNumber !== undefined && body.trackingNumber !== ''
       const validation = updateTrackingSchema.safeParse({
         trackingNumber: body.trackingNumber || '',
         trackingStatus: body.trackingStatus || 'PENDING',
       })
 
-      if (!validation.success) {
+      // Only fail validation if tracking number was provided (not empty) and validation failed
+      if (shouldValidateTracking && !validation.success) {
         return NextResponse.json(
           {
             success: false,
@@ -154,19 +156,22 @@ export async function PUT(
         )
       }
 
-      await OrderRepository.updateTracking(env, id, body.trackingNumber, body.trackingStatus)
-      if (body.trackingStatus) {
-        changes.push(`trackingStatus: ${currentOrder.trackingStatus} → ${body.trackingStatus}`)
-      }
-      if (body.trackingNumber) {
-        changes.push(`trackingNumber: ${body.trackingNumber}`)
-      }
-      const updated = await OrderRepository.findById(env, id)
-      if (updated) {
-        Object.assign(updates, {
-          trackingNumber: updated.trackingNumber,
-          trackingStatus: updated.trackingStatus,
-        })
+      // Only update tracking if trackingNumber is provided or trackingStatus is provided
+      if (body.trackingNumber || body.trackingStatus) {
+        await OrderRepository.updateTracking(env, id, body.trackingNumber || '', body.trackingStatus || 'PENDING')
+        if (body.trackingStatus) {
+          changes.push(`trackingStatus: ${currentOrder.trackingStatus} → ${body.trackingStatus}`)
+        }
+        if (body.trackingNumber) {
+          changes.push(`trackingNumber: ${body.trackingNumber}`)
+        }
+        const updated = await OrderRepository.findById(env, id)
+        if (updated) {
+          Object.assign(updates, {
+            trackingNumber: updated.trackingNumber,
+            trackingStatus: updated.trackingStatus,
+          })
+        }
       }
     }
 
@@ -187,17 +192,15 @@ export async function PUT(
       updateFields.notes = body.notes
       changes.push('notes updated')
     }
+    if (body.estimatedDeliveryDate !== undefined) {
+      updateFields.estimatedDeliveryDate = body.estimatedDeliveryDate
+      changes.push(`estimatedDeliveryDate: ${currentOrder.estimatedDeliveryDate || 'none'} → ${body.estimatedDeliveryDate || 'none'}`)
+    }
 
     if (Object.keys(updateFields).length > 0) {
-      if (!env || !env.DB) {
-        await prisma.orders.update({
-          where: { id },
-          data: { ...updateFields, updatedAt: new Date().toISOString() }
-        })
-      } else {
-        for (const [field, value] of Object.entries(updateFields)) {
-          await execute(env, `UPDATE orders SET ${field} = ?, updatedAt = ? WHERE id = ?`, value as any, new Date().toISOString(), id)
-        }
+      // Use consistent D1 pattern with execute()
+      for (const [field, value] of Object.entries(updateFields)) {
+        await execute(env, `UPDATE orders SET ${field} = ?, updatedAt = ? WHERE id = ?`, value as any, new Date().toISOString(), id)
       }
     }
 
@@ -242,10 +245,11 @@ export async function PUT(
     })
   } catch (error) {
     console.error('Error updating order:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Failed to update order'
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to update order',
+        error: errorMessage,
       },
       { status: 500 }
     )
@@ -279,26 +283,15 @@ export async function DELETE(
     }
 
     // Soft delete: mark order as deleted instead of removing
-    if (!env || !env.DB) {
-      await prisma.orders.update({
-        where: { id },
-        data: {
-          deletedAt: new Date().toISOString(),
-          deletedBy: admin.id,
-          deletedReason: body.reason || 'Manually deleted',
-          updatedAt: new Date().toISOString()
-        }
-      })
-    } else {
-      await execute(env,
-        `UPDATE orders SET deletedAt = ?, deletedBy = ?, deletedReason = ?, updatedAt = ? WHERE id = ?`,
-        new Date().toISOString(),
-        admin.id,
-        body.reason || 'Manually deleted',
-        new Date().toISOString(),
-        id
-      )
-    }
+    // Use consistent D1 pattern with execute()
+    await execute(env,
+      `UPDATE orders SET deletedAt = ?, deletedBy = ?, deletedReason = ?, updatedAt = ? WHERE id = ?`,
+      new Date().toISOString(),
+      admin.id,
+      body.reason || 'Manually deleted',
+      new Date().toISOString(),
+      id
+    )
 
     // Log audit event
     await logAdminAction(
@@ -317,10 +310,11 @@ export async function DELETE(
     })
   } catch (error) {
     console.error('Error deleting order:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Failed to delete order'
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to delete order',
+        error: errorMessage,
       },
       { status: 500 }
     )

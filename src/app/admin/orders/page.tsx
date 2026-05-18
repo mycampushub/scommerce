@@ -542,6 +542,10 @@ export default function OrdersPage() {
                               <Package className="h-4 w-4 mr-2" />
                               Update Status
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => window.open(`/api/admin/orders/${order.id}/invoice`, '_blank')}>
+                              <Download className="h-4 w-4 mr-2" />
+                              Download Invoice
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -559,8 +563,22 @@ export default function OrdersPage() {
       <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
         <DialogContent className="max-w-2xl w-full max-h-[90vh] overflow-y-auto sm:rounded-lg" aria-describedby="order-details-description">
           <DialogHeader>
-            <DialogTitle>Order Details</DialogTitle>
-            <DialogDescription id="order-details-description">Order {selectedOrder?.orderNumber}</DialogDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle>Order Details</DialogTitle>
+                <DialogDescription id="order-details-description">Order {selectedOrder?.orderNumber}</DialogDescription>
+              </div>
+              {selectedOrder && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open(`/api/admin/orders/${selectedOrder.id}/invoice`, '_blank')}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download Invoice
+                </Button>
+              )}
+            </div>
           </DialogHeader>
           {selectedOrder && (
             <div className="space-y-6 py-4">

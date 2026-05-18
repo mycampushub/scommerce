@@ -82,7 +82,8 @@ export function useUpdateOrderStatus() {
       })
       
       if (!response.ok) {
-        throw new Error('Failed to update order status')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to update order status')
       }
       
       return await response.json()
@@ -120,7 +121,8 @@ export function useUpdateOrder() {
       })
       
       if (!response.ok) {
-        throw new Error('Failed to update order')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to update order')
       }
       
       return await response.json()
@@ -156,7 +158,8 @@ export function useDeleteOrder() {
       })
       
       if (!response.ok) {
-        throw new Error('Failed to delete order')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to delete order')
       }
       
       return await response.json()

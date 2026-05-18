@@ -88,6 +88,7 @@ export default function CategoriesPage() {
     image: '',
     isActive: true,
   })
+  const [addFormErrors, setAddFormErrors] = useState<Record<string, string>>({})
 
   // Edit modal state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
@@ -99,6 +100,7 @@ export default function CategoriesPage() {
     image: '',
     isActive: true,
   })
+  const [editFormErrors, setEditFormErrors] = useState<Record<string, string>>({})
 
   // Delete modal state
   const [deleteCategoryId, setDeleteCategoryId] = useState<string | null>(null)
@@ -107,6 +109,58 @@ export default function CategoriesPage() {
   const [uploading, setUploading] = useState(false)
   const [addImagePreview, setAddImagePreview] = useState<string | null>(null)
   const [editImagePreview, setEditImagePreview] = useState<string | null>(null)
+
+  // Loading states for form submissions
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Generate slug from name
+  const generateSlug = (name: string): string => {
+    return name
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/[\s_-]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+  }
+
+  // Auto-generate slug when name changes (only for new categories)
+  const handleNameChange = (name: string, isEdit: boolean = false) => {
+    if (isEdit) {
+      setEditFormData({ ...editFormData, name })
+    } else {
+      const slug = generateSlug(name)
+      setAddFormData({ ...addFormData, name, slug })
+    }
+  }
+
+  // Validate form data
+  const validateForm = (formData: typeof addFormData, isEditMode: boolean = false): boolean => {
+    const errors: Record<string, string> = {}
+
+    if (!formData.name.trim()) {
+      errors.name = 'Category name is required'
+    } else if (formData.name.length < 2) {
+      errors.name = 'Category name must be at least 2 characters'
+    }
+
+    if (!formData.slug.trim()) {
+      errors.slug = 'Slug is required'
+    } else if (!/^[a-z0-9-]+$/.test(formData.slug)) {
+      errors.slug = 'Slug can only contain lowercase letters, numbers, and hyphens'
+    }
+
+    if (formData.description && formData.description.length > 500) {
+      errors.description = 'Description must be less than 500 characters'
+    }
+
+    if (isEditMode) {
+      setEditFormErrors(errors)
+    } else {
+      setAddFormErrors(errors)
+    }
+
+    return Object.keys(errors).length === 0
+  }
 
   const fetchCategories = async () => {
     try {
@@ -150,7 +204,18 @@ export default function CategoriesPage() {
   const handleCreateCategory = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    // Validate form before submitting
+    if (!validateForm(addFormData, false)) {
+      toast({
+        title: 'Validation Error',
+        description: 'Please fix the errors before submitting',
+        variant: 'destructive',
+      })
+      return
+    }
+
     try {
+      setIsSubmitting(true)
       const response = await fetch('/api/admin/categories', {
         method: 'POST',
         headers: {
@@ -179,6 +244,7 @@ export default function CategoriesPage() {
       setIsAddModalOpen(false)
       setAddFormData({ name: '', slug: '', description: '', image: '', isActive: true })
       setAddImagePreview(null)
+      setAddFormErrors({})
       fetchCategories()
     } catch (err: any) {
       console.error('Error creating category:', err)
@@ -187,6 +253,8 @@ export default function CategoriesPage() {
         description: err.message || 'Failed to create category',
         variant: 'destructive',
       })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -200,6 +268,7 @@ export default function CategoriesPage() {
       isActive: category.isActive,
     })
     setEditImagePreview(category.image || null)
+    setEditFormErrors({})
     setIsEditModalOpen(true)
   }
 
@@ -207,7 +276,18 @@ export default function CategoriesPage() {
     e.preventDefault()
     if (!editingCategory) return
 
+    // Validate form before submitting
+    if (!validateForm(editFormData, true)) {
+      toast({
+        title: 'Validation Error',
+        description: 'Please fix the errors before submitting',
+        variant: 'destructive',
+      })
+      return
+    }
+
     try {
+      setIsSubmitting(true)
       const response = await fetch(`/api/admin/categories/${editingCategory.id}`, {
         method: 'PUT',
         headers: {
@@ -235,6 +315,7 @@ export default function CategoriesPage() {
 
       setIsEditModalOpen(false)
       setEditImagePreview(null)
+      setEditFormErrors({})
       fetchCategories()
     } catch (err: any) {
       console.error('Error updating category:', err)
@@ -243,6 +324,8 @@ export default function CategoriesPage() {
         description: err.message || 'Failed to update category',
         variant: 'destructive',
       })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -619,24 +702,34 @@ export default function CategoriesPage() {
               <label className="text-sm font-medium">Category Name *</label>
               <Input
                 value={addFormData.name}
-                onChange={(e) => setAddFormData({ ...addFormData, name: e.target.value })}
-                required
+                onChange={(e) => handleNameChange(e.target.value, false)}
+                className={addFormErrors.name ? 'border-red-500' : ''}
               />
+              {addFormErrors.name && (
+                <p className="text-sm text-red-600">{addFormErrors.name}</p>
+              )}
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Slug *</label>
               <Input
                 value={addFormData.slug}
                 onChange={(e) => setAddFormData({ ...addFormData, slug: e.target.value })}
-                required
+                className={addFormErrors.slug ? 'border-red-500' : ''}
               />
+              {addFormErrors.slug && (
+                <p className="text-sm text-red-600">{addFormErrors.slug}</p>
+              )}
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Description</label>
               <Input
                 value={addFormData.description}
                 onChange={(e) => setAddFormData({ ...addFormData, description: e.target.value })}
+                className={addFormErrors.description ? 'border-red-500' : ''}
               />
+              {addFormErrors.description && (
+                <p className="text-sm text-red-600">{addFormErrors.description}</p>
+              )}
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Category Image</label>
@@ -691,10 +784,14 @@ export default function CategoriesPage() {
               <label className="text-sm font-medium">Active</label>
             </div>
             <div className="flex gap-2 pt-2">
-              <Button type="submit" className="flex-1 bg-gradient-to-r from-violet-600 to-indigo-600">
+              <Button type="submit" className="flex-1 bg-gradient-to-r from-violet-600 to-indigo-600" disabled={isSubmitting}>
+                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Create Category
               </Button>
-              <Button type="button" variant="outline" onClick={() => setIsAddModalOpen(false)}>
+              <Button type="button" variant="outline" onClick={() => {
+                setIsAddModalOpen(false)
+                setAddFormErrors({})
+              }} disabled={isSubmitting}>
                 Cancel
               </Button>
             </div>
@@ -714,24 +811,34 @@ export default function CategoriesPage() {
               <label className="text-sm font-medium">Category Name *</label>
               <Input
                 value={editFormData.name}
-                onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-                required
+                onChange={(e) => handleNameChange(e.target.value, true)}
+                className={editFormErrors.name ? 'border-red-500' : ''}
               />
+              {editFormErrors.name && (
+                <p className="text-sm text-red-600">{editFormErrors.name}</p>
+              )}
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Slug *</label>
               <Input
                 value={editFormData.slug}
                 onChange={(e) => setEditFormData({ ...editFormData, slug: e.target.value })}
-                required
+                className={editFormErrors.slug ? 'border-red-500' : ''}
               />
+              {editFormErrors.slug && (
+                <p className="text-sm text-red-600">{editFormErrors.slug}</p>
+              )}
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Description</label>
               <Input
                 value={editFormData.description}
                 onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                className={editFormErrors.description ? 'border-red-500' : ''}
               />
+              {editFormErrors.description && (
+                <p className="text-sm text-red-600">{editFormErrors.description}</p>
+              )}
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Category Image</label>
@@ -786,10 +893,14 @@ export default function CategoriesPage() {
               <label className="text-sm font-medium">Active</label>
             </div>
             <div className="flex gap-2 pt-2">
-              <Button type="submit" className="flex-1 bg-gradient-to-r from-violet-600 to-indigo-600">
+              <Button type="submit" className="flex-1 bg-gradient-to-r from-violet-600 to-indigo-600" disabled={isSubmitting}>
+                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Update Category
               </Button>
-              <Button type="button" variant="outline" onClick={() => setIsEditModalOpen(false)}>
+              <Button type="button" variant="outline" onClick={() => {
+                setIsEditModalOpen(false)
+                setEditFormErrors({})
+              }} disabled={isSubmitting}>
                 Cancel
               </Button>
             </div>

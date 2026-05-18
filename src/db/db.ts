@@ -74,6 +74,7 @@ export async function queryAll<T = Record<string, unknown>>(
 
 /**
  * Execute a SQL statement (no return value)
+ * Throws an error if the execution fails
  */
 export async function execute(
   env: Env | null,
@@ -82,11 +83,19 @@ export async function execute(
 ): Promise<void> {
   const db = getDatabase(env);
   if (!db) {
-    console.error('[db.ts] Database not available');
-    return;
+    throw new Error('Database not available');
   }
   const stmt = db.prepare(sql);
-  await stmt.bind(...params).run();
+  const result = await stmt.bind(...params).run();
+  
+  // Check if there was an error
+  if (result.error) {
+    console.error('[db.ts] Execute error:', {
+      sql: sql.substring(0, 100),
+      error: result.error.message
+    });
+    throw result.error;
+  }
 }
 
 /**

@@ -133,10 +133,11 @@ export async function PUT(
     })
   } catch (error) {
     console.error('Error updating category:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Failed to update category'
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to update category',
+        error: errorMessage,
       },
       { status: 500 }
     )
@@ -203,10 +204,11 @@ export async function DELETE(
     })
   } catch (error) {
     console.error('Error deleting category:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Failed to delete category'
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to delete category',
+        error: errorMessage,
       },
       { status: 500 }
     )

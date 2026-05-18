@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getEnv } from '@/lib/cloudflare';
 import { OrderRepository } from '@/db/order.repository';
 import { verifyToken, extractTokenFromHeader } from '@/lib/auth';
+import { verifyAdminAuth } from '@/lib/admin-auth';
+import { logAdminAction } from '@/lib/audit-logger';
 
 // Order statuses that can be cancelled
 const CANCELLABLE_STATUSES = ['PENDING', 'CONFIRMED'];
@@ -77,6 +79,32 @@ export async function POST(
       }
     }
 
+    // For admin-initiated cancellations, verify admin permissions and log action
+    let adminId: string | undefined;
+    if (cancelledBy === 'admin') {
+      const authHeader = request.headers.get('authorization');
+      const cookieToken = request.cookies.get('session')?.value;
+      const token = extractTokenFromHeader(authHeader) || cookieToken;
+
+      if (!token) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Admin authentication required',
+          },
+          { status: 401 }
+        );
+      }
+
+      const userOrResponse = await verifyAdminAuth(request, ['admin']);
+      if (userOrResponse instanceof NextResponse) {
+        return userOrResponse;
+      }
+
+      const admin = userOrResponse as { id: string; email: string; role: string };
+      adminId = admin.id;
+    }
+
     // Cancel order with stock restoration in a transaction
     // This ensures atomicity - either stock is restored AND order is cancelled, or neither happens
     const cancelledOrder = await OrderRepository.cancelOrderWithRestock(
@@ -93,6 +121,19 @@ export async function POST(
           error: 'Failed to cancel order. Please try again.',
         },
         { status: 500 }
+      );
+    }
+
+    // Log admin action if cancelled by admin
+    if (adminId) {
+      await logAdminAction(
+        env,
+        request,
+        adminId,
+        'CANCEL',
+        'Order',
+        (await params).id,
+        `Cancelled order ${cancelledOrder.orderNumber} (ID: ${(await params).id})${reason ? ` - Reason: ${reason}` : ''}`
       );
     }
 

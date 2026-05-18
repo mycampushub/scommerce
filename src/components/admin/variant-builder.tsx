@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Plus, Trash2, Check, X, Loader2 } from 'lucide-react'
+import { Plus, Trash2, Check, X, Loader2, Image as ImageIcon, ChevronDown, ChevronUp } from 'lucide-react'
 import { toast } from 'sonner'
 
 export interface Attribute {
@@ -30,6 +30,7 @@ export interface GeneratedVariant {
   lowStockAlert?: number
   reorderLevel?: number
   reorderQty?: number
+  showImages?: boolean  // Whether to show image input section
 }
 
 interface VariantBuilderProps {
@@ -477,12 +478,60 @@ export function VariantBuilder({ basePrice = 0, existingVariants = [], onGenerat
                           Active
                         </Label>
                       </div>
-                      <span className="text-xs text-gray-500">
-                        {variant.lowStockAlert !== undefined && variant.stock <= variant.lowStockAlert
-                          ? '⚠️ Low stock'
-                          : ''}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-500">
+                          {variant.lowStockAlert !== undefined && variant.stock <= variant.lowStockAlert
+                            ? '⚠️ Low stock'
+                            : ''}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => updateVariant(index, 'showImages', !variant.showImages)}
+                          className="text-violet-600 hover:text-violet-700"
+                        >
+                          <ImageIcon className="w-4 h-4 mr-1" />
+                          Images {variant.showImages ? <ChevronUp className="w-3 h-3 ml-1" /> : <ChevronDown className="w-3 h-3 ml-1" />}
+                        </Button>
+                      </div>
                     </div>
+
+                    {/* Variant Images - Expandable */}
+                    {variant.showImages && (
+                      <div className="pt-3 border-t space-y-2">
+                        <Label className="text-xs font-medium">Variant Images (comma-separated URLs)</Label>
+                        <Input
+                          type="text"
+                          value={variant.images?.join(', ') || ''}
+                          onChange={(e) => {
+                            const urls = e.target.value
+                              .split(',')
+                              .map(url => url.trim())
+                              .filter(url => url.length > 0)
+                            updateVariant(index, 'images', urls)
+                          }}
+                          placeholder="https://example.com/image1.jpg, https://example.com/image2.jpg"
+                          className="text-sm"
+                        />
+                        <p className="text-xs text-gray-500">
+                          Enter image URLs separated by commas. Upload images via the main product image uploader and paste URLs here.
+                        </p>
+                        {variant.images && variant.images.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {variant.images.map((url, imgIndex) => (
+                              <div key={imgIndex} className="relative w-16 h-16 rounded overflow-hidden border">
+                                <img
+                                  src={url}
+                                  alt={`Variant image ${imgIndex + 1}`}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

@@ -190,9 +190,9 @@ VALUES
 -- ============================================
 INSERT OR IGNORE INTO promotions (id, title, description, image, ctaText, ctaLink, type, isActive, "order", createdAt, updatedAt)
 VALUES
-('promo-001', 'Summer Sale', 'Up to 50% off on selected items', '/images/promotions/summer-sale.jpg', 'Shop Now', '/shop?type=sale', 'banner', 1, 1, datetime('now'), datetime('now')),
-('promo-002', 'New Collection', 'Discover our latest arrivals', '/images/promotions/new-collection.jpg', 'Explore', '/collections/new', 'banner', 1, 2, datetime('now'), datetime('now')),
-('promo-003', 'Free Shipping', 'Free shipping on orders above 5000 BDT', '/images/promotions/free-shipping.jpg', 'Learn More', '/shipping', 'banner', 1, 3, datetime('now'), datetime('now'));
+('promo-001', 'Summer Sale', 'Up to 50% off on selected items', 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1200&h=600&fit=crop', 'Shop Now', '/shop?type=sale', 'banner', 1, 1, datetime('now'), datetime('now')),
+('promo-002', 'New Collection', 'Discover our latest arrivals', 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1200&h=600&fit=crop', 'Explore', '/collections/new', 'banner', 1, 2, datetime('now'), datetime('now')),
+('promo-003', 'Free Shipping', 'Free shipping on orders above 5000 BDT', 'https://images.unsplash.com/photo-1586281380383-0156275b6614?w=1200&h=600&fit=crop', 'Learn More', '/shipping', 'banner', 1, 3, datetime('now'), datetime('now'));
 
 -- ============================================
 -- BANNERS
