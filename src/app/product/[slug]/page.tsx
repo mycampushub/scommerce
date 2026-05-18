@@ -216,6 +216,11 @@ export default function ProductPage() {
     }
   }, [product, addProduct])
 
+  // Reset image index when product/variant changes
+  useEffect(() => {
+    setCurrentImage(0)
+  }, [selectedVariant?.id, product?.id])
+
   // Handle variant selection
   const handleVariantSelection = (size: string | undefined, color?: string, material?: string) => {
     setSelectedSize(size || '')
@@ -231,7 +236,9 @@ export default function ProductPage() {
 
     if (matchingVariant) {
       setSelectedVariant(matchingVariant)
-      setCurrentImage(0)
+      setCurrentImage(0) // Reset to first image when variant changes
+    } else {
+      setSelectedVariant(null)
     }
   }
 
@@ -259,26 +266,17 @@ export default function ProductPage() {
     return [];
   };
 
+  // SIMPLIFIED IMAGE LOGIC:
+  // 1. If a variant is selected and has images, use those images
+  // 2. Otherwise, use the default product images (product.images or product.image)
   const variantImages = selectedVariant?.images ? parseImages(selectedVariant.images) : [];
   const productImages = product?.images ? parseImages(product.images) : [];
-  const fallback = product?.image ? [product.image] : [];
+  
+  // Use variant images if available, otherwise use product images
+  const currentImages = variantImages.length > 0 ? variantImages : (productImages.length > 0 ? productImages : (product?.image ? [product.image] : []));
 
-  // Build currentImages array with proper fallback chain
-  let currentImages = variantImages.length > 0 ? variantImages : (productImages.length > 0 ? productImages : fallback);
-
-  // Double-fallback: if still empty, try to get from variants
-  if (currentImages.length === 0 && product?.hasVariants && variants.length > 0) {
-    const firstVariantWithImages = variants.find(v => {
-      const vImages = parseImages(v.images);
-      return vImages.length > 0;
-    });
-    if (firstVariantWithImages) {
-      currentImages = parseImages(firstVariantWithImages.images);
-    }
-  }
-
-  // Final fallback for display
-  const displayImage = currentImages[currentImage] || (currentImages.length > 0 ? currentImages[0] : product?.image || '/placeholder-image.jpg');
+  // Get the display image (fallback to placeholder if empty)
+  const displayImage = currentImages[currentImage] || (currentImages.length > 0 ? currentImages[0] : '/placeholder-image.jpg');
 
   // Check if user has purchased this product
   async function checkUserPurchase() {

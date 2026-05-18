@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
     const { width, height } = await getImageDimensions(file)
 
     // Upload file to storage
-    const uploadResult = await uploadFile(file)
+    const uploadResult = await uploadFile(file, env, (userOrResponse as any).id)
 
     // Generate unique ID
     const id = generateId()
@@ -146,9 +146,9 @@ export async function POST(request: NextRequest) {
       data: {
         id,
         url: uploadResult.url,
-        filename: file.name,
-        width,
-        height,
+        filename: uploadResult.filename,
+        width: uploadResult.width,
+        height: uploadResult.height,
         size: file.size
       }
     })
@@ -200,7 +200,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Delete file from storage
-    await deleteFile(media.url as string)
+    await deleteFile(media.url as string, env)
 
     // Delete from database
     await execute(
@@ -222,55 +222,141 @@ export async function DELETE(request: NextRequest) {
   }
 }
 
-// Helper function to get image dimensions
+// Helper function to get image dimensions using sharp
 async function getImageDimensions(file: File): Promise<{ width: number; height: number }> {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    const url = URL.createObjectURL(file)
-
-    img.onload = () => {
-      URL.revokeObjectURL(url)
-      resolve({ width: img.width, height: img.height })
+  try {
+    const sharp = await import('sharp')
+    const arrayBuffer = await file.arrayBuffer()
+    const sharpInstance = sharp.default || sharp
+    const metadata = await sharpInstance(Buffer.from(arrayBuffer)).metadata()
+    return {
+      width: metadata.width || 0,
+      height: metadata.height || 0
     }
-
-    img.onerror = () => {
-      URL.revokeObjectURL(url)
-      reject(new Error('Failed to load image'))
-    }
-
-    img.src = url
-  })
+  } catch (error) {
+    console.error('Failed to get image dimensions:', error)
+    // Return default dimensions if sharp fails
+    return { width: 0, height: 0 }
+  }
 }
 
 // Helper function to upload file to storage
-async function uploadFile(file: File): Promise<{ url: string }> {
-  const formData = new FormData()
-  formData.append('file', file)
+async function uploadFile(file: File, env: any, userId: string): Promise<{ url: string; filename: string; width: number; height: number }> {
+  const arrayBuffer = await file.arrayBuffer()
+  const buffer = Buffer.from(arrayBuffer)
 
-  // Use the existing upload endpoint
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-  const uploadResponse = await fetch(`${baseUrl}/api/admin/upload`, {
-    method: 'POST',
-    body: formData,
-  })
+  // Compute hash for duplicate detection
+  const crypto = await import('crypto')
+  const hash = crypto.createHash('sha256').update(buffer).digest('hex')
 
-  const uploadData: any = await uploadResponse.json()
-
-  if (!uploadData.success) {
-    throw new Error(uploadData.error || 'Upload failed')
+  // Get image dimensions - handle cases where sharp might not work
+  let width = 0
+  let height = 0
+  try {
+    const dimensions = await getImageDimensions(file)
+    width = dimensions.width
+    height = dimensions.height
+  } catch (error) {
+    console.warn('[Gallery Upload] Could not get image dimensions:', error)
+    // Continue without dimensions - they're optional
   }
 
-  return { url: uploadData.url }
+  // Generate unique filename
+  const timestamp = Date.now()
+  const random = Math.random().toString(36).substring(2, 9)
+  const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+  const filename = `${userId}-${timestamp}-${random}.${ext}`
+
+  let fileUrl: string
+
+  // Upload to R2 or local filesystem
+  if (env?.BUCKET) {
+    // Upload to R2 bucket (Cloudflare Workers)
+    try {
+      await env.BUCKET.put(filename, buffer, {
+        httpMetadata: {
+          contentType: file.type,
+        },
+      })
+
+      // Get R2 public URL from environment variable or fallback
+      const { getEnvVar } = await import('@/lib/cloudflare')
+      const r2PublicUrl = await getEnvVar('R2_PUBLIC_URL')
+      if (r2PublicUrl) {
+        fileUrl = `${r2PublicUrl}/${filename}`
+      } else {
+        fileUrl = `/uploads/${filename}`
+      }
+
+      console.log('[Gallery Upload] R2 upload successful:', fileUrl)
+    } catch (r2Error: any) {
+      console.error('[Gallery Upload] R2 upload error:', r2Error)
+      throw new Error('Failed to upload to R2 storage. Please try again.')
+    }
+  } else {
+    // Local development: Use filesystem
+    try {
+      const { writeFile, mkdir } = await import('fs/promises')
+      const { join } = await import('path')
+      const { existsSync } = await import('fs')
+
+      const uploadsDir = join(process.cwd(), 'public', 'uploads')
+      if (!existsSync(uploadsDir)) {
+        await mkdir(uploadsDir, { recursive: true })
+      }
+
+      const filePath = join(uploadsDir, filename)
+      await writeFile(filePath, buffer)
+      fileUrl = `/uploads/${filename}`
+
+      console.log('[Gallery Upload] Filesystem upload successful:', fileUrl)
+    } catch (fsError: any) {
+      console.error('[Gallery Upload] Filesystem upload error:', fsError)
+      throw new Error(`File upload failed: ${fsError?.message || 'Operation not permitted'}`)
+    }
+  }
+
+  return { url: fileUrl, filename, width, height }
 }
 
 // Helper function to delete file from storage
-async function deleteFile(url: string): Promise<void> {
+async function deleteFile(url: string, env: any): Promise<void> {
   try {
-    // Use the existing upload endpoint to delete
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-    await fetch(`${baseUrl}/api/admin/upload?path=${encodeURIComponent(url)}`, {
-      method: 'DELETE',
-    })
+    // Extract filename from URL
+    let filename = url
+    if (url.includes('/')) {
+      filename = url.split('/').pop() || url
+    }
+
+    // Delete from R2 or local filesystem
+    if (env?.BUCKET) {
+      // Delete from R2 bucket
+      try {
+        await env.BUCKET.delete(filename)
+        console.log('[Gallery Delete] R2 delete successful:', filename)
+      } catch (r2Error: any) {
+        console.error('[Gallery Delete] R2 delete error:', r2Error)
+        // Don't fail if file doesn't exist in R2
+        if (!r2Error.message?.includes('not found')) {
+          throw r2Error
+        }
+      }
+    } else {
+      // Local development: Use filesystem
+      try {
+        const { unlink } = await import('fs/promises')
+        const { join } = await import('path')
+        const filePath = join(process.cwd(), 'public', 'uploads', filename)
+        await unlink(filePath)
+        console.log('[Gallery Delete] Filesystem delete successful:', filePath)
+      } catch (fsError: any) {
+        // File doesn't exist, that's ok
+        if (fsError.code !== 'ENOENT') {
+          console.error('[Gallery Delete] Filesystem delete error:', fsError)
+          throw fsError
+        }
+      }
+    }
   } catch (error) {
     console.error('Error deleting file from storage:', error)
     // Don't throw - continue with database deletion

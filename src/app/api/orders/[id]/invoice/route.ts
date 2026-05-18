@@ -66,11 +66,12 @@ export async function GET(
 
     // Format currency
     const formatCurrency = (value: number | null) => {
-      if (value === null || value === undefined) return '0.00'
-      return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-      }).format(value)
+      if (value === null || value === undefined) return '৳0.00'
+      const formattedValue = value.toLocaleString('en-BD', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })
+      return `৳${formattedValue}`
     }
 
     // Format address

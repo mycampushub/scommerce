@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Plus, Trash2, Check, X, Loader2, Image as ImageIcon, ChevronDown, ChevronUp } from 'lucide-react'
 import { toast } from 'sonner'
+import { ImageUpload } from '@/components/admin/image-upload'
 
 export interface Attribute {
   name: string  // e.g., "Size", "Color", "Material"
@@ -500,36 +501,15 @@ export function VariantBuilder({ basePrice = 0, existingVariants = [], onGenerat
                     {/* Variant Images - Expandable */}
                     {variant.showImages && (
                       <div className="pt-3 border-t space-y-2">
-                        <Label className="text-xs font-medium">Variant Images (comma-separated URLs)</Label>
-                        <Input
-                          type="text"
-                          value={variant.images?.join(', ') || ''}
-                          onChange={(e) => {
-                            const urls = e.target.value
-                              .split(',')
-                              .map(url => url.trim())
-                              .filter(url => url.length > 0)
-                            updateVariant(index, 'images', urls)
-                          }}
-                          placeholder="https://example.com/image1.jpg, https://example.com/image2.jpg"
-                          className="text-sm"
+                        <Label className="text-xs font-medium">Variant Images</Label>
+                        <ImageUpload
+                          images={variant.images || []}
+                          onImagesChange={(images) => updateVariant(index, 'images', images)}
+                          maxImages={5}
                         />
                         <p className="text-xs text-gray-500">
-                          Enter image URLs separated by commas. Upload images via the main product image uploader and paste URLs here.
+                          Upload up to 5 images for this variant or select from the gallery.
                         </p>
-                        {variant.images && variant.images.length > 0 && (
-                          <div className="flex flex-wrap gap-2">
-                            {variant.images.map((url, imgIndex) => (
-                              <div key={imgIndex} className="relative w-16 h-16 rounded overflow-hidden border">
-                                <img
-                                  src={url}
-                                  alt={`Variant image ${imgIndex + 1}`}
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        )}
                       </div>
                     )}
                   </div>

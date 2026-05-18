@@ -123,27 +123,17 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
     return [];
   };
 
+  // SIMPLIFIED IMAGE LOGIC:
+  // 1. If a variant is selected and has images, use those images
+  // 2. Otherwise, use the default product images (product.images or product.image)
   const variantImages = selectedVariant?.images ? parseImages(selectedVariant.images) : [];
   const productImages = product?.images ? parseImages(product.images) : [];
-  // Use product.image as fallback if no images in arrays
-  const fallback = product?.image ? [product.image] : [];
+  
+  // Use variant images if available, otherwise use product images
+  const currentImages = variantImages.length > 0 ? variantImages : (productImages.length > 0 ? productImages : (product?.image ? [product.image] : []));
 
-  // Build currentImages array with proper fallback chain
-  let currentImages = variantImages.length > 0 ? variantImages : (productImages.length > 0 ? productImages : fallback);
-
-  // Double-fallback: if still empty, try to get from variants
-  if (currentImages.length === 0 && hasVariants && variants.length > 0) {
-    const firstVariantWithImages = variants.find(v => {
-      const vImages = parseImages(v.images);
-      return vImages.length > 0;
-    });
-    if (firstVariantWithImages) {
-      currentImages = parseImages(firstVariantWithImages.images);
-    }
-  }
-
-  // Final fallback: ensure we always have at least one image or handle gracefully
-  const displayImage = currentImages[selectedImageIndex] || (currentImages.length > 0 ? currentImages[0] : product?.image || '/placeholder-image.jpg');
+  // Get the display image (fallback to placeholder if empty)
+  const displayImage = currentImages[selectedImageIndex] || (currentImages.length > 0 ? currentImages[0] : '/placeholder-image.jpg');
 
   // Calculate discount percentage
   const discountPercentage = currentComparePrice
@@ -165,7 +155,9 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
 
     if (matchingVariant) {
       setSelectedVariant(matchingVariant)
-      setSelectedImageIndex(0)
+      setSelectedImageIndex(0) // Reset to first image when variant changes
+    } else {
+      setSelectedVariant(null)
     }
   }
 
@@ -183,7 +175,9 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
       setSelectedColor('')
       setSelectedMaterial('')
     }
-  }, [variants, hasVariants])
+    // Reset image index when product/variants change
+    setSelectedImageIndex(0)
+  }, [variants, hasVariants, product?.id])
 
   // Fetch site settings for free shipping threshold
   useEffect(() => {

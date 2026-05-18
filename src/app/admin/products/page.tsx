@@ -186,6 +186,11 @@ export default function ProductsPage() {
   const [variantsLoading, setVariantsLoading] = useState(false)
   const [activeVariantTab, setActiveVariantTab] = useState<'list' | 'matrix'>('list')
 
+  // Collect unique sizes, colors, materials from existing variants for select options
+  const [availableSizes, setAvailableSizes] = useState<string[]>([])
+  const [availableColors, setAvailableColors] = useState<string[]>([])
+  const [availableMaterials, setAvailableMaterials] = useState<string[]>([])
+
   // Variant form state
   const [editingVariant, setEditingVariant] = useState<ProductVariant | null>(null)
   const [variantFormData, setVariantFormData] = useState({
@@ -511,7 +516,17 @@ export default function ProductsPage() {
       const result = await response.json() as any
 
       if (result.success) {
-        setVariants(result.data.variants || [])
+        const fetchedVariants = result.data.variants || []
+        setVariants(fetchedVariants)
+
+        // Collect unique sizes, colors, materials from existing variants for select options
+        const uniqueSizes = Array.from(new Set(fetchedVariants.map((v: ProductVariant) => v.size).filter(Boolean) as string[])).sort()
+        const uniqueColors = Array.from(new Set(fetchedVariants.map((v: ProductVariant) => v.color).filter(Boolean) as string[])).sort()
+        const uniqueMaterials = Array.from(new Set(fetchedVariants.map((v: ProductVariant) => v.material).filter(Boolean) as string[])).sort()
+
+        setAvailableSizes(uniqueSizes)
+        setAvailableColors(uniqueColors)
+        setAvailableMaterials(uniqueMaterials)
       }
     } catch (err: any) {
       console.error('Error fetching variants:', err)
@@ -607,6 +622,8 @@ export default function ProductsPage() {
       })
 
       await fetchVariants(selectedProductForVariants.id)
+      // Also refresh the main products list to update hasVariants flag
+      fetchProducts()
       setShowAddVariantForm(false)
       setVariantFormData(resetVariantForm())
     } catch (err: any) {
@@ -769,8 +786,8 @@ export default function ProductsPage() {
     if (!selectedProductForVariants) return
 
     try {
-      // Create each variant via API
-      for (const variant of variants) {
+      // Create each variant via API - use Promise.all to ensure all complete
+      const createPromises = variants.map(async (variant) => {
         const payload = {
           name: variant.name,
           price: variant.price,
@@ -788,20 +805,40 @@ export default function ProductsPage() {
           reorderQty: variant.reorderQty || 20,
         }
 
-        await apiFetch(`/api/admin/products/${selectedProductForVariants.id}/variants`, {
+        const response = await apiFetch(`/api/admin/products/${selectedProductForVariants.id}/variants`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         })
-      }
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}))
+          throw new Error(errorData.error || `Failed to create variant: ${variant.name}`)
+        }
+
+        const result = await response.json() as any
+        if (!result.success) {
+          throw new Error(result.error || `Failed to create variant: ${variant.name}`)
+        }
+
+        return result.data
+      })
+
+      // Wait for all variants to be created
+      await Promise.all(createPromises)
 
       toast({
         title: 'Success',
         description: `Created ${variants.length} variants successfully`,
       })
 
+      // Refresh variants list
       await fetchVariants(selectedProductForVariants.id)
-      setActiveVariantTab('list') // Switch to list tab to see results
+      // Also refresh the main products list to update hasVariants flag
+      fetchProducts()
+
+      // Switch to list tab to see results
+      setActiveVariantTab('list')
     } catch (err: any) {
       console.error('Error generating variants:', err)
       toast({
@@ -1619,27 +1656,90 @@ export default function ProductsPage() {
                     </div>
                     <div className="space-y-2">
                       <Label>Size</Label>
-                      <Input
+                      <Select
                         value={variantFormData.size}
-                        onChange={(e) => setVariantFormData({ ...variantFormData, size: e.target.value })}
-                        placeholder="e.g., S, M, L, XL"
-                      />
+                        onValueChange={(value) => {
+                          if (value === '__custom__') {
+                            const customSize = prompt('Enter custom size:')
+                            if (customSize) {
+                              setVariantFormData({ ...variantFormData, size: customSize })
+                            }
+                          } else {
+                            setVariantFormData({ ...variantFormData, size: value })
+                          }
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select size" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableSizes.length === 0 && (
+                            <SelectItem value="">No sizes yet</SelectItem>
+                          )}
+                          {availableSizes.map((size) => (
+                            <SelectItem key={size} value={size}>{size}</SelectItem>
+                          ))}
+                          <SelectItem value="__custom__">+ Add Custom Size</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="space-y-2">
                       <Label>Color</Label>
-                      <Input
+                      <Select
                         value={variantFormData.color}
-                        onChange={(e) => setVariantFormData({ ...variantFormData, color: e.target.value })}
-                        placeholder="e.g., Red, Blue, Black"
-                      />
+                        onValueChange={(value) => {
+                          if (value === '__custom__') {
+                            const customColor = prompt('Enter custom color:')
+                            if (customColor) {
+                              setVariantFormData({ ...variantFormData, color: customColor })
+                            }
+                          } else {
+                            setVariantFormData({ ...variantFormData, color: value })
+                          }
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select color" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableColors.length === 0 && (
+                            <SelectItem value="">No colors yet</SelectItem>
+                          )}
+                          {availableColors.map((color) => (
+                            <SelectItem key={color} value={color}>{color}</SelectItem>
+                          ))}
+                          <SelectItem value="__custom__">+ Add Custom Color</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="space-y-2">
                       <Label>Material</Label>
-                      <Input
+                      <Select
                         value={variantFormData.material}
-                        onChange={(e) => setVariantFormData({ ...variantFormData, material: e.target.value })}
-                        placeholder="e.g., Cotton, Silk, Wool"
-                      />
+                        onValueChange={(value) => {
+                          if (value === '__custom__') {
+                            const customMaterial = prompt('Enter custom material:')
+                            if (customMaterial) {
+                              setVariantFormData({ ...variantFormData, material: customMaterial })
+                            }
+                          } else {
+                            setVariantFormData({ ...variantFormData, material: value })
+                          }
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select material" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableMaterials.length === 0 && (
+                            <SelectItem value="">No materials yet</SelectItem>
+                          )}
+                          {availableMaterials.map((material) => (
+                            <SelectItem key={material} value={material}>{material}</SelectItem>
+                          ))}
+                          <SelectItem value="__custom__">+ Add Custom Material</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="space-y-2">
                       <Label>Images</Label>
