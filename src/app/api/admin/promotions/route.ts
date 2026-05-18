@@ -3,6 +3,8 @@ import { getEnv } from '@/lib/cloudflare'
 import { verifyAdminAuth } from '@/lib/admin-auth'
 import { promotionSchema } from '@/lib/validations'
 import { queryAll, queryFirst, execute, boolToNumber, numberToBool, parseJSON, stringifyJSON, now, generateId } from '@/db/db'
+import { rateLimit, createRateLimitResponse } from '@/lib/rate-limit'
+import { getClientIp } from '@/lib/rate-limit'
 
 
 export async function GET(request: NextRequest) {
@@ -22,8 +24,11 @@ export async function GET(request: NextRequest) {
 
     const promotions = await queryAll<any>(env, sql, ...params)
 
+    // Ensure promotions is always an array
+    const promotionsArray = Array.isArray(promotions) ? promotions : []
+
     // Parse JSON fields
-    const promotionsWithParsedFields = promotions.map(p => ({
+    const promotionsWithParsedFields = promotionsArray.map(p => ({
       ...p,
       discountRules: parseJSON<any>(p.discountRules) || null,
       applicableProducts: parseJSON<string[]>(p.applicableProducts) || [],
@@ -40,7 +45,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to fetch promotions'
+        error: 'Failed to fetch promotions',
+        details: error instanceof Error ? error.message : String(error)
       },
       { status: 500 }
     )
@@ -54,9 +60,20 @@ export async function POST(request: NextRequest) {
     return userOrResponse
   }
 
+  // Rate limiting: 20 requests per minute per admin
+  const env = await getEnv()
+  const clientIp = getClientIp(request)
+  const rateLimitKey = `admin-promotion-create:${clientIp}`
+  const rateLimitResult = await rateLimit(env, rateLimitKey, {
+    maxRequests: 20,
+    windowMs: 60 * 1000, // 1 minute
+  })
+
+  if (!rateLimitResult.success) {
+    return createRateLimitResponse(rateLimitResult)
+  }
 
   try {
-    const env = await getEnv()
     const body = await request.json() as any
 
     // Validate with Zod

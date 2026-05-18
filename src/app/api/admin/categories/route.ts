@@ -5,6 +5,8 @@ import { CategoryRepository } from '@/db/category.repository'
 import { categorySchema } from '@/lib/validations'
 import { queryAll, count, numberToBool } from '@/db/db'
 import { logAdminAction } from '@/lib/audit-logger'
+import { rateLimit, createRateLimitResponse } from '@/lib/rate-limit'
+import { getClientIp } from '@/lib/rate-limit'
 
 
 export async function GET(request: NextRequest) {
@@ -81,9 +83,20 @@ export async function POST(request: NextRequest) {
 
   const admin = userOrResponse as { id: string; email: string; role: string; name?: string }
 
+  // Rate limiting: 30 categories per minute per admin
+  const env = await getEnv()
+  const clientIp = getClientIp(request)
+  const rateLimitKey = `admin-category-create:${clientIp}`
+  const rateLimitResult = await rateLimit(env, rateLimitKey, {
+    maxRequests: 30,
+    windowMs: 60 * 1000, // 1 minute
+  })
+
+  if (!rateLimitResult.success) {
+    return createRateLimitResponse(rateLimitResult)
+  }
 
   try {
-    const env = await getEnv()
     const body = await request.json() as any
 
     // Validate with Zod

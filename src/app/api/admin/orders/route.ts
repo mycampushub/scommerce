@@ -4,9 +4,10 @@ import { getEnv } from '@/lib/cloudflare'
 import { OrderRepository } from '@/db/order.repository'
 import { UserRepository } from '@/db/user.repository'
 import { createOrderSchema } from '@/lib/validations/index'
-import { queryAll, execute, generateId, generateOrderNumber, now } from '@/db/db'
+import { queryAll, queryFirst, execute, generateId, generateOrderNumber, now } from '@/db/db'
 import { rateLimit } from '@/lib/rate-limit'
 import { verifyToken, extractTokenFromHeader } from '@/lib/auth'
+import { withTransaction, trackInsertForRollback } from '@/db/transaction'
 
 
 export async function GET(request: NextRequest) {
@@ -148,14 +149,14 @@ export async function POST(request: NextRequest) {
   const cookieToken = request.cookies.get('session')?.value
   const token = extractTokenFromHeader(authHeader) || cookieToken
   let userId: string | undefined
-  
+
   if (token) {
     const payload = await verifyToken(token)
     if (payload && payload.userId) {
       userId = payload.userId
     }
   }
-  
+
   // Rate limiting: 100 orders per hour per admin
   const env = await getEnv()
   if (userId) {
@@ -164,7 +165,7 @@ export async function POST(request: NextRequest) {
       maxRequests: 100,
       windowMs: 3600000, // 1 hour in milliseconds
     })
-    
+
     if (!rateLimitResult.success) {
       return new Response(
         JSON.stringify({
@@ -182,89 +183,132 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // Use transaction to ensure atomicity of order + order items creation
+  return withTransaction(env, async (transaction) => {
+    try {
+      const body: any = await request.json() as any
 
-  try {
-    const body: any = await request.json() as any
+      // Validate with Zod
+      const validation = createOrderSchema.safeParse(body)
+      if (!validation.success) {
+        return NextResponse.json(
+          { success: false, error: validation.error.issues[0].message },
+          { status: 400 }
+        )
+      }
 
-    // Validate with Zod
-    const validation = createOrderSchema.safeParse(body)
-    if (!validation.success) {
+      const validatedData = validation.data
+
+      // Extract city, district, division from address (they're in the address object)
+      const shippingAddr = typeof validatedData.shippingAddress === 'string'
+        ? null
+        : validatedData.shippingAddress;
+      const billingAddr = typeof validatedData.billingAddress === 'string'
+        ? null
+        : validatedData.billingAddress;
+
+      const orderNumber = generateOrderNumber()
+      const orderId = generateId()
+
+      // Create order within transaction
+      await execute(
+        transaction.env,
+        `INSERT INTO orders (id, orderNumber, userId, customerName, customerEmail, customerPhone, shippingAddress, billingAddress, city, district, division, subtotal, shipping, tax, discount, total, paymentMethod, status, paymentStatus, trackingStatus, createdAt, updatedAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        orderId,
+        orderNumber,
+        validatedData.userId || null,
+        validatedData.customerName,
+        validatedData.customerEmail,
+        validatedData.customerPhone || null,
+        typeof validatedData.shippingAddress === 'string'
+          ? validatedData.shippingAddress
+          : JSON.stringify(validatedData.shippingAddress),
+        validatedData.billingAddress
+          ? (typeof validatedData.billingAddress === 'string'
+              ? validatedData.billingAddress
+              : JSON.stringify(validatedData.billingAddress))
+          : null,
+        shippingAddr?.city || null,
+        shippingAddr?.district || null,
+        shippingAddr?.division || null,
+        validatedData.subtotal,
+        validatedData.shipping,
+        validatedData.tax,
+        validatedData.discount,
+        validatedData.total,
+        validatedData.paymentMethod || null,
+        'PENDING',
+        'PENDING',
+        'PENDING',
+        now(),
+        now()
+      )
+
+      // Track order for rollback
+      trackInsertForRollback(transaction, 'orders', orderId)
+
+      // Create order items within transaction
+      if (validatedData.orderItems && Array.isArray(validatedData.orderItems)) {
+        for (const item of validatedData.orderItems) {
+          const itemId = generateId()
+          await execute(
+            transaction.env,
+            `INSERT INTO order_items (id, orderId, productId, variantId, quantity, price, productName, productImage, variantSku, variantSize, variantColor, variantMaterial, createdAt)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            itemId,
+            orderId,
+            item.productId,
+            item.variantId || null,
+            item.quantity,
+            item.price,
+            item.productName,
+            item.productImage || null,
+            item.variantSku || null,
+            item.variantSize || null,
+            item.variantColor || null,
+            item.variantMaterial || null,
+            now()
+          )
+          // Track order item for rollback
+          trackInsertForRollback(transaction, 'order_items', itemId)
+        }
+      }
+
+      // Fetch the created order with user details
+      let order: any = await queryFirst<any>(
+        transaction.env,
+        `SELECT * FROM orders WHERE id = ?`,
+        orderId
+      )
+
+      // Enrich with user and items
+      if (order.userId) {
+        const user = await UserRepository.findById(transaction.env, order.userId)
+        ;(order as any).user = user || null
+      }
+
+      const items = await queryAll<any>(
+        transaction.env,
+        `SELECT * FROM order_items WHERE orderId = ?`,
+        orderId
+      )
+      ;(order as any).orderItems = items
+
+      return NextResponse.json({
+        success: true,
+        data: order,
+      })
+    } catch (error) {
+      console.error('Error creating order:', error)
       return NextResponse.json(
-        { success: false, error: validation.error.issues[0].message },
-        { status: 400 }
+        {
+          success: false,
+          error: 'Failed to create order',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        },
+        { status: 500 }
       )
     }
-
-    const validatedData = validation.data
-
-    // Extract city, district, division from address (they're in the address object)
-    const shippingAddr = typeof validatedData.shippingAddress === 'string'
-      ? null
-      : validatedData.shippingAddress;
-    const billingAddr = typeof validatedData.billingAddress === 'string'
-      ? null
-      : validatedData.billingAddress;
-
-    const orderNumber = generateOrderNumber()
-
-    const order = await OrderRepository.create(env, {
-      userId: validatedData.userId,
-      customerName: validatedData.customerName,
-      customerEmail: validatedData.customerEmail,
-      customerPhone: validatedData.customerPhone || undefined,
-      shippingAddress: typeof validatedData.shippingAddress === 'string'
-        ? validatedData.shippingAddress
-        : JSON.stringify(validatedData.shippingAddress),
-      billingAddress: validatedData.billingAddress
-        ? (typeof validatedData.billingAddress === 'string'
-            ? validatedData.billingAddress
-            : JSON.stringify(validatedData.billingAddress))
-        : undefined,
-      city: shippingAddr?.city,
-      district: shippingAddr?.district,
-      division: shippingAddr?.division,
-      subtotal: validatedData.subtotal,
-      shipping: validatedData.shipping,
-      tax: validatedData.tax,
-      discount: validatedData.discount,
-      total: validatedData.total,
-      paymentMethod: validatedData.paymentMethod,
-    })
-
-    // Create order items
-    if (validatedData.orderItems && Array.isArray(validatedData.orderItems)) {
-      for (const item of validatedData.orderItems) {
-        await OrderRepository.addItem(env, {
-          orderId: order.id,
-          productId: item.productId,
-          quantity: item.quantity,
-          price: item.price,
-          productName: item.productName,
-          productImage: item.productImage,
-        })
-      }
-    }
-
-    // Enrich with user and items
-    if (order.userId) {
-      const user = await UserRepository.findById(env, order.userId)
-      ;(order as any).user = user || null
-    }
-    const items = await OrderRepository.getItems(env, order.id)
-    ;(order as any).orderItems = items
-
-    return NextResponse.json({
-      success: true,
-      data: order,
-    })
-  } catch (error) {
-    console.error('Error creating order:', error)
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to create order',
-      },
-      { status: 500 }
-    )
-  }
+  })
 }

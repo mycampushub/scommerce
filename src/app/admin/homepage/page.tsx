@@ -190,7 +190,7 @@ export default function HomepageManagementPage() {
     try {
       const res = await fetch('/api/admin/products?limit=100')
       const data = await res.json() as any
-      if (data.success) {
+      if (data.success && Array.isArray(data.data)) {
         setProducts(data.data)
       }
     } catch (error) {
@@ -202,7 +202,7 @@ export default function HomepageManagementPage() {
     try {
       const res = await fetch('/api/admin/categories?limit=100')
       const data = await res.json() as any
-      if (data.success) {
+      if (data.success && Array.isArray(data.data)) {
         setCategories(data.data)
       }
     } catch (error) {
@@ -334,7 +334,7 @@ export default function HomepageManagementPage() {
     try {
       const res = await fetch('/api/admin/banners')
       const data = await res.json() as any
-      if (data.success) {
+      if (data.success && Array.isArray(data.data)) {
         setBanners(data.data)
       }
     } catch (error) {
@@ -347,7 +347,7 @@ export default function HomepageManagementPage() {
     try {
       const res = await fetch('/api/admin/stories')
       const data = await res.json() as any
-      if (data.success) {
+      if (data.success && Array.isArray(data.data)) {
         setStories(data.data)
       }
     } catch (error) {
@@ -360,7 +360,7 @@ export default function HomepageManagementPage() {
     try {
       const res = await fetch('/api/admin/reels')
       const data = await res.json() as any
-      if (data.success) {
+      if (data.success && Array.isArray(data.data)) {
         setReels(data.data)
       }
     } catch (error) {
@@ -373,7 +373,7 @@ export default function HomepageManagementPage() {
     try {
       const res = await fetch('/api/admin/promotions')
       const data = await res.json() as any
-      if (data.success) {
+      if (data.success && Array.isArray(data.data)) {
         setPromotions(data.data)
       }
     } catch (error) {
@@ -386,7 +386,7 @@ export default function HomepageManagementPage() {
     try {
       const res = await fetch('/api/admin/homepage/settings')
       const data = await res.json() as any
-      if (data.success) {
+      if (data.success && Array.isArray(data.data)) {
         const settingsObj: Record<string, HomepageSetting> = {}
         data.data.forEach((setting: HomepageSetting) => {
           settingsObj[setting.sectionName] = setting

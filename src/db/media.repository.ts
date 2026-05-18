@@ -120,34 +120,48 @@ export class MediaRepository {
    * Get all active stories
    */
   static async findAllActiveStories(env: Env | null): Promise<Story[]> {
-    const stories = await queryAll<any>(
-      env,
-      'SELECT * FROM stories WHERE isActive = 1 ORDER BY "order" ASC, createdAt DESC'
-    );
-    // Parse JSON fields for each story
-    return stories.map(story => ({
-      ...story,
-      images: parseJSON<string[]>(story.images) || [],
-      isActive: typeof story.isActive === 'boolean' ? story.isActive : Boolean(story.isActive),
-      order: story.order || 0,
-    }));
+    try {
+      const stories = await queryAll<any>(
+        env,
+        'SELECT * FROM stories WHERE isActive = 1 ORDER BY "order" ASC, createdAt DESC'
+      );
+      // Ensure stories is always an array
+      const storiesArray = Array.isArray(stories) ? stories : [];
+      // Parse JSON fields for each story
+      return storiesArray.map(story => ({
+        ...story,
+        images: parseJSON<string[]>(story.images) || [],
+        isActive: typeof story.isActive === 'boolean' ? story.isActive : Boolean(story.isActive),
+        order: story.order || 0,
+      }));
+    } catch (error) {
+      console.error('[MediaRepository] Error fetching active stories:', error);
+      return [];
+    }
   }
 
   /**
    * Get all stories (with pagination)
    */
   static async findAllStories(env: Env | null): Promise<Story[]> {
-    const stories = await queryAll<any>(
-      env,
-      'SELECT * FROM stories ORDER BY "order" ASC, createdAt DESC'
-    );
-    // Parse JSON fields for each story
-    return stories.map(story => ({
-      ...story,
-      images: parseJSON<string[]>(story.images) || [],
-      isActive: typeof story.isActive === 'boolean' ? story.isActive : Boolean(story.isActive),
-      order: story.order || 0,
-    }));
+    try {
+      const stories = await queryAll<any>(
+        env,
+        'SELECT * FROM stories ORDER BY "order" ASC, createdAt DESC'
+      );
+      // Ensure stories is always an array
+      const storiesArray = Array.isArray(stories) ? stories : [];
+      // Parse JSON fields for each story
+      return storiesArray.map(story => ({
+        ...story,
+        images: parseJSON<string[]>(story.images) || [],
+        isActive: typeof story.isActive === 'boolean' ? story.isActive : Boolean(story.isActive),
+        order: story.order || 0,
+      }));
+    } catch (error) {
+      console.error('[MediaRepository] Error fetching stories:', error);
+      return [];
+    }
   }
 
   /**
@@ -276,34 +290,48 @@ export class MediaRepository {
    * Get all active reels
    */
   static async findAllActiveReels(env: Env | null): Promise<Reel[]> {
-    const reels = await queryAll<any>(
-      env,
-      'SELECT * FROM reels WHERE isActive = 1 ORDER BY "order" ASC, createdAt DESC'
-    );
-    // Parse JSON fields for each reel
-    return reels.map(reel => ({
-      ...reel,
-      productIds: parseJSON<string[]>(reel.productIds) || [],
-      isActive: typeof reel.isActive === 'boolean' ? reel.isActive : Boolean(reel.isActive),
-      order: reel.order || 0,
-    }));
+    try {
+      const reels = await queryAll<any>(
+        env,
+        'SELECT * FROM reels WHERE isActive = 1 ORDER BY "order" ASC, createdAt DESC'
+      );
+      // Ensure reels is always an array
+      const reelsArray = Array.isArray(reels) ? reels : [];
+      // Parse JSON fields for each reel
+      return reelsArray.map(reel => ({
+        ...reel,
+        productIds: parseJSON<string[]>(reel.productIds) || [],
+        isActive: typeof reel.isActive === 'boolean' ? reel.isActive : Boolean(reel.isActive),
+        order: reel.order || 0,
+      }));
+    } catch (error) {
+      console.error('[MediaRepository] Error fetching active reels:', error);
+      return [];
+    }
   }
 
   /**
    * Get all reels (with pagination)
    */
   static async findAllReels(env: Env | null): Promise<Reel[]> {
-    const reels = await queryAll<any>(
-      env,
-      'SELECT * FROM reels ORDER BY "order" ASC, createdAt DESC'
-    );
-    // Parse JSON fields for each reel
-    return reels.map(reel => ({
-      ...reel,
-      productIds: parseJSON<string[]>(reel.productIds) || [],
-      isActive: typeof reel.isActive === 'boolean' ? reel.isActive : Boolean(reel.isActive),
-      order: reel.order || 0,
-    }));
+    try {
+      const reels = await queryAll<any>(
+        env,
+        'SELECT * FROM reels ORDER BY "order" ASC, createdAt DESC'
+      );
+      // Ensure reels is always an array
+      const reelsArray = Array.isArray(reels) ? reels : [];
+      // Parse JSON fields for each reel
+      return reelsArray.map(reel => ({
+        ...reel,
+        productIds: parseJSON<string[]>(reel.productIds) || [],
+        isActive: typeof reel.isActive === 'boolean' ? reel.isActive : Boolean(reel.isActive),
+        order: reel.order || 0,
+      }));
+    } catch (error) {
+      console.error('[MediaRepository] Error fetching reels:', error);
+      return [];
+    }
   }
 
   /**

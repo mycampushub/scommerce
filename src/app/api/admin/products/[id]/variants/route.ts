@@ -14,10 +14,10 @@ import { queryFirst, queryAll, execute, boolToNumber, parseJSON, stringifyJSON, 
  */
 const createVariantSchema = z.object({
   name: z.string().optional().default(''),
-  price: z.number().min(0, 'Price must be positive').optional(),
+  price: z.number().min(0, 'Price must be positive').optional().default(0),
   comparePrice: z.number().optional(),
   costPrice: z.number().min(0).optional(),
-  stock: z.number().int().min(0, 'Stock must be positive'),
+  stock: z.number().int().min(0, 'Stock must be a non-negative integer').default(0),
   images: z.union([z.array(z.string()), z.string()]).optional().default([]),
   size: z.string().optional(),
   color: z.string().optional(),

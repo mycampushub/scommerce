@@ -123,24 +123,37 @@ export class BannerRepository {
    * Get all active banners
    */
   static async findAllActive(env: Env | null): Promise<Banner[]> {
-    const banners = await queryAll<Banner>(
-      env,
-      'SELECT * FROM banners WHERE isActive = 1 ORDER BY "order" ASC, createdAt DESC'
-    );
-    return banners;
+    try {
+      const banners = await queryAll<Banner>(
+        env,
+        'SELECT * FROM banners WHERE isActive = 1 ORDER BY "order" ASC, createdAt DESC'
+      );
+      // Ensure banners is always an array
+      return Array.isArray(banners) ? banners : [];
+    } catch (error) {
+      console.error('[BannerRepository] Error fetching active banners:', error);
+      return [];
+    }
   }
 
   /**
    * Get all banners (with pagination)
    */
   static async findAll(env: Env | null): Promise<Banner[]> {
-    const banners = await queryAll<Banner>(
-      env,
-      'SELECT * FROM banners ORDER BY "order" ASC, createdAt DESC'
-    );
-    return banners.map(b => ({
-      ...b,
-    }));
+    try {
+      const banners = await queryAll<Banner>(
+        env,
+        'SELECT * FROM banners ORDER BY "order" ASC, createdAt DESC'
+      );
+      // Ensure banners is always an array
+      const bannersArray = Array.isArray(banners) ? banners : [];
+      return bannersArray.map(b => ({
+        ...b,
+      }));
+    } catch (error) {
+      console.error('[BannerRepository] Error fetching banners:', error);
+      return [];
+    }
   }
 
   /**

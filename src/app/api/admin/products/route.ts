@@ -16,6 +16,8 @@ import {
 } from '@/db/db'
 import { generateUniqueSlug, isValidSlug, createSlug } from '@/lib/slug'
 import { logAdminAction } from '@/lib/audit-logger'
+import { rateLimit, createRateLimitResponse } from '@/lib/rate-limit'
+import { getClientIp } from '@/lib/rate-limit'
 
 
 export async function GET(request: NextRequest) {
@@ -126,8 +128,20 @@ export async function POST(request: NextRequest) {
 
   const admin = userOrResponse as { id: string; email: string; role: string; name?: string }
 
+  // Rate limiting: 30 products per minute per admin
+  const env = await getEnv()
+  const clientIp = getClientIp(request)
+  const rateLimitKey = `admin-product-create:${clientIp}`
+  const rateLimitResult = await rateLimit(env, rateLimitKey, {
+    maxRequests: 30,
+    windowMs: 60 * 1000, // 1 minute
+  })
+
+  if (!rateLimitResult.success) {
+    return createRateLimitResponse(rateLimitResult)
+  }
+
   try {
-    const env = await getEnv()
     const contentType = request.headers.get('content-type') || ''
 
     // Handle multipart/form-data for image uploads

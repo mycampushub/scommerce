@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
 import { verifyAdminAuth } from '@/lib/admin-auth'
 import { MediaRepository } from '@/db/media.repository'
+import { logAdminAction } from '@/lib/audit-logger'
 
 
 export async function GET(
@@ -148,6 +149,18 @@ export async function PUT(
       )
     }
 
+    // Log audit event
+    const admin = userOrResponse as { id: string }
+    await logAdminAction(
+      env,
+      request,
+      admin.id,
+      'UPDATE',
+      'Reel',
+      reel.id,
+      `Updated reel "${reel.title}"`
+    )
+
     return NextResponse.json({
       success: true,
       data: reel
@@ -178,7 +191,24 @@ export async function DELETE(
   try {
     const env = await getEnv()
     const { id } = await params
+
+    // Get reel title for audit log
+    const reel = await MediaRepository.findReelById(env, id)
+    const title = reel?.title || 'Unknown'
+
     await MediaRepository.deleteReel(env, id)
+
+    // Log audit event
+    const admin = userOrResponse as { id: string }
+    await logAdminAction(
+      env,
+      request,
+      admin.id,
+      'DELETE',
+      'Reel',
+      id,
+      `Deleted reel "${title}"`
+    )
 
     return NextResponse.json({
       success: true,

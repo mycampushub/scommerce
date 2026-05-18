@@ -66,7 +66,7 @@ function AlertDialogContent({
   // Build props - only include aria-describedby if there's a description
   const contentProps: React.ComponentProps<typeof AlertDialogPrimitive.Content> = {
     ...props,
-    ...(hasDescription && { "aria-describedby": descriptionId }),
+    ...(hasDescription ? { "aria-describedby": descriptionId } : { "aria-describedby": undefined }),
   }
 
   return (

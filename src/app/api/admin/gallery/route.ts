@@ -32,8 +32,11 @@ export async function GET(request: NextRequest) {
 
     const media = await queryAll(env, query, ...params)
 
+    // Ensure media is always an array
+    const mediaArray = Array.isArray(media) ? media : []
+
     // Parse tags from JSON
-    const mediaWithParsedTags = media.map((m: any) => ({
+    const mediaWithParsedTags = mediaArray.map((m: any) => ({
       ...m,
       tags: m.tags ? parseJSON<string[]>(m.tags) : []
     }))

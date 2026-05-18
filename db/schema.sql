@@ -336,6 +336,7 @@ CREATE TABLE "homepage_settings" (
     "autoPlay" INTEGER NOT NULL DEFAULT 5000,
     "displayLimit" INTEGER,
     "settings" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

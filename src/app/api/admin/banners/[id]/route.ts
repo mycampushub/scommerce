@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
 import { verifyAdminAuth } from '@/lib/admin-auth'
 import { BannerRepository } from '@/db/banner.repository'
+import { logAdminAction } from '@/lib/audit-logger'
 
 
 export async function GET(
@@ -129,6 +130,18 @@ export async function PUT(
       )
     }
 
+    // Log audit event
+    const admin = userOrResponse as { id: string }
+    await logAdminAction(
+      env,
+      request,
+      admin.id,
+      'UPDATE',
+      'Banner',
+      banner.id,
+      `Updated banner "${banner.title}"`
+    )
+
     return NextResponse.json({
       success: true,
       data: banner
@@ -158,7 +171,24 @@ export async function DELETE(
 
     const env = await getEnv()
     const { id } = await params
+
+    // Get banner title for audit log
+    const banner = await BannerRepository.findById(env, id)
+    const title = banner?.title || 'Unknown'
+
     await BannerRepository.delete(env, id)
+
+    // Log audit event
+    const admin = userOrResponse as { id: string }
+    await logAdminAction(
+      env,
+      request,
+      admin.id,
+      'DELETE',
+      'Banner',
+      id,
+      `Deleted banner "${title}"`
+    )
 
     return NextResponse.json({
       success: true,

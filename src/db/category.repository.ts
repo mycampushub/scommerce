@@ -127,10 +127,17 @@ export class CategoryRepository {
    * Get all active categories
    */
   static async findAllActive(env : Env | null): Promise<Category[]> {
-    return queryAll<Category>(
-      env,
-      'SELECT * FROM categories WHERE isActive = 1 ORDER BY name ASC'
-    );
+    try {
+      const categories = await queryAll<Category>(
+        env,
+        'SELECT * FROM categories WHERE isActive = 1 ORDER BY name ASC'
+      );
+      // Ensure categories is always an array
+      return Array.isArray(categories) ? categories : [];
+    } catch (error) {
+      console.error('[CategoryRepository] Error fetching active categories:', error);
+      return [];
+    }
   }
 
   /**
@@ -140,11 +147,18 @@ export class CategoryRepository {
     env: Env | null,
     options: { limit?: number; offset?: number } = {}
   ): Promise<Category[]> {
-    const pagination = buildPaginationClause(options);
-    return queryAll<Category>(
-      env,
-      `SELECT * FROM categories ORDER BY createdAt DESC ${pagination}`
-    );
+    try {
+      const pagination = buildPaginationClause(options);
+      const categories = await queryAll<Category>(
+        env,
+        `SELECT * FROM categories ORDER BY createdAt DESC ${pagination}`
+      );
+      // Ensure categories is always an array
+      return Array.isArray(categories) ? categories : [];
+    } catch (error) {
+      console.error('[CategoryRepository] Error fetching categories:', error);
+      return [];
+    }
   }
 
   /**

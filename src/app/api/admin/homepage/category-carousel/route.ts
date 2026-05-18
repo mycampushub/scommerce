@@ -183,14 +183,15 @@ export async function PUT(request: NextRequest) {
 
       await execute(
         env,
-        `INSERT INTO homepage_settings (id, sectionName, isEnabled, autoPlay, displayLimit, settings, updatedAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO homepage_settings (id, sectionName, isEnabled, autoPlay, displayLimit, settings, createdAt, updatedAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         id,
         SECTION_NAME,
         boolToNumber(isEnabled !== undefined ? isEnabled : true),
         boolToNumber(true), // autoPlay should be a boolean (1 or 0)
         null,
         stringifyJSON(customSettings),
+        currentTime,
         currentTime
       )
     }

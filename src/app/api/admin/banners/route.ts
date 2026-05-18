@@ -3,6 +3,9 @@ import { getEnv } from '@/lib/cloudflare'
 import { verifyAdminAuth } from '@/lib/admin-auth'
 import { BannerRepository } from '@/db/banner.repository'
 import { queryFirst } from '@/db/db'
+import { rateLimit, createRateLimitResponse } from '@/lib/rate-limit'
+import { getClientIp } from '@/lib/rate-limit'
+import { logAdminAction } from '@/lib/audit-logger'
 
 
 export async function GET(request: NextRequest) {
@@ -44,9 +47,20 @@ export async function POST(request: NextRequest) {
     return userOrResponse
   }
 
+  // Rate limiting: 20 requests per minute per admin
+  const env = await getEnv()
+  const clientIp = getClientIp(request)
+  const rateLimitKey = `admin-banner-create:${clientIp}`
+  const rateLimitResult = await rateLimit(env, rateLimitKey, {
+    maxRequests: 20,
+    windowMs: 60 * 1000, // 1 minute
+  })
+
+  if (!rateLimitResult.success) {
+    return createRateLimitResponse(rateLimitResult)
+  }
 
   try {
-    const env = await getEnv()
     const body = await request.json() as any
     const { title, description, image, mobileImage, buttonText, buttonLink, isActive, order } = body
 
@@ -108,6 +122,18 @@ export async function POST(request: NextRequest) {
       isActive: isActive !== undefined ? isActive : true,
       order: bannerOrder
     })
+
+    // Log audit event
+    const admin = userOrResponse as { id: string }
+    await logAdminAction(
+      env,
+      request,
+      admin.id,
+      'CREATE',
+      'Banner',
+      banner.id,
+      `Created banner "${banner.title}"`
+    )
 
     return NextResponse.json({
       success: true,

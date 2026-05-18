@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { IntegrationRepository } from '@/db/integration';
 import { verifyAdminAuth } from '@/lib/admin-auth';
+import { rateLimit, createRateLimitResponse } from '@/lib/rate-limit';
+import { getClientIp } from '@/lib/rate-limit';
+import { getEnv } from '@/lib/cloudflare';
 
 /**
  * GET /api/admin/integrations/shipping-carriers
@@ -47,6 +50,19 @@ export async function POST(request: NextRequest) {
   const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff'])
   if (userOrResponse instanceof NextResponse) {
     return userOrResponse
+  }
+
+  // Rate limiting: 20 requests per minute per admin
+  const env = await getEnv()
+  const clientIp = getClientIp(request)
+  const rateLimitKey = `admin-shipping-carrier-create:${clientIp}`
+  const rateLimitResult = await rateLimit(env, rateLimitKey, {
+    maxRequests: 20,
+    windowMs: 60 * 1000, // 1 minute
+  })
+
+  if (!rateLimitResult.success) {
+    return createRateLimitResponse(rateLimitResult)
   }
 
   try {

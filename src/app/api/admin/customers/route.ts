@@ -41,35 +41,62 @@ export async function GET(request: NextRequest) {
 
     const customers = users.filter((user) => user.role !== 'admin')
 
-    // Add order counts and convert booleans
-    const customersWithCounts = await Promise.all(
-      customers.map(async (customer) => {
-        // Use Prisma if env is null or env.DB doesn't exist (local dev)
-        let orderCount = 0
-        let totalSpent = 0
-        if (!env || !env.DB) {
-          orderCount = await prisma.orders.count({
-            where: { userId: customer.id }
-          })
-        } else {
-          orderCount = await count(env, 'SELECT COUNT(*) as count FROM orders WHERE userId = ?', customer.id)
-        }
+    // Fix N+1 query: Get all order counts in a single GROUP BY query
+    let orderCountsMap = new Map<string, { count: number; totalSpent: number }>()
 
-        return {
-          id: customer.id,
-          name: customer.name || 'Unknown',
-          email: customer.email,
-          phone: customer.phone || null,
-          address: customer.address || null,
-          orders: orderCount,
-          totalSpent: totalSpent,
-          status: customer.isBanned === 1 ? 'banned' : (customer.name ? 'active' : 'inactive'),
-          isVIP: false, // TODO: Implement VIP logic
-          joined: customer.createdAt || new Date().toISOString(),
-          avatar: customer.avatar || null,
+    if (customers.length > 0) {
+      const customerIds = customers.map(c => c.id)
+      const placeholders = customerIds.map(() => '?').join(',')
+
+      try {
+        const orderCounts = await queryAll<{ userId: string; count: number; total: number }>(
+          env,
+          `SELECT userId, COUNT(*) as count, SUM(total) as total
+           FROM orders
+           WHERE userId IN (${placeholders})
+           GROUP BY userId`,
+          ...customerIds
+        )
+        orderCounts.forEach(oc => {
+          orderCountsMap.set(oc.userId, { count: oc.count, totalSpent: oc.total || 0 })
+        })
+      } catch (e) {
+        console.error('Error fetching order counts:', e)
+        // If D1 query fails, fall back to Prisma for local dev
+        if (!env || !env.DB) {
+          for (const customer of customers) {
+            const orderCount = await prisma.orders.count({
+              where: { userId: customer.id }
+            })
+            const orders = await prisma.orders.findMany({
+              where: { userId: customer.id },
+              select: { total: true }
+            })
+            const totalSpent = orders.reduce((sum, order) => sum + (order.total || 0), 0)
+            orderCountsMap.set(customer.id, { count: orderCount, totalSpent })
+          }
         }
-      })
-    )
+      }
+    }
+
+    // Add order counts and convert booleans (no more N+1 query)
+    const customersWithCounts = customers.map((customer) => {
+      const orderData = orderCountsMap.get(customer.id) || { count: 0, totalSpent: 0 }
+
+      return {
+        id: customer.id,
+        name: customer.name || 'Unknown',
+        email: customer.email,
+        phone: customer.phone || null,
+        address: customer.address || null,
+        orders: orderData.count,
+        totalSpent: orderData.totalSpent,
+        status: customer.isBanned === 1 ? 'banned' : (customer.name ? 'active' : 'inactive'),
+        isVIP: false, // TODO: Implement VIP logic
+        joined: customer.createdAt || new Date().toISOString(),
+        avatar: customer.avatar || null,
+      }
+    })
 
     return NextResponse.json({
       success: true,

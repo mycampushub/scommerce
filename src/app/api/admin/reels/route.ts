@@ -3,6 +3,9 @@ import { getEnv } from '@/lib/cloudflare'
 import { verifyAdminAuth } from '@/lib/admin-auth'
 import { MediaRepository } from '@/db/media.repository'
 import { queryFirst } from '@/db/db'
+import { rateLimit, createRateLimitResponse } from '@/lib/rate-limit'
+import { getClientIp } from '@/lib/rate-limit'
+import { logAdminAction } from '@/lib/audit-logger'
 
 
 export async function GET(request: NextRequest) {
@@ -38,9 +41,20 @@ export async function POST(request: NextRequest) {
     return userOrResponse
   }
 
+  // Rate limiting: 20 requests per minute per admin
+  const env = await getEnv()
+  const clientIp = getClientIp(request)
+  const rateLimitKey = `admin-reel-create:${clientIp}`
+  const rateLimitResult = await rateLimit(env, rateLimitKey, {
+    maxRequests: 20,
+    windowMs: 60 * 1000, // 1 minute
+  })
+
+  if (!rateLimitResult.success) {
+    return createRateLimitResponse(rateLimitResult)
+  }
 
   try {
-    const env = await getEnv()
     const body = await request.json() as any
     const { title, thumbnail, videoUrl, productIds, isActive, order } = body
 
@@ -119,6 +133,18 @@ export async function POST(request: NextRequest) {
       isActive: isActive !== undefined ? isActive : true,
       order: reelOrder
     })
+
+    // Log audit event
+    const admin = userOrResponse as { id: string }
+    await logAdminAction(
+      env,
+      request,
+      admin.id,
+      'CREATE',
+      'Reel',
+      reel.id,
+      `Created reel "${reel.title}"`
+    )
 
     return NextResponse.json({
       success: true,

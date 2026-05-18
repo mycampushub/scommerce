@@ -41,8 +41,11 @@ export async function GET(request: NextRequest) {
       'SELECT * FROM homepage_settings'
     )
 
+    // Ensure settings is always an array
+    const settingsArray = Array.isArray(settings) ? settings : []
+
     // If no settings exist, return defaults
-    if (settings.length === 0) {
+    if (settingsArray.length === 0) {
       return NextResponse.json({
         success: true,
         data: Object.values(DEFAULT_SETTINGS)
@@ -50,7 +53,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Parse JSON fields and convert booleans
-    const settingsWithParsedData = settings.map((s: any) => ({
+    const settingsWithParsedData = settingsArray.map((s: any) => ({
       ...s,
       settings: parseJSON<any>(s.settings) || null,
       isEnabled: typeof s.isEnabled === 'boolean' ? s.isEnabled : numberToBool(s.isEnabled),
