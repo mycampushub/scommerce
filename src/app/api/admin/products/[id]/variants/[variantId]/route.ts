@@ -183,7 +183,7 @@ export async function PUT(
       comparePrice: validatedData.comparePrice,
       costPrice: validatedData.costPrice,
       stock: validatedData.stock,
-      images: validatedData.images ? JSON.stringify(validatedData.images) : undefined,
+      images: validatedData.images,
       size: validatedData.size,
       color: validatedData.color,
       material: validatedData.material,
@@ -312,13 +312,14 @@ export async function DELETE(
     }
 
     // Check if variant is used in active orders
-    const activeOrders = await count(
+    const activeOrdersResult = await queryFirst<{ count: number }>(
       env,
-      'order_items oi JOIN orders o ON oi.orderId = o.id WHERE oi.variantId = ? AND o.status NOT IN (?, ?)',
+      'SELECT COUNT(*) as count FROM order_items oi JOIN orders o ON oi.orderId = o.id WHERE oi.variantId = ? AND o.status NOT IN (?, ?)',
       variantId,
       'CANCELLED',
       'REFUNDED'
     )
+    const activeOrders = activeOrdersResult?.count || 0
 
     if (activeOrders > 0) {
       return NextResponse.json(
@@ -334,12 +335,12 @@ export async function DELETE(
     await ProductRepository.deleteVariant(env, variantId)
 
     // Check if product has any remaining variants
-    const remainingVariants = await count(
+    const remainingVariantsResult = await queryFirst<{ count: number }>(
       env,
-      'product_variants',
-      'WHERE productId = ?',
+      'SELECT COUNT(*) as count FROM product_variants WHERE productId = ?',
       id
     )
+    const remainingVariants = remainingVariantsResult?.count || 0
 
     if (remainingVariants === 0) {
       await ProductRepository.update(env, id, { hasVariants: boolToNumber(false) })

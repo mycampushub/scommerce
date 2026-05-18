@@ -79,14 +79,27 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate thumbnail URL
-    try {
-      new URL(thumbnail)
-    } catch (e) {
+    // Validate thumbnail URL - allow relative URLs starting with /
+    function isValidUrl(url: string): boolean {
+      if (!url || typeof url !== 'string') return false
+
+      // Allow relative URLs starting with /
+      if (url.startsWith('/')) return true
+
+      // Validate full URLs
+      try {
+        new URL(url)
+        return true
+      } catch {
+        return false
+      }
+    }
+
+    if (!isValidUrl(thumbnail)) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Invalid thumbnail URL'
+          error: 'Invalid thumbnail URL. Must be a valid URL or start with /'
         },
         { status: 400 }
       )
@@ -102,15 +115,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate image URLs
+    // Validate image URLs - allow relative URLs starting with /
     for (const img of images) {
-      try {
-        new URL(img)
-      } catch (e) {
+      if (!isValidUrl(img)) {
         return NextResponse.json(
           {
             success: false,
-            error: 'Invalid image URL'
+            error: `Invalid image URL: ${img}. Must be a valid URL or start with /`
           },
           { status: 400 }
         )

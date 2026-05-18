@@ -29,7 +29,7 @@ export const productSchema = z.object({
   comparePrice: z.number().positive().nullable().optional(),
   costPrice: z.number().min(0).nullable().optional(),
   categoryId: z.string().min(1, 'Category ID is required'),
-  images: z.array(z.string()).min(1, 'At least one image is required'),
+  images: z.array(z.string()).optional(), // Made optional - products can be created without images initially
   stock: z.number().int().min(0, 'Stock must be a non-negative integer'),
   lowStockAlert: z.number().int().min(0).optional(),
   isActive: z.boolean().optional(),

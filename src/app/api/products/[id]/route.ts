@@ -32,9 +32,8 @@ export async function GET(
     // Get category
     const category = await CategoryRepository.findById(env, product.categoryId);
 
-    // Parse images
-    const parsedImages = parseJSON<string[]>(product.images);
-    const images = Array.isArray(parsedImages) ? parsedImages : [];
+    // Images are already parsed by ProductRepository.findById
+    const images = Array.isArray(product.images) ? product.images : [];
 
     // Fetch real review data
     const { queryFirst } = await import('@/db/db');
@@ -56,6 +55,7 @@ export async function GET(
       slug: product.slug,
       description: product.description,
       price: product.basePrice,
+      basePrice: product.basePrice, // Added basePrice field for frontend
       comparePrice: product.comparePrice,
       originalPrice: product.comparePrice || undefined,
       image: images[0] || category?.image || '',

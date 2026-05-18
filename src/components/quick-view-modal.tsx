@@ -12,6 +12,7 @@ import {
 import { useCartStore } from '@/lib/store/cart-store'
 import { toast } from 'sonner'
 import { PriceDisplay } from '@/components/price-display'
+import { parseImages } from '@/lib/images'
 
 export interface ProductVariant {
   id: string
@@ -108,27 +109,13 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
   const currentPrice = selectedVariant ? selectedVariant.price : (product?.basePrice || product?.price || 0)
   const currentComparePrice = selectedVariant ? selectedVariant.comparePrice : (product?.comparePrice || product?.originalPrice || undefined)
   const currentStock = selectedVariant ? selectedVariant.stock : (product?.stock || 0)
-  
-  // Helper to parse images from string or use array
-  const parseImages = (imgData: any): string[] => {
-    if (Array.isArray(imgData)) return imgData;
-    if (typeof imgData === 'string' && imgData) {
-      try {
-        const parsed = JSON.parse(imgData);
-        return Array.isArray(parsed) ? parsed : [imgData];
-      } catch {
-        return [imgData];
-      }
-    }
-    return [];
-  };
 
   // SIMPLIFIED IMAGE LOGIC:
   // 1. If a variant is selected and has images, use those images
   // 2. Otherwise, use the default product images (product.images or product.image)
   const variantImages = selectedVariant?.images ? parseImages(selectedVariant.images) : [];
   const productImages = product?.images ? parseImages(product.images) : [];
-  
+
   // Use variant images if available, otherwise use product images
   const currentImages = variantImages.length > 0 ? variantImages : (productImages.length > 0 ? productImages : (product?.image ? [product.image] : []));
 

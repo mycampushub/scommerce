@@ -79,14 +79,27 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate thumbnail URL
-    try {
-      new URL(thumbnail)
-    } catch (e) {
+    // Validate thumbnail URL - allow relative URLs starting with /
+    function isValidUrl(url: string): boolean {
+      if (!url || typeof url !== 'string') return false
+
+      // Allow relative URLs starting with /
+      if (url.startsWith('/')) return true
+
+      // Validate full URLs
+      try {
+        new URL(url)
+        return true
+      } catch {
+        return false
+      }
+    }
+
+    if (!isValidUrl(thumbnail)) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Invalid thumbnail URL'
+          error: 'Invalid thumbnail URL. Must be a valid URL or start with /'
         },
         { status: 400 }
       )
@@ -102,14 +115,39 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate video URL
-    try {
-      new URL(videoUrl)
-    } catch (e) {
+    // Validate video URL - allow relative URLs and common video platforms
+    function isValidVideoUrl(url: string): boolean {
+      if (!url || typeof url !== 'string') return false
+
+      // Allow relative URLs starting with /
+      if (url.startsWith('/')) return true
+
+      // Allow common video platforms
+      const videoPatterns = [
+        /^https?:\/\/(www\.)?youtube\.com/,
+        /^https?:\/\/(www\.)?youtu\.be/,
+        /^https?:\/\/(www\.)?vimeo\.com/,
+        /^https?:\/\/.+\/.+\.(mp4|webm|ogg|mov)(\?.*)?$/i
+      ]
+
+      if (videoPatterns.some(pattern => pattern.test(url))) {
+        return true
+      }
+
+      // Try URL constructor for other cases
+      try {
+        new URL(url)
+        return true
+      } catch {
+        return false
+      }
+    }
+
+    if (!isValidVideoUrl(videoUrl)) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Invalid video URL'
+          error: 'Invalid video URL. Must be a valid URL, start with /, or be from YouTube/Vimeo'
         },
         { status: 400 }
       )

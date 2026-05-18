@@ -81,7 +81,7 @@ export interface Product {
   costPrice: number | null;
   discount: number | null;
   discountType: DiscountType | null;
-  images: string | null;
+  images: string[] | null;
   stock: number;
   lowStockAlert: number;
   reorderLevel: number;
@@ -102,7 +102,7 @@ export interface ProductVariant {
   comparePrice: number | null;
   costPrice: number | null;
   stock: number;
-  images: string | null;
+  images: string[] | null;
   size: string | null;
   color: string | null;
   material: string | null;

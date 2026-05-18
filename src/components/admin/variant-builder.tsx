@@ -133,9 +133,9 @@ export function VariantBuilder({ basePrice = 0, existingVariants = [], onGenerat
     const variants: GeneratedVariant[] = combinations.map((combo) => {
       // Find existing variant that matches this combination
       const existing = existingVariants.find(ev =>
-        (!ev.size || ev.size === combo['Size'] || combo['Size']) &&
-        (!ev.color || ev.color === combo['Color'] || combo['Color']) &&
-        (!ev.material || ev.material === combo['Material'] || combo['Material'])
+        (!ev.size || ev.size === combo['Size']) &&
+        (!ev.color || ev.color === combo['Color']) &&
+        (!ev.material || ev.material === combo['Material'])
       )
 
       return existing || {
@@ -178,10 +178,25 @@ export function VariantBuilder({ basePrice = 0, existingVariants = [], onGenerat
 
   // Auto-generate SKUs
   const autoGenerateSKUs = () => {
-    const newVariants = generatedVariants.map((v, i) => ({
-      ...v,
-      sku: generateSKU(v)
-    }))
+    const usedSkus = new Set<string>()
+    const newVariants = generatedVariants.map((v, i) => {
+      let sku = generateSKU(v)
+
+      // Ensure uniqueness by adding index if needed
+      let counter = 1
+      let baseSku = sku
+      while (usedSkus.has(sku)) {
+        sku = `${baseSku}-${counter}`
+        counter++
+      }
+
+      usedSkus.add(sku)
+      return {
+        ...v,
+        sku
+      }
+    })
+
     setGeneratedVariants(newVariants)
     toast.success('SKUs generated successfully')
   }
@@ -213,9 +228,38 @@ export function VariantBuilder({ basePrice = 0, existingVariants = [], onGenerat
       return
     }
 
+    // Validate each variant has required fields
+    const invalidVariants = generatedVariants.filter((v, index) => {
+      const hasError = !v.name || v.price <= 0 || !v.sku || v.stock < 0
+      if (hasError) {
+        console.error(`Variant ${index + 1} is invalid:`, { name: v.name, price: v.price, sku: v.sku, stock: v.stock })
+      }
+      return hasError
+    })
+
+    if (invalidVariants.length > 0) {
+      toast.error(`${invalidVariants.length} variant(s) have invalid data. Please check: name, price, SKU, and stock must be valid.`)
+      return
+    }
+
+    // Check for duplicate SKUs
+    const skus = generatedVariants.map(v => v.sku).filter(sku => sku)
+    const duplicateSkus = skus.filter((sku, index) => skus.indexOf(sku) !== index)
+    if (duplicateSkus.length > 0) {
+      toast.error(`Duplicate SKUs found: ${duplicateSkus.join(', ')}. Each variant must have a unique SKU.`)
+      return
+    }
+
     // Validate at least one variant has stock
     if (generatedVariants.every(v => v.stock <= 0)) {
-      toast.warning('At least one variant should have stock')
+      toast.error('At least one variant must have stock greater than 0')
+      return
+    }
+
+    // Validate at least one variant is active
+    if (generatedVariants.every(v => !v.isActive)) {
+      toast.error('At least one variant must be active')
+      return
     }
 
     onGenerate(generatedVariants)

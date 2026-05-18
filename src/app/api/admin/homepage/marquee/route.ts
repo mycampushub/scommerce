@@ -156,8 +156,8 @@ export async function PUT(request: NextRequest) {
         id,
         SECTION_NAME,
         boolToNumber(isEnabled !== undefined ? isEnabled : true),
-        null,
-        null,
+        5000, // Default autoPlay value (NOT NULL column)
+        null, // displayLimit can be NULL
         stringifyJSON(customSettings),
         currentTime,
         currentTime

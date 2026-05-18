@@ -813,6 +813,11 @@ export default function ProductsPage() {
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}))
+          // Show validation details if available
+          if (errorData.details && Array.isArray(errorData.details)) {
+            const validationErrors = errorData.details.map((d: any) => d.message).join(', ')
+            throw new Error(`Validation error: ${validationErrors}`)
+          }
           throw new Error(errorData.error || `Failed to create variant: ${variant.name}`)
         }
 

@@ -20,6 +20,7 @@ import { RecentlyViewed } from '@/components/recently-viewed'
 import { ProductStructuredData } from '@/components/product-structured-data'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PriceDisplay } from '@/components/price-display'
+import { parseImages } from '@/lib/images'
 
 // Types
 interface Product {
@@ -104,6 +105,7 @@ export default function ProductPage() {
   const [recommendedProducts, setRecommendedProducts] = useState<RelatedProduct[]>([])
   const [reviewFormOpen, setReviewFormOpen] = useState(false)
   const [hasPurchased, setHasPurchased] = useState(false)
+  const [loadingVariants, setLoadingVariants] = useState(false)
   const reviewsSectionRef = useRef<ReviewsSectionHandle>(null)
 
   // Fetch related products
@@ -160,21 +162,34 @@ export default function ProductPage() {
         // API returns { success: true, data: {...productData } }
         const actualProduct = productData.data || productData
         setProduct(actualProduct as any)
-        
-        // Fetch variants
-        const variantsResponse = await fetch(`/api/products/${productSlug}/variants`)
-        if (variantsResponse.ok) {
-          const variantsData = await variantsResponse.json() as any
-          setVariants((variantsData as any).data.variants || [])
 
-          // Select default variant or first variant
-          if (variantsData.data.variants && variantsData.data.variants.length > 0) {
-            const defaultVariant = variantsData.data.variants.find((v: ProductVariant) => v.isDefault) || variantsData.data.variants[0]
-            setSelectedVariant(defaultVariant)
-            setSelectedSize(defaultVariant.size || '')
-            setSelectedColor(defaultVariant.color || '')
-            setSelectedMaterial(defaultVariant.material || '')
+        // Fetch variants
+        setLoadingVariants(true)
+        try {
+          const variantsResponse = await fetch(`/api/products/${productSlug}/variants`)
+          if (variantsResponse.ok) {
+            const variantsData = await variantsResponse.json() as any
+            // Handle different response structures
+            const variantsArray = variantsData?.data?.variants || variantsData?.variants || variantsData?.data || []
+            console.log('[Product Page] Fetched variants:', variantsArray.length, 'variants')
+            setVariants(variantsArray)
+
+            // Select default variant or first variant
+            if (variantsArray && variantsArray.length > 0) {
+              const defaultVariant = variantsArray.find((v: ProductVariant) => v.isDefault) || variantsArray[0]
+              console.log('[Product Page] Selected default variant:', defaultVariant)
+              setSelectedVariant(defaultVariant)
+              setSelectedSize(defaultVariant.size || '')
+              setSelectedColor(defaultVariant.color || '')
+              setSelectedMaterial(defaultVariant.material || '')
+            }
+          } else {
+            console.warn('[Product Page] Variants API returned non-OK status:', variantsResponse.status)
           }
+        } catch (err) {
+          console.error('[Product Page] Error fetching variants:', err)
+        } finally {
+          setLoadingVariants(false)
         }
 
         // Fetch related products from the same category
@@ -242,36 +257,36 @@ export default function ProductPage() {
     }
   }
 
+  // Process variants and selections
+  const hasVariants = product?.hasVariants && variants.length > 0
+
   // Get available sizes, colors, materials from variants
   const availableSizes = [...new Set(variants.map(v => v.size).filter(Boolean))]
   const availableColors = [...new Set(variants.map(v => v.color).filter(Boolean))]
   const availableMaterials = [...new Set(variants.map(v => v.material).filter(Boolean))]
+
+  // Debug logging for variant attributes
+  if (hasVariants) {
+    console.log('[Product Page] Variant attributes:', {
+      hasVariants,
+      variantsCount: variants.length,
+      availableSizes,
+      availableColors,
+      availableMaterials
+    })
+  }
 
   // Get current price based on selected variant
   const currentPrice = selectedVariant ? selectedVariant.price : product?.basePrice || product?.price || 0
   const currentComparePrice = selectedVariant ? selectedVariant.comparePrice : product?.comparePrice || null
   const currentStock = selectedVariant ? selectedVariant.stock : product?.stock || 0
 
-  // Helper to parse images from string or use array
-  const parseImages = (imgData: any): string[] => {
-    if (Array.isArray(imgData)) return imgData;
-    if (typeof imgData === 'string' && imgData) {
-      try {
-        const parsed = JSON.parse(imgData);
-        return Array.isArray(parsed) ? parsed : [imgData];
-      } catch {
-        return [imgData];
-      }
-    }
-    return [];
-  };
-
   // SIMPLIFIED IMAGE LOGIC:
   // 1. If a variant is selected and has images, use those images
   // 2. Otherwise, use the default product images (product.images or product.image)
   const variantImages = selectedVariant?.images ? parseImages(selectedVariant.images) : [];
   const productImages = product?.images ? parseImages(product.images) : [];
-  
+
   // Use variant images if available, otherwise use product images
   const currentImages = variantImages.length > 0 ? variantImages : (productImages.length > 0 ? productImages : (product?.image ? [product.image] : []));
 
@@ -306,7 +321,7 @@ export default function ProductPage() {
     if (!product) return
 
     // Use variant data if available
-    if (product.hasVariants) {
+    if (hasVariants) {
       if (!selectedVariant) {
         toast.error('Please select a variant')
         return
@@ -593,10 +608,16 @@ export default function ProductPage() {
               </div>
 
               {/* Variant Selectors */}
-              {product.hasVariants && variants.length > 0 && (
+              {hasVariants && (
                 <div className="space-y-6">
-                  {/* Size Selection */}
-                  {availableSizes.length > 0 && (
+                  {loadingVariants ? (
+                    <div className="flex items-center justify-center py-6">
+                      <Loader2 className="w-6 h-6 text-pink-600 animate-spin" />
+                    </div>
+                  ) : (
+                    <>
+                      {/* Size Selection */}
+                      {availableSizes.length > 0 && (
                     <div>
                       <h3 className="font-semibold text-gray-900 mb-3">Size: <span className="text-pink-600">{selectedSize || 'Select'}</span></h3>
                       <div className="flex flex-wrap gap-2 sm:gap-3">
@@ -643,28 +664,30 @@ export default function ProductPage() {
                     </div>
                   )}
 
-                  {/* Material Selection */}
-                  {availableMaterials.length > 0 && (
-                    <div>
-                      <h3 className="font-semibold text-gray-900 mb-3">Material: <span className="text-pink-600">{selectedMaterial || 'Select'}</span></h3>
-                      <div className="flex flex-wrap gap-2 sm:gap-3">
-                        {availableMaterials.map((material) => (
-                          <button
-                            key={material}
-                            onClick={() => handleVariantSelection(selectedSize as string, selectedColor as string, material)}
-                            className={`min-h-[44px] px-4 py-3 rounded-lg border-2 font-medium transition-all focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2 ${
-                              selectedMaterial === material
-                                ? 'border-pink-600 bg-pink-50 text-pink-600'
-                                : 'border-gray-300 text-gray-700 hover:border-pink-400 hover:bg-gray-50'
-                            }`}
-                          >
-                            <span className="transition-all">
-                              {material}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                      {/* Material Selection */}
+                      {availableMaterials.length > 0 && (
+                        <div>
+                          <h3 className="font-semibold text-gray-900 mb-3">Material: <span className="text-pink-600">{selectedMaterial || 'Select'}</span></h3>
+                          <div className="flex flex-wrap gap-2 sm:gap-3">
+                            {availableMaterials.map((material) => (
+                              <button
+                                key={material}
+                                onClick={() => handleVariantSelection(selectedSize as string, selectedColor as string, material)}
+                                className={`min-h-[44px] px-4 py-3 rounded-lg border-2 font-medium transition-all focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2 ${
+                                  selectedMaterial === material
+                                    ? 'border-pink-600 bg-pink-50 text-pink-600'
+                                    : 'border-gray-300 text-gray-700 hover:border-pink-400 hover:bg-gray-50'
+                                }`}
+                              >
+                                <span className="transition-all">
+                                  {material}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               )}
@@ -696,15 +719,15 @@ export default function ProductPage() {
                 <div className="flex flex-col sm:flex-row gap-4">
                   <button
                     onClick={handleAddToCart}
-                    disabled={currentStock <= 0 || (product.hasVariants && !selectedVariant)}
+                    disabled={currentStock <= 0 || (hasVariants && !selectedVariant)}
                     className={`min-h-[48px] flex-1 py-4 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2 ${
-                      currentStock <= 0 || (product.hasVariants && !selectedVariant)
+                      currentStock <= 0 || (hasVariants && !selectedVariant)
                         ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                         : 'bg-pink-600 text-white hover:bg-pink-700'
                     }`}
                   >
                     <ShoppingCart className="w-5 h-5" />
-                    {currentStock <= 0 ? 'Out of Stock' : product.hasVariants && !selectedVariant ? 'Select a Variant' : 'Add to Cart'}
+                    {currentStock <= 0 ? 'Out of Stock' : hasVariants && !selectedVariant ? 'Select a Variant' : 'Add to Cart'}
                   </button>
                   <button
                     onClick={() => setIsWishlisted(!isWishlisted)}

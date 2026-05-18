@@ -223,6 +223,9 @@ export async function POST(
       material: validatedData.material,
       isActive: validatedData.isActive,
       isDefault: validatedData.isDefault,
+      lowStockAlert: validatedData.lowStockAlert,
+      reorderLevel: validatedData.reorderLevel,
+      reorderQty: validatedData.reorderQty,
     })
 
     // Update product to indicate it has variants

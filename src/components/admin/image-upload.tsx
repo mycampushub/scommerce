@@ -25,6 +25,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { apiFetch } from '@/lib/api-client'
 import { GallerySelector } from '@/components/admin/gallery-selector'
+import { parseImages } from '@/lib/images'
 
 interface UploadedImage {
   url: string
@@ -134,8 +135,11 @@ export function ImageUpload({
 
   // Initialize images from prop
   useEffect(() => {
-    if (initialImages && initialImages.length > 0) {
-      setImages(initialImages)
+    if (initialImages) {
+      const parsedImages = parseImages(initialImages)
+      if (parsedImages.length > 0) {
+        setImages(parsedImages)
+      }
     }
   }, [initialImages])
 

@@ -6,6 +6,7 @@ import { CategoryRepository } from '@/db/category.repository'
 import { productSchema } from '@/lib/validations'
 import {
   queryAll,
+  queryFirst,
   count,
   boolToNumber,
   numberToBool,
@@ -87,12 +88,10 @@ export async function GET(request: NextRequest) {
     }))
 
     // Get total count for pagination
-    const totalCount = await count(
-      env,
-      'products p LEFT JOIN categories c ON p.categoryId = c.id',
-      whereClause,
-      ...params
-    )
+    const countWhereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
+    const countSql = `SELECT COUNT(*) as count FROM products p LEFT JOIN categories c ON p.categoryId = c.id ${countWhereClause}`
+    const countResult = await queryFirst<{ count: number }>(env, countSql, ...params)
+    const totalCount = countResult?.count || 0
     const totalPages = Math.ceil(totalCount / limit)
 
     return NextResponse.json({

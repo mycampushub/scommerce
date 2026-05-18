@@ -52,7 +52,7 @@ export class MediaRepository {
     await execute(
       env,
       `INSERT INTO stories (id, title, thumbnail, images, isActive, "order", createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       id,
       data.title,
       data.thumbnail,
@@ -217,7 +217,7 @@ export class MediaRepository {
     await execute(
       env,
       `INSERT INTO reels (id, title, thumbnail, videoUrl, productIds, isActive, "order", createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       id,
       data.title,
       data.thumbnail,

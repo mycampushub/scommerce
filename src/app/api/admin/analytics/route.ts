@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAdminAuth } from '@/lib/admin-auth'
 import { getEnv } from '@/lib/cloudflare'
-import { queryAll, count, parseJSON, numberToBool } from '@/db/db'
+import { queryAll, queryFirst, count, parseJSON, numberToBool } from '@/db/db'
 
 // Bangladesh divisions for geographic distribution
 const BANGLADESH_DIVISIONS = [
@@ -236,7 +236,12 @@ export async function GET(request: NextRequest) {
       daysAgoIso
     )
 
-    const totalCustomers = await count(env, 'SELECT COUNT(*) as count FROM users WHERE role = ?', 'user')
+    const totalCustomersResult = await queryFirst<{ count: number }>(
+      env,
+      'SELECT COUNT(*) as count FROM users WHERE role = ?',
+      'user'
+    )
+    const totalCustomers = totalCustomersResult?.count || 0
 
     const newCustomerGrowth = previousCustomers.length > 0
       ? ((currentCustomers.length - previousCustomers.length) / previousCustomers.length) * 100

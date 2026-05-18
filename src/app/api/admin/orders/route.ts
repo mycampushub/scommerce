@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
        LEFT JOIN users u ON o.userId = u.id
        WHERE 1=1${whereClause}
        ORDER BY o.createdAt DESC`,
-      ...whereParams
+      ...(whereParams || [])
     )
 
     console.log('[orders API] Fetched orders:', orders.length)
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
          FROM order_items oi
          WHERE oi.orderId IN (${placeholders})
          ORDER BY oi.createdAt ASC`,
-        ...orderIds
+        ...(orderIds || [])
       )
 
       console.log('[orders API] Fetched order items:', orderItems.length)
@@ -215,34 +215,36 @@ export async function POST(request: NextRequest) {
         transaction.env,
         `INSERT INTO orders (id, orderNumber, userId, customerName, customerEmail, customerPhone, shippingAddress, billingAddress, city, district, division, subtotal, shipping, tax, discount, total, paymentMethod, status, paymentStatus, trackingStatus, createdAt, updatedAt)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        orderId,
-        orderNumber,
-        validatedData.userId || null,
-        validatedData.customerName,
-        validatedData.customerEmail,
-        validatedData.customerPhone || null,
-        typeof validatedData.shippingAddress === 'string'
-          ? validatedData.shippingAddress
-          : JSON.stringify(validatedData.shippingAddress),
-        validatedData.billingAddress
-          ? (typeof validatedData.billingAddress === 'string'
-              ? validatedData.billingAddress
-              : JSON.stringify(validatedData.billingAddress))
-          : null,
-        shippingAddr?.city || null,
-        shippingAddr?.district || null,
-        shippingAddr?.division || null,
-        validatedData.subtotal,
-        validatedData.shipping,
-        validatedData.tax,
-        validatedData.discount,
-        validatedData.total,
-        validatedData.paymentMethod || null,
-        'PENDING',
-        'PENDING',
-        'PENDING',
-        now(),
-        now()
+        [
+          orderId,
+          orderNumber,
+          validatedData.userId || null,
+          validatedData.customerName,
+          validatedData.customerEmail,
+          validatedData.customerPhone || null,
+          typeof validatedData.shippingAddress === 'string'
+            ? validatedData.shippingAddress
+            : JSON.stringify(validatedData.shippingAddress),
+          validatedData.billingAddress
+            ? (typeof validatedData.billingAddress === 'string'
+                ? validatedData.billingAddress
+                : JSON.stringify(validatedData.billingAddress))
+            : null,
+          shippingAddr?.city || null,
+          shippingAddr?.district || null,
+          shippingAddr?.division || null,
+          validatedData.subtotal,
+          validatedData.shipping,
+          validatedData.tax,
+          validatedData.discount,
+          validatedData.total,
+          validatedData.paymentMethod || null,
+          'PENDING',
+          'PENDING',
+          'PENDING',
+          now(),
+          now()
+        ]
       )
 
       // Track order for rollback
@@ -256,19 +258,21 @@ export async function POST(request: NextRequest) {
             transaction.env,
             `INSERT INTO order_items (id, orderId, productId, variantId, quantity, price, productName, productImage, variantSku, variantSize, variantColor, variantMaterial, createdAt)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            itemId,
-            orderId,
-            item.productId,
-            item.variantId || null,
-            item.quantity,
-            item.price,
-            item.productName,
-            item.productImage || null,
-            item.variantSku || null,
-            item.variantSize || null,
-            item.variantColor || null,
-            item.variantMaterial || null,
-            now()
+            [
+              itemId,
+              orderId,
+              item.productId,
+              item.variantId || null,
+              item.quantity,
+              item.price,
+              item.productName,
+              item.productImage || null,
+              item.variantSku || null,
+              item.variantSize || null,
+              item.variantColor || null,
+              item.variantMaterial || null,
+              now()
+            ]
           )
           // Track order item for rollback
           trackInsertForRollback(transaction, 'order_items', itemId)
