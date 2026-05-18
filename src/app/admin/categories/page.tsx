@@ -54,9 +54,9 @@ import {
   EyeOff,
   Loader2,
   RefreshCw,
-  Upload,
   X
 } from 'lucide-react'
+import { GallerySelector } from '@/components/admin/gallery-selector'
 
 interface Category {
   id: string
@@ -751,25 +751,36 @@ export default function CategoriesPage() {
                     </button>
                   </div>
                 ) : (
-                  <div className="relative w-full h-48 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center hover:border-violet-500 transition-colors">
-                    <input
-                      type="file"
-                      id="addCategoryImage"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0]
-                        if (file) handleImageUpload(file, false)
+                  <div className="flex gap-2">
+                    <GallerySelector
+                      onSelect={(url) => {
+                        setAddFormData({ ...addFormData, image: url })
+                        setAddImagePreview(url)
                       }}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      disabled={uploading}
+                      category="category"
+                      className="flex-1"
                     />
-                    <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                    <p className="text-sm text-gray-600 mb-1">
-                      {uploading ? 'Uploading...' : 'Click or drag to upload'}
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      PNG, JPG, GIF, WebP (max 5MB)
-                    </p>
+                    <div className="relative w-full h-48 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center hover:border-violet-500 transition-colors">
+                      <input
+                        type="file"
+                        id="addCategoryImage"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (file) handleImageUpload(file, false)
+                        }}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        disabled={uploading}
+                      />
+                      <div className="text-center p-4">
+                        <p className="text-sm text-gray-600 mb-1">
+                          {uploading ? 'Uploading...' : 'Or upload new'}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          PNG, JPG, GIF, WebP (max 5MB)
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -860,25 +871,36 @@ export default function CategoriesPage() {
                     </button>
                   </div>
                 ) : (
-                  <div className="relative w-full h-48 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center hover:border-violet-500 transition-colors">
-                    <input
-                      type="file"
-                      id="editCategoryImage"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0]
-                        if (file) handleImageUpload(file, true)
+                  <div className="flex gap-2">
+                    <GallerySelector
+                      onSelect={(url) => {
+                        setEditFormData({ ...editFormData, image: url })
+                        setEditImagePreview(url)
                       }}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      disabled={uploading}
+                      category="category"
+                      className="flex-1"
                     />
-                    <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                    <p className="text-sm text-gray-600 mb-1">
-                      {uploading ? 'Uploading...' : 'Click or drag to upload'}
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      PNG, JPG, GIF, WebP (max 5MB)
-                    </p>
+                    <div className="relative w-full h-48 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center hover:border-violet-500 transition-colors">
+                      <input
+                        type="file"
+                        id="editCategoryImage"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (file) handleImageUpload(file, true)
+                        }}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        disabled={uploading}
+                      />
+                      <div className="text-center p-4">
+                        <p className="text-sm text-gray-600 mb-1">
+                          {uploading ? 'Uploading...' : 'Or upload new'}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          PNG, JPG, GIF, WebP (max 5MB)
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

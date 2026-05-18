@@ -244,7 +244,41 @@ export default function ProductPage() {
   const currentPrice = selectedVariant ? selectedVariant.price : product?.basePrice || product?.price || 0
   const currentComparePrice = selectedVariant ? selectedVariant.comparePrice : product?.comparePrice || null
   const currentStock = selectedVariant ? selectedVariant.stock : product?.stock || 0
-  const currentImages = (selectedVariant?.images && Array.isArray(selectedVariant.images) && selectedVariant.images.length > 0 ? selectedVariant.images : null) || (product?.images && Array.isArray(product.images) ? product.images : [])
+
+  // Helper to parse images from string or use array
+  const parseImages = (imgData: any): string[] => {
+    if (Array.isArray(imgData)) return imgData;
+    if (typeof imgData === 'string' && imgData) {
+      try {
+        const parsed = JSON.parse(imgData);
+        return Array.isArray(parsed) ? parsed : [imgData];
+      } catch {
+        return [imgData];
+      }
+    }
+    return [];
+  };
+
+  const variantImages = selectedVariant?.images ? parseImages(selectedVariant.images) : [];
+  const productImages = product?.images ? parseImages(product.images) : [];
+  const fallback = product?.image ? [product.image] : [];
+
+  // Build currentImages array with proper fallback chain
+  let currentImages = variantImages.length > 0 ? variantImages : (productImages.length > 0 ? productImages : fallback);
+
+  // Double-fallback: if still empty, try to get from variants
+  if (currentImages.length === 0 && product?.hasVariants && variants.length > 0) {
+    const firstVariantWithImages = variants.find(v => {
+      const vImages = parseImages(v.images);
+      return vImages.length > 0;
+    });
+    if (firstVariantWithImages) {
+      currentImages = parseImages(firstVariantWithImages.images);
+    }
+  }
+
+  // Final fallback for display
+  const displayImage = currentImages[currentImage] || (currentImages.length > 0 ? currentImages[0] : product?.image || '/placeholder-image.jpg');
 
   // Check if user has purchased this product
   async function checkUserPurchase() {
@@ -461,9 +495,12 @@ export default function ProductPage() {
             <div className="space-y-4">
               <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-gray-100">
                 <img
-                  src={currentImages[currentImage] || product.image}
+                  src={displayImage}
                   alt={product.name}
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = '/placeholder-image.jpg';
+                  }}
                 />
                 {product.badge && (
                   <span className="absolute top-4 left-4 bg-pink-600 text-white px-4 py-2 rounded-full text-sm font-medium">
@@ -501,9 +538,12 @@ export default function ProductPage() {
                       }`}
                     >
                       <img
-                        src={image}
+                        src={image || '/placeholder-image.jpg'}
                         alt={`${product.name} view ${index + 1}`}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = '/placeholder-image.jpg';
+                        }}
                       />
                     </button>
                   ))}

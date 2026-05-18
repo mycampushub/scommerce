@@ -139,26 +139,30 @@ export async function PUT(
     if (body.trackingNumber !== undefined || body.trackingStatus) {
       // Validate tracking number and status
       // Only validate tracking number if it's provided and not empty
-      const shouldValidateTracking = body.trackingNumber !== undefined && body.trackingNumber !== ''
-      const validation = updateTrackingSchema.safeParse({
-        trackingNumber: body.trackingNumber || '',
-        trackingStatus: body.trackingStatus || 'PENDING',
-      })
+      const trackingValue = body.trackingNumber || ''
+      const shouldValidateTracking = trackingValue !== undefined && trackingValue !== ''
 
-      // Only fail validation if tracking number was provided (not empty) and validation failed
-      if (shouldValidateTracking && !validation.success) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: validation.error.issues[0].message,
-          },
-          { status: 400 }
-        )
+      // If tracking number is provided, validate it
+      if (shouldValidateTracking) {
+        const validation = updateTrackingSchema.safeParse({
+          trackingNumber: trackingValue,
+          trackingStatus: body.trackingStatus || 'PENDING',
+        })
+
+        if (!validation.success) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: validation.error.issues[0].message,
+            },
+            { status: 400 }
+          )
+        }
       }
 
       // Only update tracking if trackingNumber is provided or trackingStatus is provided
       if (body.trackingNumber || body.trackingStatus) {
-        await OrderRepository.updateTracking(env, id, body.trackingNumber || '', body.trackingStatus || 'PENDING')
+        await OrderRepository.updateTracking(env, id, trackingValue, body.trackingStatus || 'PENDING')
         if (body.trackingStatus) {
           changes.push(`trackingStatus: ${currentOrder.trackingStatus} → ${body.trackingStatus}`)
         }

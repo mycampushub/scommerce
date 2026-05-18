@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyAdminAuth } from '@/lib/admin-auth'
 import { getEnv } from '@/lib/cloudflare'
 import { OrderRepository } from '@/db/order.repository'
-import { UserRepository } from '@/db/user.repository'
 import { parseJSON } from '@/db/db'
+import { verifyAuth } from '@/lib/auth-utils'
 import { jsPDF } from 'jspdf'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  // Verify admin authentication (admin or staff)
-  const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff'])
+  // Verify user authentication
+  const userOrResponse = await verifyAuth(request)
   if (userOrResponse instanceof NextResponse) {
     return userOrResponse
   }
@@ -19,6 +18,7 @@ export async function GET(
   try {
     const env = await getEnv()
     const { id } = await params
+    const user = userOrResponse as any
 
     // Fetch order
     const order = await OrderRepository.findById(env, id)
@@ -29,11 +29,16 @@ export async function GET(
       )
     }
 
+    // Verify user owns this order
+    if (order.userId && order.userId !== user.id) {
+      return NextResponse.json(
+        { success: false, error: 'You do not have permission to view this invoice' },
+        { status: 403 }
+      )
+    }
+
     // Fetch order items
     const items = await OrderRepository.getItems(env, id)
-
-    // Fetch user if exists
-    const user = order.userId ? await UserRepository.findById(env, order.userId) : null
 
     // Parse addresses
     let shippingAddress: any = null
@@ -379,4 +384,3 @@ export async function GET(
     )
   }
 }
-

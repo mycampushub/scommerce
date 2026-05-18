@@ -125,8 +125,25 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
 
   const variantImages = selectedVariant?.images ? parseImages(selectedVariant.images) : [];
   const productImages = product?.images ? parseImages(product.images) : [];
+  // Use product.image as fallback if no images in arrays
   const fallback = product?.image ? [product.image] : [];
-  const currentImages = variantImages.length > 0 ? variantImages : (productImages.length > 0 ? productImages : fallback);
+
+  // Build currentImages array with proper fallback chain
+  let currentImages = variantImages.length > 0 ? variantImages : (productImages.length > 0 ? productImages : fallback);
+
+  // Double-fallback: if still empty, try to get from variants
+  if (currentImages.length === 0 && hasVariants && variants.length > 0) {
+    const firstVariantWithImages = variants.find(v => {
+      const vImages = parseImages(v.images);
+      return vImages.length > 0;
+    });
+    if (firstVariantWithImages) {
+      currentImages = parseImages(firstVariantWithImages.images);
+    }
+  }
+
+  // Final fallback: ensure we always have at least one image or handle gracefully
+  const displayImage = currentImages[selectedImageIndex] || (currentImages.length > 0 ? currentImages[0] : product?.image || '/placeholder-image.jpg');
 
   // Calculate discount percentage
   const discountPercentage = currentComparePrice
@@ -256,7 +273,7 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
                   </span>
                 )}
                 <img
-                  src={currentImages[selectedImageIndex]}
+                  src={displayImage}
                   alt={product.name}
                   className="w-full h-full object-cover"
                 />
@@ -283,9 +300,12 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
                       }`}
                     >
                       <img
-                        src={img}
+                        src={img || '/placeholder-image.jpg'}
                         alt={`${product.name} view ${idx + 1}`}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = '/placeholder-image.jpg';
+                        }}
                       />
                     </button>
                   ))}

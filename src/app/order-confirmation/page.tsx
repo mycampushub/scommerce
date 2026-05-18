@@ -248,6 +248,78 @@ function OrderConfirmationContent() {
   const canCancelOrder = order && ['PENDING', 'CONFIRMED'].includes(order.status)
   const canRequestRefund = order && order.status === 'DELIVERED' && !order.refundedAt
 
+  const handleDownloadInvoice = async () => {
+    if (!order) return
+
+    try {
+      const response = await fetch(`/api/orders/${order.id}/invoice`)
+      if (!response.ok) {
+        throw new Error('Failed to download invoice')
+      }
+
+      // If it's HTML, open in new tab
+      if (response.headers.get('content-type')?.includes('text/html')) {
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `invoice-${order.orderNumber}.html`
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+      } else {
+        // For PDF or other formats
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `invoice-${order.orderNumber}.pdf`
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+      }
+
+      toast.success('Invoice downloaded successfully')
+    } catch (err: any) {
+      console.error('Error downloading invoice:', err)
+      toast.error('Failed to download invoice')
+    }
+  }
+
+  const handleShareOrder = async () => {
+    if (!order) return
+
+    const shareData = {
+      title: `Order ${order.orderNumber}`,
+      text: `I just placed an order for ${order.orderItems.length} items totaling ${typeof order.total === 'number' ? order.total.toFixed(2) : '0.00'} on SCommerce!`,
+      url: `${window.location.origin}/order-confirmation?id=${order.id}`,
+    }
+
+    // Try native share API first (mobile)
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData)
+        toast.success('Order shared successfully')
+        return
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') {
+          console.error('Error sharing order:', err)
+        }
+      }
+    }
+
+    // Fallback: copy to clipboard
+    try {
+      await navigator.clipboard.writeText(shareData.url)
+      toast.success('Order link copied to clipboard!')
+    } catch (err) {
+      console.error('Error copying to clipboard:', err)
+      toast.error('Failed to share order')
+    }
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
@@ -434,11 +506,17 @@ function OrderConfirmationContent() {
                         Request Refund
                       </Button>
                     )}
-                    <button className="inline-flex items-center justify-center gap-2 border border-gray-300 text-gray-700 px-8 py-4 rounded-xl font-semibold hover:bg-gray-50 transition-colors">
+                    <button
+                      onClick={handleDownloadInvoice}
+                      className="inline-flex items-center justify-center gap-2 border border-gray-300 text-gray-700 px-8 py-4 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
+                    >
                       <Download className="w-5 h-5" />
                       Download Invoice
                     </button>
-                    <button className="inline-flex items-center justify-center gap-2 border border-gray-300 text-gray-700 px-8 py-4 rounded-xl font-semibold hover:bg-gray-50 transition-colors">
+                    <button
+                      onClick={handleShareOrder}
+                      className="inline-flex items-center justify-center gap-2 border border-gray-300 text-gray-700 px-8 py-4 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
+                    >
                       <Share2 className="w-5 h-5" />
                       Share Order
                     </button>

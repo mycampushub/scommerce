@@ -372,6 +372,13 @@ export async function GET(request: NextRequest) {
     } else if (orderNumber) {
       conditions.push('orderNumber = ?');
       params.push(orderNumber);
+    } else {
+      // Return empty array if no filter provided (security measure)
+      return NextResponse.json({
+        success: true,
+        data: [],
+        total: 0,
+      });
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
@@ -409,6 +416,7 @@ export async function GET(request: NextRequest) {
       {
         success: false,
         error: 'Failed to fetch orders',
+        data: [], // Return empty array on error for consistent frontend handling
       },
       { status: 500 }
     );

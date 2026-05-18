@@ -88,7 +88,9 @@ export default function CouponsPage() {
       })
       if (response.ok) {
         const data = await response.json()
-        setPromotions(data.data || [])
+        // Handle both response formats: data directly or data.data
+        const promotionsList = Array.isArray(data) ? data : (data.data || [])
+        setPromotions(promotionsList)
       }
     } catch (error) {
       console.error('Error fetching promotions:', error)

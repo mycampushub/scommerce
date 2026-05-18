@@ -394,6 +394,39 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
       // Don't fail the upload if logging fails
     }
 
+    // Save to media table for gallery access
+    try {
+      const { execute, generateId, now } = await import('@/db/db');
+      const mediaId = generateId();
+      const currentTime = now();
+
+      await execute(
+        env || { DB: null },
+        `INSERT INTO media (id, filename, originalName, url, mimeType, size, width, height, alt, tags, category, uploadedBy, createdAt, updatedAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          mediaId,
+          filename,
+          file.name,
+          fileUrl,
+          file.type,
+          file.size,
+          dims?.width || 0,
+          dims?.height || 0,
+          '', // alt text - can be edited later
+          '[]', // tags - JSON array
+          'general', // category - default to general, can be changed later
+          userId,
+          currentTime,
+          currentTime
+        ]
+      );
+      console.log('[Upload API] Image saved to media table:', mediaId);
+    } catch (mediaError) {
+      console.error('[Upload API] Failed to save to media table:', mediaError);
+      // Don't fail the upload if media table save fails
+    }
+
     console.log('[Upload API] Upload completed successfully');
 
     return NextResponse.json({
@@ -534,6 +567,20 @@ export async function DELETE(request: NextRequest): Promise<NextResponse<DeleteR
         fileHashCache.delete(hash);
         break;
       }
+    }
+
+    // Delete from media table
+    try {
+      const { execute } = await import('@/db/db');
+      await execute(
+        env || { DB: null },
+        'DELETE FROM media WHERE url = ? OR url LIKE ?',
+        [sanitizedPath, `%${filename}`]
+      );
+      console.log('[Upload API] Removed from media table');
+    } catch (mediaError) {
+      console.error('[Upload API] Failed to delete from media table:', mediaError);
+      // Don't fail the delete if media table delete fails
     }
 
     // Log admin action
