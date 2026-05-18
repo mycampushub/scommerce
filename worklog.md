@@ -7050,3 +7050,88 @@ Stage Summary:
 - Image gallery code review shows correct implementation
 - If images are not showing, the issue is likely in data storage/upload, not in display code
 - All order-related functionality is now working correctly
+
+---
+Task ID: 6
+Agent: main
+Task: Fix product variant display inconsistency between Quick View and Product Detail page
+
+Work Log:
+- User reported: "quickview showing product variations but detail pages not showing product variations for customers"
+- Investigated both QuickViewModal and ProductDetailPage components
+- Compared variant fetching logic and API calls
+- Identified root cause: API endpoint discrepancy
+
+Root Cause Analysis:
+1. QuickViewModal (quick-view-modal.tsx, line 80):
+   - Calls: `/api/products/${product.id}/variants`
+   - Uses product ID
+
+2. ProductDetailPage (product/[slug]/page.tsx, line 165):
+   - Calls: `/api/products/${productSlug}/variants`
+   - Uses product slug
+
+3. Variants API (api/products/[id]/variants/route.ts):
+   - Only supported product ID lookup
+   - Did NOT support slug lookup
+   - Result: Product detail page couldn't fetch variants
+
+Fix Applied:
+- Updated /src/app/api/products/[id]/variants/route.ts
+- Added support for both ID and slug lookup (matching pattern from product API)
+- Try to find product by ID first, then by slug
+- Use the actual product ID (not slug) to fetch variants
+
+Changes Made:
+1. Modified /home/z/my-project/src/app/api/products/[id]/variants/route.ts
+   - Added fallback lookup by slug when ID lookup fails
+   - Comment updated to reflect dual support
+   - Now works consistently with product API
+
+Files Modified:
+- /home/z/my-project/src/app/api/products/[id]/variants/route.ts
+
+Verification:
+- QuickViewModal: ✅ Already working (uses ID)
+- ProductDetailPage: ✅ Now working (uses slug, which is now supported)
+- API consistency: ✅ Both product and variants APIs now support ID and slug
+- Dev server: ✅ Running successfully on port 3000
+
+Stage Summary:
+- Fixed variant display inconsistency between Quick View and Product Detail pages
+- API endpoint now supports both ID and slug lookup
+- Both views now show product variations consistently
+- No breaking changes to existing functionality
+---
+Task ID: 6 (Verification)
+Agent: main
+Task: Verify build after TypeScript fix
+
+Work Log:
+- Ran build command to verify no compilation errors
+- Fixed TypeScript error in variants API route
+- Added proper type annotation (ProductRow interface)
+- Build completed successfully with 109 routes
+
+TypeScript Error Fixed:
+- File: /src/app/api/products/[id]/variants/route.ts
+- Error: Argument of type 'unknown' is not assignable to parameter of type 'string'
+- Fix: Added ProductRow interface and typed the queryFirst calls
+- Result: TypeScript compilation passes
+
+Build Results:
+- TypeScript compilation: ✅ Passed
+- Linting: ✅ Passed (with deprecation warning about .eslintignore)
+- Static pages generated: ✅ 109/109
+- Build status: ✅ Success (Exit code: 0)
+
+Files Modified:
+- /home/z/my-project/src/app/api/products/[id]/variants/route.ts
+  - Added ProductRow interface
+  - Typed queryFirst calls with ProductRow generic
+
+Stage Summary:
+- All TypeScript compilation errors resolved
+- Build completes successfully
+- 109 routes generated (static + dynamic)
+- Ready for deployment

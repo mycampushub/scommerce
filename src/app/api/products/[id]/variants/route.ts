@@ -3,10 +3,16 @@ import { getEnv } from '@/lib/cloudflare'
 import { ProductRepository } from '@/db/product.repository'
 import { queryFirst } from '@/db/db'
 
+interface ProductRow {
+  id: string
+  hasVariants: number
+  basePrice: number
+  price: number
+}
 
 /**
  * GET /api/products/[id]/variants
- * Get all variants for a specific product
+ * Get all variants for a specific product (supports both ID and slug)
  */
 export async function GET(
   request: NextRequest,
@@ -16,12 +22,21 @@ export async function GET(
   try {
     const { id } = await params
 
-    // Fetch product to check if it exists
-    const product = await queryFirst(
+    // Try to find product by ID first
+    let product = await queryFirst<ProductRow>(
       env,
       'SELECT id, hasVariants, basePrice, price FROM products WHERE id = ? LIMIT 1',
       id
     )
+
+    // If not found by ID, try by slug
+    if (!product) {
+      product = await queryFirst<ProductRow>(
+        env,
+        'SELECT id, hasVariants, basePrice, price FROM products WHERE slug = ? LIMIT 1',
+        id
+      )
+    }
 
     if (!product) {
       return NextResponse.json(
@@ -30,8 +45,8 @@ export async function GET(
       )
     }
 
-    // Fetch all variants for this product
-    const variants = await ProductRepository.getVariants(env, id)
+    // Fetch all variants for this product (using the actual product ID)
+    const variants = await ProductRepository.getVariants(env, product.id)
 
     return NextResponse.json({
       success: true,
