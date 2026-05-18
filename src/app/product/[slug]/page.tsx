@@ -265,7 +265,9 @@ export default function ProductPage() {
   }
 
   // Process variants and selections
-  const hasVariants = product?.hasVariants && variants.length > 0
+  // Show variant selectors if variants exist, regardless of hasVariants flag
+  // The hasVariants flag is used as a hint, but actual variants are the source of truth
+  const hasVariants = variants.length > 0
 
   // Get available sizes, colors, materials from variants
   const availableSizes = [...new Set(variants.map(v => v.size).filter(Boolean))]

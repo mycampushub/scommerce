@@ -558,4 +558,65 @@ export class ProductRepository {
       id
     );
   }
+
+  /**
+   * Sync hasVariants flag for a product based on actual variants
+   */
+  static async syncHasVariants(env: Env | null, productId: string): Promise<void> {
+    const variants = await queryAll<any>(
+      env,
+      'SELECT COUNT(*) as count FROM product_variants WHERE productId = ? AND isActive = 1',
+      productId
+    );
+
+    const hasVariantsCount = variants[0]?.count || 0;
+    const hasVariants = hasVariantsCount > 0;
+
+    await execute(
+      env,
+      'UPDATE products SET hasVariants = ?, updatedAt = ? WHERE id = ?',
+      boolToNumber(hasVariants),
+      now(),
+      productId
+    );
+  }
+
+  /**
+   * Sync hasVariants flag for all products
+   */
+  static async syncAllHasVariants(env: Env | null): Promise<{ updated: number }> {
+    // Get all products
+    const products = await queryAll<any>(
+      env,
+      'SELECT id, hasVariants FROM products'
+    );
+
+    let updated = 0;
+
+    for (const product of products) {
+      const variants = await queryFirst<{ count: number }>(
+        env,
+        'SELECT COUNT(*) as count FROM product_variants WHERE productId = ? AND isActive = 1',
+        product.id
+      );
+
+      const hasVariantsCount = variants?.count || 0;
+      const hasVariants = hasVariantsCount > 0;
+      const currentHasVariants = typeof product.hasVariants === 'boolean' ? product.hasVariants : Boolean(product.hasVariants);
+
+      // Update if out of sync
+      if (currentHasVariants !== hasVariants) {
+        await execute(
+          env,
+          'UPDATE products SET hasVariants = ?, updatedAt = ? WHERE id = ?',
+          boolToNumber(hasVariants),
+          now(),
+          product.id
+        );
+        updated++;
+      }
+    }
+
+    return { updated };
+  }
 }

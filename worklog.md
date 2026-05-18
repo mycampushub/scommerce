@@ -8539,3 +8539,95 @@ Stage Summary:
 - Project builds successfully for production
 - Ready for deployment to Cloudflare Workers
 
+
+---
+
+Task ID: 8
+Agent: main
+Task: Fix variant selectors not showing on product detail page
+
+Work Log:
+- Fixed product detail page logic to show variants based on actual variant count, not hasVariants flag
+- Added syncHasVariants() method to ProductRepository for single product
+- Added syncAllHasVariants() method to ProductRepository for all products
+- Created API endpoint to sync hasVariants flags for all products
+- Updated variant creation route to use syncHasVariants()
+- Updated variant deletion route to use syncHasVariants()
+- All TypeScript errors fixed, build successful
+
+Issues Found:
+1. Variant selectors not showing despite 3 variants existing
+   - Root cause: hasVariants flag was false in database, but variants existed
+   - Product page logic: `hasVariants = product?.hasVariants && variants.length > 0`
+   - This meant if hasVariants is false, selectors won't show even if variants exist
+
+2. Data consistency: hasVariants flag not always synced with actual variants
+   - Products created before variants were added had incorrect hasVariants flag
+   - Manual database changes could cause flag mismatch
+
+Fixes Applied:
+
+1. Product Detail Page (src/app/product/[slug]/page.tsx)
+   - Changed line 268 from:
+     ```typescript
+     const hasVariants = product?.hasVariants && variants.length > 0
+     ```
+   - To:
+     ```typescript
+     const hasVariants = variants.length > 0
+     ```
+   - Rationale: Actual variants are the source of truth, hasVariants is just a hint
+   - Result: Variant selectors now show if variants exist, regardless of flag
+
+2. Product Repository (src/db/product.repository.ts)
+   - Added syncHasVariants() method:
+     * Counts active variants for a product
+     * Updates hasVariants flag based on actual count
+     * Used when creating/deleting variants
+   
+   - Added syncAllHasVariants() method:
+     * Iterates through all products
+     * Checks actual variant count for each
+     * Updates hasVariants flag if out of sync
+     * Returns count of updated products
+     * Useful for fixing existing data inconsistencies
+
+3. Sync API Endpoint (src/app/api/admin/products/sync-variants/route.ts)
+   - Created POST /api/admin/products/sync-variants
+   - Requires admin authentication
+   - Calls syncAllHasVariants() to fix all products
+   - Logs audit event with action: 'BULK_UPDATE'
+   - Returns count of products updated
+
+4. Variant Creation Route (src/app/api/admin/products/[id]/variants/route.ts)
+   - Replaced manual hasVariants check with syncHasVariants() call
+   - Ensures flag is always correct after creating a variant
+
+5. Variant Deletion Route (src/app/api/admin/products/[id]/variants/[variantId]/route.ts)
+   - Replaced manual hasVariants check with syncHasVariants() call
+   - Ensures flag is always correct after deleting a variant
+
+Files Modified:
+- /home/z/my-project/src/app/product/[slug]/page.tsx
+- /home/z/my-project/src/db/product.repository.ts
+- /home/z/my-project/src/app/api/admin/products/sync-variants/route.ts (created)
+- /home/z/my-project/src/app/api/admin/products/[id]/variants/route.ts
+- /home/z/my-project/src/app/api/admin/products/[id]/variants/[variantId]/route.ts
+
+Build Results:
+- ✅ TypeScript compilation: No errors
+- ✅ Build completed successfully (Exit code: 0)
+- ✅ All 110 pages/routes generated
+
+Next Steps for User:
+1. To fix existing data, call POST /api/admin/products/sync-variants
+2. Or manually update the hasVariants flag in the database
+3. After syncing, product detail page will show variant selectors correctly
+
+Stage Summary:
+- Fixed variant selector visibility issue
+- Added robust sync mechanism for hasVariants flag
+- Created utility API for fixing data inconsistencies
+- All builds pass successfully
+- Ready for deployment
+

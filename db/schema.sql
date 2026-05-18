@@ -435,6 +435,24 @@ CREATE TABLE "email_services" (
     "updatedAt" DATETIME NOT NULL
 );
 
+-- CreateTable
+CREATE TABLE "media" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "filename" TEXT NOT NULL,
+    "originalName" TEXT NOT NULL,
+    "url" TEXT NOT NULL UNIQUE,
+    "mimeType" TEXT NOT NULL,
+    "size" INTEGER NOT NULL,
+    "width" INTEGER,
+    "height" INTEGER,
+    "alt" TEXT,
+    "tags" TEXT,
+    "category" TEXT,
+    "uploadedBy" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 
@@ -635,4 +653,13 @@ CREATE UNIQUE INDEX "analytics_integrations_name_key" ON "analytics_integrations
 
 -- CreateIndex
 CREATE UNIQUE INDEX "email_services_name_key" ON "email_services"("name");
+
+-- CreateIndex
+CREATE INDEX "media_category_idx" ON "media"("category");
+
+-- CreateIndex
+CREATE INDEX "media_createdAt_idx" ON "media"("createdAt" DESC);
+
+-- CreateIndex
+CREATE INDEX "media_uploadedBy_idx" ON "media"("uploadedBy");
 

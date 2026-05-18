@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAdminAuth } from '@/lib/admin-auth';
 import { getEnv, getEnvVar } from '@/lib/cloudflare';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
+import { generateId, now, execute } from '@/db/db';
 
 // Configuration
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -377,6 +378,38 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
       }
     }
 
+    // Save to media table for centralized management
+    try {
+      const mediaId = generateId();
+      const currentTime = now();
+
+      await execute(
+        env || { DB: null },
+        `INSERT INTO media (id, filename, originalName, url, mimeType, size, width, height, alt, tags, category, uploadedBy, createdAt, updatedAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        mediaId,
+        filename,
+        file.name,
+        fileUrl,
+        file.type,
+        file.size,
+        dims?.width || 0,
+        dims?.height || 0,
+        '', // alt - can be added later via gallery edit
+        '[]', // tags - empty array by default
+        'product', // category - product images by default
+        userId,
+        currentTime,
+        currentTime
+      );
+
+      console.log('[Upload API] Saved to media table with ID:', mediaId);
+    } catch (mediaError) {
+      console.error('[Upload API] Failed to save to media table:', mediaError);
+      // Don't fail the upload if media table insertion fails
+      // The file is already uploaded, just log the error
+    }
+
     // Log admin action
     try {
       const { logAdminAction } = await import('@/lib/audit-logger');
@@ -474,7 +507,8 @@ export async function DELETE(request: NextRequest): Promise<NextResponse<DeleteR
 
     // Extract filename from path
     const filename = sanitizedPath.replace(/^\/?uploads\//, '');
-    console.log('[Upload API] Deleting file:', filename);
+    const fileUrl = sanitizedPath.startsWith('/') ? sanitizedPath : `/${sanitizedPath}`;
+    console.log('[Upload API] Deleting file:', filename, 'URL:', fileUrl);
 
     // Delete from R2 or local filesystem
     if (env?.BUCKET) {
@@ -534,6 +568,19 @@ export async function DELETE(request: NextRequest): Promise<NextResponse<DeleteR
         fileHashCache.delete(hash);
         break;
       }
+    }
+
+    // Delete from media table
+    try {
+      await execute(
+        env || { DB: null },
+        `DELETE FROM media WHERE url = ?`,
+        fileUrl
+      );
+      console.log('[Upload API] Deleted from media table');
+    } catch (mediaError) {
+      console.error('[Upload API] Failed to delete from media table:', mediaError);
+      // Don't fail the delete if media table deletion fails
     }
 
     // Log admin action

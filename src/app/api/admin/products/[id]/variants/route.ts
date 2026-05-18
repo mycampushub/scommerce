@@ -6,7 +6,7 @@ import { CategoryRepository } from '@/db/category.repository'
 import { generateSKU, checkSKUConflict } from '@/lib/sku-generator'
 import { logAdminAction } from '@/lib/audit-logger'
 import { z } from 'zod'
-import { queryFirst, queryAll, execute, boolToNumber, parseJSON, stringifyJSON, now } from '@/db/db'
+import { queryFirst, queryAll, execute, boolToNumber, numberToBool, parseJSON, stringifyJSON, now } from '@/db/db'
 
 
 /**
@@ -68,8 +68,8 @@ export async function GET(
     const variantsWithImages = variants.map((v: any) => ({
       ...v,
       images: parseJSON<string[]>(v.images) || [],
-      isActive: typeof v.isActive === 'boolean' ? v.isActive : boolToNumber(v.isActive),
-      isDefault: typeof v.isDefault === 'boolean' ? v.isDefault : boolToNumber(v.isDefault),
+      isActive: typeof v.isActive === 'boolean' ? v.isActive : numberToBool(v.isActive),
+      isDefault: typeof v.isDefault === 'boolean' ? v.isDefault : numberToBool(v.isDefault),
     }))
 
     return NextResponse.json({
@@ -241,10 +241,8 @@ export async function POST(
       reorderQty: validatedData.reorderQty ?? 20,
     })
 
-    // Update product to indicate it has variants
-    if (!product.hasVariants) {
-      await ProductRepository.update(env, id, { hasVariants: boolToNumber(true) })
-    }
+    // Sync hasVariants flag for the product
+    await ProductRepository.syncHasVariants(env, id)
 
     // Log audit event
     await logAdminAction(

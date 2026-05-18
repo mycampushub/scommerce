@@ -334,17 +334,8 @@ export async function DELETE(
     // Delete variant
     await ProductRepository.deleteVariant(env, variantId)
 
-    // Check if product has any remaining variants
-    const remainingVariantsResult = await queryFirst<{ count: number }>(
-      env,
-      'SELECT COUNT(*) as count FROM product_variants WHERE productId = ?',
-      id
-    )
-    const remainingVariants = remainingVariantsResult?.count || 0
-
-    if (remainingVariants === 0) {
-      await ProductRepository.update(env, id, { hasVariants: boolToNumber(false) })
-    }
+    // Sync hasVariants flag for the product
+    await ProductRepository.syncHasVariants(env, id)
 
     // Log audit event
     await logAdminAction(

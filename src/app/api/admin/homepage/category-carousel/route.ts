@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
 import { verifyAdminAuth } from '@/lib/admin-auth'
-import { queryFirst, execute, generateId, now, parseJSON, stringifyJSON, boolToNumber, queryAll } from '@/db/db'
+import { queryFirst, execute, generateId, now, parseJSON, stringifyJSON, boolToNumber, numberToBool, queryAll } from '@/db/db'
 import { getClientIp, rateLimit, createRateLimitResponse } from '@/lib/rate-limit'
 
 const SECTION_NAME = 'category_carousel'
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
       data: {
         sectionName: SECTION_NAME,
         categoryIds: settings.categoryIds || [],
-        isEnabled: typeof setting.isEnabled === 'boolean' ? setting.isEnabled : boolToNumber(setting.isEnabled),
+        isEnabled: typeof setting.isEnabled === 'boolean' ? setting.isEnabled : numberToBool(setting.isEnabled),
         autoScroll: settings.autoScroll !== undefined ? settings.autoScroll : true,
         scrollInterval: settings.scrollInterval || 4000,
       }
@@ -211,7 +211,7 @@ export async function PUT(request: NextRequest) {
       data: {
         sectionName: SECTION_NAME,
         categoryIds: settings.categoryIds || [],
-        isEnabled: typeof updated?.isEnabled === 'boolean' ? updated?.isEnabled : boolToNumber(updated?.isEnabled),
+        isEnabled: typeof updated?.isEnabled === 'boolean' ? updated?.isEnabled : numberToBool(updated?.isEnabled),
         autoScroll: settings.autoScroll !== undefined ? settings.autoScroll : true,
         scrollInterval: settings.scrollInterval || 4000,
       }
