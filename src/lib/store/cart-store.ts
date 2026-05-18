@@ -7,6 +7,7 @@ const BASE_SHIPPING_COST = 150 // BDT currency
 
 export interface CartItem {
   id: string
+  slug: string
   name: string
   price: number
   originalPrice?: number

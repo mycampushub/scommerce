@@ -109,6 +109,7 @@ export default function ShopPage() {
   const addToCart = (product: Product) => {
     addItem({
       id: product.id,
+      slug: product.slug,
       name: product.name,
       price: product.price,
       originalPrice: product.originalPrice,
@@ -314,7 +315,7 @@ export default function ShopPage() {
                           {product.badge}
                         </span>
                       )}
-                      <Link href={`/product/${product.id}`}>
+                      <Link href={`/product/${product.slug}`}>
                         <img
                           src={product.image}
                           alt={product.name}
@@ -345,7 +346,7 @@ export default function ShopPage() {
                         </button>
                       </div>
                     </div>
-                    <Link href={`/product/${product.id}`}>
+                    <Link href={`/product/${product.slug}`}>
                       <h3 className="font-medium text-gray-900 mb-2 line-clamp-2 group-hover:text-pink-600 transition-colors">
                         {product.name}
                       </h3>

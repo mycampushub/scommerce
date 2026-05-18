@@ -108,10 +108,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get image dimensions
-    const { width, height } = await getImageDimensions(file)
-
-    // Upload file to storage
+    // Upload file to storage (dimensions will be extracted in uploadFile)
     const uploadResult = await uploadFile(file, env, (userOrResponse as any).id)
 
     // Generate unique ID
@@ -130,8 +127,8 @@ export async function POST(request: NextRequest) {
         uploadResult.url,
         file.type,
         file.size,
-        width,
-        height,
+        uploadResult.width || 0,
+        uploadResult.height || 0,
         alt,
         tags,
         category,
@@ -222,20 +219,53 @@ export async function DELETE(request: NextRequest) {
   }
 }
 
-// Helper function to get image dimensions using sharp
+// Helper function to get image dimensions (works without sharp)
 async function getImageDimensions(file: File): Promise<{ width: number; height: number }> {
   try {
-    const sharp = await import('sharp')
     const arrayBuffer = await file.arrayBuffer()
-    const sharpInstance = sharp.default || sharp
-    const metadata = await sharpInstance(Buffer.from(arrayBuffer)).metadata()
-    return {
-      width: metadata.width || 0,
-      height: metadata.height || 0
+    const uint8 = new Uint8Array(arrayBuffer)
+
+    // PNG
+    if (uint8[0] === 0x89 && uint8[1] === 0x50 && uint8[2] === 0x4E && uint8[3] === 0x47) {
+      return {
+        width: (uint8[16] << 24) | (uint8[17] << 16) | (uint8[18] << 8) | uint8[19],
+        height: (uint8[20] << 24) | (uint8[21] << 16) | (uint8[22] << 8) | uint8[23],
+      };
     }
+
+    // JPEG
+    if (uint8[0] === 0xFF && uint8[1] === 0xD8) {
+      let i = 2;
+      while (i < uint8.length) {
+        if (uint8[i] === 0xFF && uint8[i + 1] === 0xC0) {
+          return {
+            height: (uint8[i + 5] << 8) | uint8[i + 6],
+            width: (uint8[i + 7] << 8) | uint8[i + 8],
+          };
+        }
+        i += 2 + ((uint8[i + 2] << 8) | uint8[i + 3]);
+      }
+    }
+
+    // WebP
+    if (uint8[8] === 0x57 && uint8[9] === 0x45 && uint8[10] === 0x42 && uint8[11] === 0x50) {
+      return {
+        width: (uint8[24] << 8) | uint8[25],
+        height: (uint8[26] << 8) | uint8[27],
+      };
+    }
+
+    // GIF
+    if (uint8[0] === 0x47 && uint8[1] === 0x49 && uint8[2] === 0x46) {
+      return {
+        width: (uint8[6] << 8) | uint8[7],
+        height: (uint8[8] << 8) | uint8[9],
+      };
+    }
+
+    return { width: 0, height: 0 }; // Default for SVG or other formats
   } catch (error) {
-    console.error('Failed to get image dimensions:', error)
-    // Return default dimensions if sharp fails
+    console.error('[Gallery] Failed to get image dimensions:', error)
     return { width: 0, height: 0 }
   }
 }

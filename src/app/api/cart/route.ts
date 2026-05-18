@@ -68,6 +68,7 @@ export async function GET(request: NextRequest) {
         const productsMap = new Map<string, {
           id: string;
           name: string;
+          slug: string;
           basePrice: number;
           comparePrice: number | null;
           images: string;
@@ -80,6 +81,7 @@ export async function GET(request: NextRequest) {
           const products = await queryAll<{
             id: string;
             name: string;
+            slug: string;
             basePrice: number;
             comparePrice: number | null;
             images: string;
@@ -87,7 +89,7 @@ export async function GET(request: NextRequest) {
             isActive: number;
           }>(
             env,
-            `SELECT id, name, basePrice, comparePrice, images, stock, isActive FROM products WHERE id IN (${placeholders})`,
+            `SELECT id, name, slug, basePrice, comparePrice, images, stock, isActive FROM products WHERE id IN (${placeholders})`,
             ...productIds
           );
           products.forEach(p => productsMap.set(p.id, p));
@@ -132,6 +134,7 @@ export async function GET(request: NextRequest) {
 
           return {
             id: item.productId,
+            slug: product.slug,
             name: product.name,
             price: product.basePrice,
             originalPrice: product.comparePrice,

@@ -844,7 +844,7 @@ function CategoryCarousel({ allCategories, products }: { allCategories: Category
               {categoryProducts.map(product => (
                 <a
                   key={product.id}
-                  href={`/product/${product.id}`}
+                  href={`/product/${product.slug}`}
                   className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden group"
                 >
                   <div className="relative aspect-square overflow-hidden bg-gray-100">
@@ -1210,7 +1210,7 @@ function FeaturedCollection({ products, onQuickView, onAddToCart }: { products: 
             <div key={pageIndex} className="flex-shrink-0 w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 px-1">
               {productsArray.slice(pageIndex * itemsPerPage, (pageIndex + 1) * itemsPerPage).map((product) => (
                 <div key={product.id} className="product-grid-item group">
-                  <a href={`/product/${product.id}`} className="block">
+                  <a href={`/product/${product.slug}`} className="block">
                     <div className="product__media relative aspect-[3/4] overflow-hidden rounded-xl mb-4 bg-gray-100">
                       {product.badge && (
                         <span className="absolute top-3 left-3 z-10 bg-pink-600 text-white text-xs px-3 py-1 rounded-full font-medium">
@@ -1223,7 +1223,7 @@ function FeaturedCollection({ products, onQuickView, onAddToCart }: { products: 
                   </a>
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
-                      <a href={`/product/${product.id}`} className="block">
+                      <a href={`/product/${product.slug}`} className="block">
                         <h3 className="product-grid-item__title font-medium text-gray-900 mb-2 line-clamp-2 group-hover:text-pink-600 transition-colors">
                           {product.name}
                         </h3>
@@ -1279,7 +1279,7 @@ function MosaicGrid({ products, onQuickView, onAddToCart }: { products: Product[
               key={product.id}
               className={`product-card group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 ${index >= 4 ? 'hidden lg:block' : ''}`}
             >
-              <a href={`/product/${product.id}`} className="block">
+              <a href={`/product/${product.slug}`} className="block">
                 <div className="relative aspect-[3/4] overflow-hidden">
                   <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -1299,7 +1299,7 @@ function MosaicGrid({ products, onQuickView, onAddToCart }: { products: Product[
               <div className="p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
-                    <a href={`/product/${product.id}`} className="block">
+                    <a href={`/product/${product.slug}`} className="block">
                       <h3 className="font-medium text-gray-900 mb-2 line-clamp-1 group-hover:text-pink-600 transition-colors">
                         {product.name}
                       </h3>
@@ -1893,6 +1893,7 @@ export default function Home() {
   const addToCart = (product: Product) => {
     addItem({
       id: product.id,
+      slug: product.slug,
       name: product.name,
       price: product.price,
       originalPrice: product.originalPrice,

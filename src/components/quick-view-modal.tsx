@@ -212,6 +212,7 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
     if (hasVariants && selectedVariant) {
       addItem({
         id: product.id,
+        slug: product.slug,
         name: product.name,
         price: selectedVariant.price,
         originalPrice: selectedVariant.comparePrice || product.comparePrice || product.originalPrice,
@@ -226,6 +227,7 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
     } else {
       addItem({
         id: product.id,
+        slug: product.slug,
         name: product.name,
         price: product.basePrice || product.price,
         originalPrice: product.comparePrice || product.originalPrice,
@@ -240,7 +242,7 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0 rounded-lg" aria-describedby="quick-view-description">
+      <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto p-0 rounded-lg" aria-describedby="quick-view-description">
         <DialogHeader className="sr-only">
           <DialogTitle>Quick View - {product.name}</DialogTitle>
           <DialogDescription id="quick-view-description" className="sr-only">

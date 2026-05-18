@@ -578,10 +578,10 @@ export default function ProductsPage() {
     try {
       const payload = {
         name: variantFormData.name || `${variantFormData.size} / ${variantFormData.color}`,
-        price: parseFloat(variantFormData.price),
+        price: parseFloat(variantFormData.price) || 0,
         comparePrice: variantFormData.comparePrice ? parseFloat(variantFormData.comparePrice) : null,
         costPrice: variantFormData.costPrice ? parseFloat(variantFormData.costPrice) : null,
-        stock: parseInt(variantFormData.stock),
+        stock: parseInt(variantFormData.stock) || 0,
         size: variantFormData.size || null,
         color: variantFormData.color || null,
         material: variantFormData.material || null,
@@ -1152,7 +1152,7 @@ export default function ProductsPage() {
 
       {/* Edit Product Modal */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="max-w-2xl w-full max-h-[90vh] overflow-y-auto sm:rounded-lg" aria-describedby="edit-product-description">
+        <DialogContent className="max-w-6xl w-full max-h-[90vh] overflow-y-auto sm:rounded-lg" aria-describedby="edit-product-description">
           <DialogHeader>
             <DialogTitle>Edit Product</DialogTitle>
             <DialogDescription id="edit-product-description">Update product information</DialogDescription>
@@ -1289,7 +1289,7 @@ export default function ProductsPage() {
 
       {/* Add Product Modal */}
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-        <DialogContent className="max-w-2xl w-full max-h-[90vh] overflow-y-auto sm:rounded-lg" aria-describedby="add-product-description">
+        <DialogContent className="max-w-6xl w-full max-h-[90vh] overflow-y-auto sm:rounded-lg" aria-describedby="add-product-description">
           <DialogHeader>
             <DialogTitle>Add New Product</DialogTitle>
             <DialogDescription id="add-product-description">Create a new product for your store</DialogDescription>
@@ -1455,7 +1455,7 @@ export default function ProductsPage() {
 
       {/* Variant Management Modal */}
       <Dialog open={isVariantsModalOpen} onOpenChange={setIsVariantsModalOpen}>
-        <DialogContent className="max-w-5xl w-full max-h-[90vh] overflow-y-auto sm:rounded-lg" aria-describedby="manage-variants-description">
+        <DialogContent className="max-w-7xl w-full max-h-[90vh] overflow-y-auto sm:rounded-lg" aria-describedby="manage-variants-description">
           <DialogHeader>
             <DialogTitle>Manage Variants - {selectedProductForVariants?.name}</DialogTitle>
             <DialogDescription id="manage-variants-description">Create and manage product variants (sizes, colors, materials)</DialogDescription>

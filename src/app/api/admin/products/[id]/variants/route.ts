@@ -13,12 +13,12 @@ import { queryFirst, queryAll, execute, boolToNumber, parseJSON, stringifyJSON, 
  * Schema for variant creation
  */
 const createVariantSchema = z.object({
-  name: z.string().min(1, 'Variant name is required'),
-  price: z.number().min(0, 'Price must be positive'),
+  name: z.string().optional().default(''),
+  price: z.number().min(0, 'Price must be positive').optional(),
   comparePrice: z.number().optional(),
   costPrice: z.number().min(0).optional(),
   stock: z.number().int().min(0, 'Stock must be positive'),
-  images: z.array(z.string()).optional().default([]),
+  images: z.union([z.array(z.string()), z.string()]).optional().default([]),
   size: z.string().optional(),
   color: z.string().optional(),
   material: z.string().optional(),
@@ -153,8 +153,31 @@ export async function POST(
     // Parse request body
     const body = await request.json() as any
 
-    // Validate input
-    const validatedData = createVariantSchema.parse(body)
+    // Normalize images (handle both array and string)
+    let images: string[] = []
+    if (body.images) {
+      if (typeof body.images === 'string') {
+        try {
+          images = JSON.parse(body.images)
+        } catch {
+          images = [body.images]
+        }
+      } else if (Array.isArray(body.images)) {
+        images = body.images
+      }
+    }
+
+    // Generate variant name if not provided
+    const variantParts = [body.size, body.color, body.material].filter(Boolean)
+    const variantName = body.name || variantParts.join(' - ') || 'Default'
+
+    // Validate input with normalized data
+    const validatedData = createVariantSchema.parse({
+      ...body,
+      name: variantName,
+      price: body.price || 0,
+      images,
+    })
 
     // Generate SKU
     const sku = generateSKU(
@@ -190,11 +213,11 @@ export async function POST(
       productId: id,
       sku,
       name: validatedData.name,
-      price: validatedData.price,
+      price: validatedData.price || 0,
       comparePrice: validatedData.comparePrice,
       costPrice: validatedData.costPrice,
       stock: validatedData.stock,
-      images: validatedData.images,
+      images: Array.isArray(validatedData.images) ? validatedData.images : [],
       size: validatedData.size,
       color: validatedData.color,
       material: validatedData.material,

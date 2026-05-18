@@ -100,7 +100,7 @@ export function ReviewForm({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto" showCloseButton={false} aria-describedby="review-description">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto" showCloseButton={false} aria-describedby="review-description">
         <DialogHeader className="sticky top-0 bg-background z-10 pb-4">
           <div className="flex items-center justify-between pr-10">
             <DialogTitle className="text-xl font-bold">Write a Review</DialogTitle>

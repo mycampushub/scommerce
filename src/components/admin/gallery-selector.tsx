@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -158,9 +158,12 @@ export function GallerySelector({ onSelect, selectedUrl, category, multiple = fa
           {multiple ? 'Select from Gallery' : selectedUrl ? 'Change Image' : 'Select from Gallery'}
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-5xl max-h-[85vh]">
+      <DialogContent className="max-w-5xl max-h-[85vh]" aria-describedby="gallery-description">
         <DialogHeader>
           <DialogTitle>Media Gallery</DialogTitle>
+          <DialogDescription id="gallery-description" className="sr-only">
+            Select images from your media gallery
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">

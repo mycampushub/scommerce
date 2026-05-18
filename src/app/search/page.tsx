@@ -12,6 +12,7 @@ import { PriceDisplay } from '@/components/price-display'
 // Types
 interface Product {
   id: string
+  slug: string
   name: string
   price: number
   originalPrice?: number
@@ -157,7 +158,7 @@ export default function SearchPage() {
                             {product.badge}
                           </span>
                         )}
-                        <Link href={`/product/${product.id}`}>
+                        <Link href={`/product/${product.slug}`}>
                           <img
                             src={product.image}
                             alt={product.name}
@@ -175,7 +176,7 @@ export default function SearchPage() {
                           Quick View
                         </Link>
                       </div>
-                      <Link href={`/product/${product.id}`}>
+                      <Link href={`/product/${product.slug}`}>
                         <h3 className="font-medium text-gray-900 mb-2 line-clamp-2 group-hover:text-pink-600 transition-colors">
                           {product.name}
                         </h3>

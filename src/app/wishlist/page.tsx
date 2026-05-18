@@ -34,6 +34,7 @@ export default function WishlistPage() {
 
       addItem({
         id: item.product.id,
+        slug: item.product.slug,
         name: item.product.name,
         price: item.product.price,
         originalPrice: item.product.comparePrice,
@@ -85,6 +86,7 @@ export default function WishlistPage() {
 
           addItem({
             id: item.product.id,
+            slug: item.product.slug,
             name: item.product.name,
             price: item.product.price,
             originalPrice: item.product.comparePrice,
@@ -274,7 +276,7 @@ export default function WishlistPage() {
                   <CardContent className="p-0">
                     {/* Product Image */}
                     <div className="relative aspect-[3/4] bg-gray-100">
-                      <Link href={`/product/${item.product.id}`}>
+                      <Link href={`/product/${item.product.slug}`}>
                         <img
                           src={imageUrl}
                           alt={item.product.name}
@@ -325,7 +327,7 @@ export default function WishlistPage() {
                         {item.product.category.name}
                       </Link>
                       
-                      <Link href={`/product/${item.product.id}`}>
+                      <Link href={`/product/${item.product.slug}`}>
                         <h3 className="font-semibold text-sm sm:text-base text-gray-900 mb-2 sm:mb-3 line-clamp-2 min-h-[2.5rem] sm:min-h-[3rem] hover:text-pink-600 transition-colors">
                           {item.product.name}
                         </h3>

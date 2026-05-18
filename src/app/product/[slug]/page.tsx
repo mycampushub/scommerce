@@ -314,6 +314,7 @@ export default function ProductPage() {
 
       addItem({
         id: product.id,
+        slug: product.slug,
         name: product.name,
         price: selectedVariant.price,
         originalPrice: selectedVariant.comparePrice || product.comparePrice,
@@ -328,6 +329,7 @@ export default function ProductPage() {
     } else {
       addItem({
         id: product.id,
+        slug: product.slug,
         name: product.name,
         price: product.basePrice || product.price,
         originalPrice: product.comparePrice,
@@ -341,6 +343,7 @@ export default function ProductPage() {
   const addRelatedProductToCart = (relatedProduct: RelatedProduct) => {
     addItem({
       id: relatedProduct.id,
+      slug: relatedProduct.slug,
       name: relatedProduct.name,
       price: relatedProduct.price,
       originalPrice: relatedProduct.originalPrice,

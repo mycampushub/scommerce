@@ -107,6 +107,7 @@ export function ProductCard({ product }: ProductCardProps) {
     // For simple products, add directly to cart
     addItem({
       id: product.id,
+      slug: product.slug,
       name: product.name,
       price: product.price,
       originalPrice: product.originalPrice,

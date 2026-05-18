@@ -350,7 +350,7 @@ export default function CartPage() {
                     {/* Desktop Layout: Horizontal */}
                     <div className="hidden md:flex gap-4 md:gap-6">
                       <div className="w-24 md:w-28 flex-shrink-0">
-                        <Link href={`/product/${item.id}`}>
+                        <Link href={`/product/${item.slug}`}>
                           <img
                             src={item.image}
                             alt={item.name}
@@ -361,7 +361,7 @@ export default function CartPage() {
                       <div className="flex-1 min-w-0 flex flex-col justify-between">
                         <div className="flex justify-between items-start gap-4">
                           <div className="flex-1 min-w-0">
-                            <Link href={`/product/${item.id}`}>
+                            <Link href={`/product/${item.slug}`}>
                               <h3 className="font-semibold text-base text-gray-900 mb-1 line-clamp-2 hover:text-pink-600 transition-colors">
                                 {item.name}
                               </h3>
@@ -407,7 +407,7 @@ export default function CartPage() {
                     {/* Mobile Layout: Vertical with better spacing */}
                     <div className="flex md:hidden gap-3">
                       <div className="w-20 flex-shrink-0">
-                        <Link href={`/product/${item.id}`}>
+                        <Link href={`/product/${item.slug}`}>
                           <img
                             src={item.image}
                             alt={item.name}
@@ -417,7 +417,7 @@ export default function CartPage() {
                       </div>
                       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
                         <div className="flex justify-between items-start gap-2 mb-2 min-w-0">
-                          <Link href={`/product/${item.id}`} className="flex-1 min-w-0">
+                          <Link href={`/product/${item.slug}`} className="flex-1 min-w-0">
                             <h3 className="font-semibold text-sm text-gray-900 line-clamp-2 hover:text-pink-600 transition-colors">
                               {item.name}
                             </h3>
