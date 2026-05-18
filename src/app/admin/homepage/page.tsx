@@ -1074,7 +1074,7 @@ export default function HomepageManagementPage() {
                   Add Banner
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby="banner-dialog-description">
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden" aria-describedby="banner-dialog-description">
                 <DialogHeader>
                   <DialogTitle>{editingBanner ? 'Edit Banner' : 'Add Banner'}</DialogTitle>
                   <DialogDescription id="banner-dialog-description">
@@ -1235,7 +1235,7 @@ export default function HomepageManagementPage() {
                   Add Story
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby="story-dialog-description">
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden" aria-describedby="story-dialog-description">
                 <DialogHeader>
                   <DialogTitle>{editingStory ? 'Edit Story' : 'Add Story'}</DialogTitle>
                   <DialogDescription id="story-dialog-description">
@@ -1378,7 +1378,7 @@ export default function HomepageManagementPage() {
                   Add Reel
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby="reel-dialog-description">
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden" aria-describedby="reel-dialog-description">
                 <DialogHeader>
                   <DialogTitle>{editingReel ? 'Edit Reel' : 'Add Reel'}</DialogTitle>
                   <DialogDescription id="reel-dialog-description">
@@ -1528,7 +1528,7 @@ export default function HomepageManagementPage() {
                   Add Promotion
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby="promotion-dialog-description">
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden" aria-describedby="promotion-dialog-description">
                 <DialogHeader>
                   <DialogTitle>{editingPromotion ? 'Edit Promotion' : 'Add Promotion'}</DialogTitle>
                   <DialogDescription id="promotion-dialog-description">

@@ -749,7 +749,7 @@ export default function CustomersPage() {
 
       {/* Add Customer Dialog */}
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-        <DialogContent className="max-w-md w-full sm:rounded-lg" aria-describedby="add-customer-description">
+        <DialogContent className="max-w-md w-full overflow-x-hidden sm:rounded-lg" aria-describedby="add-customer-description">
           <DialogHeader>
             <DialogTitle>Add New Customer</DialogTitle>
             <DialogDescription id="add-customer-description">
@@ -808,7 +808,7 @@ export default function CustomersPage() {
 
       {/* Edit Customer Dialog */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="max-w-md w-full sm:rounded-lg" aria-describedby="edit-customer-description">
+        <DialogContent className="max-w-md w-full overflow-x-hidden sm:rounded-lg" aria-describedby="edit-customer-description">
           <DialogHeader>
             <DialogTitle>Edit Customer</DialogTitle>
             <DialogDescription id="edit-customer-description">
@@ -890,7 +890,7 @@ export default function CustomersPage() {
 
       {/* Customer Detail Dialog */}
       <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
-        <DialogContent className="max-w-md w-full sm:rounded-lg" aria-describedby="customer-detail-description">
+        <DialogContent className="max-w-md w-full overflow-x-hidden sm:rounded-lg" aria-describedby="customer-detail-description">
           <DialogHeader>
             <DialogTitle>Customer Details</DialogTitle>
             <DialogDescription id="customer-detail-description">

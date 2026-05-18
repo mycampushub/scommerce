@@ -1152,7 +1152,7 @@ export default function ProductsPage() {
 
       {/* Edit Product Modal */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="max-w-6xl w-full max-h-[90vh] overflow-y-auto sm:rounded-lg" aria-describedby="edit-product-description">
+        <DialogContent className="max-w-6xl w-full max-h-[90vh] overflow-y-auto overflow-x-hidden sm:rounded-lg" aria-describedby="edit-product-description">
           <DialogHeader>
             <DialogTitle>Edit Product</DialogTitle>
             <DialogDescription id="edit-product-description">Update product information</DialogDescription>
@@ -1289,7 +1289,7 @@ export default function ProductsPage() {
 
       {/* Add Product Modal */}
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-        <DialogContent className="max-w-6xl w-full max-h-[90vh] overflow-y-auto sm:rounded-lg" aria-describedby="add-product-description">
+        <DialogContent className="max-w-6xl w-full max-h-[90vh] overflow-y-auto overflow-x-hidden sm:rounded-lg" aria-describedby="add-product-description">
           <DialogHeader>
             <DialogTitle>Add New Product</DialogTitle>
             <DialogDescription id="add-product-description">Create a new product for your store</DialogDescription>
@@ -1455,7 +1455,7 @@ export default function ProductsPage() {
 
       {/* Variant Management Modal */}
       <Dialog open={isVariantsModalOpen} onOpenChange={setIsVariantsModalOpen}>
-        <DialogContent className="max-w-7xl w-full max-h-[90vh] overflow-y-auto sm:rounded-lg" aria-describedby="manage-variants-description">
+        <DialogContent className="max-w-7xl w-full max-h-[90vh] overflow-y-auto overflow-x-hidden sm:rounded-lg" aria-describedby="manage-variants-description">
           <DialogHeader>
             <DialogTitle>Manage Variants - {selectedProductForVariants?.name}</DialogTitle>
             <DialogDescription id="manage-variants-description">Create and manage product variants (sizes, colors, materials)</DialogDescription>
@@ -1674,7 +1674,7 @@ export default function ProductsPage() {
                         </SelectTrigger>
                         <SelectContent>
                           {availableSizes.length === 0 && (
-                            <SelectItem value="">No sizes yet</SelectItem>
+                            <SelectItem value="__none__" disabled>No sizes yet</SelectItem>
                           )}
                           {availableSizes.map((size) => (
                             <SelectItem key={size} value={size}>{size}</SelectItem>
@@ -1703,7 +1703,7 @@ export default function ProductsPage() {
                         </SelectTrigger>
                         <SelectContent>
                           {availableColors.length === 0 && (
-                            <SelectItem value="">No colors yet</SelectItem>
+                            <SelectItem value="__none__" disabled>No colors yet</SelectItem>
                           )}
                           {availableColors.map((color) => (
                             <SelectItem key={color} value={color}>{color}</SelectItem>
@@ -1732,7 +1732,7 @@ export default function ProductsPage() {
                         </SelectTrigger>
                         <SelectContent>
                           {availableMaterials.length === 0 && (
-                            <SelectItem value="">No materials yet</SelectItem>
+                            <SelectItem value="__none__" disabled>No materials yet</SelectItem>
                           )}
                           {availableMaterials.map((material) => (
                             <SelectItem key={material} value={material}>{material}</SelectItem>

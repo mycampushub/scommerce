@@ -87,9 +87,9 @@ export async function execute(
   }
   const stmt = db.prepare(sql);
   const result = await stmt.bind(...params).run();
-  
-  // Check if there was an error
-  if (result.error) {
+
+  // Check if there was an error (for D1)
+  if ('error' in result && result.error) {
     console.error('[db.ts] Execute error:', {
       sql: sql.substring(0, 100),
       error: result.error.message

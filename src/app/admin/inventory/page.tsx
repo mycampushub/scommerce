@@ -723,7 +723,7 @@ export default function InventoryPage() {
 
       {/* Add Stock Dialog */}
       <Dialog open={isAddStockOpen} onOpenChange={setIsAddStockOpen}>
-        <DialogContent className="sm:rounded-lg" aria-describedby="add-stock-description">
+        <DialogContent className="overflow-x-hidden sm:rounded-lg" aria-describedby="add-stock-description">
           <DialogHeader>
             <DialogTitle>Add Stock</DialogTitle>
             <DialogDescription id="add-stock-description">Select a product and add stock quantity</DialogDescription>
@@ -793,7 +793,7 @@ export default function InventoryPage() {
 
       {/* Edit Stock Dialog */}
       <Dialog open={isEditStockOpen} onOpenChange={setIsEditStockOpen}>
-        <DialogContent className="sm:rounded-lg" aria-describedby="edit-stock-description">
+        <DialogContent className="overflow-x-hidden sm:rounded-lg" aria-describedby="edit-stock-description">
           <DialogHeader>
             <DialogTitle>Edit Stock Settings</DialogTitle>
             <DialogDescription id="edit-stock-description">Update stock levels and alert thresholds for {editingProduct?.name}</DialogDescription>

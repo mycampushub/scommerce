@@ -158,7 +158,7 @@ export function GallerySelector({ onSelect, selectedUrl, category, multiple = fa
           {multiple ? 'Select from Gallery' : selectedUrl ? 'Change Image' : 'Select from Gallery'}
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-5xl max-h-[85vh]" aria-describedby="gallery-description">
+      <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto overflow-x-hidden" aria-describedby="gallery-description">
         <DialogHeader>
           <DialogTitle>Media Gallery</DialogTitle>
           <DialogDescription id="gallery-description" className="sr-only">

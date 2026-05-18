@@ -341,7 +341,7 @@ export default function AuditLogsPage() {
       {/* Log Detail Modal */}
       {selectedLog && (
         <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
-          <DialogContent className="max-w-2xl" aria-describedby="log-detail-description">
+          <DialogContent className="max-w-2xl overflow-x-hidden" aria-describedby="log-detail-description">
             <DialogHeader>
               <DialogTitle>Log Details</DialogTitle>
               <DialogDescription id="log-detail-description">

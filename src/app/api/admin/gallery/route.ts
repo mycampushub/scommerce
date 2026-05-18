@@ -81,7 +81,14 @@ export async function POST(request: NextRequest) {
     const file = formData.get('file') as File
     const category = (formData.get('category') as string) || 'general'
     const alt = (formData.get('alt') as string) || ''
-    const tags = (formData.get('tags') as string) || '[]'
+    let tags = formData.get('tags') as string | null
+
+    // Ensure tags is always a string (JSON stringify if it's an object)
+    if (!tags) {
+      tags = '[]'
+    } else if (typeof tags !== 'string') {
+      tags = JSON.stringify(tags)
+    }
 
     if (!file) {
       return NextResponse.json(

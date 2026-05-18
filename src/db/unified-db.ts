@@ -85,11 +85,12 @@ class PrismaPreparedStatement implements PreparedStatement {
   async run(): Promise<{ meta: { changes: number }, error?: Error }> {
     try {
       const result = await this.prisma.$executeRawUnsafe(this.sql, ...this.params);
-      return { meta: { changes: result as number } };
+      return { meta: { changes: result as number }, error: undefined };
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       console.error('[PrismaPreparedStatement] run() error:', err);
-      return { meta: { changes: 0 }, error: err };
+      // Throw the error instead of returning it - this is consistent with D1 behavior
+      throw err;
     }
   }
 }

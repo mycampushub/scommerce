@@ -10,7 +10,19 @@ import { useEffect } from 'react'
  */
 export function ServiceWorkerHandler() {
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+    // In development, unregister any existing service workers
+    if (process.env.NODE_ENV !== 'production' && typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        registrations.forEach((registration) => {
+          registration.unregister()
+          console.log('Service Worker unregistered in development mode')
+        })
+      })
+      return
+    }
+
+    // Only register service worker in production
+    if (process.env.NODE_ENV === 'production' && typeof window !== 'undefined' && 'serviceWorker' in navigator) {
       const swUrl = '/sw.js'
 
       // Register the PWA service worker

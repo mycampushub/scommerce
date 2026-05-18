@@ -561,7 +561,7 @@ export default function OrdersPage() {
 
       {/* Order Details Modal */}
       <Dialog open={isDetailsModalOpen} onOpenChange={setIsDetailsModalOpen}>
-        <DialogContent className="max-w-2xl w-full max-h-[90vh] overflow-y-auto sm:rounded-lg" aria-describedby="order-details-description">
+        <DialogContent className="max-w-2xl w-full max-h-[90vh] overflow-y-auto overflow-x-hidden sm:rounded-lg" aria-describedby="order-details-description">
           <DialogHeader>
             <div className="flex items-center justify-between">
               <div>
@@ -691,7 +691,7 @@ export default function OrdersPage() {
 
       {/* Update Status Modal */}
       <Dialog open={isStatusModalOpen} onOpenChange={setIsStatusModalOpen}>
-        <DialogContent className="max-w-2xl w-full max-h-[90vh] overflow-y-auto sm:rounded-lg" aria-describedby="update-status-description">
+        <DialogContent className="max-w-2xl w-full max-h-[90vh] overflow-y-auto overflow-x-hidden sm:rounded-lg" aria-describedby="update-status-description">
           <DialogHeader>
             <DialogTitle>Update Order Status</DialogTitle>
             <DialogDescription id="update-status-description">Change the status and tracking for order {updatingOrder?.orderNumber}</DialogDescription>
