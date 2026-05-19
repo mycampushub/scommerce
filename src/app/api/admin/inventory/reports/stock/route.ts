@@ -116,11 +116,17 @@ export async function GET(request: NextRequest) {
           totalVariants,
           outOfStock,
           lowStock,
-          healthyStock,
+          healthy: healthyStock,
           overstock,
-          totalItems: totalProducts + totalVariants,
         },
-        items: filteredStatus,
+        items: filteredStatus.map(s => ({
+          id: s.id,
+          name: s.type === 'variant' ? `${s.productName} - ${s.variantName}` : s.productName,
+          category: s.category,
+          stock: s.stock,
+          reorderLevel: s.reorderLevel,
+          status: s.statusLabel.toLowerCase().replace(' ', '_'),
+        })),
       },
     });
   } catch (error) {

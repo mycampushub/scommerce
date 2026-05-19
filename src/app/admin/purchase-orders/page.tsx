@@ -33,7 +33,6 @@ import {
 import {
   Search,
   Plus,
-  Edit,
   X,
   CheckCircle,
   Package,
@@ -42,13 +41,15 @@ import {
   Clock,
   Loader2,
   FileText,
+  Eye,
 } from 'lucide-react'
 
 interface POItem {
   productId: string
   productName: string
   quantity: number
-  costPrice: number
+  unitCost: number
+  variantId?: string
 }
 
 interface PurchaseOrder {
@@ -60,7 +61,7 @@ interface PurchaseOrder {
   totalAmount: number
   totalQuantity: number
   expectedDate: string | null
-  receivedAt: string | null
+  receivedDate: string | null
   notes: string | null
   createdAt: string
   items?: POItem[]
@@ -69,7 +70,6 @@ interface PurchaseOrder {
 interface Supplier {
   id: string
   name: string
-  code: string
   isActive: boolean
 }
 
@@ -77,6 +77,14 @@ interface Product {
   id: string
   name: string
   sku: string | null
+  hasVariants: boolean
+}
+
+interface ProductVariant {
+  id: string
+  name: string
+  productId: string
+  stock: number
 }
 
 export default function PurchaseOrdersPage() {
@@ -85,8 +93,11 @@ export default function PurchaseOrdersPage() {
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([])
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [products, setProducts] = useState<Product[]>([])
+  const [variants, setVariants] = useState<ProductVariant[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [viewModalOpen, setViewModalOpen] = useState(false)
+  const [viewPO, setViewPO] = useState<PurchaseOrder | null>(null)
 
   // Create PO modal state
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -137,10 +148,21 @@ export default function PurchaseOrdersPage() {
       const result = await response.json()
 
       if (result.success) {
-        setProducts(result.data || [])
+        setProducts(result.products || [])
       }
     } catch (err) {
       console.error('Error fetching products:', err)
+    }
+  }
+
+  const fetchVariants = async (productId: string) => {
+    try {
+      const response = await fetch(`/api/admin/products/${productId}/variants`)
+      const result = await response.json()
+      setVariants(result.variants || [])
+    } catch (err) {
+      console.error('Error fetching variants:', err)
+      setVariants([])
     }
   }
 
@@ -157,6 +179,7 @@ export default function PurchaseOrdersPage() {
       notes: '',
       items: [],
     })
+    setVariants([])
     setIsModalOpen(true)
   }
 
@@ -171,11 +194,11 @@ export default function PurchaseOrdersPage() {
     }
     setFormData({
       ...formData,
-      items: [...formData.items, { productId: '', productName: '', quantity: 1, costPrice: 0 }],
+      items: [...formData.items, { productId: '', productName: '', quantity: 1, unitCost: 0, variantId: '' }],
     })
   }
 
-  const updateItem = (index: number, field: keyof POItem, value: any) => {
+  const updateItem = (index: number, field: keyof POItem | 'variantId', value: any) => {
     const updatedItems = [...formData.items]
     updatedItems[index] = { ...updatedItems[index], [field]: value }
 
@@ -184,6 +207,10 @@ export default function PurchaseOrdersPage() {
       const product = products.find(p => p.id === value)
       if (product) {
         updatedItems[index].productName = product.name
+        // Fetch variants if product has variants
+        if (product.hasVariants) {
+          fetchVariants(value)
+        }
       }
     }
 
@@ -208,7 +235,7 @@ export default function PurchaseOrdersPage() {
     }
 
     // Validate items
-    const invalidItem = formData.items.find(item => !item.productId || item.quantity <= 0 || item.costPrice <= 0)
+    const invalidItem = formData.items.find(item => !item.productId || item.quantity <= 0 || item.unitCost <= 0)
     if (invalidItem) {
       toast({
         title: 'Validation Error',
@@ -230,13 +257,16 @@ export default function PurchaseOrdersPage() {
           notes: formData.notes || null,
           items: formData.items.map(item => ({
             productId: item.productId,
+            variantId: (item as any).variantId || undefined,
             quantity: item.quantity,
-            costPrice: item.costPrice,
+            unitCost: item.unitCost,
           })),
         }),
       })
 
-      if (response.ok) {
+      const result = await response.json()
+
+      if (result.success) {
         toast({
           title: 'Success',
           description: 'Purchase order created successfully',
@@ -244,8 +274,7 @@ export default function PurchaseOrdersPage() {
         setIsModalOpen(false)
         fetchPurchaseOrders()
       } else {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to create PO')
+        throw new Error(result.error || 'Failed to create PO')
       }
     } catch (err: any) {
       console.error('Error creating PO:', err)
@@ -263,19 +292,38 @@ export default function PurchaseOrdersPage() {
     }
 
     try {
+      // Get PO details to fetch items
+      const poResponse = await fetch(`/api/admin/purchase-orders/${po.id}`)
+      const poResult = await poResponse.json()
+
+      if (!poResult.success || !poResult.data.items) {
+        throw new Error('Could not fetch PO items')
+      }
+
+      // Prepare received items - receive all items in full
+      const receivedItems = poResult.data.items.map((item: any) => ({
+        itemId: item.id,
+        quantity: item.quantity,
+      }))
+
       const response = await fetch(`/api/admin/purchase-orders/${po.id}/receive`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ items: receivedItems }),
       })
 
-      if (response.ok) {
+      const result = await response.json()
+
+      if (result.success) {
         toast({
           title: 'Success',
           description: 'Purchase order received successfully. Inventory updated.',
         })
         fetchPurchaseOrders()
       } else {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to receive PO')
+        throw new Error(result.error || 'Failed to receive PO')
       }
     } catch (err: any) {
       console.error('Error receiving PO:', err)
@@ -297,15 +345,16 @@ export default function PurchaseOrdersPage() {
         method: 'DELETE',
       })
 
-      if (response.ok) {
+      const result = await response.json()
+
+      if (result.success) {
         toast({
           title: 'Success',
           description: 'Purchase order cancelled successfully',
         })
         fetchPurchaseOrders()
       } else {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to cancel PO')
+        throw new Error(result.error || 'Failed to cancel PO')
       }
     } catch (err: any) {
       console.error('Error cancelling PO:', err)
@@ -317,10 +366,29 @@ export default function PurchaseOrdersPage() {
     }
   }
 
+  const handleView = async (po: PurchaseOrder) => {
+    try {
+      const response = await fetch(`/api/admin/purchase-orders/${po.id}`)
+      const result = await response.json()
+
+      if (result.success) {
+        setViewPO(result.data)
+        setViewModalOpen(true)
+      }
+    } catch (err) {
+      console.error('Error fetching PO details:', err)
+      toast({
+        title: 'Error',
+        description: 'Failed to fetch PO details',
+        variant: 'destructive',
+      })
+    }
+  }
+
   const filteredPOs = purchaseOrders.filter(po => {
     const matchesSearch =
       po.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      po.supplierName.toLowerCase().includes(searchTerm.toLowerCase())
+      po.supplierName?.toLowerCase().includes(searchTerm.toLowerCase())
 
     const matchesStatus = statusFilter === 'all' || po.status === statusFilter
 
@@ -336,7 +404,7 @@ export default function PurchaseOrdersPage() {
     return configs[status as keyof typeof configs] || configs.PENDING
   }
 
-  const totalPOAmount = formData.items.reduce((sum, item) => sum + (item.quantity * item.costPrice), 0)
+  const totalPOAmount = formData.items.reduce((sum, item) => sum + (item.quantity * item.unitCost), 0)
   const totalPOQuantity = formData.items.reduce((sum, item) => sum + item.quantity, 0)
 
   return (
@@ -469,7 +537,7 @@ export default function PurchaseOrdersPage() {
                         <span className="font-mono text-sm font-medium text-gray-900">{po.orderNumber}</span>
                       </TableCell>
                       <TableCell>
-                        <span className="text-sm text-gray-700">{po.supplierName}</span>
+                        <span className="text-sm text-gray-700">{po.supplierName || 'Unknown'}</span>
                       </TableCell>
                       <TableCell>
                         <span className="text-sm text-gray-700">{po.totalQuantity}</span>
@@ -488,6 +556,13 @@ export default function PurchaseOrdersPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleView(po)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
                           {po.status === 'PENDING' && (
                             <>
                               <Button
@@ -507,12 +582,6 @@ export default function PurchaseOrdersPage() {
                                 <XCircle className="h-4 w-4" />
                               </Button>
                             </>
-                          )}
-                          {po.status === 'RECEIVED' && (
-                            <span className="text-xs text-gray-400">Received</span>
-                          )}
-                          {po.status === 'CANCELLED' && (
-                            <span className="text-xs text-gray-400">Cancelled</span>
                           )}
                         </div>
                       </TableCell>
@@ -536,14 +605,14 @@ export default function PurchaseOrdersPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="supplier">Supplier *</Label>
-                <Select value={formData.supplierId} onValueChange={(val) => setFormData({ ...formData, supplierId: val })}>
+                <Select value={formData.supplierId} onValueChange={(val) => { setFormData({ ...formData, supplierId: val }); setVariants([]); }}>
                   <SelectTrigger id="supplier">
                     <SelectValue placeholder="Select supplier" />
                   </SelectTrigger>
                   <SelectContent>
                     {suppliers.map(supplier => (
                       <SelectItem key={supplier.id} value={supplier.id}>
-                        {supplier.name} ({supplier.code})
+                        {supplier.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -563,54 +632,77 @@ export default function PurchaseOrdersPage() {
             <div>
               <Label>Items</Label>
               <div className="mt-2 space-y-2">
-                {formData.items.map((item, index) => (
-                  <div key={index} className="flex items-center gap-2 p-3 border rounded-lg bg-gray-50">
-                    <div className="flex-1">
-                      <Select value={item.productId} onValueChange={(val) => updateItem(index, 'productId', val)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select product" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {products.map(product => (
-                            <SelectItem key={product.id} value={product.id}>
-                              {product.name} {product.sku && `(${product.sku})`}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                {formData.items.map((item, index) => {
+                  const product = products.find(p => p.id === item.productId)
+                  const hasVariants = product?.hasVariants
+                  return (
+                    <div key={index} className="flex items-start gap-2 p-3 border rounded-lg bg-gray-50">
+                      <div className="flex-1 space-y-2">
+                        <Select value={item.productId} onValueChange={(val) => updateItem(index, 'productId', val)}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select product" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {products.map(product => (
+                              <SelectItem key={product.id} value={product.id}>
+                                {product.name} {product.sku && `(${product.sku})`}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+
+                        {hasVariants && variants.length > 0 && (
+                          <Select
+                            value={(item as any).variantId || ''}
+                            onValueChange={(val) => updateItem(index, 'variantId', val)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select variant" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="">No variant</SelectItem>
+                              {variants.map(variant => (
+                                <SelectItem key={variant.id} value={variant.id}>
+                                  {variant.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </div>
+                      <div className="w-24">
+                        <Input
+                          type="number"
+                          placeholder="Qty"
+                          value={item.quantity}
+                          onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value) || 0)}
+                          min="1"
+                        />
+                      </div>
+                      <div className="w-32">
+                        <Input
+                          type="number"
+                          placeholder="Cost"
+                          value={item.unitCost}
+                          onChange={(e) => updateItem(index, 'unitCost', parseFloat(e.target.value) || 0)}
+                          min="0"
+                          step="0.01"
+                        />
+                      </div>
+                      <div className="w-32 text-sm text-gray-600 flex items-center">
+                        ৳{(item.quantity * item.unitCost).toFixed(2)}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeItem(index)}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
                     </div>
-                    <div className="w-24">
-                      <Input
-                        type="number"
-                        placeholder="Qty"
-                        value={item.quantity}
-                        onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value) || 0)}
-                        min="1"
-                      />
-                    </div>
-                    <div className="w-32">
-                      <Input
-                        type="number"
-                        placeholder="Cost"
-                        value={item.costPrice}
-                        onChange={(e) => updateItem(index, 'costPrice', parseFloat(e.target.value) || 0)}
-                        min="0"
-                        step="0.01"
-                      />
-                    </div>
-                    <div className="w-32 text-sm text-gray-600">
-                      ৳{(item.quantity * item.costPrice).toFixed(2)}
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeItem(index)}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
+                  )
+                })}
                 <Button
                   type="button"
                   variant="outline"
@@ -657,6 +749,80 @@ export default function PurchaseOrdersPage() {
               Create Purchase Order
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View PO Modal */}
+      <Dialog open={viewModalOpen} onOpenChange={setViewModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Purchase Order Details</DialogTitle>
+            <DialogDescription>
+              {viewPO?.orderNumber} - {viewPO?.supplierName}
+            </DialogDescription>
+          </DialogHeader>
+          {viewPO && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-muted-foreground">Status</Label>
+                  <div className="font-medium">{viewPO.status}</div>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Created At</Label>
+                  <div className="text-sm">{new Date(viewPO.createdAt).toLocaleString()}</div>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Expected Date</Label>
+                  <div className="text-sm">{viewPO.expectedDate ? new Date(viewPO.expectedDate).toLocaleDateString() : '-'}</div>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Received Date</Label>
+                  <div className="text-sm">{viewPO.receivedDate ? new Date(viewPO.receivedDate).toLocaleDateString() : '-'}</div>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Total Quantity</Label>
+                  <div className="font-medium">{viewPO.totalQuantity}</div>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Total Amount</Label>
+                  <div className="font-medium">৳{viewPO.totalAmount.toFixed(2)}</div>
+                </div>
+                {viewPO.notes && (
+                  <div className="col-span-2">
+                    <Label className="text-muted-foreground">Notes</Label>
+                    <div className="text-sm">{viewPO.notes}</div>
+                  </div>
+                )}
+              </div>
+
+              {viewPO.items && viewPO.items.length > 0 && (
+                <div>
+                  <Label className="mb-2 block">Items</Label>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Product</TableHead>
+                        <TableHead className="text-right">Quantity</TableHead>
+                        <TableHead className="text-right">Unit Cost</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {viewPO.items.map((item: any, idx: number) => (
+                        <TableRow key={idx}>
+                          <TableCell>{item.productName || 'Unknown Product'}</TableCell>
+                          <TableCell className="text-right">{item.quantity}</TableCell>
+                          <TableCell className="text-right">৳{item.unitCost?.toFixed(2) || '0.00'}</TableCell>
+                          <TableCell className="text-right">৳{(item.quantity * item.unitCost).toFixed(2)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

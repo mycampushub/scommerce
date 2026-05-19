@@ -177,6 +177,12 @@ export default function HomepageManagementPage() {
     productIds: [] as string[]
   })
 
+  // Reels Carousel state
+  const [reelsCarouselEnabled, setReelsCarouselEnabled] = useState(true)
+  const [reelsCarouselAutoScroll, setReelsCarouselAutoScroll] = useState(true)
+  const [reelsCarouselAutoPlay, setReelsCarouselAutoPlay] = useState(3000)
+  const [savingReelsCarousel, setSavingReelsCarousel] = useState(false)
+
   // Promotions state
   const [promotions, setPromotions] = useState<Promotion[]>([])
   const [promotionDialogOpen, setPromotionDialogOpen] = useState(false)
@@ -442,6 +448,46 @@ export default function HomepageManagementPage() {
     }
   }
 
+  const fetchReelsCarousel = async () => {
+    try {
+      const res = await fetch('/api/admin/homepage/reels-carousel')
+      const data = await res.json() as any
+      if (data.success) {
+        setReelsCarouselEnabled(data.data.isEnabled !== undefined ? data.data.isEnabled : true)
+        setReelsCarouselAutoScroll(data.data.autoScroll !== undefined ? data.data.autoScroll : true)
+        setReelsCarouselAutoPlay(data.data.autoPlay || 3000)
+      }
+    } catch (error) {
+      console.error('Error fetching reels carousel settings:', error)
+    }
+  }
+
+  const handleSaveReelsCarousel = async () => {
+    setSavingReelsCarousel(true)
+    try {
+      const res = await fetch('/api/admin/homepage/reels-carousel', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          isEnabled: reelsCarouselEnabled,
+          autoScroll: reelsCarouselAutoScroll,
+          autoPlay: reelsCarouselAutoPlay
+        })
+      })
+      const data = await res.json() as any
+      if (data.success) {
+        toast.success('Reels carousel settings saved successfully')
+      } else {
+        toast.error(data.error || 'Failed to save reels carousel settings')
+      }
+    } catch (error) {
+      console.error('Error saving reels carousel settings:', error)
+      toast.error('Failed to save reels carousel settings')
+    } finally {
+      setSavingReelsCarousel(false)
+    }
+  }
+
   const fetchPromotions = async () => {
     try {
       const res = await fetch('/api/admin/promotions')
@@ -482,6 +528,7 @@ export default function HomepageManagementPage() {
     fetchBanners()
     fetchStories()
     fetchReels()
+    fetchReelsCarousel()
     fetchPromotions()
     fetchSettings()
     fetchProducts()
@@ -1646,6 +1693,64 @@ export default function HomepageManagementPage() {
               </DialogContent>
             </Dialog>
           </div>
+
+          {/* Carousel Settings Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Infinite Carousel Settings</CardTitle>
+              <CardDescription>Configure the modern infinite carousel behavior</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="reels-carousel-enabled">Enable Carousel</Label>
+                <Switch
+                  id="reels-carousel-enabled"
+                  checked={reelsCarouselEnabled}
+                  onCheckedChange={setReelsCarouselEnabled}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <Label htmlFor="reels-carousel-autoscroll">Auto-scroll</Label>
+                <Switch
+                  id="reels-carousel-autoscroll"
+                  checked={reelsCarouselAutoScroll}
+                  onCheckedChange={setReelsCarouselAutoScroll}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="reels-autoplay-interval">Autoplay Interval ({reelsCarouselAutoPlay / 1000}s)</Label>
+                <Input
+                  id="reels-autoplay-interval"
+                  type="range"
+                  min="1000"
+                  max="10000"
+                  step="500"
+                  value={reelsCarouselAutoPlay}
+                  onChange={(e) => setReelsCarouselAutoPlay(parseInt(e.target.value))}
+                  className="mt-2"
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  How often to auto-rotate to the next video
+                </p>
+              </div>
+
+              <Button onClick={handleSaveReelsCarousel} disabled={savingReelsCarousel} className="w-full">
+                {savingReelsCarousel ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Carousel Settings
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
 
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {reels.map((reel, index) => (

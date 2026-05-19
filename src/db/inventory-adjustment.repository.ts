@@ -14,7 +14,7 @@ class InventoryAdjustmentRepository {
     adjustmentType?: string;
     limit?: number;
     offset?: number;
-  }): Promise<inventory_adjustments[]> {
+  }): Promise<any[]> {
     const { productId, variantId, adjustmentType, limit = 100, offset = 0 } = options || {};
 
     let where: any = {};
@@ -22,7 +22,7 @@ class InventoryAdjustmentRepository {
     if (variantId) where.variantId = variantId;
     if (adjustmentType) where.adjustmentType = adjustmentType;
 
-    return db.inventory_adjustments.findMany({
+    const adjustments = await db.inventory_adjustments.findMany({
       where,
       orderBy: {
         createdAt: 'desc',
@@ -30,6 +30,53 @@ class InventoryAdjustmentRepository {
       take: limit,
       skip: offset,
     });
+
+    // Fetch all related products
+    const productIds = [...new Set(adjustments.map(a => a.productId))];
+    const products = await db.products.findMany({
+      where: { id: { in: productIds } },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        stock: true,
+        brandName: true,
+        countryOfOrigin: true,
+        sizeType: true,
+        sizeValue: true,
+        sizeUnit: true,
+        sizeLabel: true,
+        categories: {
+          select: { id: true, name: true }
+        }
+      }
+    });
+
+    // Fetch all related variants
+    const variantIds = adjustments.map(a => a.variantId).filter(Boolean) as string[];
+    let variants: any[] = [];
+    if (variantIds.length > 0) {
+      variants = await db.product_variants.findMany({
+        where: { id: { in: variantIds } },
+        select: {
+          id: true,
+          name: true,
+          stock: true,
+          productId: true,
+        }
+      });
+    }
+
+    // Create maps for quick lookup
+    const productMap = new Map(products.map(p => [p.id, p]));
+    const variantMap = new Map(variants.map(v => [v.id, v]));
+
+    // Merge data
+    return adjustments.map(adjustment => ({
+      ...adjustment,
+      product: productMap.get(adjustment.productId) || null,
+      variant: adjustment.variantId ? variantMap.get(adjustment.variantId) : null,
+    }));
   }
 
   async findByProduct(productId: string, variantId?: string, limit: number = 50): Promise<inventory_adjustments[]> {

@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // Get env - will be null in local dev, which is fine as SupplierRepository handles it
     const env = await getEnv()
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search') || ''

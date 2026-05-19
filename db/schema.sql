@@ -739,6 +739,7 @@ CREATE INDEX "media_uploadedBy_idx" ON "media"("uploadedBy");
 -- SUPPLIERS
 CREATE TABLE "suppliers" (
     "id" TEXT NOT NULL PRIMARY KEY,
+    "code" TEXT NOT NULL UNIQUE,
     "name" TEXT NOT NULL,
     "email" TEXT,
     "phone" TEXT,
@@ -753,6 +754,7 @@ CREATE TABLE "suppliers" (
 
 -- CreateIndex
 CREATE INDEX "suppliers_isActive_idx" ON "suppliers"("isActive");
+CREATE INDEX "suppliers_code_idx" ON "suppliers"("code");
 
 -- PURCHASE ORDERS
 CREATE TABLE "purchase_orders" (

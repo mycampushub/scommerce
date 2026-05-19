@@ -21,7 +21,9 @@ import {
   X,
   Home,
   Ticket,
-  Truck
+  Truck,
+  FileText,
+  ClipboardList
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/use-auth'
@@ -30,14 +32,16 @@ const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'Products', href: '/admin/products', icon: Package },
   { name: 'Orders', href: '/admin/orders', icon: ShoppingCart },
+  { name: 'Purchase Orders', href: '/admin/purchase-orders', icon: ClipboardList },
   { name: 'Customers', href: '/admin/customers', icon: Users },
+  { name: 'Suppliers', href: '/admin/suppliers', icon: Truck },
   { name: 'Staff', href: '/admin/staff', icon: UserCog },
   { name: 'Categories', href: '/admin/categories', icon: Tags },
   { name: 'Coupons', href: '/admin/coupons', icon: Ticket },
+  { name: 'Inventory', href: '/admin/inventory', icon: Box },
+  { name: 'Inventory Reports', href: '/admin/inventory/reports', icon: FileText },
   { name: 'Homepage', href: '/admin/homepage', icon: Home },
   { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
-  { name: 'Inventory', href: '/admin/inventory', icon: Box },
-  { name: 'Suppliers', href: '/admin/suppliers', icon: Truck },
   { name: 'Settings', href: '/admin/settings', icon: Settings },
 ]
 

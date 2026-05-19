@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     let totalPOs = 0;
     let totalAmount = 0;
     let totalQuantity = 0;
-    const supplierStats = new Map<string, { name: string; count: number; amount: number }>();
+    const supplierStats = new Map<string, { name: string; count: number; amount: number; quantity: number }>();
     const productPurchases = new Map<string, { name: string; quantity: number; cost: number }>();
 
     for (const po of purchaseOrders) {
@@ -59,11 +59,13 @@ export async function GET(request: NextRequest) {
           name: po.supplier.name,
           count: 0,
           amount: 0,
+          quantity: 0,
         });
       }
       const supplier = supplierStats.get(po.supplierId)!;
       supplier.count++;
       supplier.amount += po.totalAmount;
+      supplier.quantity += po.totalQuantity;
 
       // Product stats
       for (const item of po.items) {
@@ -91,20 +93,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        period: {
-          startDate: startDate?.toISOString() || null,
-          endDate: endDate?.toISOString() || null,
-        },
         summary: {
           totalPOs,
           totalAmount,
           totalQuantity,
-          avgPOAmount: totalPOs > 0 ? totalAmount / totalPOs : 0,
-          avgPOQuantity: totalPOs > 0 ? totalQuantity / totalPOs : 0,
         },
-        supplierBreakdown,
-        productBreakdown: productBreakdown.slice(0, 50), // Top 50 products
-        recentPOs: purchaseOrders.slice(0, 20), // Most recent 20 POs
+        suppliers: supplierBreakdown.map(s => ({
+          supplier: s.name,
+          poCount: s.count,
+          totalAmount: s.amount,
+          totalQuantity: s.quantity,
+        })),
       },
     });
   } catch (error) {

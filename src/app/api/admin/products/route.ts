@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: productsWithImages,
+      products: productsWithImages,
       totalCount,
       pagination: {
         page,
@@ -293,7 +293,7 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        data: {
+        products: {
           ...product,
           category,
         },
@@ -360,7 +360,7 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        data: {
+        products: {
           ...product,
           category,
         },

@@ -1,9 +1,10 @@
 import { db } from '@/lib/db';
-import { purchase_orders, purchase_order_items, suppliers } from '@prisma/client';
+import { purchase_orders, purchase_order_items, suppliers, products } from '@prisma/client';
 
 export type PurchaseOrderWithItems = purchase_orders & {
+  supplierName: string;
   supplier: suppliers;
-  items: purchase_order_items[];
+  items: (purchase_order_items & { productName?: string })[];
 };
 
 export type PurchaseOrderCreateInput = Omit<purchase_orders, 'id' | 'createdAt' | 'updatedAt'> & {
@@ -25,7 +26,27 @@ class PurchaseOrderRepository {
       },
     });
 
-    return po as PurchaseOrderWithItems | null;
+    if (!po) return null;
+
+    // Fetch product names for items
+    const itemIds = po.items.map(item => item.productId);
+    const productRecords = await db.products.findMany({
+      where: { id: { in: itemIds } },
+      select: { id: true, name: true },
+    });
+
+    const productNameMap = new Map(productRecords.map(p => [p.id, p.name]));
+
+    const itemsWithProductNames = po.items.map(item => ({
+      ...item,
+      productName: productNameMap.get(item.productId) || 'Unknown Product',
+    }));
+
+    return {
+      ...po,
+      supplierName: po.supplier.name,
+      items: itemsWithProductNames,
+    } as PurchaseOrderWithItems;
   }
 
   async findByOrderNumber(orderNumber: string): Promise<PurchaseOrderWithItems | null> {
@@ -37,7 +58,27 @@ class PurchaseOrderRepository {
       },
     });
 
-    return po as PurchaseOrderWithItems | null;
+    if (!po) return null;
+
+    // Fetch product names for items
+    const itemIds = po.items.map(item => item.productId);
+    const productRecords = await db.products.findMany({
+      where: { id: { in: itemIds } },
+      select: { id: true, name: true },
+    });
+
+    const productNameMap = new Map(productRecords.map(p => [p.id, p.name]));
+
+    const itemsWithProductNames = po.items.map(item => ({
+      ...item,
+      productName: productNameMap.get(item.productId) || 'Unknown Product',
+    }));
+
+    return {
+      ...po,
+      supplierName: po.supplier.name,
+      items: itemsWithProductNames,
+    } as PurchaseOrderWithItems;
   }
 
   async findAll(options?: {
@@ -72,7 +113,23 @@ class PurchaseOrderRepository {
       },
     });
 
-    return pos as PurchaseOrderWithItems[];
+    // Fetch all product IDs from all PO items
+    const allItemIds = pos.flatMap(po => po.items.map(item => item.productId));
+    const productRecords = await db.products.findMany({
+      where: { id: { in: allItemIds } },
+      select: { id: true, name: true },
+    });
+
+    const productNameMap = new Map(productRecords.map(p => [p.id, p.name]));
+
+    return pos.map(po => ({
+      ...po,
+      supplierName: po.supplier.name,
+      items: po.items.map(item => ({
+        ...item,
+        productName: productNameMap.get(item.productId) || 'Unknown Product',
+      })),
+    })) as PurchaseOrderWithItems[];
   }
 
   async create(data: PurchaseOrderCreateInput): Promise<PurchaseOrderWithItems> {
@@ -114,7 +171,25 @@ class PurchaseOrderRepository {
       },
     });
 
-    return po as PurchaseOrderWithItems;
+    // Fetch product names for items
+    const itemIds = po.items.map(item => item.productId);
+    const productRecords = await db.products.findMany({
+      where: { id: { in: itemIds } },
+      select: { id: true, name: true },
+    });
+
+    const productNameMap = new Map(productRecords.map(p => [p.id, p.name]));
+
+    const itemsWithProductNames = po.items.map(item => ({
+      ...item,
+      productName: productNameMap.get(item.productId) || 'Unknown Product',
+    }));
+
+    return {
+      ...po,
+      supplierName: po.supplier.name,
+      items: itemsWithProductNames,
+    } as PurchaseOrderWithItems;
   }
 
   async update(id: string, data: Partial<Omit<purchase_orders, 'id' | 'createdAt' | 'updatedAt'>>): Promise<purchase_orders | null> {

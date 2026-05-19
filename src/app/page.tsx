@@ -1156,10 +1156,76 @@ function BrandCarousel() {
   )
 }
 
-// 5. Video Carousel Component
+// 5. Modern Infinite Shorts Carousel Component
 function VideoReels({ reels }: { reels: VideoReel[] }) {
   const [selectedReel, setSelectedReel] = useState<VideoReel | null>(null)
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [isPaused, setIsPaused] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
+  const [startX, setStartX] = useState(0)
+  const [currentTranslate, setCurrentTranslate] = useState(0)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  // Carousel settings state
+  const [carouselSettings, setCarouselSettings] = useState({
+    isEnabled: true,
+    autoScroll: true,
+    autoPlay: 3000
+  })
+
+  // Fetch carousel settings
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch('/api/admin/homepage/reels-carousel')
+        const data = await res.json() as any
+        if (data.success) {
+          setCarouselSettings(data.data)
+        }
+      } catch (error) {
+        console.error('Error fetching reels carousel settings:', error)
+      }
+    }
+    fetchSettings()
+  }, [])
+
+  // Autoplay effect
+  useEffect(() => {
+    if (!reels || reels.length === 0 || isPaused || isDragging || !carouselSettings.autoScroll || !carouselSettings.isEnabled) return
+
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % reels.length)
+    }, carouselSettings.autoPlay)
+
+    return () => clearInterval(interval)
+  }, [reels?.length, isPaused, isDragging, carouselSettings.autoScroll, carouselSettings.autoPlay, carouselSettings.isEnabled])
+
+  // Touch/Drag handlers
+  const handleDragStart = (e: React.TouchEvent | React.MouseEvent) => {
+    setIsDragging(true)
+    setStartX('touches' in e ? e.touches[0].clientX : e.clientX)
+    setIsPaused(true)
+  }
+
+  const handleDragMove = (e: React.TouchEvent | React.MouseEvent) => {
+    if (!isDragging) return
+    const currentX = 'touches' in e ? e.touches[0].clientX : e.clientX
+    const diff = currentX - startX
+    setCurrentTranslate(diff)
+  }
+
+  const handleDragEnd = () => {
+    if (!isDragging || !reels || reels.length === 0) return
+    setIsDragging(false)
+    const threshold = 50
+    if (currentTranslate > threshold) {
+      setCurrentIndex((prev) => (prev - 1 + reels.length) % reels.length)
+    } else if (currentTranslate < -threshold) {
+      setCurrentIndex((prev) => (prev + 1) % reels.length)
+    }
+    setCurrentTranslate(0)
+    setIsPaused(false)
+  }
 
   const handlePrev = () => {
     if (!reels || reels.length === 0) return
@@ -1171,9 +1237,19 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
     setCurrentIndex((prev) => (prev + 1) % reels.length)
   }
 
+  const handleDotClick = (index: number) => {
+    setCurrentIndex(index)
+  }
+
+  if (!reels || reels.length === 0 || !carouselSettings.isEnabled) return null
+
   return (
     <>
-      <section className="homevideocarousel clr container mx-auto px-4 py-12">
+      <section
+        className="homevideocarousel clr container mx-auto px-4 py-12"
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+      >
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-2xl md:text-3xl font-bold flex items-center gap-2 text-gray-900">
             <span className="text-pink-600">⚡</span>
@@ -1189,40 +1265,198 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
             </svg>
           </a>
         </div>
-        <div className="flex gap-4 overflow-x-auto pb-4 px-1" style={{ scrollbarWidth: 'none' }}>
-          {reels && reels.map((reel, index) => (
+
+        {/* Modern Infinite Carousel */}
+        <div className="relative" ref={containerRef}>
+          {/* Navigation Buttons */}
+          <button
+            onClick={handlePrev}
+            className="absolute left-0 md:-left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 bg-white shadow-lg rounded-full flex items-center justify-center hover:bg-pink-50 hover:scale-110 transition-all border border-gray-200"
+            aria-label="Previous video"
+          >
+            <ChevronLeft className="w-5 h-5 md:w-6 md:h-6 text-gray-700" strokeWidth={2.5} />
+          </button>
+          <button
+            onClick={handleNext}
+            className="absolute right-0 md:-right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 bg-white shadow-lg rounded-full flex items-center justify-center hover:bg-pink-50 hover:scale-110 transition-all border border-gray-200"
+            aria-label="Next video"
+          >
+            <ChevronRight className="w-5 h-5 md:w-6 md:h-6 text-gray-700" strokeWidth={2.5} />
+          </button>
+
+          {/* Carousel Container */}
+          <div
+            className="relative flex items-center justify-center overflow-hidden py-8 md:py-12 select-none"
+            onTouchStart={handleDragStart}
+            onTouchMove={handleDragMove}
+            onTouchEnd={handleDragEnd}
+            onMouseDown={handleDragStart}
+            onMouseMove={handleDragMove}
+            onMouseUp={handleDragEnd}
+            onMouseLeave={() => {
+              if (isDragging) handleDragEnd()
+            }}
+            style={{
+              cursor: isDragging ? 'grabbing' : 'grab'
+            }}
+          >
             <div
-              key={reel.id}
-              className="flex-shrink-0 cursor-pointer group transition-all duration-300"
-              style={{ width: '160px', minWidth: '160px' }}
-              onClick={() => setSelectedReel(reel)}
+              className="flex items-center justify-center transition-transform duration-500 ease-out"
+              style={{
+                transform: isDragging ? `translateX(${currentTranslate}px)` : 'none'
+              }}
             >
-              <div className="relative aspect-[9/16] overflow-hidden bg-gray-100 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300">
-                <img 
-                  src={reel.thumbnail} 
-                  alt={reel.title} 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
-                  loading="lazy"
-                  width="160"
-                  height="284"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 group-hover:from-black/50 group-hover:to-black/10 transition-all duration-300" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-12 h-12 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                    <Play className="w-5 h-5 fill-pink-500 text-pink-500 ml-0.5" />
+              {reels.map((reel, index) => {
+                // Calculate position relative to center
+                const diff = (index - currentIndex + reels.length) % reels.length
+                const normalizedDiff = diff > reels.length / 2 ? diff - reels.length : diff
+
+                // Calculate styles based on position
+                let scale = 0.7
+                let opacity = 0.3
+                let zIndex = 1
+                let translateX = 0
+                let translateY = 0
+                let blur = 8
+                let cardWidth = '120px'
+                let aspectRatioClass = 'aspect-[9/16]'
+
+                if (normalizedDiff === 0) {
+                  // Center card (active)
+                  scale = 1
+                  opacity = 1
+                  zIndex = 10
+                  translateX = 0
+                  translateY = 0
+                  blur = 0
+                  cardWidth = '180px'
+                } else if (Math.abs(normalizedDiff) === 1) {
+                  // First side cards
+                  scale = 0.85
+                  opacity = 0.8
+                  zIndex = 5
+                  translateX = normalizedDiff * 140
+                  translateY = 20
+                  blur = 2
+                  cardWidth = '150px'
+                } else if (Math.abs(normalizedDiff) === 2) {
+                  // Second side cards
+                  scale = 0.7
+                  opacity = 0.5
+                  zIndex = 3
+                  translateX = normalizedDiff * 220
+                  translateY = 40
+                  blur = 4
+                  cardWidth = '120px'
+                } else {
+                  // Far side cards
+                  scale = 0.6
+                  opacity = 0.2
+                  zIndex = 1
+                  translateX = normalizedDiff * 280
+                  translateY = 60
+                  blur = 6
+                  cardWidth = '100px'
+                }
+
+                // Mobile adjustments
+                if (typeof window !== 'undefined' && window.innerWidth < 768) {
+                  if (normalizedDiff === 0) {
+                    cardWidth = '160px'
+                    translateX = 0
+                  } else if (Math.abs(normalizedDiff) === 1) {
+                    cardWidth = '130px'
+                    translateX = normalizedDiff * 110
+                    translateY = 10
+                  } else if (Math.abs(normalizedDiff) === 2) {
+                    cardWidth = '100px'
+                    translateX = normalizedDiff * 170
+                    translateY = 20
+                  } else {
+                    cardWidth = '80px'
+                    translateX = normalizedDiff * 210
+                    translateY = 30
+                  }
+                }
+
+                return (
+                  <div
+                    key={reel.id}
+                    onClick={() => normalizedDiff === 0 && setSelectedReel(reel)}
+                    className="absolute transition-all duration-500 ease-out cursor-pointer"
+                    style={{
+                      transform: `translateX(${translateX}px) translateY(${translateY}px) scale(${scale})`,
+                      opacity: opacity,
+                      zIndex: zIndex,
+                      filter: `blur(${blur}px)`,
+                      width: cardWidth,
+                      pointerEvents: normalizedDiff === 0 ? 'auto' : 'none'
+                    }}
+                  >
+                    <div
+                      className={`relative ${aspectRatioClass} overflow-hidden bg-gray-100 rounded-2xl shadow-2xl transition-all duration-300 ${
+                        normalizedDiff === 0
+                          ? 'ring-4 ring-pink-500 ring-offset-2 shadow-pink-500/20'
+                          : ''
+                      }`}
+                    >
+                      <img
+                        src={reel.thumbnail}
+                        alt={reel.title}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/30" />
+                      {normalizedDiff === 0 && (
+                        <>
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-white/95 backdrop-blur-sm flex items-center justify-center shadow-2xl hover:scale-110 transition-transform">
+                              <Play className="w-6 h-6 md:w-7 md:h-7 fill-pink-500 text-pink-500 ml-0.5" />
+                            </div>
+                          </div>
+                          <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/90 to-transparent">
+                            <p className="text-white text-xs md:text-sm font-semibold truncate leading-tight">
+                              {reel.title}
+                            </p>
+                            <p className="text-white/80 text-xs mt-1">
+                              {reel.product.name}
+                            </p>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <div className="absolute bottom-0 left-0 right-0 p-2.5 bg-gradient-to-t from-black/80 to-transparent">
-                  <p className="text-white text-xs font-medium truncate leading-tight">{reel.title}</p>
-                </div>
-              </div>
+                )
+              })}
             </div>
-          ))}
+          </div>
+
+          {/* Dots Indicator */}
+          <div className="flex justify-center gap-2 mt-4">
+            {reels.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => handleDotClick(index)}
+                className={`h-2 rounded-full transition-all duration-300 ${
+                  index === currentIndex
+                    ? 'bg-pink-600 w-8 shadow-lg shadow-pink-500/30'
+                    : 'bg-gray-300 w-2 hover:bg-gray-400'
+                }`}
+                aria-label={`Go to video ${index + 1}`}
+              />
+            ))}
+          </div>
         </div>
       </section>
+
+      {/* Fullscreen Video Modal */}
       {selectedReel && (
         <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center">
-          <button onClick={() => setSelectedReel(null)} className="absolute top-4 right-4 z-10 text-white hover:bg-white/20 rounded-full p-2 transition-colors" aria-label="Close video">
+          <button
+            onClick={() => setSelectedReel(null)}
+            className="absolute top-4 right-4 z-10 text-white hover:bg-white/20 rounded-full p-2 transition-colors"
+            aria-label="Close video"
+          >
             <X className="w-6 h-6" />
           </button>
           <div className="relative w-full max-w-md h-full md:h-[85vh] flex flex-col">
@@ -1251,14 +1485,6 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
                     </div>
                   </>
                 )}
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-4 hidden md:flex">
-                  <button onClick={handlePrev} className="text-white/50 hover:text-white p-2 transition-colors">
-                    <ChevronLeft className="w-8 h-8" />
-                  </button>
-                  <button onClick={handleNext} className="text-white/50 hover:text-white p-2 transition-colors">
-                    <ChevronRight className="w-8 h-8" />
-                  </button>
-                </div>
               </div>
             </div>
             <div className="hidden md:flex w-64 bg-white flex-col">

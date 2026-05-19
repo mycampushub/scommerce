@@ -60,6 +60,7 @@ export interface Address {
 
 export interface Supplier {
   id: string;
+  code: string;
   name: string;
   email: string | null;
   phone: string | null;

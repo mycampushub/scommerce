@@ -44,20 +44,16 @@ import {
 
 interface Supplier {
   id: string
-  name: string
   code: string
+  name: string
   email: string | null
   phone: string | null
   address: string | null
   city: string | null
   country: string | null
-  website: string | null
-  contactPerson: string | null
-  isActive: boolean
+  notes: string | null
+  isActive: number | boolean
   createdAt: string
-  _count?: {
-    purchaseOrders: number
-  }
 }
 
 export default function SuppliersPage() {
@@ -71,14 +67,14 @@ export default function SuppliersPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null)
   const [formData, setFormData] = useState({
+    code: '',
     name: '',
     email: '',
     phone: '',
     address: '',
     city: '',
     country: '',
-    website: '',
-    contactPerson: '',
+    notes: '',
     isActive: true,
   })
 
@@ -110,14 +106,14 @@ export default function SuppliersPage() {
   const openAddModal = () => {
     setEditingSupplier(null)
     setFormData({
+      code: '',
       name: '',
       email: '',
       phone: '',
       address: '',
       city: '',
       country: '',
-      website: '',
-      contactPerson: '',
+      notes: '',
       isActive: true,
     })
     setIsModalOpen(true)
@@ -126,15 +122,15 @@ export default function SuppliersPage() {
   const openEditModal = (supplier: Supplier) => {
     setEditingSupplier(supplier)
     setFormData({
+      code: supplier.code,
       name: supplier.name,
       email: supplier.email || '',
       phone: supplier.phone || '',
       address: supplier.address || '',
       city: supplier.city || '',
       country: supplier.country || '',
-      website: supplier.website || '',
-      contactPerson: supplier.contactPerson || '',
-      isActive: supplier.isActive,
+      notes: supplier.notes || '',
+      isActive: typeof supplier.isActive === 'boolean' ? supplier.isActive : supplier.isActive === 1,
     })
     setIsModalOpen(true)
   }
@@ -175,15 +171,6 @@ export default function SuppliersPage() {
   }
 
   const handleDelete = async (supplier: Supplier) => {
-    if (supplier._count?.purchaseOrders && supplier._count.purchaseOrders > 0) {
-      toast({
-        title: 'Cannot Delete',
-        description: 'This supplier has purchase orders and cannot be deleted',
-        variant: 'destructive',
-      })
-      return
-    }
-
     if (!confirm(`Are you sure you want to delete ${supplier.name}?`)) {
       return
     }
@@ -193,20 +180,22 @@ export default function SuppliersPage() {
         method: 'DELETE',
       })
 
-      if (response.ok) {
+      const result = await response.json()
+
+      if (result.success) {
         toast({
           title: 'Success',
           description: 'Supplier deleted successfully',
         })
         fetchSuppliers()
       } else {
-        throw new Error('Failed to delete supplier')
+        throw new Error(result.error || 'Failed to delete supplier')
       }
     } catch (err: any) {
       console.error('Error deleting supplier:', err)
       toast({
         title: 'Error',
-        description: 'Failed to delete supplier',
+        description: err.message || 'Failed to delete supplier',
         variant: 'destructive',
       })
     }
@@ -215,11 +204,11 @@ export default function SuppliersPage() {
   const filteredSuppliers = suppliers.filter(supplier => {
     const matchesSearch =
       supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      supplier.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (supplier.code && supplier.code.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (supplier.email && supplier.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (supplier.phone && supplier.phone.includes(searchTerm))
 
-    const matchesActive = activeFilter === 'all' || (activeFilter === 'active' ? supplier.isActive : !supplier.isActive)
+    const matchesActive = activeFilter === 'all' || (activeFilter === 'active' ? (typeof supplier.isActive === 'boolean' ? supplier.isActive : supplier.isActive === 1) : !(typeof supplier.isActive === 'boolean' ? supplier.isActive : supplier.isActive === 1))
 
     return matchesSearch && matchesActive
   })
@@ -320,10 +309,10 @@ export default function SuppliersPage() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-gray-50 hover:bg-gray-50">
+                  <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Code</TableHead>
                   <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Supplier</TableHead>
                   <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Contact</TableHead>
                   <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Location</TableHead>
-                  <TableHead className="font-semibold text-gray-700 whitespace-nowrap">PO Count</TableHead>
                   <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Status</TableHead>
                   <TableHead className="text-right font-semibold text-gray-700 whitespace-nowrap">Actions</TableHead>
                 </TableRow>
@@ -332,26 +321,15 @@ export default function SuppliersPage() {
                 {filteredSuppliers.map((supplier) => (
                   <TableRow key={supplier.id} className="hover:bg-gray-50">
                     <TableCell>
+                      <span className="font-mono text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded">{supplier.code}</span>
+                    </TableCell>
+                    <TableCell>
                       <div>
                         <p className="font-medium text-sm text-gray-900">{supplier.name}</p>
-                        <p className="text-xs text-gray-500">{supplier.code}</p>
-                        {supplier.website && (
-                          <a
-                            href={supplier.website}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-violet-600 hover:underline"
-                          >
-                            {supplier.website}
-                          </a>
-                        )}
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="space-y-1">
-                        {supplier.contactPerson && (
-                          <p className="text-sm text-gray-700">{supplier.contactPerson}</p>
-                        )}
                         {supplier.email && (
                           <div className="flex items-center gap-1 text-xs text-gray-600">
                             <Mail className="h-3 w-3" />
@@ -381,13 +359,8 @@ export default function SuppliersPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span className="text-sm font-medium text-gray-700">
-                        {supplier._count?.purchaseOrders || 0}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={supplier.isActive ? 'default' : 'secondary'} className={supplier.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}>
-                        {supplier.isActive ? 'Active' : 'Inactive'}
+                      <Badge variant={typeof supplier.isActive === 'boolean' ? (supplier.isActive ? 'default' : 'secondary') : (supplier.isActive === 1 ? 'default' : 'secondary')} className={typeof supplier.isActive === 'boolean' ? (supplier.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700') : (supplier.isActive === 1 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700')}>
+                        {typeof supplier.isActive === 'boolean' ? (supplier.isActive ? 'Active' : 'Inactive') : (supplier.isActive === 1 ? 'Active' : 'Inactive')}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
@@ -404,7 +377,6 @@ export default function SuppliersPage() {
                           size="sm"
                           onClick={() => handleDelete(supplier)}
                           className="text-red-600 hover:text-red-700"
-                          disabled={!!(supplier._count?.purchaseOrders && supplier._count.purchaseOrders > 0)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -428,23 +400,28 @@ export default function SuppliersPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div>
-              <Label htmlFor="name">Supplier Name *</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Enter supplier name"
-              />
-            </div>
-            <div>
-              <Label htmlFor="contactPerson">Contact Person</Label>
-              <Input
-                id="contactPerson"
-                value={formData.contactPerson}
-                onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })}
-                placeholder="Primary contact name"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="code">Supplier Code</Label>
+                <Input
+                  id="code"
+                  value={formData.code}
+                  onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                  placeholder="SUP-0001"
+                  disabled={!!editingSupplier}
+                  className="font-mono"
+                />
+                <p className="text-xs text-gray-500 mt-1">Leave empty to auto-generate</p>
+              </div>
+              <div>
+                <Label htmlFor="name">Supplier Name *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Enter supplier name"
+                />
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -466,16 +443,6 @@ export default function SuppliersPage() {
                   placeholder="+880 1XXX-XXXXXX"
                 />
               </div>
-            </div>
-            <div>
-              <Label htmlFor="website">Website</Label>
-              <Input
-                id="website"
-                type="url"
-                value={formData.website}
-                onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                placeholder="https://example.com"
-              />
             </div>
             <div>
               <Label htmlFor="address">Address</Label>
@@ -505,6 +472,15 @@ export default function SuppliersPage() {
                   placeholder="Country name"
                 />
               </div>
+            </div>
+            <div>
+              <Label htmlFor="notes">Notes</Label>
+              <Input
+                id="notes"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                placeholder="Any additional notes..."
+              />
             </div>
             <div className="flex items-center gap-2">
               <input

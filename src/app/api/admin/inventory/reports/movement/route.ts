@@ -30,22 +30,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        period: {
-          startDate: startDate?.toISOString() || null,
-          endDate: endDate?.toISOString() || null,
-        },
+        movements: [
+          { type: 'PURCHASE', count: purchaseSummary.totalMovements, totalIn: purchaseSummary.totalQuantityIn, totalOut: 0, totalCost: purchaseSummary.totalCostIn },
+          { type: 'SALE', count: saleSummary.totalMovements, totalIn: 0, totalOut: saleSummary.totalQuantityOut, totalCost: saleSummary.totalCostOut },
+          { type: 'RETURN', count: returnSummary.totalMovements, totalIn: returnSummary.totalQuantityIn, totalOut: returnSummary.totalQuantityOut, totalCost: returnSummary.totalCostIn + returnSummary.totalCostOut },
+          { type: 'ADJUSTMENT', count: adjustmentSummary.totalMovements, totalIn: adjustmentSummary.totalQuantityIn, totalOut: adjustmentSummary.totalQuantityOut, totalCost: adjustmentSummary.totalCostIn + adjustmentSummary.totalCostOut },
+          { type: 'TRANSFER', count: transferSummary.totalMovements, totalIn: 0, totalOut: transferSummary.totalQuantityOut, totalCost: transferSummary.totalCostOut },
+          { type: 'DAMAGE', count: damageSummary.totalMovements, totalIn: 0, totalOut: damageSummary.totalQuantityOut, totalCost: damageSummary.totalCostOut },
+        ],
         summary: {
-          purchase: purchaseSummary,
-          sale: saleSummary,
-          return: returnSummary,
-          adjustment: adjustmentSummary,
-          transfer: transferSummary,
-          damage: damageSummary,
-        },
-        totals: {
-          totalMovements: purchaseSummary.totalMovements + saleSummary.totalMovements + returnSummary.totalMovements + adjustmentSummary.totalMovements + transferSummary.totalMovements + damageSummary.totalMovements,
-          totalIn: purchaseSummary.totalQuantityIn + returnSummary.totalQuantityIn + adjustmentSummary.totalQuantityIn,
-          totalOut: saleSummary.totalQuantityOut + returnSummary.totalQuantityOut + transferSummary.totalQuantityOut + damageSummary.totalQuantityOut,
+          total: purchaseSummary.totalMovements + saleSummary.totalMovements + returnSummary.totalMovements + adjustmentSummary.totalMovements + transferSummary.totalMovements + damageSummary.totalMovements,
         },
       },
     });

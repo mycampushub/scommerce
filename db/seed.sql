@@ -337,11 +337,11 @@ VALUES
 -- ============================================
 -- SUPPLIERS
 -- ============================================
-INSERT OR IGNORE INTO suppliers (id, name, email, phone, address, city, country, isActive, notes, createdAt, updatedAt)
+INSERT OR IGNORE INTO suppliers (id, code, name, email, phone, address, city, country, isActive, notes, createdAt, updatedAt)
 VALUES
-('sup-001', 'Ethnic Fabrics Ltd', 'contact@ethnicfabrics.com', '+91-9876543210', '123 Textile Market, Surat', 'Surat', 'IN', 1, 'Premium fabric supplier for ethnic wear', datetime('now'), datetime('now')),
-('sup-002', 'Fashion Exports India', 'info@fashionexports.in', '+91-8765432109', '456 Industrial Area, Delhi', 'Delhi', 'IN', 1, 'Ready-made garments exporter', datetime('now'), datetime('now')),
-('sup-003', 'Dhaka Weavers', 'sales@dhakaweavers.bd', '+880-1712345678', '789 Mirpur Textile Zone', 'Dhaka', 'BD', 1, 'Local traditional weavers', datetime('now'), datetime('now'));
+('sup-001', 'SUP001', 'Ethnic Fabrics Ltd', 'contact@ethnicfabrics.com', '+91-9876543210', '123 Textile Market, Surat', 'Surat', 'IN', 1, 'Premium fabric supplier for ethnic wear', datetime('now'), datetime('now')),
+('sup-002', 'SUP002', 'Fashion Exports India', 'info@fashionexports.in', '+91-8765432109', '456 Industrial Area, Delhi', 'Delhi', 'IN', 1, 'Ready-made garments exporter', datetime('now'), datetime('now')),
+('sup-003', 'SUP003', 'Dhaka Weavers', 'sales@dhakaweavers.bd', '+880-1712345678', '789 Mirpur Textile Zone', 'Dhaka', 'BD', 1, 'Local traditional weavers', datetime('now'), datetime('now'));
 
 -- ============================================
 -- PURCHASE ORDERS

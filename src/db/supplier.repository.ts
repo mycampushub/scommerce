@@ -7,6 +7,29 @@ import {
   execute,
 } from '@/db/db';
 
+/**
+ * Generate a unique supplier code
+ * Format: SUP-XXXX where XXXX is a sequential number
+ */
+async function generateSupplierCode(env: Env | null): Promise<string> {
+  // Find the last supplier code
+  const lastSupplier = await queryFirst<{ code: string }>(
+    env,
+    'SELECT code FROM suppliers WHERE code LIKE "SUP-%" ORDER BY code DESC LIMIT 1'
+  );
+
+  let sequence = 1;
+  if (lastSupplier && lastSupplier.code) {
+    // Extract numeric part from code (e.g., SUP-0001 -> 1)
+    const match = lastSupplier.code.match(/SUP-(\d+)/);
+    if (match) {
+      sequence = parseInt(match[1], 10) + 1;
+    }
+  }
+
+  return `SUP-${sequence.toString().padStart(4, '0')}`;
+}
+
 export class SupplierRepository {
   /**
    * Find supplier by ID
@@ -16,6 +39,17 @@ export class SupplierRepository {
       env,
       'SELECT * FROM suppliers WHERE id = ? LIMIT 1',
       id
+    );
+  }
+
+  /**
+   * Find supplier by code
+   */
+  static async findByCode(env: Env | null, code: string): Promise<Supplier | null> {
+    return queryFirst<Supplier>(
+      env,
+      'SELECT * FROM suppliers WHERE code = ? LIMIT 1',
+      code
     );
   }
 
@@ -49,15 +83,18 @@ export class SupplierRepository {
     country?: string;
     notes?: string;
     isActive?: boolean;
+    code?: string;
   }): Promise<Supplier> {
     const id = generateId();
+    const code = data.code || await generateSupplierCode(env);
     const currentTime = now();
 
     await execute(
       env,
-      `INSERT INTO suppliers (id, name, email, phone, address, city, country, notes, isActive, createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO suppliers (id, code, name, email, phone, address, city, country, notes, isActive, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       id,
+      code,
       data.name,
       data.email || null,
       data.phone || null,
@@ -80,6 +117,10 @@ export class SupplierRepository {
     const updates: string[] = [];
     const values: unknown[] = [];
 
+    if (data.code !== undefined) {
+      updates.push('code = ?');
+      values.push(data.code);
+    }
     if (data.name !== undefined) {
       updates.push('name = ?');
       values.push(data.name);
@@ -153,7 +194,8 @@ export class SupplierRepository {
     try {
       const suppliers = await queryAll<Supplier>(
         env,
-        `SELECT * FROM suppliers WHERE name LIKE ? OR email LIKE ? ORDER BY name ASC`,
+        `SELECT * FROM suppliers WHERE name LIKE ? OR email LIKE ? OR code LIKE ? ORDER BY name ASC`,
+        `%${query}%`,
         `%${query}%`,
         `%${query}%`
       );
