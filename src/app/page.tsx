@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { usePathname } from 'next/navigation'
 import { ChevronLeft, ChevronRight, X, Heart, MessageCircle, Share2, ShoppingCart, Star, Play, Search, User, Menu, Phone, Mail, Instagram, Facebook, Twitter, Youtube, Linkedin, ShoppingBag, Home as HomeIcon, Loader2, LogOut, ChevronDown } from 'lucide-react'
 import { useScrollDirection } from '@/hooks/use-scroll-direction'
 import { useCartStore } from '@/lib/store/cart-store'
@@ -85,6 +84,15 @@ interface StickyCard {
   cta: string
   href: string
   reversed: boolean
+}
+
+interface Brand {
+  id: string
+  name: string
+  slug: string
+  logo: string | null
+  description: string | null
+  website: string | null
 }
 
 // 0. Navbar Component
@@ -972,6 +980,176 @@ function Categories({ categories }: { categories: Category[] }) {
               </a>
             ))}
           </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// 4c. Brand Carousel Component
+function BrandCarousel() {
+  const [brands, setBrands] = useState<Brand[]>([])
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [isPaused, setIsPaused] = useState(false)
+  const [autoScroll, setAutoScroll] = useState(true)
+  const [scrollInterval, setScrollInterval] = useState(4000)
+  const [loading, setLoading] = useState(true)
+  const [isEnabled, setIsEnabled] = useState(true)
+
+  // Fetch brand carousel settings
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const [settingsRes, brandsRes] = await Promise.all([
+          fetch('/api/admin/homepage/brands'),
+          fetch('/api/brands?featured=true')
+        ])
+
+        const settingsData = await settingsRes.json() as any
+        const brandsData = await brandsRes.json() as any
+
+        if (settingsData.success) {
+          setIsEnabled(settingsData.data.isEnabled !== undefined ? settingsData.data.isEnabled : true)
+          setAutoScroll(settingsData.data.autoScroll !== undefined ? settingsData.data.autoScroll : true)
+          setScrollInterval(settingsData.data.scrollInterval || 4000)
+
+          // If specific brand IDs are selected, filter brands
+          if (settingsData.data.brandIds && settingsData.data.brandIds.length > 0 && brandsData.success) {
+            const filtered = brandsData.data.filter((brand: Brand) =>
+              settingsData.data.brandIds.includes(brand.id)
+            )
+            setBrands(filtered)
+          } else if (brandsData.success) {
+            // Otherwise, show all featured brands
+            setBrands(brandsData.data || [])
+          }
+        } else if (brandsData.success) {
+          // Fallback to all featured brands if settings fail
+          setBrands(brandsData.data || [])
+        }
+      } catch (error) {
+        console.error('Error fetching brand carousel settings:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchSettings()
+  }, [])
+
+  // Auto-scroll effect
+  useEffect(() => {
+    if (!autoScroll || isPaused || loading || !brands || brands.length === 0) return
+
+    const interval = setInterval(() => {
+      setCurrentIndex(prev => (prev + 1) % brands.length)
+    }, scrollInterval)
+
+    return () => clearInterval(interval)
+  }, [isPaused, brands?.length || 0, autoScroll, scrollInterval, loading])
+
+  const nextSlide = () => {
+    if (!brands || brands.length === 0) return
+    setCurrentIndex(prev => (prev + 1) % brands.length)
+  }
+
+  const prevSlide = () => {
+    if (!brands || brands.length === 0) return
+    setCurrentIndex(prev => (prev - 1 + brands.length) % brands.length)
+  }
+
+  const goToSlide = (index: number) => {
+    setCurrentIndex(index)
+  }
+
+  // Don't render if disabled, loading, or no brands
+  if (loading || !isEnabled || !brands || brands.length === 0) return null
+
+  const currentBrand = brands[currentIndex]
+
+  return (
+    <section className="w-full py-8 md:py-12 bg-gradient-to-b from-pink-50 to-white">
+      <div className="container mx-auto px-4">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 text-center flex-1">
+            Featured Brands
+          </h2>
+        </div>
+
+        <div
+          className="relative bg-white rounded-2xl shadow-sm p-6 md:p-8"
+          onMouseEnter={() => setIsPaused(true)}
+          onMouseLeave={() => setIsPaused(false)}
+        >
+          {/* Left Navigation Button */}
+          <button
+            onClick={prevSlide}
+            className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 md:w-12 md:h-12 bg-white shadow-lg rounded-full flex items-center justify-center hover:bg-pink-50 transition-colors border border-gray-200"
+            aria-label="Previous brand"
+          >
+            <ChevronLeft className="w-5 h-5 md:w-6 md:h-6 text-gray-700" strokeWidth={2.5} />
+          </button>
+
+          {/* Brand Display */}
+          <div className="text-center py-8 md:py-12 px-4">
+            {currentBrand.logo && (
+              <div className="mb-6 flex justify-center">
+                <img
+                  src={currentBrand.logo}
+                  alt={currentBrand.name}
+                  className="h-20 md:h-32 object-contain mx-auto"
+                />
+              </div>
+            )}
+            <h3 className="text-2xl md:text-4xl font-bold text-gray-900 mb-3">
+              {currentBrand.name}
+            </h3>
+            {currentBrand.description && (
+              <p className="text-sm md:text-base text-gray-600 mb-4 max-w-2xl mx-auto">
+                {currentBrand.description}
+              </p>
+            )}
+            <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
+              <span className="inline-flex items-center gap-1">
+                {currentIndex + 1} of {brands.length}
+              </span>
+            </div>
+          </div>
+
+          {/* Right Navigation Button */}
+          <button
+            onClick={nextSlide}
+            className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 md:w-12 md:h-12 bg-white shadow-lg rounded-full flex items-center justify-center hover:bg-pink-50 transition-colors border border-gray-200"
+            aria-label="Next brand"
+          >
+            <ChevronRight className="w-5 h-5 md:w-6 md:h-6 text-gray-700" strokeWidth={2.5} />
+          </button>
+
+          {/* Dots Indicator */}
+          <div className="flex justify-center gap-2 mt-4">
+            {brands.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => goToSlide(index)}
+                className={`h-2 rounded-full transition-all ${
+                  index === currentIndex ? 'bg-pink-600 w-6' : 'bg-gray-300 w-2 hover:bg-gray-400'
+                }`}
+                aria-label={`Go to brand ${index + 1}`}
+                aria-current={index === currentIndex ? 'step' : undefined}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* View All Brands Button */}
+        <div className="mt-6 text-center">
+          <a
+            href="/brands"
+            className="inline-flex items-center gap-2 bg-white text-pink-600 border-2 border-pink-600 px-6 py-3 md:px-8 md:py-3.5 rounded-xl text-base md:text-lg font-medium hover:bg-pink-50 transition-colors shadow-md hover:shadow-lg"
+          >
+            <ShoppingBag className="w-5 h-5" strokeWidth={2} />
+            View All Brands
+          </a>
         </div>
       </div>
     </section>
@@ -1916,6 +2094,8 @@ export default function Home() {
         )}
         <FullscreenVideo />
         {categories.length > 0 && <Categories categories={categories} />}
+        {/* Brand Carousel */}
+        <BrandCarousel />
         {/* Reels - only show if enabled and has data */}
         {homepageSettings.reels?.isEnabled !== false && reels.length > 0 && (
           <VideoReels reels={reels} />

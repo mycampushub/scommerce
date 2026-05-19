@@ -129,7 +129,7 @@ export default function AdminLayout({
           </div>
 
           {/* Navigation */}
-          <ScrollArea className="flex-1 px-4 py-4">
+          <ScrollArea className="flex-1 px-4 py-4 h-[calc(100vh-8rem)]">
             <nav className="space-y-1">
               {navigation.map((item) => {
                 const isActive = pathname === item.href

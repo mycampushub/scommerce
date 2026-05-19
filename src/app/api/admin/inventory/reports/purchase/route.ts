@@ -8,11 +8,8 @@ export async function GET(request: NextRequest) {
   try {
     // Verify admin access
     const admin = await verifyAdmin(request);
-    if (!admin) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+    if (admin instanceof NextResponse) {
+      return admin;
     }
 
     const searchParams = request.nextUrl.searchParams;

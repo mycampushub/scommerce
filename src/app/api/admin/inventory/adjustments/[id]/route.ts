@@ -11,11 +11,8 @@ export async function DELETE(
     const { id } = await params;
     // Verify admin access
     const admin = await verifyAdmin(request);
-    if (!admin) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+    if (admin instanceof NextResponse) {
+      return admin;
     }
 
     // Find the adjustment

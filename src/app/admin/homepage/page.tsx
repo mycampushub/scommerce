@@ -135,6 +135,14 @@ export default function HomepageManagementPage() {
   const [featuredProductsEnabled, setFeaturedProductsEnabled] = useState(true)
   const [savingFeaturedProducts, setSavingFeaturedProducts] = useState(false)
 
+  // Brands state
+  const [brands, setBrands] = useState<any[]>([])
+  const [selectedBrandIds, setSelectedBrandIds] = useState<string[]>([])
+  const [brandsEnabled, setBrandsEnabled] = useState(true)
+  const [brandsAutoScroll, setBrandsAutoScroll] = useState(true)
+  const [brandsScrollInterval, setBrandsScrollInterval] = useState(4000)
+  const [savingBrands, setSavingBrands] = useState(false)
+
   // Banners state
   const [banners, setBanners] = useState<Banner[]>([])
   const [bannerDialogOpen, setBannerDialogOpen] = useState(false)
@@ -298,6 +306,63 @@ export default function HomepageManagementPage() {
     }
   }
 
+  const fetchBrands = async () => {
+    try {
+      const res = await fetch('/api/admin/brands?limit=100')
+      const data = await res.json() as any
+      if (data.success && Array.isArray(data.data)) {
+        setBrands(data.data)
+      }
+    } catch (error) {
+      console.error('Error fetching brands:', error)
+    }
+  }
+
+  const fetchBrandsSettings = async () => {
+    try {
+      const res = await fetch('/api/admin/homepage/brands')
+      const data = await res.json() as any
+      if (data.success) {
+        setSelectedBrandIds(data.data.brandIds || [])
+        setBrandsEnabled(data.data.isEnabled !== undefined ? data.data.isEnabled : true)
+        setBrandsAutoScroll(data.data.autoScroll !== undefined ? data.data.autoScroll : true)
+        setBrandsScrollInterval(data.data.scrollInterval || 4000)
+      }
+    } catch (error) {
+      console.error('Error fetching brands settings:', error)
+    }
+  }
+
+  const handleSaveBrands = async () => {
+    setSavingBrands(true)
+    try {
+      const payload = {
+        brandIds: selectedBrandIds,
+        isEnabled: brandsEnabled,
+        autoScroll: brandsAutoScroll,
+        scrollInterval: brandsScrollInterval
+      }
+
+      const res = await fetch('/api/admin/homepage/brands', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      const data = await res.json() as any
+
+      if (data.success) {
+        toast.success('Brands saved successfully')
+      } else {
+        toast.error(data.error || 'Failed to save brands')
+      }
+    } catch (error) {
+      console.error('Error saving brands settings:', error)
+      toast.error('Failed to save brands')
+    } finally {
+      setSavingBrands(false)
+    }
+  }
+
   const fetchMarquee = async () => {
     try {
       const res = await fetch('/api/admin/homepage/marquee')
@@ -412,6 +477,8 @@ export default function HomepageManagementPage() {
     fetchCategories()
     fetchCategoryCarousel()
     fetchFeaturedProducts()
+    fetchBrands()
+    fetchBrandsSettings()
     fetchBanners()
     fetchStories()
     fetchReels()
@@ -750,10 +817,11 @@ export default function HomepageManagementPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-8">
+        <TabsList className="grid w-full grid-cols-9">
           <TabsTrigger value="marquee">Marquee</TabsTrigger>
           <TabsTrigger value="category-carousel">Categories</TabsTrigger>
           <TabsTrigger value="featured-products">Featured</TabsTrigger>
+          <TabsTrigger value="brands">Brands</TabsTrigger>
           <TabsTrigger value="banners">Banners</TabsTrigger>
           <TabsTrigger value="stories">Stories</TabsTrigger>
           <TabsTrigger value="reels">Reels</TabsTrigger>
@@ -1073,6 +1141,131 @@ export default function HomepageManagementPage() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Brands Tab */}
+        <TabsContent value="brands" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold">Brand Carousel</h2>
+            <Button onClick={handleSaveBrands} disabled={savingBrands}>
+              {savingBrands ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Brands
+                </>
+              )}
+            </Button>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Carousel Settings</CardTitle>
+                <CardDescription>Configure brand carousel behavior</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="brands-enabled">Enable Carousel</Label>
+                  <Switch
+                    id="brands-enabled"
+                    checked={brandsEnabled}
+                    onCheckedChange={setBrandsEnabled}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="brands-autoscroll">Auto-scroll</Label>
+                  <Switch
+                    id="brands-autoscroll"
+                    checked={brandsAutoScroll}
+                    onCheckedChange={setBrandsAutoScroll}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="brands-scroll-interval">Scroll Interval ({brandsScrollInterval / 1000}s)</Label>
+                  <Input
+                    id="brands-scroll-interval"
+                    type="range"
+                    min="2000"
+                    max="10000"
+                    step="500"
+                    value={brandsScrollInterval}
+                    onChange={(e) => setBrandsScrollInterval(parseInt(e.target.value))}
+                    className="mt-2"
+                  />
+                  <p className="text-sm text-gray-500 mt-1">
+                    How often to auto-rotate to the next brand
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Select Brands</CardTitle>
+                <CardDescription>Choose which brands to feature in the carousel</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="border rounded-lg p-4 max-h-[400px] overflow-y-auto">
+                  {brands.length === 0 ? (
+                    <p className="text-gray-500 text-center py-4">No brands available</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {brands.map((brand) => (
+                        <div
+                          key={brand.id}
+                          className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                            selectedBrandIds.includes(brand.id)
+                              ? 'bg-pink-50 border-pink-300'
+                              : 'hover:bg-gray-50'
+                          }`}
+                          onClick={() => {
+                            if (selectedBrandIds.includes(brand.id)) {
+                              setSelectedBrandIds(selectedBrandIds.filter(id => id !== brand.id))
+                            } else {
+                              setSelectedBrandIds([...selectedBrandIds, brand.id])
+                            }
+                          }}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                              selectedBrandIds.includes(brand.id)
+                                ? 'bg-pink-500 border-pink-500'
+                                : 'border-gray-300'
+                            }`}>
+                              {selectedBrandIds.includes(brand.id) && (
+                                <div className="w-3 h-3 bg-white rounded-sm" />
+                              )}
+                            </div>
+                            {brand.logo && (
+                              <img
+                                src={brand.logo}
+                                alt={brand.name}
+                                className="w-10 h-10 object-contain rounded"
+                              />
+                            )}
+                            <div className="flex-1">
+                              <p className="font-medium">{brand.name}</p>
+                              <p className="text-sm text-gray-500">{brand.slug}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <p className="text-sm text-gray-500 mt-2">
+                  {selectedBrandIds.length} brand{selectedBrandIds.length !== 1 ? 's' : ''} selected
+                </p>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         {/* Banners Tab */}

@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
     const activeOnly = searchParams.get('activeOnly') === 'true';
     const featuredOnly = searchParams.get('featuredOnly') === 'true';
     const includeProductCount = searchParams.get('includeProductCount') === 'true';
+    const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
 
     let brands;
 
@@ -30,6 +31,11 @@ export async function GET(request: NextRequest) {
         featuredOnly,
         includeProductCount,
       });
+    }
+
+    // Apply limit if specified
+    if (limit && limit > 0 && brands.length > limit) {
+      brands = brands.slice(0, limit);
     }
 
     return NextResponse.json({

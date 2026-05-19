@@ -11,11 +11,8 @@ export async function GET(
     const { id } = await params;
     // Verify admin access
     const admin = await verifyAdmin(request);
-    if (!admin) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+    if (admin instanceof NextResponse) {
+      return admin;
     }
 
     const purchaseOrder = await purchaseOrderRepository.findById(id);
@@ -49,11 +46,8 @@ export async function PUT(
     const { id } = await params;
     // Verify admin access
     const admin = await verifyAdmin(request);
-    if (!admin) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+    if (admin instanceof NextResponse) {
+      return admin;
     }
 
     const po = await purchaseOrderRepository.findById(id);
@@ -109,11 +103,8 @@ export async function DELETE(
     const { id } = await params;
     // Verify admin access
     const admin = await verifyAdmin(request);
-    if (!admin) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+    if (admin instanceof NextResponse) {
+      return admin;
     }
 
     const po = await purchaseOrderRepository.findById(id);
