@@ -134,22 +134,20 @@ export async function POST(request: NextRequest) {
       env,
       `INSERT INTO media (id, filename, originalName, url, mimeType, size, width, height, alt, tags, category, uploadedBy, createdAt, updatedAt)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        id,
-        file.name,
-        file.name,
-        imageUrl,
-        file.type,
-        file.size,
-        uploadResult.width || 0,
-        uploadResult.height || 0,
-        alt,
-        tags,
-        category,
-        (userOrResponse as any).id, // uploadedBy
-        currentTime,
-        currentTime
-      ]
+      id,
+      file.name,
+      file.name,
+      imageUrl,
+      file.type,
+      file.size,
+      uploadResult.width || 0,
+      uploadResult.height || 0,
+      alt,
+      tags,
+      category,
+      (userOrResponse as any).id, // uploadedBy
+      currentTime,
+      currentTime
     )
 
     return NextResponse.json({

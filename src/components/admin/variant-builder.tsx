@@ -40,6 +40,8 @@ interface VariantBuilderProps {
   onGenerate: (variants: GeneratedVariant[]) => void
   onCancel?: () => void
   loading?: boolean
+  categorySlug?: string  // Add for proper SKU generation
+  productName?: string  // Add for proper SKU generation
 }
 
 // Predefined attribute names for better UX
@@ -55,7 +57,7 @@ const PREDEFINED_VALUES: Record<string, string[]> = {
   Style: ['Casual', 'Formal', 'Party', 'Traditional', 'Modern', 'Ethnic']
 }
 
-export function VariantBuilder({ basePrice = 0, existingVariants = [], onGenerate, onCancel, loading = false }: VariantBuilderProps) {
+export function VariantBuilder({ basePrice = 0, existingVariants = [], onGenerate, onCancel, loading = false, categorySlug = 'GEN', productName = 'Product' }: VariantBuilderProps) {
   const [attributes, setAttributes] = useState<Attribute[]>([])
   const [generatedVariants, setGeneratedVariants] = useState<GeneratedVariant[]>([])
 
@@ -201,13 +203,37 @@ export function VariantBuilder({ basePrice = 0, existingVariants = [], onGenerat
     toast.success('SKUs generated successfully')
   }
 
-  // Generate SKU based on variant attributes
+  // Generate SKU based on variant attributes using proper format
+  // Format: CAT-PROD-SIZE-COLOR-MAT-RAND
   const generateSKU = (variant: GeneratedVariant): string => {
-    const parts: string[] = []
-    if (variant.size) parts.push(variant.size.toLowerCase().replace(/\s+/g, '-'))
-    if (variant.color) parts.push(variant.color.toLowerCase().replace(/\s+/g, '-'))
-    if (variant.material) parts.push(variant.material.substring(0, 3).toLowerCase())
-    return parts.join('-') || `VAR-${Date.now().toString().slice(-4)}`
+    // Category code: First 3 characters, uppercase
+    const catCode = categorySlug.substring(0, 3).toUpperCase().padEnd(3, 'X')
+
+    // Product code: First 6 alphanumeric characters, uppercase
+    const prodCode = productName
+      .replace(/[^a-zA-Z0-9]/g, '')
+      .substring(0, 6)
+      .toUpperCase()
+      .padEnd(6, 'X')
+
+    // Size code: First 2 characters, uppercase, no spaces
+    const sizeCode = variant.size
+      ? variant.size.replace(/\s/g, '').substring(0, 2).toUpperCase()
+      : ''
+
+    // Color code: First 3 characters, uppercase
+    const colorCode = variant.color ? variant.color.substring(0, 3).toUpperCase() : ''
+
+    // Material code: First 3 characters, uppercase
+    const materialCode = variant.material
+      ? variant.material.substring(0, 3).toUpperCase()
+      : ''
+
+    // Random code: 4 character alphanumeric
+    const random = Math.random().toString(36).substring(2, 6).toUpperCase()
+
+    // Combine all parts
+    return `${catCode}-${prodCode}${sizeCode}${colorCode}${materialCode}-${random}`
   }
 
   // Apply same price to all variants
@@ -332,18 +358,17 @@ export function VariantBuilder({ basePrice = 0, existingVariants = [], onGenerat
                     ))}
                   </div>
                   {PREDEFINED_VALUES[attr.name] && PREDEFINED_VALUES[attr.name].length > 0 && (
-                    <div className="mb-2">
-                      <p className="text-xs text-gray-500 mb-1">Quick add:</p>
+                    <div className="mb-3">
+                      <p className="text-xs text-gray-500 mb-1">Quick add from {attr.name}:</p>
                       <div className="flex flex-wrap gap-1">
                         {PREDEFINED_VALUES[attr.name]
                           .filter(val => !attr.values.includes(val))
-                          .slice(0, 6)
                           .map(val => (
                             <button
                               key={val}
                               type="button"
                               onClick={() => addAttributeValue(attrIndex, val)}
-                              className="px-2 py-1 text-xs bg-pink-50 text-pink-700 rounded hover:bg-pink-100"
+                              className="px-2 py-1 text-xs bg-pink-50 text-pink-700 rounded hover:bg-pink-100 transition-colors"
                             >
                               + {val}
                             </button>

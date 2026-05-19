@@ -86,7 +86,7 @@ interface Product {
   comparePrice: number | null
   costPrice: number | null
   categoryId: string | null
-  category: { name: string } | null
+  category: { id?: string; name: string; slug?: string } | null
   images: string[] | null
   stock: number
   lowStockAlert: number
@@ -716,6 +716,8 @@ export default function ProductsPage() {
       const basePrice = parseFloat(matrixBasePrice) || selectedProductForVariants.price
       const stock = parseInt(matrixStock) || 0
 
+      console.log('[Matrix Builder] Generating variants with:', { sizes, colors, materials, basePrice, stock })
+
       if (sizes.length === 0 && colors.length === 0 && materials.length === 0) {
         toast({
           title: 'Error',
@@ -736,7 +738,12 @@ export default function ProductsPage() {
         })
       })
 
+      console.log('[Matrix Builder] Generated combinations:', combinations)
+
       // Create variants for each combination
+      let successCount = 0
+      let errorCount = 0
+
       for (const combo of combinations) {
         const variantName = [combo.size, combo.color, combo.material].filter(Boolean).join(' / ')
         const payload = {
@@ -752,17 +759,44 @@ export default function ProductsPage() {
           isActive: true,
         }
 
-        await apiFetch(`/api/admin/products/${selectedProductForVariants.id}/variants`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        })
+        console.log('[Matrix Builder] Creating variant:', { name: variantName, ...combo })
+
+        try {
+          const response = await apiFetch(`/api/admin/products/${selectedProductForVariants.id}/variants`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          })
+
+          const result = await response.json()
+          
+          if (result.success) {
+            successCount++
+            console.log('[Matrix Builder] Successfully created variant:', result.data.sku)
+          } else {
+            errorCount++
+            console.error('[Matrix Builder] Failed to create variant:', result.error)
+          }
+        } catch (err: any) {
+          errorCount++
+          console.error('[Matrix Builder] Error creating variant:', err)
+        }
       }
 
-      toast({
-        title: 'Success',
-        description: `Created ${combinations.length} variants successfully`,
-      })
+      console.log('[Matrix Builder] Complete. Success:', successCount, 'Failed:', errorCount)
+
+      if (errorCount > 0) {
+        toast({
+          title: 'Partial Success',
+          description: `Created ${successCount} variants successfully, ${errorCount} failed`,
+          variant: 'destructive',
+        })
+      } else {
+        toast({
+          title: 'Success',
+          description: `Created ${combinations.length} variants successfully`,
+        })
+      }
 
       await fetchVariants(selectedProductForVariants.id)
 
@@ -773,7 +807,7 @@ export default function ProductsPage() {
       setMatrixBasePrice('')
       setMatrixStock('')
     } catch (err: any) {
-      console.error('Error generating matrix:', err)
+      console.error('[Matrix Builder] Unexpected error:', err)
       toast({
         title: 'Error',
         description: err.message || 'Failed to generate variants',
@@ -1832,6 +1866,8 @@ export default function ProductsPage() {
 
               <VariantBuilder
                 basePrice={selectedProductForVariants?.price}
+                categorySlug={selectedProductForVariants?.category?.slug || 'GEN'}
+                productName={selectedProductForVariants?.name || 'Product'}
                 existingVariants={variants.map(v => ({
                   id: v.id,
                   sku: v.sku,

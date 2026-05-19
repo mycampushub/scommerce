@@ -88,8 +88,28 @@ export default function CouponsPage() {
       })
       if (response.ok) {
         const data = await response.json()
+        console.log('[CouponsPage] Raw API response:', data)
+
         // Handle both response formats: data directly or data.data
-        const promotionsList = Array.isArray(data) ? data : (data.data || [])
+        let promotionsList: Promotion[] = []
+        if (Array.isArray(data)) {
+          promotionsList = data
+        } else if (data.data && Array.isArray(data.data)) {
+          promotionsList = data.data
+        } else if (data.promotions && Array.isArray(data.promotions)) {
+          promotionsList = data.promotions
+        }
+
+        console.log('[CouponsPage] Parsed promotionsList:', promotionsList)
+
+        // Ensure each promotion has array fields
+        promotionsList = promotionsList.map(p => ({
+          ...p,
+          applicableCategories: Array.isArray(p.applicableCategories) ? p.applicableCategories : [],
+          applicableProducts: Array.isArray(p.applicableProducts) ? p.applicableProducts : [],
+        }))
+
+        console.log('[CouponsPage] Final promotions with arrays:', promotionsList)
         setPromotions(promotionsList)
       }
     } catch (error) {
@@ -114,12 +134,22 @@ export default function CouponsPage() {
 
       if (productsRes.ok) {
         const productsData = await productsRes.json()
-        setProducts(productsData.products || productsData.data || [])
+        const productsList = Array.isArray(productsData.products)
+          ? productsData.products
+          : Array.isArray(productsData.data)
+            ? productsData.data
+            : []
+        setProducts(productsList)
       }
 
       if (categoriesRes.ok) {
         const categoriesData = await categoriesRes.json()
-        setCategories(categoriesData.categories || categoriesData.data || [])
+        const categoriesList = Array.isArray(categoriesData.categories)
+          ? categoriesData.categories
+          : Array.isArray(categoriesData.data)
+            ? categoriesData.data
+            : []
+        setCategories(categoriesList)
       }
     } catch (error) {
       console.error('Error fetching data:', error)
@@ -166,8 +196,8 @@ export default function CouponsPage() {
       endDate: promotion.endDate ? promotion.endDate.split('T')[0] : '',
       usageLimit: promotion.usageLimit || 0,
       userLimit: promotion.userLimit || 0,
-      applicableCategories: promotion.applicableCategories || [],
-      applicableProducts: promotion.applicableProducts || [],
+      applicableCategories: Array.isArray(promotion.applicableCategories) ? promotion.applicableCategories : [],
+      applicableProducts: Array.isArray(promotion.applicableProducts) ? promotion.applicableProducts : [],
       conditions: promotion.conditions || '',
       isActive: promotion.isActive,
     })

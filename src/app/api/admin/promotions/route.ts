@@ -27,14 +27,36 @@ export async function GET(request: NextRequest) {
     // Ensure promotions is always an array
     const promotionsArray = Array.isArray(promotions) ? promotions : []
 
-    // Parse JSON fields
-    const promotionsWithParsedFields = promotionsArray.map(p => ({
-      ...p,
-      discountRules: parseJSON<any>(p.discountRules) || null,
-      applicableProducts: parseJSON<string[]>(p.applicableProducts) || [],
-      applicableCategories: parseJSON<string[]>(p.applicableCategories) || [],
-      isActive: typeof p.isActive === 'boolean' ? p.isActive : numberToBool(p.isActive),
-    }))
+    // Parse JSON fields - ensure they are always arrays
+    const promotionsWithParsedFields = promotionsArray.map(p => {
+      const parsedProducts = parseJSON<any>(p.applicableProducts)
+      const parsedCategories = parseJSON<any>(p.applicableCategories)
+
+      const result = {
+        ...p,
+        discountRules: parseJSON<any>(p.discountRules) || null,
+        applicableProducts: Array.isArray(parsedProducts) ? parsedProducts : [],
+        applicableCategories: Array.isArray(parsedCategories) ? parsedCategories : [],
+        isActive: typeof p.isActive === 'boolean' ? p.isActive : numberToBool(p.isActive),
+      }
+
+      console.log('[Promotions API] Parsed promotion:', {
+        id: p.id,
+        applicableProductsRaw: p.applicableProducts,
+        applicableProductsParsed: parsedProducts,
+        applicableProductsFinal: result.applicableProducts,
+        applicableCategoriesRaw: p.applicableCategories,
+        applicableCategoriesParsed: parsedCategories,
+        applicableCategoriesFinal: result.applicableCategories,
+      })
+
+      return result
+    })
+
+    console.log('[Promotions API] Returning promotions:', {
+      success: true,
+      data: promotionsWithParsedFields
+    })
 
     return NextResponse.json({
       success: true,
@@ -79,10 +101,12 @@ export async function POST(request: NextRequest) {
     // Validate with Zod
     const validation = promotionSchema.safeParse(body)
     if (!validation.success) {
+      console.error('Promotion validation failed:', validation.error.issues)
       return NextResponse.json(
         {
           success: false,
-          error: validation.error.issues[0].message
+          error: validation.error.issues[0].message,
+          details: validation.error.issues
         },
         { status: 400 }
       )
@@ -105,23 +129,32 @@ export async function POST(request: NextRequest) {
 
     await execute(
       env,
-      `INSERT INTO promotions (id, title, description, image, discountType, discountValue,
-       discountRules, applicableProducts, applicableCategories, startDate, endDate,
-       ctaText, ctaLink, isActive, \`order\`, createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO promotions (id, title, description, image, type, ctaText, ctaLink,
+       discountType, discountValue, discountRules, applicableProducts, applicableCategories,
+       startDate, endDate, promoCode, minOrderAmount, maxDiscountAmount,
+       usageLimit, usedCount, userLimit, conditions, isActive, \`order\`, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       id,
       validatedData.title,
       validatedData.description || null,
       validatedData.image,
-      validatedData.discountType,
-      validatedData.discountValue,
+      body.type || 'banner',
+      validatedData.ctaText || null,
+      validatedData.ctaLink || null,
+      validatedData.discountType || 'percentage',
+      validatedData.discountValue ?? 0,
       validatedData.discountRules ? stringifyJSON(validatedData.discountRules) : null,
       validatedData.applicableProducts ? stringifyJSON(validatedData.applicableProducts) : null,
       validatedData.applicableCategories ? stringifyJSON(validatedData.applicableCategories) : null,
       validatedData.startDate || null,
       validatedData.endDate || null,
-      validatedData.ctaText || null,
-      validatedData.ctaLink || null,
+      body.promoCode || null,
+      body.minOrderAmount || null,
+      body.maxDiscountAmount || null,
+      body.usageLimit || null,
+      0, // usedCount
+      body.userLimit || null,
+      body.conditions ? stringifyJSON(body.conditions) : null,
       boolToNumber(validatedData.isActive ?? true),
       promotionOrder,
       currentTime,
@@ -146,10 +179,12 @@ export async function POST(request: NextRequest) {
     }, { status: 201 })
   } catch (error) {
     console.error('Error creating promotion:', error)
+    const errorMessage = error instanceof Error ? error.message : String(error)
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to create promotion'
+        error: 'Failed to create promotion',
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
       },
       { status: 500 }
     )

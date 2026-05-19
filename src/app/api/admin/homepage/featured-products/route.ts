@@ -75,8 +75,11 @@ export async function PUT(request: NextRequest) {
     const body = await request.json()
     const { productIds, isEnabled } = body
 
+    console.log('[Featured Products] Request body:', body)
+
     // Validate productIds
     if (productIds !== undefined && !Array.isArray(productIds)) {
+      console.error('[Featured Products] Invalid productIds:', productIds)
       return NextResponse.json(
         {
           success: false,
@@ -88,6 +91,7 @@ export async function PUT(request: NextRequest) {
 
     // Validate isEnabled
     if (isEnabled !== undefined && typeof isEnabled !== 'boolean') {
+      console.error('[Featured Products] Invalid isEnabled:', isEnabled)
       return NextResponse.json(
         {
           success: false,
@@ -99,12 +103,15 @@ export async function PUT(request: NextRequest) {
 
     // If productIds provided, verify they exist
     if (productIds && productIds.length > 0) {
+      console.log('[Featured Products] Verifying product IDs:', productIds)
       const placeholders = productIds.map(() => '?').join(',')
       const products = await queryAll<any>(
         env,
         `SELECT id FROM products WHERE id IN (${placeholders})`,
         ...(productIds || [])
       )
+
+      console.log('[Featured Products] Found products:', products.length, 'expected:', productIds.length)
 
       if (products.length !== productIds.length) {
         return NextResponse.json(
@@ -188,10 +195,12 @@ export async function PUT(request: NextRequest) {
     })
   } catch (error) {
     console.error('Error updating featured products settings:', error)
+    const errorMessage = error instanceof Error ? error.message : String(error)
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to update featured products settings'
+        error: 'Failed to update featured products settings',
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
       },
       { status: 500 }
     )

@@ -55,14 +55,14 @@ interface ReelApiResponse {
   updatedAt: string
 }
 
+// Function to extract YouTube video ID from URL
+function getYoutubeId(url: string): string {
+  const match = url.match(/(?:embed\/|v=)([a-zA-Z0-9_-]+)/);
+  return match ? match[1] : '';
+}
+
 // Function to transform API reel data to ShortVideo format
 function transformReelToShortVideo(reel: ReelApiResponse): ShortVideo {
-  // Extract video ID from YouTube URL for thumbnail if needed
-  const getYoutubeId = (url: string) => {
-    const match = url.match(/(?:embed\/|v=)([a-zA-Z0-9_-]+)/);
-    return match ? match[1] : '';
-  };
-
   const youtubeId = getYoutubeId(reel.videoUrl);
 
   return {
@@ -371,7 +371,7 @@ export default function ShortsPage() {
                   {currentVideo && (
                     <iframe
                       key={currentIndex}
-                      src={currentVideo.videoUrl}
+                      src={`${currentVideo.videoUrl}?autoplay=1&mute=1&playsinline=1&controls=0&loop=1&playlist=${getYoutubeId(currentVideo.videoUrl)}`}
                       title={currentVideo.title}
                       className="w-full h-full object-cover"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

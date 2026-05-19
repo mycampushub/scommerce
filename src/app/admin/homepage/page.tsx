@@ -268,19 +268,27 @@ export default function HomepageManagementPage() {
   const handleSaveFeaturedProducts = async () => {
     setSavingFeaturedProducts(true)
     try {
+      const payload = {
+        productIds: selectedFeaturedProductIds,
+        isEnabled: featuredProductsEnabled
+      }
+      console.log('[Featured Products] Sending payload:', payload)
+
       const res = await fetch('/api/admin/homepage/featured-products', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          productIds: selectedFeaturedProductIds,
-          isEnabled: featuredProductsEnabled
-        })
+        body: JSON.stringify(payload)
       })
       const data = await res.json() as any
+      console.log('[Featured Products] Response:', data)
+
       if (data.success) {
         toast.success('Featured products saved successfully')
       } else {
         toast.error(data.error || 'Failed to save featured products')
+        if (data.details) {
+          console.error('Featured products error details:', data.details)
+        }
       }
     } catch (error) {
       console.error('Error saving featured products settings:', error)
@@ -607,6 +615,8 @@ export default function HomepageManagementPage() {
   // Promotion handlers
   const handleSavePromotion = async () => {
     try {
+      console.log('[Promotions] Form data:', promotionForm)
+
       const url = editingPromotion ? `/api/admin/promotions/${editingPromotion.id}` : '/api/admin/promotions'
       const method = editingPromotion ? 'PUT' : 'POST'
 
@@ -617,6 +627,8 @@ export default function HomepageManagementPage() {
       })
 
       const data = await res.json() as any
+      console.log('[Promotions] Response:', data)
+
       if (data.success) {
         toast.success(editingPromotion ? 'Promotion updated' : 'Promotion created')
         setPromotionDialogOpen(false)
@@ -625,6 +637,9 @@ export default function HomepageManagementPage() {
         fetchPromotions()
       } else {
         toast.error(data.error || 'Failed to save promotion')
+        if (data.details) {
+          console.error('Promotion error details:', data.details)
+        }
       }
     } catch (error) {
       console.error('Error saving promotion:', error)
