@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
       id,
       validatedData.title,
       validatedData.description || null,
-      validatedData.image,
+      validatedData.image || null, // Handle undefined/null
       body.type || 'banner',
       validatedData.ctaText || null,
       validatedData.ctaLink || null,

@@ -54,9 +54,19 @@ import {
   EyeOff,
   Loader2,
   RefreshCw,
-  X
+  X,
+  List,
+  LayoutGrid,
 } from 'lucide-react'
 import { GallerySelector } from '@/components/admin/gallery-selector'
+import { CategoryTree, buildCategoryTree, CategoryNode } from '@/components/admin/category-tree'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 interface Category {
   id: string
@@ -64,6 +74,8 @@ interface Category {
   slug: string
   description: string | null
   image: string | null
+  parentId: string | null
+  sortOrder: number
   isActive: boolean
   createdAt: string
   _count: {
@@ -76,6 +88,7 @@ export default function CategoriesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
+  const [viewMode, setViewMode] = useState<'tree' | 'table'>('tree')
   const [searchTerm, setSearchTerm] = useState('')
   const debouncedSearchTerm = useDebounce(searchTerm, 500)
 
@@ -87,6 +100,8 @@ export default function CategoriesPage() {
     description: '',
     image: '',
     isActive: true,
+    parentId: '',
+    sortOrder: 0,
   })
   const [addFormErrors, setAddFormErrors] = useState<Record<string, string>>({})
 
@@ -99,6 +114,8 @@ export default function CategoriesPage() {
     description: '',
     image: '',
     isActive: true,
+    parentId: '',
+    sortOrder: 0,
   })
   const [editFormErrors, setEditFormErrors] = useState<Record<string, string>>({})
 
@@ -227,6 +244,8 @@ export default function CategoriesPage() {
           description: addFormData.description,
           image: addFormData.image || null,
           isActive: addFormData.isActive,
+          parentId: addFormData.parentId || null,
+          sortOrder: addFormData.sortOrder || 0,
         }),
       })
 
@@ -242,7 +261,7 @@ export default function CategoriesPage() {
       })
 
       setIsAddModalOpen(false)
-      setAddFormData({ name: '', slug: '', description: '', image: '', isActive: true })
+      setAddFormData({ name: '', slug: '', description: '', image: '', isActive: true, parentId: '', sortOrder: 0 })
       setAddImagePreview(null)
       setAddFormErrors({})
       fetchCategories()
@@ -266,6 +285,8 @@ export default function CategoriesPage() {
       description: category.description || '',
       image: category.image || '',
       isActive: category.isActive,
+      parentId: category.parentId || '',
+      sortOrder: category.sortOrder,
     })
     setEditImagePreview(category.image || null)
     setEditFormErrors({})
@@ -299,6 +320,8 @@ export default function CategoriesPage() {
           description: editFormData.description,
           image: editFormData.image || null,
           isActive: editFormData.isActive,
+          parentId: editFormData.parentId || null,
+          sortOrder: editFormData.sortOrder,
         }),
       })
 
@@ -448,6 +471,21 @@ export default function CategoriesPage() {
     }
   }
 
+  const handleTreeAdd = (parentId?: string) => {
+    setAddFormData({
+      name: '',
+      slug: '',
+      description: '',
+      image: '',
+      isActive: true,
+      parentId: parentId || '',
+      sortOrder: 0,
+    })
+    setAddImagePreview(null)
+    setAddFormErrors({})
+    setIsAddModalOpen(true)
+  }
+
   const stats = categories.reduce(
     (acc, category) => {
       acc.total++
@@ -459,21 +497,46 @@ export default function CategoriesPage() {
     { total: 0, active: 0, inactive: 0, products: 0 }
   )
 
+  // Build tree structure for tree view
+  const categoryTree = buildCategoryTree(categories)
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Categories</h1>
-          <p className="text-sm text-gray-500 mt-1">Organize products into categories</p>
+          <p className="text-sm text-gray-500 mt-1">Organize products into categories and sub-categories</p>
         </div>
-        <Button
-          className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
-          onClick={() => setIsAddModalOpen(true)}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Category
-        </Button>
+        <div className="flex gap-2">
+          <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
+            <Button
+              variant={viewMode === 'tree' ? 'default' : 'ghost'}
+              size="sm"
+              className="h-8"
+              onClick={() => setViewMode('tree')}
+            >
+              <LayoutGrid className="h-4 w-4 mr-2" />
+              Tree
+            </Button>
+            <Button
+              variant={viewMode === 'table' ? 'default' : 'ghost'}
+              size="sm"
+              className="h-8"
+              onClick={() => setViewMode('table')}
+            >
+              <List className="h-4 w-4 mr-2" />
+              Table
+            </Button>
+          </div>
+          <Button
+            className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
+            onClick={() => handleTreeAdd()}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Category
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -533,7 +596,7 @@ export default function CategoriesPage() {
         </Card>
       </div>
 
-      {/* Categories Table */}
+      {/* Categories Content */}
       <Card className="border-0 shadow-lg">
         <CardHeader className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-4">
@@ -561,6 +624,16 @@ export default function CategoriesPage() {
               <Package className="h-12 w-12 text-gray-300 mx-auto mb-3" />
               <p className="text-gray-500">No categories found</p>
             </div>
+          ) : viewMode === 'tree' ? (
+            <ScrollArea className="h-[600px]">
+              <CategoryTree
+                categories={categoryTree}
+                onAdd={handleTreeAdd}
+                onEdit={openEditModal}
+                onDelete={(cat) => setDeleteCategoryId(cat.id)}
+                onToggleStatus={toggleCategoryStatus}
+              />
+            </ScrollArea>
           ) : (
             <ScrollArea className="h-[600px]">
               <Table>
@@ -568,6 +641,7 @@ export default function CategoriesPage() {
                   <TableRow className="bg-gray-50 hover:bg-gray-50">
                     <TableHead className="font-semibold text-gray-700">Category</TableHead>
                     <TableHead className="font-semibold text-gray-700">Slug</TableHead>
+                    <TableHead className="font-semibold text-gray-700">Parent</TableHead>
                     <TableHead className="font-semibold text-gray-700">Description</TableHead>
                     <TableHead className="font-semibold text-gray-700">Products</TableHead>
                     <TableHead className="font-semibold text-gray-700">Status</TableHead>
@@ -592,6 +666,15 @@ export default function CategoriesPage() {
                         <code className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-600">
                           {category.slug}
                         </code>
+                      </TableCell>
+                      <TableCell>
+                        {category.parentId ? (
+                          <Badge variant="outline" className="text-xs">
+                            {categories.find(c => c.id === category.parentId)?.name || category.parentId}
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-gray-400">Root</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <p className="text-sm text-gray-600 max-w-[200px] truncate">
@@ -692,7 +775,7 @@ export default function CategoriesPage() {
 
       {/* Add Category Modal */}
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-        <DialogContent aria-describedby="add-category-description">
+        <DialogContent aria-describedby="add-category-description" className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add New Category</DialogTitle>
             <DialogDescription id="add-category-description">Create a new category to organize your products.</DialogDescription>
@@ -719,6 +802,36 @@ export default function CategoriesPage() {
               {addFormErrors.slug && (
                 <p className="text-sm text-red-600">{addFormErrors.slug}</p>
               )}
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Parent Category (Optional)</label>
+              <Select
+                value={addFormData.parentId}
+                onValueChange={(value) => setAddFormData({ ...addFormData, parentId: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="No parent (root category)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No parent (root category)</SelectItem>
+                  {categories
+                    .filter(c => c.id !== editingCategory?.id && !c.parentId)
+                    .map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Sort Order</label>
+              <Input
+                type="number"
+                value={addFormData.sortOrder}
+                onChange={(e) => setAddFormData({ ...addFormData, sortOrder: parseInt(e.target.value) || 0 })}
+                min="0"
+              />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Description</label>
@@ -812,7 +925,7 @@ export default function CategoriesPage() {
 
       {/* Edit Category Modal */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent aria-describedby="edit-category-description">
+        <DialogContent aria-describedby="edit-category-description" className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Category</DialogTitle>
             <DialogDescription id="edit-category-description">Update category information</DialogDescription>
@@ -839,6 +952,36 @@ export default function CategoriesPage() {
               {editFormErrors.slug && (
                 <p className="text-sm text-red-600">{editFormErrors.slug}</p>
               )}
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Parent Category (Optional)</label>
+              <Select
+                value={editFormData.parentId}
+                onValueChange={(value) => setEditFormData({ ...editFormData, parentId: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="No parent (root category)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">No parent (root category)</SelectItem>
+                  {categories
+                    .filter(c => c.id !== editingCategory?.id && !c.parentId)
+                    .map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Sort Order</label>
+              <Input
+                type="number"
+                value={editFormData.sortOrder}
+                onChange={(e) => setEditFormData({ ...editFormData, sortOrder: parseInt(e.target.value) || 0 })}
+                min="0"
+              />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Description</label>

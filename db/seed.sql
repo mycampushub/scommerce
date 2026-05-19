@@ -5,71 +5,80 @@
 PRAGMA foreign_keys = OFF;
 
 -- ============================================
+-- BRANDS
+-- ============================================
+INSERT OR IGNORE INTO brands (id, name, slug, logo, website, description, country, isActive, featured, sortOrder, createdAt, updatedAt)
+VALUES
+('brand-001', 'Ethnic Elegance', 'ethnic-elegance', null, 'https://ethicelegance.com', 'Premium ethnic wear for modern women', 'India', 1, 1, 1, datetime('now'), datetime('now')),
+('brand-002', 'Royal Threads', 'royal-threads', null, 'https://royalthreads.com', 'Traditional Indian menswear', 'India', 1, 0, 2, datetime('now'), datetime('now')),
+('brand-003', 'Fusion Fashion', 'fusion-fashion', null, 'https://fusionfashion.com', 'Contemporary fusion wear', 'Bangladesh', 1, 1, 3, datetime('now'), datetime('now'));
+
+-- ============================================
 -- CATEGORIES
 -- ============================================
-INSERT OR IGNORE INTO categories (id, name, slug, description, image, isActive, createdAt, updatedAt)
+INSERT OR IGNORE INTO categories (id, name, slug, description, image, parentId, sortOrder, isActive, createdAt, updatedAt)
 VALUES
-('cat-lehengas', 'Lehengas', 'lehengas', 'Traditional and contemporary lehengas for every occasion', '/images/categories/lehengas.svg', 1, datetime('now'), datetime('now')),
-('cat-sarees', 'Sarees', 'sarees', 'Beautiful collection of sarees from across India', '/images/categories/sarees.svg', 1, datetime('now'), datetime('now')),
-('cat-salwar', 'Salwar Suits', 'salwar', 'Comfortable and elegant salwar suits', '/images/categories/salwar.svg', 1, datetime('now'), datetime('now')),
-('cat-kurtas', 'Kurtas', 'kurtas', 'Stylish kurtas for modern women', '/images/categories/kurtas.svg', 1, datetime('now'), datetime('now')),
-('cat-tops', 'Tops', 'tops', 'Trendy tops for casual and formal wear', '/images/categories/tops.svg', 1, datetime('now'), datetime('now')),
-('cat-gowns', 'Gowns', 'gowns', 'Elegant gowns for special occasions', '/images/categories/gowns.svg', 1, datetime('now'), datetime('now')),
-('cat-menswear', 'Menswear', 'menswear', 'Traditional and modern menswear collection', '/images/categories/menswear.svg', 1, datetime('now'), datetime('now'));
+('cat-lehengas', 'Lehengas', 'lehengas', 'Traditional and contemporary lehengas for every occasion', '/images/categories/lehengas.svg', null, 1, 1, datetime('now'), datetime('now')),
+('cat-sarees', 'Sarees', 'sarees', 'Beautiful collection of sarees from across India', '/images/categories/sarees.svg', null, 2, 1, datetime('now'), datetime('now')),
+('cat-salwar', 'Salwar Suits', 'salwar', 'Comfortable and elegant salwar suits', '/images/categories/salwar.svg', null, 3, 1, datetime('now'), datetime('now')),
+('cat-kurtas', 'Kurtas', 'kurtas', 'Stylish kurtas for modern women', '/images/categories/kurtas.svg', null, 4, 1, datetime('now'), datetime('now')),
+('cat-tops', 'Tops', 'tops', 'Trendy tops for casual and formal wear', '/images/categories/tops.svg', null, 5, 1, datetime('now'), datetime('now')),
+('cat-gowns', 'Gowns', 'gowns', 'Elegant gowns for special occasions', '/images/categories/gowns.svg', null, 6, 1, datetime('now'), datetime('now')),
+('cat-menswear', 'Menswear', 'menswear', 'Traditional and modern menswear collection', '/images/categories/menswear.svg', null, 7, 1, datetime('now'), datetime('now'));
 
 -- ============================================
 -- PRODUCTS
 -- ============================================
-INSERT OR IGNORE INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, discount, discountType, images, stock, isActive, isFeatured, hasVariants, createdAt, updatedAt)
+INSERT OR IGNORE INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, discount, discountType, images, stock, isActive, isFeatured, hasVariants, createdAt, updatedAt, brandId, brandName, countryOfOrigin)
 VALUES
 -- Lehengas
-('prod-lh-001', 'Red Bridal Lehenga', 'red-bridal-lehenga', 'Stunning red bridal lehenga with intricate embroidery work', 'cat-lehengas', 15000, 15000, 18000, 16.67, 'percentage', '["/images/products/lehenga-1.svg","/images/products/lehenga-1.svg"]', 10, 1, 1, 1, datetime('now'), datetime('now')),
-('prod-lh-002', 'Pink Designer Lehenga', 'pink-designer-lehenga', 'Beautiful pink lehenga with stone work', 'cat-lehengas', 12000, 12000, 15000, 20, 'percentage', '["/images/products/lehenga-1.svg","/images/products/lehenga-1.svg"]', 8, 1, 1, 1, datetime('now'), datetime('now')),
-('prod-lh-003', 'Green Festive Lehenga', 'green-festive-lehenga', 'Elegant green lehenga perfect for festivals', 'cat-lehengas', 8000, 8000, 10000, 20, 'percentage', '["/images/products/lehenga-1.svg"]', 15, 1, 0, 0, datetime('now'), datetime('now')),
-('prod-lh-004', 'Royal Blue Lehenga', 'royal-blue-lehenga', 'Royal blue lehenga with zari work', 'cat-lehengas', 10000, 10000, 12000, 16.67, 'percentage', '["/images/products/lehenga-1.svg"]', 12, 1, 1, 0, datetime('now'), datetime('now')),
-('prod-lh-005', 'Maroon Party Lehenga', 'maroon-party-lehenga', 'Gorgeous maroon lehenga for parties', 'cat-lehengas', 9500, 9500, null, 0, 'percentage', '["/images/products/lehenga-1.svg"]', 20, 1, 0, 0, datetime('now'), datetime('now')),
+('prod-lh-001', 'Red Bridal Lehenga', 'red-bridal-lehenga', 'Stunning red bridal lehenga with intricate embroidery work', 'cat-lehengas', 15000, 15000, 18000, 16.67, 'percentage', '["/images/products/lehenga-1.svg","/images/products/lehenga-1.svg"]', 10, 1, 1, 1, datetime('now'), datetime('now'), 'brand-001', 'Ethnic Elegance', 'IN'),
+('prod-lh-002', 'Pink Designer Lehenga', 'pink-designer-lehenga', 'Beautiful pink lehenga with stone work', 'cat-lehengas', 12000, 12000, 15000, 20, 'percentage', '["/images/products/lehenga-1.svg","/images/products/lehenga-1.svg"]', 8, 1, 1, 1, datetime('now'), datetime('now'), 'brand-001', 'Ethnic Elegance', 'IN'),
+('prod-lh-003', 'Green Festive Lehenga', 'green-festive-lehenga', 'Elegant green lehenga perfect for festivals', 'cat-lehengas', 8000, 8000, 10000, 20, 'percentage', '["/images/products/lehenga-1.svg"]', 15, 1, 0, 0, datetime('now'), datetime('now'), 'brand-001', 'Ethnic Elegance', 'IN'),
+('prod-lh-004', 'Royal Blue Lehenga', 'royal-blue-lehenga', 'Royal blue lehenga with zari work', 'cat-lehengas', 10000, 10000, 12000, 16.67, 'percentage', '["/images/products/lehenga-1.svg"]', 12, 1, 1, 0, datetime('now'), datetime('now'), 'brand-001', 'Ethnic Elegance', 'IN'),
+('prod-lh-005', 'Maroon Party Lehenga', 'maroon-party-lehenga', 'Gorgeous maroon lehenga for parties', 'cat-lehengas', 9500, 9500, null, 0, 'percentage', '["/images/products/lehenga-1.svg"]', 20, 1, 0, 0, datetime('now'), datetime('now'), 'brand-003', 'Fusion Fashion', 'BD'),
 
 -- Sarees
-('prod-sa-001', 'Silk Banarasi Saree', 'silk-banarasi-saree', 'Pure silk Banarasi saree with gold border', 'cat-sarees', 8000, 8000, 10000, 20, 'percentage', '["/images/products/saree-1.jpg"]', 10, 1, 1, 1, datetime('now'), datetime('now')),
-('prod-sa-002', 'Chanderi Saree', 'chanderi-saree', 'Lightweight Chanderi saree', 'cat-sarees', 5000, 5000, 6000, 16.67, 'percentage', '["/images/products/saree-2.jpg"]', 15, 1, 1, 0, datetime('now'), datetime('now')),
-('prod-sa-003', 'Georgette Saree', 'georgette-saree', 'Elegant georgette saree with sequin work', 'cat-sarees', 3500, 3500, null, 0, 'percentage', '["/images/products/saree-3.jpg"]', 25, 1, 0, 0, datetime('now'), datetime('now')),
-('prod-sa-004', 'Cotton Printed Saree', 'cotton-printed-saree', 'Comfortable cotton saree with traditional prints', 'cat-sarees', 2000, 2000, 2500, 20, 'percentage', '["/images/products/saree-4.jpg"]', 30, 1, 0, 0, datetime('now'), datetime('now')),
-('prod-sa-005', 'Kanjeevaram Saree', 'kanjeevaram-saree', 'Traditional Kanjeevaram silk saree', 'cat-sarees', 15000, 15000, 18000, 16.67, 'percentage', '["/images/products/saree-5.jpg"]', 8, 1, 1, 0, datetime('now'), datetime('now')),
+('prod-sa-001', 'Silk Banarasi Saree', 'silk-banarasi-saree', 'Pure silk Banarasi saree with gold border', 'cat-sarees', 8000, 8000, 10000, 20, 'percentage', '["/images/products/saree-1.jpg"]', 10, 1, 1, 1, datetime('now'), datetime('now'), 'brand-001', 'Ethnic Elegance', 'IN'),
+('prod-sa-002', 'Chanderi Saree', 'chanderi-saree', 'Lightweight Chanderi saree', 'cat-sarees', 5000, 5000, 6000, 16.67, 'percentage', '["/images/products/saree-2.jpg"]', 15, 1, 1, 0, datetime('now'), datetime('now'), 'brand-001', 'Ethnic Elegance', 'IN'),
+('prod-sa-003', 'Georgette Saree', 'georgette-saree', 'Elegant georgette saree with sequin work', 'cat-sarees', 3500, 3500, null, 0, 'percentage', '["/images/products/saree-3.jpg"]', 25, 1, 0, 0, datetime('now'), datetime('now'), 'brand-003', 'Fusion Fashion', 'BD'),
+('prod-sa-004', 'Cotton Printed Saree', 'cotton-printed-saree', 'Comfortable cotton saree with traditional prints', 'cat-sarees', 2000, 2000, 2500, 20, 'percentage', '["/images/products/saree-4.jpg"]', 30, 1, 0, 0, datetime('now'), datetime('now'), 'brand-003', 'Fusion Fashion', 'BD'),
+('prod-sa-005', 'Kanjeevaram Saree', 'kanjeevaram-saree', 'Traditional Kanjeevaram silk saree', 'cat-sarees', 15000, 15000, 18000, 16.67, 'percentage', '["/images/products/saree-5.jpg"]', 8, 1, 1, 0, datetime('now'), datetime('now'), 'brand-001', 'Ethnic Elegance', 'IN'),
 
 -- Salwar Suits
-('prod-sw-001', 'Anarkali Suit', 'anarkali-suit', 'Beautiful Anarkali salwar suit', 'cat-salwar', 4000, 4000, 5000, 20, 'percentage', '["/images/products/salwar-1.jpg"]', 15, 1, 1, 1, datetime('now'), datetime('now')),
-('prod-sw-002', 'Palazzo Suit', 'palazzo-suit', 'Modern palazzo salwar suit', 'cat-salwar', 3500, 3500, null, 0, 'percentage', '["/images/products/salwar-2.jpg"]', 20, 1, 0, 0, datetime('now'), datetime('now')),
-('prod-sw-003', 'Straight Cut Suit', 'straight-cut-suit', 'Elegant straight cut salwar suit', 'cat-salwar', 3000, 3000, 3500, 14.29, 'percentage', '["/images/products/salwar-3.jpg"]', 18, 1, 1, 0, datetime('now'), datetime('now')),
-('prod-sw-004', 'Churidar Suit', 'churidar-suit', 'Classic churidar salwar suit', 'cat-salwar', 3500, 3500, 4000, 12.5, 'percentage', '["/images/products/salwar-4.jpg"]', 22, 1, 0, 0, datetime('now'), datetime('now')),
-('prod-sw-005', 'Patiala Suit', 'patiala-suit', 'Traditional Patiala salwar suit', 'cat-salwar', 3800, 3800, null, 0, 'percentage', '["/images/products/salwar-5.jpg"]', 16, 1, 1, 0, datetime('now'), datetime('now')),
+('prod-sw-001', 'Anarkali Suit', 'anarkali-suit', 'Beautiful Anarkali salwar suit', 'cat-salwar', 4000, 4000, 5000, 20, 'percentage', '["/images/products/salwar-1.jpg"]', 15, 1, 1, 1, datetime('now'), datetime('now'), 'brand-001', 'Ethnic Elegance', 'IN'),
+('prod-sw-002', 'Palazzo Suit', 'palazzo-suit', 'Modern palazzo salwar suit', 'cat-salwar', 3500, 3500, null, 0, 'percentage', '["/images/products/salwar-2.jpg"]', 20, 1, 0, 0, datetime('now'), datetime('now'), 'brand-003', 'Fusion Fashion', 'BD'),
+('prod-sw-003', 'Straight Cut Suit', 'straight-cut-suit', 'Elegant straight cut salwar suit', 'cat-salwar', 3000, 3000, 3500, 14.29, 'percentage', '["/images/products/salwar-3.jpg"]', 18, 1, 1, 0, datetime('now'), datetime('now'), 'brand-001', 'Ethnic Elegance', 'IN'),
+('prod-sw-004', 'Churidar Suit', 'churidar-suit', 'Classic churidar salwar suit', 'cat-salwar', 3500, 3500, 4000, 12.5, 'percentage', '["/images/products/salwar-4.jpg"]', 22, 1, 0, 0, datetime('now'), datetime('now'), 'brand-003', 'Fusion Fashion', 'BD'),
+('prod-sw-005', 'Patiala Suit', 'patiala-suit', 'Traditional Patiala salwar suit', 'cat-salwar', 3800, 3800, null, 0, 'percentage', '["/images/products/salwar-5.jpg"]', 16, 1, 1, 0, datetime('now'), datetime('now'), 'brand-001', 'Ethnic Elegance', 'IN'),
 
 -- Kurtas
-('prod-ku-001', 'Embroidered Kurta', 'embroidered-kurta', 'Beautiful embroidered kurta', 'cat-kurtas', 2000, 2000, 2500, 20, 'percentage', '["/images/products/kurta-1.jpg"]', 25, 1, 1, 1, datetime('now'), datetime('now')),
-('prod-ku-002', 'Printed Kurta', 'printed-kurta', 'Trendy printed kurta', 'cat-kurtas', 1500, 1500, null, 0, 'percentage', '["/images/products/kurta-2.jpg"]', 30, 1, 0, 0, datetime('now'), datetime('now')),
-('prod-ku-003', 'Solid Kurta', 'solid-kurta', 'Elegant solid color kurta', 'cat-kurtas', 1800, 1800, 2000, 10, 'percentage', '["/images/products/kurta-3.jpg"]', 20, 1, 1, 0, datetime('now'), datetime('now')),
-('prod-ku-004', 'Long Straight Kurta', 'long-straight-kurta', 'Modern long straight kurta', 'cat-kurtas', 2200, 2200, null, 0, 'percentage', '["/images/products/kurta-4.jpg"]', 18, 1, 0, 0, datetime('now'), datetime('now')),
-('prod-ku-005', 'A-Line Kurta', 'a-line-kurta', 'Flattering A-line kurta', 'cat-kurtas', 2000, 2000, 2400, 16.67, 'percentage', '["/images/products/kurta-5.jpg"]', 22, 1, 1, 0, datetime('now'), datetime('now')),
+('prod-ku-001', 'Embroidered Kurta', 'embroidered-kurta', 'Beautiful embroidered kurta', 'cat-kurtas', 2000, 2000, 2500, 20, 'percentage', '["/images/products/kurta-1.jpg"]', 25, 1, 1, 1, datetime('now'), datetime('now'), 'brand-001', 'Ethnic Elegance', 'IN'),
+('prod-ku-002', 'Printed Kurta', 'printed-kurta', 'Trendy printed kurta', 'cat-kurtas', 1500, 1500, null, 0, 'percentage', '["/images/products/kurta-2.jpg"]', 30, 1, 0, 0, datetime('now'), datetime('now'), 'brand-003', 'Fusion Fashion', 'BD'),
+('prod-ku-003', 'Solid Kurta', 'solid-kurta', 'Elegant solid color kurta', 'cat-kurtas', 1800, 1800, 2000, 10, 'percentage', '["/images/products/kurta-3.jpg"]', 20, 1, 1, 0, datetime('now'), datetime('now'), 'brand-001', 'Ethnic Elegance', 'IN'),
+('prod-ku-004', 'Long Straight Kurta', 'long-straight-kurta', 'Modern long straight kurta', 'cat-kurtas', 2200, 2200, null, 0, 'percentage', '["/images/products/kurta-4.jpg"]', 18, 1, 0, 0, datetime('now'), datetime('now'), 'brand-003', 'Fusion Fashion', 'BD'),
+('prod-ku-005', 'A-Line Kurta', 'a-line-kurta', 'Flattering A-line kurta', 'cat-kurtas', 2000, 2000, 2400, 16.67, 'percentage', '["/images/products/kurta-5.jpg"]', 22, 1, 1, 0, datetime('now'), datetime('now'), 'brand-001', 'Ethnic Elegance', 'IN'),
 
 -- Tops
-('prod-to-001', 'Floral Top', 'floral-top', 'Beautiful floral print top', 'cat-tops', 1200, 1200, 1500, 20, 'percentage', '["/images/products/top-1.jpg"]', 30, 1, 1, 1, datetime('now'), datetime('now')),
-('prod-to-002', 'Striped Top', 'striped-top', 'Classic striped top', 'cat-tops', 1000, 1000, null, 0, 'percentage', '["/images/products/top-2.jpg"]', 35, 1, 0, 0, datetime('now'), datetime('now')),
-('prod-to-003', 'Solid Color Top', 'solid-color-top', 'Versatile solid color top', 'cat-tops', 900, 900, 1100, 18.18, 'percentage', '["/images/products/top-3.jpg"]', 40, 1, 1, 0, datetime('now'), datetime('now')),
-('prod-to-004', 'Peplum Top', 'peplum-top', 'Stylish peplum top', 'cat-tops', 1500, 1500, 1800, 16.67, 'percentage', '["/images/products/top-4.jpg"]', 25, 1, 0, 0, datetime('now'), datetime('now')),
-('prod-to-005', 'Off-Shoulder Top', 'off-shoulder-top', 'Trendy off-shoulder top', 'cat-tops', 1800, 1800, null, 0, 'percentage', '["/images/products/top-5.jpg"]', 20, 1, 1, 0, datetime('now'), datetime('now')),
+('prod-to-001', 'Floral Top', 'floral-top', 'Beautiful floral print top', 'cat-tops', 1200, 1200, 1500, 20, 'percentage', '["/images/products/top-1.jpg"]', 30, 1, 1, 1, datetime('now'), datetime('now'), 'brand-003', 'Fusion Fashion', 'BD'),
+('prod-to-002', 'Striped Top', 'striped-top', 'Classic striped top', 'cat-tops', 1000, 1000, null, 0, 'percentage', '["/images/products/top-2.jpg"]', 35, 1, 0, 0, datetime('now'), datetime('now'), 'brand-003', 'Fusion Fashion', 'BD'),
+('prod-to-003', 'Solid Color Top', 'solid-color-top', 'Versatile solid color top', 'cat-tops', 900, 900, 1100, 18.18, 'percentage', '["/images/products/top-3.jpg"]', 40, 1, 1, 0, datetime('now'), datetime('now'), 'brand-003', 'Fusion Fashion', 'BD'),
+('prod-to-004', 'Peplum Top', 'peplum-top', 'Stylish peplum top', 'cat-tops', 1500, 1500, 1800, 16.67, 'percentage', '["/images/products/top-4.jpg"]', 25, 1, 0, 0, datetime('now'), datetime('now'), 'brand-003', 'Fusion Fashion', 'BD'),
+('prod-to-005', 'Off-Shoulder Top', 'off-shoulder-top', 'Trendy off-shoulder top', 'cat-tops', 1800, 1800, null, 0, 'percentage', '["/images/products/top-5.jpg"]', 20, 1, 1, 0, datetime('now'), datetime('now'), 'brand-003', 'Fusion Fashion', 'BD'),
 
 -- Gowns
-('prod-go-001', 'Evening Gown', 'evening-gown', 'Elegant evening gown', 'cat-gowns', 12000, 12000, 15000, 20, 'percentage', '["/images/products/gown-1.jpg"]', 10, 1, 1, 0, datetime('now'), datetime('now')),
-('prod-go-002', 'Wedding Gown', 'wedding-gown', 'Beautiful wedding gown', 'cat-gowns', 25000, 25000, 30000, 16.67, 'percentage', '["/images/products/gown-2.jpg"]', 5, 1, 1, 0, datetime('now'), datetime('now')),
-('prod-go-003', 'Party Gown', 'party-gown', 'Stylish party gown', 'cat-gowns', 8000, 8000, 10000, 20, 'percentage', '["/images/products/gown-3.jpg"]', 12, 1, 1, 0, datetime('now'), datetime('now')),
-('prod-go-004', 'Cocktail Gown', 'cocktail-gown', 'Chic cocktail gown', 'cat-gowns', 10000, 10000, null, 0, 'percentage', '["/images/products/gown-4.jpg"]', 8, 1, 0, 0, datetime('now'), datetime('now')),
-('prod-go-005', 'Maxi Gown', 'maxi-gown', 'Flowing maxi gown', 'cat-gowns', 9000, 9000, 11000, 18.18, 'percentage', '["/images/products/gown-5.jpg"]', 10, 1, 1, 0, datetime('now'), datetime('now')),
+('prod-go-001', 'Evening Gown', 'evening-gown', 'Elegant evening gown', 'cat-gowns', 12000, 12000, 15000, 20, 'percentage', '["/images/products/gown-1.jpg"]', 10, 1, 1, 0, datetime('now'), datetime('now'), 'brand-001', 'Ethnic Elegance', 'IN'),
+('prod-go-002', 'Wedding Gown', 'wedding-gown', 'Beautiful wedding gown', 'cat-gowns', 25000, 25000, 30000, 16.67, 'percentage', '["/images/products/gown-2.jpg"]', 5, 1, 1, 0, datetime('now'), datetime('now'), 'brand-001', 'Ethnic Elegance', 'IN'),
+('prod-go-003', 'Party Gown', 'party-gown', 'Stylish party gown', 'cat-gowns', 8000, 8000, 10000, 20, 'percentage', '["/images/products/gown-3.jpg"]', 12, 1, 1, 0, datetime('now'), datetime('now'), 'brand-003', 'Fusion Fashion', 'BD'),
+('prod-go-004', 'Cocktail Gown', 'cocktail-gown', 'Chic cocktail gown', 'cat-gowns', 10000, 10000, null, 0, 'percentage', '["/images/products/gown-4.jpg"]', 8, 1, 0, 0, datetime('now'), datetime('now'), 'brand-003', 'Fusion Fashion', 'BD'),
+('prod-go-005', 'Maxi Gown', 'maxi-gown', 'Flowing maxi gown', 'cat-gowns', 9000, 9000, 11000, 18.18, 'percentage', '["/images/products/gown-5.jpg"]', 10, 1, 1, 0, datetime('now'), datetime('now'), 'brand-001', 'Ethnic Elegance', 'IN'),
 
 -- Menswear
-('prod-me-001', 'Men Kurta Pyjama', 'men-kurta-pyjama', 'Traditional kurta pyjama set', 'cat-menswear', 3000, 3000, 3500, 14.29, 'percentage', '["/images/products/men-1.jpg"]', 20, 1, 1, 1, datetime('now'), datetime('now')),
-('prod-me-002', 'Nehru Jacket Set', 'nehru-jacket-set', 'Elegant Nehru jacket with kurta', 'cat-menswear', 5000, 5000, 6000, 16.67, 'percentage', '["/images/products/men-2.jpg"]', 15, 1, 1, 0, datetime('now'), datetime('now')),
-('prod-me-003', 'Sherwani', 'sherwani', 'Traditional sherwani for special occasions', 'cat-menswear', 15000, 15000, 18000, 16.67, 'percentage', '["/images/products/men-3.jpg"]', 8, 1, 1, 1, datetime('now'), datetime('now')),
-('prod-me-004', 'Waistcoat Set', 'waistcoat-set', 'Stylish waistcoat with kurta', 'cat-menswear', 6000, 6000, null, 0, 'percentage', '["/images/products/men-4.jpg"]', 12, 1, 0, 0, datetime('now'), datetime('now')),
-('prod-me-005', 'Pathani Suit', 'pathani-suit', 'Classic Pathani suit', 'cat-menswear', 3500, 3500, 4000, 12.5, 'percentage', '["/images/products/men-5.jpg"]', 18, 1, 1, 0, datetime('now'), datetime('now'));
+('prod-me-001', 'Men Kurta Pyjama', 'men-kurta-pyjama', 'Traditional kurta pyjama set', 'cat-menswear', 3000, 3000, 3500, 14.29, 'percentage', '["/images/products/men-1.jpg"]', 20, 1, 1, 1, datetime('now'), datetime('now'), 'brand-002', 'Royal Threads', 'IN'),
+('prod-me-002', 'Nehru Jacket Set', 'nehru-jacket-set', 'Elegant Nehru jacket with kurta', 'cat-menswear', 5000, 5000, 6000, 16.67, 'percentage', '["/images/products/men-2.jpg"]', 15, 1, 1, 0, datetime('now'), datetime('now'), 'brand-002', 'Royal Threads', 'IN'),
+('prod-me-003', 'Sherwani', 'sherwani', 'Traditional sherwani for special occasions', 'cat-menswear', 15000, 15000, 18000, 16.67, 'percentage', '["/images/products/men-3.jpg"]', 8, 1, 1, 1, datetime('now'), datetime('now'), 'brand-002', 'Royal Threads', 'IN'),
+('prod-me-004', 'Waistcoat Set', 'waistcoat-set', 'Stylish waistcoat with kurta', 'cat-menswear', 6000, 6000, null, 0, 'percentage', '["/images/products/men-4.jpg"]', 12, 1, 0, 0, datetime('now'), datetime('now'), 'brand-003', 'Fusion Fashion', 'BD'),
+('prod-me-005', 'Pathani Suit', 'pathani-suit', 'Classic Pathani suit', 'cat-menswear', 3500, 3500, 4000, 12.5, 'percentage', '["/images/products/men-5.jpg"]', 18, 1, 1, 0, datetime('now'), datetime('now'), 'brand-002', 'Royal Threads', 'IN');
 
 -- ============================================
 -- USERS
@@ -326,9 +335,72 @@ VALUES
 ('pv-me-001-4', 'prod-me-001', 'ME-KUR-XL', 'Men Kurta Pyjama - Size XL', 3000, 3500, 8, '["/images/products/men-1.jpg"]', 'XL', 'White', 'Cotton', 1, 0, 5, 4, 10, datetime('now'), datetime('now'));
 
 -- ============================================
+-- SUPPLIERS
+-- ============================================
+INSERT OR IGNORE INTO suppliers (id, name, email, phone, address, city, country, isActive, notes, createdAt, updatedAt)
+VALUES
+('sup-001', 'Ethnic Fabrics Ltd', 'contact@ethnicfabrics.com', '+91-9876543210', '123 Textile Market, Surat', 'Surat', 'IN', 1, 'Premium fabric supplier for ethnic wear', datetime('now'), datetime('now')),
+('sup-002', 'Fashion Exports India', 'info@fashionexports.in', '+91-8765432109', '456 Industrial Area, Delhi', 'Delhi', 'IN', 1, 'Ready-made garments exporter', datetime('now'), datetime('now')),
+('sup-003', 'Dhaka Weavers', 'sales@dhakaweavers.bd', '+880-1712345678', '789 Mirpur Textile Zone', 'Dhaka', 'BD', 1, 'Local traditional weavers', datetime('now'), datetime('now'));
+
+-- ============================================
+-- PURCHASE ORDERS
+-- ============================================
+INSERT OR IGNORE INTO purchase_orders (id, orderNumber, supplierId, status, totalAmount, totalQuantity, orderDate, expectedDate, receivedDate, createdAt, updatedAt)
+VALUES
+('po-001', 'PO-001', 'sup-001', 'RECEIVED', 50000, 50, datetime('now', '-30 days'), datetime('now', '-20 days'), datetime('now', '-20 days'), datetime('now', '-30 days'), datetime('now', '-20 days')),
+('po-002', 'PO-002', 'sup-002', 'ORDERED', 75000, 100, datetime('now', '-10 days'), datetime('now', '+10 days'), null, datetime('now', '-10 days'), datetime('now')),
+('po-003', 'PO-003', 'sup-003', 'PENDING', 30000, 40, datetime('now'), datetime('now', '+15 days'), null, datetime('now'), datetime('now'));
+
+-- ============================================
+-- PURCHASE ORDER ITEMS
+-- ============================================
+INSERT OR IGNORE INTO purchase_order_items (id, purchaseOrderId, productId, variantId, quantity, unitCost, totalCost, receivedQty, createdAt)
+VALUES
+-- PO-001 items (RECEIVED)
+('poi-001-1', 'po-001', 'prod-lh-001', null, 10, 8000, 80000, 10, datetime('now', '-30 days')),
+('poi-001-2', 'po-001', 'prod-sa-001', null, 20, 5000, 100000, 20, datetime('now', '-30 days')),
+('poi-001-3', 'po-001', 'prod-me-003', null, 5, 10000, 50000, 5, datetime('now', '-30 days')),
+-- PO-002 items (ORDERED)
+('poi-002-1', 'po-002', 'prod-lh-002', null, 15, 7000, 105000, 0, datetime('now', '-10 days')),
+('poi-002-2', 'po-002', 'prod-sa-005', null, 25, 8000, 200000, 0, datetime('now', '-10 days')),
+-- PO-003 items (PENDING)
+('poi-003-1', 'po-003', 'prod-sw-001', null, 20, 3000, 60000, 0, datetime('now')),
+('poi-003-2', 'po-003', 'prod-ku-001', null, 20, 1500, 30000, 0, datetime('now'));
+
+-- ============================================
+-- INVENTORY MOVEMENTS
+-- ============================================
+INSERT OR IGNORE INTO inventory_movements (id, productId, variantId, movementType, quantity, unitCost, totalCost, referenceId, referenceType, approved, approvedAt, supplierId, createdAt)
+VALUES
+-- Purchase movements
+('im-001', 'prod-lh-001', null, 'PURCHASE', 10, 8000, 80000, 'po-001', 'PURCHASE_ORDER', 1, datetime('now', '-20 days'), 'sup-001', datetime('now', '-20 days')),
+('im-002', 'prod-sa-001', null, 'PURCHASE', 20, 5000, 100000, 'po-001', 'PURCHASE_ORDER', 1, datetime('now', '-20 days'), 'sup-001', datetime('now', '-20 days')),
+('im-003', 'prod-me-003', null, 'PURCHASE', 5, 10000, 50000, 'po-001', 'PURCHASE_ORDER', 1, datetime('now', '-20 days'), 'sup-001', datetime('now', '-20 days')),
+-- Sale movements
+('im-004', 'prod-lh-001', null, 'SALE', -1, 8000, -8000, 'order-001', 'ORDER', 1, datetime('now', '-15 days'), null, datetime('now', '-15 days')),
+('im-005', 'prod-me-003', null, 'SALE', -1, 10000, -10000, 'order-001', 'ORDER', 1, datetime('now', '-15 days'), null, datetime('now', '-15 days')),
+('im-006', 'prod-sa-002', null, 'SALE', -2, 5000, -10000, 'order-002', 'ORDER', 1, datetime('now', '-5 days'), null, datetime('now', '-5 days')),
+('im-007', 'prod-lh-002', null, 'SALE', -1, 7000, -7000, 'order-003', 'ORDER', 1, datetime('now'), null, datetime('now')),
+('im-008', 'prod-go-002', null, 'SALE', -1, 15000, -15000, 'order-004', 'ORDER', 1, datetime('now'), null, datetime('now')),
+('im-009', 'prod-me-002', null, 'SALE', -1, 5000, -5000, 'order-004', 'ORDER', 1, datetime('now'), null, datetime('now')),
+-- Adjustment movement
+('im-010', 'prod-lh-003', null, 'ADJUSTMENT', 5, 6000, 30000, 'adj-001', 'ADJUSTMENT', 1, datetime('now', '-25 days'), null, datetime('now', '-25 days'));
+
+-- ============================================
+-- INVENTORY ADJUSTMENTS
+-- ============================================
+INSERT OR IGNORE INTO inventory_adjustments (id, productId, variantId, adjustmentType, quantityBefore, quantityAfter, quantityDiff, reason, approvedBy, approved, approvedAt, createdAt)
+VALUES
+('adj-001', 'prod-lh-003', null, 'CORRECTION', 10, 15, 5, 'Stock count correction - found additional items', 'user-admin-001', 1, datetime('now', '-25 days'), datetime('now', '-25 days')),
+('adj-002', 'prod-sa-004', null, 'DAMAGE', 30, 28, -2, '2 sarees damaged during handling', 'user-staff-001', 1, datetime('now', '-15 days'), datetime('now', '-15 days')),
+('adj-003', 'prod-sw-002', null, 'STOCK_TAKE', 20, 22, 2, 'Annual stock take correction', 'user-admin-001', 1, datetime('now', '-10 days'), datetime('now', '-10 days'));
+
+-- ============================================
 -- SUMMARY
 -- ============================================
 -- Categories: 7
+-- Brands: 3
 -- Products: 35
 -- Product Variants: 20
 -- Users: 9 (1 admin + 3 staff + 5 customers)
@@ -351,6 +423,11 @@ VALUES
 -- Shipping Carriers: 2
 -- Email Services: 1
 -- Analytics Integrations: 1
+-- Suppliers: 3
+-- Purchase Orders: 3
+-- Purchase Order Items: 8
+-- Inventory Movements: 10
+-- Inventory Adjustments: 3
 
 -- Re-enable foreign key constraints after seeding
 PRAGMA foreign_keys = ON;

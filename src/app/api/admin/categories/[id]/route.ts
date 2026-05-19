@@ -20,7 +20,18 @@ export async function GET(
 
   try {
     const env = await getEnv()
-    const category = await CategoryRepository.findById(env, (await params).id)
+    const id = (await params).id
+    const searchParams = request.nextUrl.searchParams
+    const includeChildren = searchParams.get('children') === 'true'
+    const includePath = searchParams.get('path') === 'true'
+
+    let category
+
+    if (includePath) {
+      category = await CategoryRepository.getWithPath(env, id)
+    } else {
+      category = await CategoryRepository.findById(env, id)
+    }
 
     if (!category) {
       return NextResponse.json(
@@ -32,16 +43,27 @@ export async function GET(
       )
     }
 
+    const response: any = {
+      ...category,
+      isActive: numberToBool(category.isActive),
+    }
+
     // Get products for this category
-    const products = await ProductRepository.findByCategory(env, (await params).id)
+    const products = await ProductRepository.findByCategory(env, id)
+    response.products = products
+
+    // Get children if requested
+    if (includeChildren) {
+      const children = await CategoryRepository.getChildren(env, id)
+      response.children = children.map(child => ({
+        ...child,
+        isActive: numberToBool(child.isActive),
+      }))
+    }
 
     return NextResponse.json({
       success: true,
-      data: {
-        ...category,
-        isActive: numberToBool(category.isActive),
-        products,
-      },
+      data: response,
     })
   } catch (error) {
     console.error('Error fetching category:', error)

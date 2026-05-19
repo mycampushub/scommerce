@@ -211,7 +211,7 @@ export const settingsSchema = z.object({
 export const promotionSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional(),
-  image: z.string().min(1, 'Image is required'),
+  image: z.string().optional(), // Made optional - not all promotions need images
   discountType: z.enum(['percentage', 'fixed']).optional().default('percentage'),
   discountValue: z.number().min(0, 'Discount value must be non-negative').optional().default(0),
   discountRules: z.record(z.string(), z.unknown()).optional(),

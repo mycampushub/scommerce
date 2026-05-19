@@ -58,12 +58,28 @@ export interface Address {
   updatedAt: string;
 }
 
+export interface Supplier {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  city: string | null;
+  country: string | null;
+  notes: string | null;
+  isActive: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Category {
   id: string;
   name: string;
   slug: string;
   description: string | null;
   image: string | null;
+  parentId: string | null;
+  sortOrder: number;
   isActive: number;
   createdAt: string;
   updatedAt: string;
@@ -89,6 +105,24 @@ export interface Product {
   isActive: number;
   isFeatured: number;
   hasVariants: number;
+  // Brand fields
+  brandId: string | null;
+  brandName: string | null;
+  brandLogo: string | null;
+  // Size system (two types: unit or label)
+  sizeType: string | null;
+  sizeValue: number | null;
+  sizeUnit: string | null;
+  sizeLabel: string | null;
+  // Country of origin
+  countryOfOrigin: string | null;
+  // Inventory tracking
+  totalPurchased: number;
+  totalSold: number;
+  totalCost: number | null;
+  averageCost: number | null;
+  lastPurchaseAt: string | null;
+  lastPurchaseCost: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -111,6 +145,18 @@ export interface ProductVariant {
   lowStockAlert: number;
   reorderLevel: number;
   reorderQty: number;
+  // Size system (two types: unit or label)
+  sizeType: string | null;
+  sizeValue: number | null;
+  sizeUnit: string | null;
+  sizeLabel: string | null;
+  // Country of origin
+  countryOfOrigin: string | null;
+  // Inventory tracking
+  totalPurchased: number;
+  totalSold: number;
+  totalCost: number | null;
+  averageCost: number | null;
   createdAt: string;
   updatedAt: string;
 }

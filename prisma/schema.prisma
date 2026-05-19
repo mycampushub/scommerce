@@ -90,6 +90,25 @@ model banners {
   @@index([isActive])
 }
 
+model brands {
+  id          String    @id
+  name        String    @unique
+  slug        String    @unique
+  logo        String?
+  website     String?
+  description String?
+  country     String?
+  isActive    Int       @default(1)
+  featured    Int       @default(0)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime
+
+  @@index([isActive, sortOrder])
+  @@index([featured])
+  @@index([slug])
+}
+
 model cart_items {
   id               String            @id
   userId           String
@@ -109,18 +128,24 @@ model cart_items {
 }
 
 model categories {
-  id          String     @id
-  name        String     @unique
-  slug        String     @unique
+  id          String       @id
+  name        String       @unique
+  slug        String       @unique
   description String?
   image       String?
-  isActive    Int        @default(1)
-  createdAt   DateTime   @default(now())
+  parentId    String?      // For hierarchy/sub-categories
+  sortOrder   Int          @default(0)
+  isActive    Int          @default(1)
+  createdAt   DateTime     @default(now())
   updatedAt   DateTime
   products    products[]
+  parent      categories?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children    categories[]  @relation("CategoryHierarchy")
 
   @@index([isActive])
   @@index([slug])
+  @@index([parentId])
+  @@index([isActive, sortOrder])
 }
 
 model email_services {
@@ -323,6 +348,18 @@ model product_variants {
   createdAt              DateTime                 @default(now())
   updatedAt              DateTime
   costPrice              Float?                   @default(0)
+  // Size system (two types: unit or label)
+  sizeType               String?                  // 'unit' or 'label'
+  sizeValue              Float?                   // For unit sizes (e.g., 500)
+  sizeUnit               String?                  // For unit sizes (e.g., 'ml', 'g')
+  sizeLabel              String?                  // For label sizes (e.g., 'S', 'M', 'L')
+  // Country of origin
+  countryOfOrigin        String?                  // ISO country code
+  // Inventory tracking
+  totalPurchased         Int                      @default(0)
+  totalSold              Int                      @default(0)
+  totalCost              Float?                   @default(0)
+  averageCost            Float?                   @default(0)
   cart_items             cart_items[]
   inventory_alerts       inventory_alerts[]
   inventory_reservations inventory_reservations[]
@@ -333,6 +370,8 @@ model product_variants {
   @@index([productId, isActive])
   @@index([sku])
   @@index([productId])
+  @@index([countryOfOrigin])
+  @@index([sizeType, sizeUnit])
 }
 
 model products {
@@ -360,6 +399,24 @@ model products {
   createdAt              DateTime                 @default(now())
   updatedAt              DateTime
   costPrice              Float?                   @default(0)
+  // Brand (inline, no separate page)
+  brandId                String?                  // Simple brand reference
+  brandName              String?                  // Brand name stored inline
+  brandLogo              String?                  // Brand logo URL
+  // Size system (two types: unit or label)
+  sizeType               String?                  // 'unit' or 'label'
+  sizeValue              Float?                   // For unit sizes (e.g., 500)
+  sizeUnit               String?                  // For unit sizes (e.g., 'ml', 'g')
+  sizeLabel              String?                  // For label sizes (e.g., 'S', 'M', 'L')
+  // Country of origin
+  countryOfOrigin        String?                  // ISO country code
+  // Inventory tracking
+  totalPurchased         Int                      @default(0)
+  totalSold              Int                      @default(0)
+  totalCost              Float?                   @default(0)
+  averageCost            Float?                   @default(0)
+  lastPurchaseAt         DateTime?
+  lastPurchaseCost       Float?
   cart_items             cart_items[]
   inventory_alerts       inventory_alerts[]
   inventory_reservations inventory_reservations[]
@@ -374,6 +431,9 @@ model products {
   @@index([isActive, createdAt(sort: Desc)])
   @@index([isFeatured])
   @@index([categoryId])
+  @@index([brandId])
+  @@index([countryOfOrigin])
+  @@index([sizeType, sizeUnit])
 }
 
 model promotions {
@@ -532,4 +592,104 @@ model media {
   @@index([category])
   @@index([createdAt(sort: Desc)])
   @@index([uploadedBy])
+}
+
+// Advanced Inventory Management Tables
+
+model suppliers {
+  id          String             @id
+  name        String
+  email       String?
+  phone       String?
+  address     String?
+  city        String?
+  country     String?
+  isActive    Int                @default(1)
+  notes       String?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime
+  purchaseOrders purchase_orders[]
+  inventoryMovements inventory_movements[]
+
+  @@index([isActive])
+}
+
+model purchase_orders {
+  id              String                @id
+  orderNumber     String                @unique
+  supplierId      String
+  status          String                @default("PENDING") // PENDING, ORDERED, RECEIVED, CANCELLED
+  totalAmount     Float
+  totalQuantity   Int
+  orderDate       DateTime
+  expectedDate    DateTime?
+  receivedDate    DateTime?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime
+  supplier        suppliers             @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  items           purchase_order_items[]
+
+  @@index([supplierId])
+  @@index([status, orderDate])
+  @@index([orderDate(sort: Desc)])
+}
+
+model purchase_order_items {
+  id              String         @id
+  purchaseOrderId String
+  productId       String
+  variantId       String?
+  quantity        Int
+  unitCost        Float
+  totalCost       Float
+  receivedQty     Int            @default(0)
+  createdAt       DateTime       @default(now())
+  purchaseOrder   purchase_orders @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+
+  @@index([purchaseOrderId])
+  @@index([productId])
+  @@index([variantId])
+}
+
+model inventory_movements {
+  id              String   @id
+  productId       String
+  variantId       String?
+  movementType    String   // PURCHASE, SALE, RETURN, ADJUSTMENT, TRANSFER, DAMAGE
+  quantity        Int
+  unitCost        Float?   // Cost per unit at time of movement
+  totalCost       Float?   // Total cost for this movement
+  referenceId     String?  // Related order, PO, or adjustment ID
+  referenceType   String?  // ORDER, PURCHASE_ORDER, ADJUSTMENT
+  approved        Int      @default(0)
+  approvedAt      DateTime?
+  supplierId      String?
+  supplier        suppliers?   @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  createdAt       DateTime       @default(now())
+
+  @@index([productId, createdAt])
+  @@index([variantId, createdAt])
+  @@index([movementType, createdAt])
+  @@index([referenceId, referenceType])
+  @@index([createdAt(sort: Desc)])
+  @@index([supplierId])
+}
+
+model inventory_adjustments {
+  id              String   @id
+  productId       String
+  variantId       String?
+  adjustmentType  String   // STOCK_TAKE, DAMAGE, LOSS, THEFT, CORRECTION
+  quantityBefore  Int
+  quantityAfter   Int
+  quantityDiff    Int
+  reason          String
+  approvedBy      String?
+  approved      Int      @default(0)
+  approvedAt      DateTime?
+  createdAt       DateTime       @default(now())
+
+  @@index([productId, createdAt])
+  @@index([adjustmentType, createdAt])
+  @@index([createdAt(sort: Desc)])
 }

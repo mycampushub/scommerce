@@ -104,20 +104,22 @@ export async function PUT(request: NextRequest) {
     // If productIds provided, verify they exist
     if (productIds && productIds.length > 0) {
       console.log('[Featured Products] Verifying product IDs:', productIds)
-      const placeholders = productIds.map(() => '?').join(',')
-      const products = await queryAll<any>(
+      
+      // Build a simpler query to verify products exist
+      const existingProducts = await queryAll<any>(
         env,
-        `SELECT id FROM products WHERE id IN (${placeholders})`,
-        ...(productIds || [])
+        'SELECT id FROM products WHERE id IN (' + productIds.map(() => '?').join(',') + ')',
+        ...productIds
       )
+      
+      console.log('[Featured Products] Found products:', existingProducts.length, 'expected:', productIds.length)
 
-      console.log('[Featured Products] Found products:', products.length, 'expected:', productIds.length)
-
-      if (products.length !== productIds.length) {
+      if (existingProducts.length !== productIds.length) {
         return NextResponse.json(
           {
             success: false,
-            error: 'One or more product IDs are invalid'
+            error: 'One or more product IDs are invalid',
+            details: `Found ${existingProducts.length} of ${productIds.length} products`
           },
           { status: 400 }
         )

@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Plus, Trash2, Check, X, Loader2, Image as ImageIcon, ChevronDown, ChevronUp } from 'lucide-react'
 import { toast } from 'sonner'
 import { ImageUpload } from '@/components/admin/image-upload'
+import { CountrySelector } from '@/components/admin/country-selector'
+import { SizeInput } from '@/components/admin/size-input'
 
 export interface Attribute {
   name: string  // e.g., "Size", "Color", "Material"
@@ -22,9 +24,17 @@ export interface GeneratedVariant {
   comparePrice?: number
   costPrice?: number
   stock: number
+  // Legacy fields for backward compatibility
   size?: string
   color?: string
   material?: string
+  // New size system
+  sizeType?: 'unit' | 'label'
+  sizeValue?: number
+  sizeUnit?: string
+  sizeLabel?: string
+  // Country of origin
+  countryOfOrigin?: string
   images?: string[]
   isDefault: boolean
   isActive: boolean
@@ -134,11 +144,13 @@ export function VariantBuilder({ basePrice = 0, existingVariants = [], onGenerat
     // Convert combinations to variant format
     const variants: GeneratedVariant[] = combinations.map((combo) => {
       // Find existing variant that matches this combination
-      const existing = existingVariants.find(ev =>
-        (!ev.size || ev.size === combo['Size']) &&
-        (!ev.color || ev.color === combo['Color']) &&
-        (!ev.material || ev.material === combo['Material'])
-      )
+      // Match by size, color, material (case-insensitive for attribute names)
+      const existing = existingVariants.find(ev => {
+        const sizeMatch = !ev.size || ev.size === combo['Size'] || ev.size === combo['size']
+        const colorMatch = !ev.color || ev.color === combo['Color'] || ev.color === combo['color']
+        const materialMatch = !ev.material || ev.material === combo['Material'] || ev.material === combo['material']
+        return sizeMatch && colorMatch && materialMatch
+      })
 
       return existing || {
         sku: '',
@@ -147,9 +159,10 @@ export function VariantBuilder({ basePrice = 0, existingVariants = [], onGenerat
         comparePrice: undefined,
         costPrice: undefined,
         stock: 0,
-        size: combo['Size'],
-        color: combo['Color'],
-        material: combo['Material'],
+        // Map attributes dynamically - try both capitalized and lowercase keys
+        size: combo['Size'] || combo['size'] || undefined,
+        color: combo['Color'] || combo['color'] || undefined,
+        material: combo['Material'] || combo['material'] || undefined,
         images: [],
         isDefault: generatedVariants.length === 0, // First variant is default
         isActive: true,
@@ -216,10 +229,18 @@ export function VariantBuilder({ basePrice = 0, existingVariants = [], onGenerat
       .toUpperCase()
       .padEnd(6, 'X')
 
-    // Size code: First 2 characters, uppercase, no spaces
-    const sizeCode = variant.size
-      ? variant.size.replace(/\s/g, '').substring(0, 2).toUpperCase()
-      : ''
+    // Size code: Support both legacy and new size system
+    let sizeCode = ''
+    if (variant.sizeType === 'label' && variant.sizeLabel) {
+      // New label size: first 2 chars of label
+      sizeCode = variant.sizeLabel.replace(/\s/g, '').substring(0, 2).toUpperCase()
+    } else if (variant.sizeType === 'unit' && variant.sizeValue && variant.sizeUnit) {
+      // New unit size: value + unit (e.g., 50ML, 1KG)
+      sizeCode = `${variant.sizeValue}${variant.sizeUnit.toUpperCase()}`.substring(0, 4)
+    } else if (variant.size) {
+      // Legacy size: first 2 characters
+      sizeCode = variant.size.replace(/\s/g, '').substring(0, 2).toUpperCase()
+    }
 
     // Color code: First 3 characters, uppercase
     const colorCode = variant.color ? variant.color.substring(0, 3).toUpperCase() : ''
@@ -229,11 +250,14 @@ export function VariantBuilder({ basePrice = 0, existingVariants = [], onGenerat
       ? variant.material.substring(0, 3).toUpperCase()
       : ''
 
+    // Country code: 2 characters if country of origin is specified
+    const countryCode = variant.countryOfOrigin ? variant.countryOfOrigin.substring(0, 2).toUpperCase() : ''
+
     // Random code: 4 character alphanumeric
     const random = Math.random().toString(36).substring(2, 6).toUpperCase()
 
     // Combine all parts
-    return `${catCode}-${prodCode}${sizeCode}${colorCode}${materialCode}-${random}`
+    return `${catCode}-${prodCode}${sizeCode}${colorCode}${materialCode}${countryCode}-${random}`
   }
 
   // Apply same price to all variants
@@ -248,6 +272,7 @@ export function VariantBuilder({ basePrice = 0, existingVariants = [], onGenerat
     setGeneratedVariants(newVariants)
   }
 
+  // Handle variant generation
   const handleGenerate = () => {
     if (generatedVariants.length === 0) {
       toast.error('Please generate variants first')
@@ -256,15 +281,22 @@ export function VariantBuilder({ basePrice = 0, existingVariants = [], onGenerat
 
     // Validate each variant has required fields
     const invalidVariants = generatedVariants.filter((v, index) => {
-      const hasError = !v.name || v.price <= 0 || !v.sku || v.stock < 0
+      const hasError = !v.name || v.price <= 0 || v.stock < 0
       if (hasError) {
-        console.error(`Variant ${index + 1} is invalid:`, { name: v.name, price: v.price, sku: v.sku, stock: v.stock })
+        console.error(`Variant ${index + 1} is invalid:`, {
+          name: v.name,
+          price: v.price,
+          stock: v.stock,
+          size: v.size,
+          color: v.color,
+          material: v.material
+        })
       }
       return hasError
     })
 
     if (invalidVariants.length > 0) {
-      toast.error(`${invalidVariants.length} variant(s) have invalid data. Please check: name, price, SKU, and stock must be valid.`)
+      toast.error(`${invalidVariants.length} variant(s) have invalid data. Please check: name, price, and stock must be valid.`)
       return
     }
 
@@ -287,6 +319,21 @@ export function VariantBuilder({ basePrice = 0, existingVariants = [], onGenerat
       toast.error('At least one variant must be active')
       return
     }
+
+    // Log variants for debugging
+    console.log('[VariantBuilder] Generating variants:', {
+      count: generatedVariants.length,
+      variants: generatedVariants.map(v => ({
+        name: v.name,
+        price: v.price,
+        stock: v.stock,
+        size: v.size,
+        color: v.color,
+        material: v.material,
+        sku: v.sku,
+        isActive: v.isActive
+      }))
+    })
 
     onGenerate(generatedVariants)
   }
@@ -459,9 +506,21 @@ export function VariantBuilder({ basePrice = 0, existingVariants = [], onGenerat
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex flex-wrap gap-2 mb-2">
-                          {variant.size && (
+                          {/* Legacy size display */}
+                          {variant.size && !variant.sizeType && (
                             <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
                               Size: {variant.size}
+                            </span>
+                          )}
+                          {/* New size display */}
+                          {variant.sizeType === 'label' && variant.sizeLabel && (
+                            <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                              Size: {variant.sizeLabel}
+                            </span>
+                          )}
+                          {variant.sizeType === 'unit' && variant.sizeValue && variant.sizeUnit && (
+                            <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                              Size: {variant.sizeValue} {variant.sizeUnit}
                             </span>
                           )}
                           {variant.color && (
@@ -472,6 +531,11 @@ export function VariantBuilder({ basePrice = 0, existingVariants = [], onGenerat
                           {variant.material && (
                             <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
                               Material: {variant.material}
+                            </span>
+                          )}
+                          {variant.countryOfOrigin && (
+                            <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium">
+                              🇦🇧 {variant.countryOfOrigin}
                             </span>
                           )}
                         </div>
@@ -530,6 +594,34 @@ export function VariantBuilder({ basePrice = 0, existingVariants = [], onGenerat
                           onChange={(e) => updateVariant(index, 'sku', e.target.value)}
                           placeholder="Auto-generate"
                           className="h-8 text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Variant Size and Country */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t">
+                      <div>
+                        <Label className="text-xs font-medium mb-2 block">Variant Size</Label>
+                        <SizeInput
+                          value={{
+                            type: variant.sizeType || 'unit',
+                            value: variant.sizeValue,
+                            unit: variant.sizeUnit,
+                            label: variant.sizeLabel,
+                          }}
+                          onChange={(value) => {
+                            updateVariant(index, 'sizeType', value.type)
+                            updateVariant(index, 'sizeValue', value.value)
+                            updateVariant(index, 'sizeUnit', value.unit || '')
+                            updateVariant(index, 'sizeLabel', value.label || '')
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs font-medium mb-2 block">Country of Origin</Label>
+                        <CountrySelector
+                          value={variant.countryOfOrigin || ''}
+                          onChange={(value) => updateVariant(index, 'countryOfOrigin', value)}
                         />
                       </div>
                     </div>

@@ -52,7 +52,13 @@ export type AuditEntity =
   | 'WishlistItem'
   | 'CartItem'
   | 'Post'
-  | 'HomepageSettings';
+  | 'HomepageSettings'
+  | 'Brand'
+  | 'Supplier'
+  | 'PurchaseOrder'
+  | 'InventoryMovement'
+  | 'InventoryAdjustment'
+  | 'Coupon';
 
 /**
  * Audit Log Entry

@@ -402,12 +402,6 @@ function SectionMarquee() {
           </span>
         ))}
       </div>
-      <style jsx>{`
-        @keyframes marquee {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-      `}</style>
     </section>
   )
 }
@@ -1944,16 +1938,6 @@ export default function Home() {
         open={quickViewOpen}
         onOpenChange={setQuickViewOpen}
       />
-
-      <style jsx global>{`
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-        .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-      `}</style>
     </div>
   )
 }

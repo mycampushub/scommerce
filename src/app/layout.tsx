@@ -6,6 +6,7 @@ import { Toaster as SonnerToaster } from "sonner";
 import { OrganizationStructuredData } from "@/components/product-structured-data";
 import { AnalyticsScripts, SearchConsoleVerification } from "@/components/analytics-scripts";
 import { ServiceWorkerHandler } from "@/components/service-worker-handler";
+import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
 
 import { CacheProvider } from "@/components/providers/CacheProvider";
 import { QueryProvider } from "@/components/providers/query-provider";
@@ -94,6 +95,7 @@ export default function RootLayout({
             <CacheProvider>
               <AnalyticsScripts />
               <ServiceWorkerHandler />
+              <PWAInstallPrompt />
               {children}
               <Toaster />
               <SonnerToaster position="top-center" />

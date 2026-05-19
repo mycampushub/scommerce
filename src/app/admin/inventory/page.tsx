@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -44,7 +45,11 @@ import {
   CheckCircle,
   XCircle,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  ArrowRight,
+  FileText,
+  BarChart3,
+  GitCompare
 } from 'lucide-react'
 
 interface Product {
@@ -61,6 +66,20 @@ interface Product {
     name: string
   } | null
   createdAt: string
+  // New fields
+  brandName?: string | null
+  brandLogo?: string | null
+  countryOfOrigin?: string | null
+  sizeType?: 'unit' | 'label' | null
+  sizeValue?: number | null
+  sizeUnit?: string | null
+  sizeLabel?: string | null
+  averageCost?: number | null
+  totalCost?: number | null
+  lastPurchaseAt?: string | null
+  lastPurchaseCost?: number | null
+  totalPurchased?: number | null
+  totalSold?: number | null
 }
 
 interface InventoryAlert {
@@ -83,6 +102,9 @@ export default function InventoryPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [stockFilter, setStockFilter] = useState('all')
   const [alertFilter, setAlertFilter] = useState('all')
+  const [brandFilter, setBrandFilter] = useState('all')
+  const [countryFilter, setCountryFilter] = useState('all')
+  const [sizeTypeFilter, setSizeTypeFilter] = useState('all')
   const [autoRefresh, setAutoRefresh] = useState(false)
   const [refreshInterval, setRefreshInterval] = useState(30000) // 30 seconds default
 
@@ -354,8 +376,23 @@ export default function InventoryPage() {
                          product.slug.toLowerCase().includes(searchTerm.toLowerCase())
     const stockStatus = getStockStatus(product)
     const matchesStock = stockFilter === 'all' || stockStatus === stockFilter
-    return matchesSearch && matchesStock
+    const matchesBrand = brandFilter === 'all' || (brandFilter === 'unbranded' ? !product.brandName : product.brandName === brandFilter)
+    const matchesCountry = countryFilter === 'all' || (countryFilter === 'unspecified' ? !product.countryOfOrigin : product.countryOfOrigin === countryFilter)
+    const matchesSizeType = sizeTypeFilter === 'all' || product.sizeType === sizeTypeFilter
+    return matchesSearch && matchesStock && matchesBrand && matchesCountry && matchesSizeType
   })
+
+  // Get unique brands and countries for filters
+  const brands = Array.from(new Set(products.map(p => p.brandName).filter(Boolean)))
+  const countries = Array.from(new Set(products.map(p => p.countryOfOrigin).filter(Boolean)))
+
+  // Calculate total inventory value
+  const totalInventoryValue = products.reduce((sum, p) => {
+    if (p.stock > 0 && p.averageCost) {
+      return sum + (p.stock * p.averageCost)
+    }
+    return sum
+  }, 0)
 
   const stats = products.reduce(
     (acc, product) => {
@@ -449,8 +486,91 @@ export default function InventoryPage() {
         </div>
       </div>
 
+      {/* Quick Navigation */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <Link href="/admin/inventory" className="group">
+          <Card className="border-2 border-violet-500 shadow-sm hover:shadow-md transition-all cursor-pointer">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-violet-100 flex items-center justify-center">
+                  <Package className="h-5 w-5 text-violet-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm text-gray-900 group-hover:text-violet-600 transition-colors">Stock Overview</p>
+                  <p className="text-xs text-gray-500">View all products</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/admin/inventory/movements" className="group">
+          <Card className="border border-gray-200 shadow-sm hover:shadow-md transition-all cursor-pointer hover:border-violet-300">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                  <GitCompare className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm text-gray-900 group-hover:text-violet-600 transition-colors">Movements</p>
+                  <p className="text-xs text-gray-500">Track inventory changes</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/admin/inventory/adjustments" className="group">
+          <Card className="border border-gray-200 shadow-sm hover:shadow-md transition-all cursor-pointer hover:border-violet-300">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-orange-100 flex items-center justify-center">
+                  <FileText className="h-5 w-5 text-orange-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm text-gray-900 group-hover:text-violet-600 transition-colors">Adjustments</p>
+                  <p className="text-xs text-gray-500">Stock corrections</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/admin/inventory/reports" className="group">
+          <Card className="border border-gray-200 shadow-sm hover:shadow-md transition-all cursor-pointer hover:border-violet-300">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center">
+                  <BarChart3 className="h-5 w-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm text-gray-900 group-hover:text-violet-600 transition-colors">Reports</p>
+                  <p className="text-xs text-gray-500">Analytics & insights</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/admin/suppliers" className="group">
+          <Card className="border border-gray-200 shadow-sm hover:shadow-md transition-all cursor-pointer hover:border-violet-300">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                  <ArrowRight className="h-5 w-5 text-purple-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm text-gray-900 group-hover:text-violet-600 transition-colors">Suppliers</p>
+                  <p className="text-xs text-gray-500">Manage vendors</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+      </div>
+
       {/* Stats Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <Card className="border-0 shadow-sm bg-gradient-to-br from-violet-500 to-indigo-600 text-white">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -459,6 +579,18 @@ export default function InventoryPage() {
                 <p className="text-2xl font-bold mt-1">{stats.total}</p>
               </div>
               <Package className="h-8 w-8 text-white/80" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-sm bg-gradient-to-br from-emerald-500 to-green-600 text-white">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-white/80">Inventory Value</p>
+                <p className="text-2xl font-bold mt-1">৳{totalInventoryValue.toLocaleString('en-BD')}</p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-white/80" />
             </div>
           </CardContent>
         </Card>
@@ -625,8 +757,42 @@ export default function InventoryPage() {
                 className="pl-10"
               />
             </div>
+            <Select value={brandFilter} onValueChange={setBrandFilter}>
+              <SelectTrigger className="w-full sm:w-[150px]">
+                <SelectValue placeholder="Brand" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Brands</SelectItem>
+                <SelectItem value="unbranded">No Brand</SelectItem>
+                {brands.map(brand => (
+                  <SelectItem key={brand} value={brand!}>{brand}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={countryFilter} onValueChange={setCountryFilter}>
+              <SelectTrigger className="w-full sm:w-[150px]">
+                <SelectValue placeholder="Country" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Countries</SelectItem>
+                <SelectItem value="unspecified">Unspecified</SelectItem>
+                {countries.map(country => (
+                  <SelectItem key={country} value={country!}>{country}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={sizeTypeFilter} onValueChange={setSizeTypeFilter}>
+              <SelectTrigger className="w-full sm:w-[120px]">
+                <SelectValue placeholder="Size Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="unit">Unit Size</SelectItem>
+                <SelectItem value="label">Label Size</SelectItem>
+              </SelectContent>
+            </Select>
             <Select value={stockFilter} onValueChange={setStockFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectTrigger className="w-full sm:w-[150px]">
                 <SelectValue placeholder="Stock Status" />
               </SelectTrigger>
               <SelectContent>
@@ -646,10 +812,12 @@ export default function InventoryPage() {
                   <TableRow className="bg-gray-50 hover:bg-gray-50">
                     <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Product</TableHead>
                     <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Category</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Brand</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Size</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Country</TableHead>
                     <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Stock</TableHead>
-                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Low Stock Alert</TableHead>
-                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Reorder Level</TableHead>
-                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Reorder Qty</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap text-right">Avg Cost</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap text-right">Total Cost</TableHead>
                     <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Status</TableHead>
                     <TableHead className="text-right font-semibold text-gray-700 whitespace-nowrap">Actions</TableHead>
                   </TableRow>
@@ -673,6 +841,30 @@ export default function InventoryPage() {
                       </Badge>
                     </TableCell>
                     <TableCell>
+                      {product.brandName ? (
+                        <div className="flex items-center gap-2">
+                          {product.brandLogo && (
+                            <img src={product.brandLogo} alt={product.brandName} className="h-5 w-5 object-contain rounded" />
+                          )}
+                          <span className="text-sm text-gray-700">{product.brandName}</span>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-400">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm text-gray-600">
+                        {product.sizeType === 'label' && product.sizeLabel ? product.sizeLabel :
+                         product.sizeType === 'unit' && product.sizeValue && product.sizeUnit ? `${product.sizeValue} ${product.sizeUnit}` :
+                         '-'}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm text-gray-600">
+                        {product.countryOfOrigin ? `🇦🇧 ${product.countryOfOrigin}` : '-'}
+                      </span>
+                    </TableCell>
+                    <TableCell>
                       <div className="flex items-center gap-2">
                         <Package className="h-4 w-4 text-gray-400" />
                         <button
@@ -687,14 +879,15 @@ export default function InventoryPage() {
                         </button>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <p className="text-sm text-gray-600">{product.lowStockAlert}</p>
+                    <TableCell className="text-right">
+                      <span className="text-sm text-gray-600">
+                        {product.averageCost ? `৳${product.averageCost.toFixed(2)}` : '-'}
+                      </span>
                     </TableCell>
-                    <TableCell>
-                      <p className="text-sm text-gray-600">{product.reorderLevel}</p>
-                    </TableCell>
-                    <TableCell>
-                      <p className="text-sm text-gray-600">{product.reorderQty}</p>
+                    <TableCell className="text-right">
+                      <span className="text-sm text-gray-600">
+                        {product.totalCost ? `৳${product.totalCost.toLocaleString('en-BD', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-'}
+                      </span>
                     </TableCell>
                     <TableCell>
                       <StockStatusBadge status={getStockStatus(product)} />

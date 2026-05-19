@@ -1,9 +1,9 @@
 import type { NextConfig } from "next";
-import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
+// import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 import withPWAInit from "@ducanh2912/next-pwa";
 
 // Initialize Cloudflare for development mode
-initOpenNextCloudflareForDev();
+// initOpenNextCloudflareForDev();
 
 const withPWA = withPWAInit({
   dest: "public",

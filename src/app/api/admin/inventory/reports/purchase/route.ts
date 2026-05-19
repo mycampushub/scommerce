@@ -1,0 +1,120 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { purchaseOrderRepository } from '@/db/purchase-order.repository';
+import { db } from '@/lib/db';
+import { verifyAdmin } from '@/lib/auth/admin-auth';
+
+// GET /api/admin/inventory/reports/purchase - Purchase history report
+export async function GET(request: NextRequest) {
+  try {
+    // Verify admin access
+    const admin = await verifyAdmin(request);
+    if (!admin) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const searchParams = request.nextUrl.searchParams;
+    const startDate = searchParams.get('startDate') ? new Date(searchParams.get('startDate')!) : undefined;
+    const endDate = searchParams.get('endDate') ? new Date(searchParams.get('endDate')!) : undefined;
+    const supplierId = searchParams.get('supplierId') || undefined;
+    const productId = searchParams.get('productId') || undefined;
+
+    // Get purchase orders
+    const purchaseOrders = await purchaseOrderRepository.findAll({
+      supplierId,
+      status: 'RECEIVED',
+      startDate,
+      endDate,
+    });
+
+    // Get all unique product IDs from PO items
+    const productIds = new Set<string>();
+    purchaseOrders.forEach(po => {
+      po.items.forEach(item => productIds.add(item.productId));
+    });
+
+    // Fetch all products
+    const products = await db.products.findMany({
+      where: { id: { in: Array.from(productIds) } },
+      select: { id: true, name: true },
+    });
+
+    // Create product name map
+    const productNames = new Map(products.map(p => [p.id, p.name]));
+
+    // Calculate statistics
+    let totalPOs = 0;
+    let totalAmount = 0;
+    let totalQuantity = 0;
+    const supplierStats = new Map<string, { name: string; count: number; amount: number }>();
+    const productPurchases = new Map<string, { name: string; quantity: number; cost: number }>();
+
+    for (const po of purchaseOrders) {
+      totalPOs++;
+      totalAmount += po.totalAmount;
+      totalQuantity += po.totalQuantity;
+
+      // Supplier stats
+      if (!supplierStats.has(po.supplierId)) {
+        supplierStats.set(po.supplierId, {
+          name: po.supplier.name,
+          count: 0,
+          amount: 0,
+        });
+      }
+      const supplier = supplierStats.get(po.supplierId)!;
+      supplier.count++;
+      supplier.amount += po.totalAmount;
+
+      // Product stats
+      for (const item of po.items) {
+        const productName = productNames.get(item.productId) || 'Unknown';
+        if (!productPurchases.has(item.productId)) {
+          productPurchases.set(item.productId, {
+            name: productName,
+            quantity: 0,
+            cost: 0,
+          });
+        }
+        const product = productPurchases.get(item.productId)!;
+        product.quantity += item.receivedQty;
+        product.cost += item.receivedQty * item.unitCost;
+      }
+    }
+
+    // Convert maps to arrays and sort
+    const supplierBreakdown = Array.from(supplierStats.values())
+      .sort((a, b) => b.amount - a.amount);
+
+    const productBreakdown = Array.from(productPurchases.values())
+      .sort((a, b) => b.cost - a.cost);
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        period: {
+          startDate: startDate?.toISOString() || null,
+          endDate: endDate?.toISOString() || null,
+        },
+        summary: {
+          totalPOs,
+          totalAmount,
+          totalQuantity,
+          avgPOAmount: totalPOs > 0 ? totalAmount / totalPOs : 0,
+          avgPOQuantity: totalPOs > 0 ? totalQuantity / totalPOs : 0,
+        },
+        supplierBreakdown,
+        productBreakdown: productBreakdown.slice(0, 50), // Top 50 products
+        recentPOs: purchaseOrders.slice(0, 20), // Most recent 20 POs
+      },
+    });
+  } catch (error) {
+    console.error('Error generating purchase report:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to generate purchase report' },
+      { status: 500 }
+    );
+  }
+}

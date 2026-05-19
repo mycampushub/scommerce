@@ -76,6 +76,9 @@ import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PriceDisplay } from '@/components/price-display'
 import { apiFetch } from '@/lib/api-client'
+import { BrandSelector } from '@/components/admin/brand-selector'
+import { CountrySelector } from '@/components/admin/country-selector'
+import { SizeInput } from '@/components/admin/size-input'
 
 interface Product {
   id: string
@@ -155,6 +158,15 @@ export default function ProductsPage() {
     stock: '',
     isActive: true,
     isFeatured: false,
+    // New fields
+    brandId: '',
+    brandName: '',
+    brandLogo: '',
+    countryOfOrigin: '',
+    sizeType: 'unit' as 'unit' | 'label',
+    sizeValue: '',
+    sizeUnit: '',
+    sizeLabel: '',
   })
 
   // Add product modal state
@@ -174,6 +186,15 @@ export default function ProductsPage() {
     material: '',
     isActive: true,
     isFeatured: false,
+    // New fields
+    brandId: '',
+    brandName: '',
+    brandLogo: '',
+    countryOfOrigin: '',
+    sizeType: 'unit' as 'unit' | 'label',
+    sizeValue: '',
+    sizeUnit: '',
+    sizeLabel: '',
   })
 
   // Delete modal state
@@ -316,6 +337,15 @@ export default function ProductsPage() {
       stock: product.stock.toString(),
       isActive: product.isActive,
       isFeatured: product.isFeatured,
+      // New fields - cast to any to access new properties
+      brandId: (product as any).brandId || '',
+      brandName: (product as any).brandName || '',
+      brandLogo: (product as any).brandLogo || '',
+      countryOfOrigin: (product as any).countryOfOrigin || '',
+      sizeType: (product as any).sizeType || 'unit',
+      sizeValue: (product as any).sizeValue?.toString() || '',
+      sizeUnit: (product as any).sizeUnit || '',
+      sizeLabel: (product as any).sizeLabel || '',
     })
     setIsEditModalOpen(true)
   }
@@ -343,6 +373,15 @@ export default function ProductsPage() {
           stock: parseInt(editFormData.stock),
           isActive: editFormData.isActive,
           isFeatured: editFormData.isFeatured,
+          // New fields
+          brandId: editFormData.brandId || null,
+          brandName: editFormData.brandName || null,
+          brandLogo: editFormData.brandLogo || null,
+          countryOfOrigin: editFormData.countryOfOrigin || null,
+          sizeType: editFormData.sizeType,
+          sizeValue: editFormData.sizeValue ? parseFloat(editFormData.sizeValue) : null,
+          sizeUnit: editFormData.sizeUnit || null,
+          sizeLabel: editFormData.sizeLabel || null,
         }),
       })
 
@@ -395,6 +434,15 @@ export default function ProductsPage() {
           material: addFormData.material || null,
           isActive: addFormData.isActive,
           isFeatured: addFormData.isFeatured,
+          // New fields
+          brandId: addFormData.brandId || null,
+          brandName: addFormData.brandName || null,
+          brandLogo: addFormData.brandLogo || null,
+          countryOfOrigin: addFormData.countryOfOrigin || null,
+          sizeType: addFormData.sizeType,
+          sizeValue: addFormData.sizeValue ? parseFloat(addFormData.sizeValue) : null,
+          sizeUnit: addFormData.sizeUnit || null,
+          sizeLabel: addFormData.sizeLabel || null,
         }),
       })
 
@@ -425,6 +473,15 @@ export default function ProductsPage() {
         material: '',
         isActive: true,
         isFeatured: false,
+        // New fields
+        brandId: '',
+        brandName: '',
+        brandLogo: '',
+        countryOfOrigin: '',
+        sizeType: 'unit',
+        sizeValue: '',
+        sizeUnit: '',
+        sizeLabel: '',
       })
       fetchProducts()
     } catch (err: any) {
@@ -1284,6 +1341,39 @@ export default function ProductsPage() {
               </Select>
             </div>
 
+            {/* New fields: Brand, Country, Size */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <BrandSelector
+                value={editFormData.brandId}
+                onChange={(value, brand) => setEditFormData({
+                  ...editFormData,
+                  brandId: value,
+                  brandName: brand?.name || '',
+                  brandLogo: brand?.logo || '',
+                })}
+              />
+              <CountrySelector
+                value={editFormData.countryOfOrigin}
+                onChange={(value) => setEditFormData({ ...editFormData, countryOfOrigin: value })}
+              />
+            </div>
+
+            <SizeInput
+              value={{
+                type: editFormData.sizeType,
+                value: editFormData.sizeValue ? parseFloat(editFormData.sizeValue) : undefined,
+                unit: editFormData.sizeUnit || undefined,
+                label: editFormData.sizeLabel || undefined,
+              }}
+              onChange={(value) => setEditFormData({
+                ...editFormData,
+                sizeType: value.type,
+                sizeValue: value.value?.toString() || '',
+                sizeUnit: value.unit || '',
+                sizeLabel: value.label || '',
+              })}
+            />
+
             <div className="space-y-2">
               <label className="text-sm font-medium">Images</label>
               <ImageUpload
@@ -1404,32 +1494,38 @@ export default function ProductsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Color</label>
-                <Input
-                  value={addFormData.color}
-                  onChange={(e) => setAddFormData({ ...addFormData, color: e.target.value })}
-                  placeholder="e.g., Red, Blue"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Size</label>
-                <Input
-                  value={addFormData.size}
-                  onChange={(e) => setAddFormData({ ...addFormData, size: e.target.value })}
-                  placeholder="e.g., S, M, L, XL"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Material</label>
-                <Input
-                  value={addFormData.material}
-                  onChange={(e) => setAddFormData({ ...addFormData, material: e.target.value })}
-                  placeholder="e.g., Cotton, Silk"
-                />
-              </div>
+            {/* New fields: Brand, Country, Size */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <BrandSelector
+                value={addFormData.brandId}
+                onChange={(value, brand) => setAddFormData({
+                  ...addFormData,
+                  brandId: value,
+                  brandName: brand?.name || '',
+                  brandLogo: brand?.logo || '',
+                })}
+              />
+              <CountrySelector
+                value={addFormData.countryOfOrigin}
+                onChange={(value) => setAddFormData({ ...addFormData, countryOfOrigin: value })}
+              />
             </div>
+
+            <SizeInput
+              value={{
+                type: addFormData.sizeType,
+                value: addFormData.sizeValue ? parseFloat(addFormData.sizeValue) : undefined,
+                unit: addFormData.sizeUnit || undefined,
+                label: addFormData.sizeLabel || undefined,
+              }}
+              onChange={(value) => setAddFormData({
+                ...addFormData,
+                sizeType: value.type,
+                sizeValue: value.value?.toString() || '',
+                sizeUnit: value.unit || '',
+                sizeLabel: value.label || '',
+              })}
+            />
 
             <div className="space-y-2">
               <label className="text-sm font-medium">Category</label>

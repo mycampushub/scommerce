@@ -76,6 +76,24 @@ export class ProductRepository {
     isActive?: boolean;
     isFeatured?: boolean;
     hasVariants?: boolean;
+    // Brand fields (inline, no separate table)
+    brandId?: string;
+    brandName?: string;
+    brandLogo?: string;
+    // Size system fields
+    sizeType?: 'unit' | 'label';
+    sizeValue?: number;
+    sizeUnit?: string;
+    sizeLabel?: string;
+    // Country of origin
+    countryOfOrigin?: string;
+    // Inventory tracking fields
+    totalPurchased?: number;
+    totalSold?: number;
+    totalCost?: number;
+    averageCost?: number;
+    lastPurchaseAt?: Date | string;
+    lastPurchaseCost?: number;
   }): Promise<Product> {
     const id = generateId();
     const currentTime = now();
@@ -84,8 +102,13 @@ export class ProductRepository {
       env,
       `INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, costPrice,
        discount, discountType, images, stock, lowStockAlert, reorderLevel, reorderQty,
-       isActive, isFeatured, hasVariants, createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       isActive, isFeatured, hasVariants,
+       brandId, brandName, brandLogo,
+       sizeType, sizeValue, sizeUnit, sizeLabel,
+       countryOfOrigin,
+       totalPurchased, totalSold, totalCost, averageCost, lastPurchaseAt, lastPurchaseCost,
+       createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       id,
       data.name,
       data.slug,
@@ -105,6 +128,20 @@ export class ProductRepository {
       boolToNumber(data.isActive ?? true),
       boolToNumber(data.isFeatured || false),
       boolToNumber(data.hasVariants || false),
+      data.brandId || null,
+      data.brandName || null,
+      data.brandLogo || null,
+      data.sizeType || null,
+      data.sizeValue || null,
+      data.sizeUnit || null,
+      data.sizeLabel || null,
+      data.countryOfOrigin || null,
+      data.totalPurchased || 0,
+      data.totalSold || 0,
+      data.totalCost || 0,
+      data.averageCost || 0,
+      data.lastPurchaseAt || null,
+      data.lastPurchaseCost || null,
       currentTime,
       currentTime
     );
@@ -135,13 +172,16 @@ export class ProductRepository {
       updates.push('categoryId = ?');
       values.push(data.categoryId);
     }
-    if (data.price !== undefined) {
+    // Handle price and basePrice - they should always be in sync
+    if (data.price !== undefined || data.basePrice !== undefined) {
+      // If only one is provided, use it for both
+      const newPrice = data.price !== undefined ? data.price : (data.basePrice || 0);
+      const newBasePrice = data.basePrice !== undefined ? data.basePrice : (data.price || 0);
+
       updates.push('price = ?');
-      values.push(data.price);
-    }
-    if (data.basePrice !== undefined) {
+      values.push(newPrice);
       updates.push('basePrice = ?');
-      values.push(data.basePrice);
+      values.push(newBasePrice);
     }
     if (data.comparePrice !== undefined) {
       updates.push('comparePrice = ?');
@@ -190,6 +230,66 @@ export class ProductRepository {
     if (data.hasVariants !== undefined) {
       updates.push('hasVariants = ?');
       values.push(typeof data.hasVariants === 'boolean' ? boolToNumber(data.hasVariants) : data.hasVariants);
+    }
+    // Brand fields
+    if (data.brandId !== undefined) {
+      updates.push('brandId = ?');
+      values.push(data.brandId);
+    }
+    if (data.brandName !== undefined) {
+      updates.push('brandName = ?');
+      values.push(data.brandName);
+    }
+    if (data.brandLogo !== undefined) {
+      updates.push('brandLogo = ?');
+      values.push(data.brandLogo);
+    }
+    // Size system fields
+    if (data.sizeType !== undefined) {
+      updates.push('sizeType = ?');
+      values.push(data.sizeType);
+    }
+    if (data.sizeValue !== undefined) {
+      updates.push('sizeValue = ?');
+      values.push(data.sizeValue);
+    }
+    if (data.sizeUnit !== undefined) {
+      updates.push('sizeUnit = ?');
+      values.push(data.sizeUnit);
+    }
+    if (data.sizeLabel !== undefined) {
+      updates.push('sizeLabel = ?');
+      values.push(data.sizeLabel);
+    }
+    // Country of origin
+    if (data.countryOfOrigin !== undefined) {
+      updates.push('countryOfOrigin = ?');
+      values.push(data.countryOfOrigin);
+    }
+    // Inventory tracking fields
+    if (data.totalPurchased !== undefined) {
+      updates.push('totalPurchased = ?');
+      values.push(data.totalPurchased);
+    }
+    if (data.totalSold !== undefined) {
+      updates.push('totalSold = ?');
+      values.push(data.totalSold);
+    }
+    if (data.totalCost !== undefined) {
+      updates.push('totalCost = ?');
+      values.push(data.totalCost);
+    }
+    if (data.averageCost !== undefined) {
+      updates.push('averageCost = ?');
+      values.push(data.averageCost);
+    }
+    if (data.lastPurchaseAt !== undefined) {
+      updates.push('lastPurchaseAt = ?');
+      values.push(data.lastPurchaseAt);
+    }
+    if (data.lastPurchaseCost !== undefined) {
+      updates.push('lastPurchaseCost = ?');
+      values.push(data.lastPurchaseCost);
     }
 
     if (updates.length === 0) return this.findById(env, id);
@@ -394,6 +494,18 @@ export class ProductRepository {
     lowStockAlert?: number;
     reorderLevel?: number;
     reorderQty?: number;
+    // Size system fields
+    sizeType?: 'unit' | 'label';
+    sizeValue?: number;
+    sizeUnit?: string;
+    sizeLabel?: string;
+    // Country of origin
+    countryOfOrigin?: string;
+    // Inventory tracking fields
+    totalPurchased?: number;
+    totalSold?: number;
+    totalCost?: number;
+    averageCost?: number;
   }): Promise<ProductVariant> {
     const id = generateId();
     const currentTime = now();
@@ -401,8 +513,10 @@ export class ProductRepository {
     await execute(
       env,
       `INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, costPrice, stock,
-       images, size, color, material, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       images, size, color, material, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty,
+       sizeType, sizeValue, sizeUnit, sizeLabel, countryOfOrigin,
+       totalPurchased, totalSold, totalCost, averageCost, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       id,
       data.productId,
       data.sku,
@@ -420,6 +534,15 @@ export class ProductRepository {
       data.lowStockAlert || 10,
       data.reorderLevel || 5,
       data.reorderQty || 20,
+      data.sizeType || null,
+      data.sizeValue || null,
+      data.sizeUnit || null,
+      data.sizeLabel || null,
+      data.countryOfOrigin || null,
+      data.totalPurchased || 0,
+      data.totalSold || 0,
+      data.totalCost || 0,
+      data.averageCost || 0,
       currentTime,
       currentTime
     );
@@ -509,6 +632,45 @@ export class ProductRepository {
     if (data.reorderQty !== undefined) {
       updates.push('reorderQty = ?');
       values.push(data.reorderQty);
+    }
+    // Size system fields
+    if (data.sizeType !== undefined) {
+      updates.push('sizeType = ?');
+      values.push(data.sizeType);
+    }
+    if (data.sizeValue !== undefined) {
+      updates.push('sizeValue = ?');
+      values.push(data.sizeValue);
+    }
+    if (data.sizeUnit !== undefined) {
+      updates.push('sizeUnit = ?');
+      values.push(data.sizeUnit);
+    }
+    if (data.sizeLabel !== undefined) {
+      updates.push('sizeLabel = ?');
+      values.push(data.sizeLabel);
+    }
+    // Country of origin
+    if (data.countryOfOrigin !== undefined) {
+      updates.push('countryOfOrigin = ?');
+      values.push(data.countryOfOrigin);
+    }
+    // Inventory tracking fields
+    if (data.totalPurchased !== undefined) {
+      updates.push('totalPurchased = ?');
+      values.push(data.totalPurchased);
+    }
+    if (data.totalSold !== undefined) {
+      updates.push('totalSold = ?');
+      values.push(data.totalSold);
+    }
+    if (data.totalCost !== undefined) {
+      updates.push('totalCost = ?');
+      values.push(data.totalCost);
+    }
+    if (data.averageCost !== undefined) {
+      updates.push('averageCost = ?');
+      values.push(data.averageCost);
     }
 
     if (updates.length === 0) return this.findVariantById(env, id);

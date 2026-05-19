@@ -20,6 +20,17 @@ export async function GET(request: NextRequest) {
     const env = await getEnv()
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search') || ''
+    const tree = searchParams.get('tree') === 'true'
+
+    // Return tree structure if requested
+    if (tree) {
+      const categoryTree = await CategoryRepository.getTree(env)
+
+      return NextResponse.json({
+        success: true,
+        data: categoryTree,
+      })
+    }
 
     let categories = await CategoryRepository.findAll(env)
 
