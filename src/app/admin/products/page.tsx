@@ -6,15 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { useToast } from '@/hooks/use-toast'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -55,31 +47,15 @@ import {
   MoreVertical,
   Edit,
   Trash2,
-  Eye,
   Package,
-  PackagePlus,
   TrendingUp,
   TrendingDown,
   Loader2,
   RefreshCw,
-  Image as ImageIcon,
-  Layers,
-  Copy,
-  CheckCircle2,
-  AlertCircle
 } from 'lucide-react'
-import { ImageUpload } from '@/components/admin/image-upload'
-import { VariantBuilder, GeneratedVariant } from '@/components/admin/variant-builder'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PriceDisplay } from '@/components/price-display'
-import { apiFetch } from '@/lib/api-client'
-import { BrandSelector } from '@/components/admin/brand-selector'
-import { CountrySelector } from '@/components/admin/country-selector'
-import { SizeInput } from '@/components/admin/size-input'
-import { MultiSizeSelector, SelectedSize } from '@/components/admin/multi-size-selector'
+import { ProductModal } from '@/components/admin/product-modal'
 
 interface Product {
   id: string
@@ -111,157 +87,25 @@ interface Category {
   slug: string
 }
 
-interface ProductVariant {
-  id: string
-  sku: string
-  name: string
-  price: number
-  comparePrice: number | null
-  costPrice: number | null
-  stock: number
-  images: string[] | null
-  size: string | null
-  color: string | null
-  material: string | null
-  isDefault: boolean
-  isActive: boolean
-  createdAt: string
-  updatedAt: string
-  lowStockAlert?: number
-  reorderLevel?: number
-  reorderQty?: number
-}
-
 export default function ProductsPage() {
   const { toast } = useToast()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
-  const [showAddVariantForm, setShowAddVariantForm] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const debouncedSearchTerm = useDebounce(searchTerm, 500)
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
 
-  // Edit modal state
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null)
-  const [editFormData, setEditFormData] = useState({
-    name: '',
-    slug: '',
-    description: '',
-    price: '',
-    comparePrice: '',
-    costPrice: '',
-    categoryId: '',
-    images: [] as string[],
-    stock: '',
-    isActive: true,
-    isFeatured: false,
-    // New fields
-    brandId: '',
-    brandName: '',
-    brandLogo: '',
-    countryOfOrigin: '',
-    sizeType: 'unit' as 'unit' | 'label',
-    sizeValue: '',
-    sizeUnit: '',
-    sizeLabel: '',
-  })
-
-  // Add product modal state
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
-  const [addFormData, setAddFormData] = useState({
-    name: '',
-    slug: '',
-    description: '',
-    price: '',
-    comparePrice: '',
-    costPrice: '',
-    categoryId: '',
-    images: [] as string[],
-    stock: '0',
-    size: '',
-    color: '',
-    material: '',
-    isActive: true,
-    isFeatured: false,
-    // New fields
-    brandId: '',
-    brandName: '',
-    brandLogo: '',
-    countryOfOrigin: '',
-    sizeType: 'unit' as 'unit' | 'label',
-    sizeValue: '',
-    sizeUnit: '',
-    sizeLabel: '',
-  })
-
-  // Multiple sizes selection for product variants
-  const [selectedSizes, setSelectedSizes] = useState<SelectedSize[]>([])
-  const [createVariantsFromSizes, setCreateVariantsFromSizes] = useState(false)
+  // Unified Modal State
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false)
+  const [modalMode, setModalMode] = useState<'add' | 'edit'>('add')
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
 
   // Delete modal state
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null)
-
-  // Variant management modal state
-  const [isVariantsModalOpen, setIsVariantsModalOpen] = useState(false)
-  const [selectedProductForVariants, setSelectedProductForVariants] = useState<Product | null>(null)
-  const [variants, setVariants] = useState<ProductVariant[]>([])
-  const [variantsLoading, setVariantsLoading] = useState(false)
-  const [activeVariantTab, setActiveVariantTab] = useState<'list' | 'matrix'>('list')
-
-  // Collect unique sizes, colors, materials from existing variants for select options
-  const [availableSizes, setAvailableSizes] = useState<string[]>([])
-  const [availableColors, setAvailableColors] = useState<string[]>([])
-  const [availableMaterials, setAvailableMaterials] = useState<string[]>([])
-
-  // Variant form state
-  const [editingVariant, setEditingVariant] = useState<ProductVariant | null>(null)
-  const [variantFormData, setVariantFormData] = useState({
-    sku: '',
-    name: '',
-    price: '',
-    comparePrice: '',
-    costPrice: '',
-    stock: '',
-    size: '',
-    color: '',
-    material: '',
-    images: [] as string[],
-    isDefault: false,
-    isActive: true,
-    lowStockAlert: '10',
-    reorderLevel: '5',
-    reorderQty: '20',
-  })
-
-  // Helper function to reset variant form
-  const resetVariantForm = () => ({
-    sku: '',
-    name: '',
-    price: '',
-    comparePrice: '',
-    costPrice: '',
-    stock: '',
-    size: '',
-    color: '',
-    material: '',
-    images: [] as string[],
-    isDefault: false,
-    isActive: true,
-    lowStockAlert: '10',
-    reorderLevel: '5',
-    reorderQty: '20',
-  })
-
-  // Matrix builder state
-  const [matrixSizes, setMatrixSizes] = useState('')
-  const [matrixColors, setMatrixColors] = useState('')
-  const [matrixMaterials, setMatrixMaterials] = useState('')
-  const [matrixBasePrice, setMatrixBasePrice] = useState('')
-  const [matrixStock, setMatrixStock] = useState('')
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null)
 
   const fetchProducts = async () => {
     try {
@@ -324,237 +168,23 @@ export default function ProductsPage() {
     fetchProducts()
   }, [categoryFilter, statusFilter, debouncedSearchTerm])
 
-  const handleSearch = () => {
-    fetchProducts()
+  const handleAddProduct = () => {
+    setModalMode('add')
+    setSelectedProduct(null)
+    setIsProductModalOpen(true)
   }
 
-  const openEditModal = (product: Product) => {
-    setEditingProduct(product)
-    setEditFormData({
-      name: product.name,
-      slug: product.slug,
-      description: product.description || '',
-      price: product.price.toString(),
-      comparePrice: product.comparePrice?.toString() || '',
-      costPrice: product.costPrice?.toString() || '',
-      categoryId: product.categoryId || '',
-      images: product.images || [],
-      stock: product.stock.toString(),
-      isActive: product.isActive,
-      isFeatured: product.isFeatured,
-      // New fields - cast to any to access new properties
-      brandId: (product as any).brandId || '',
-      brandName: (product as any).brandName || '',
-      brandLogo: (product as any).brandLogo || '',
-      countryOfOrigin: (product as any).countryOfOrigin || '',
-      sizeType: (product as any).sizeType || 'unit',
-      sizeValue: (product as any).sizeValue?.toString() || '',
-      sizeUnit: (product as any).sizeUnit || '',
-      sizeLabel: (product as any).sizeLabel || '',
-    })
-    setIsEditModalOpen(true)
-  }
-
-  const handleUpdateProduct = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!editingProduct) return
-
-    try {
-      const response = await apiFetch(`/api/admin/products/${editingProduct.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-action': 'update',
-        },
-        body: JSON.stringify({
-          name: editFormData.name,
-          slug: editFormData.slug,
-          description: editFormData.description,
-          basePrice: parseFloat(editFormData.price),
-          comparePrice: editFormData.comparePrice ? parseFloat(editFormData.comparePrice) : null,
-          costPrice: editFormData.costPrice ? parseFloat(editFormData.costPrice) : null,
-          categoryId: editFormData.categoryId || null,
-          images: editFormData.images,
-          stock: parseInt(editFormData.stock),
-          isActive: editFormData.isActive,
-          isFeatured: editFormData.isFeatured,
-          // New fields
-          brandId: editFormData.brandId || null,
-          brandName: editFormData.brandName || null,
-          brandLogo: editFormData.brandLogo || null,
-          countryOfOrigin: editFormData.countryOfOrigin || null,
-          sizeType: editFormData.sizeType,
-          sizeValue: editFormData.sizeValue ? parseFloat(editFormData.sizeValue) : null,
-          sizeUnit: editFormData.sizeUnit || null,
-          sizeLabel: editFormData.sizeLabel || null,
-        }),
-      })
-
-      const result = await response.json() as any
-
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to update product')
-      }
-
-      toast({
-        title: 'Success',
-        description: 'Product updated successfully',
-      })
-
-      setIsEditModalOpen(false)
-      fetchProducts()
-    } catch (err: any) {
-      console.error('Error updating product:', err)
-      toast({
-        title: 'Error',
-        description: err.message || 'Failed to update product',
-        variant: 'destructive',
-      })
-    }
-  }
-
-  const handleAddProduct = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    try {
-      const hasMultipleSizes = selectedSizes.length > 1
-
-      const response = await apiFetch('/api/admin/products', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: addFormData.name,
-          slug: addFormData.slug || addFormData.name.toLowerCase().replace(/\s+/g, '-'),
-          description: addFormData.description,
-          basePrice: parseFloat(addFormData.price),
-          comparePrice: addFormData.comparePrice ? parseFloat(addFormData.comparePrice) : null,
-          costPrice: addFormData.costPrice ? parseFloat(addFormData.costPrice) : null,
-          categoryId: addFormData.categoryId || null,
-          images: addFormData.images,
-          stock: hasMultipleSizes ? 0 : parseInt(addFormData.stock), // If multiple sizes, stock is tracked in variants
-          hasVariants: hasMultipleSizes,
-          size: hasMultipleSizes ? null : (addFormData.size || null),
-          color: addFormData.color || null,
-          material: addFormData.material || null,
-          isActive: addFormData.isActive,
-          isFeatured: addFormData.isFeatured,
-          // New fields
-          brandId: addFormData.brandId || null,
-          brandName: addFormData.brandName || null,
-          brandLogo: addFormData.brandLogo || null,
-          countryOfOrigin: addFormData.countryOfOrigin || null,
-          sizeType: hasMultipleSizes ? null : addFormData.sizeType,
-          sizeValue: hasMultipleSizes ? null : (addFormData.sizeValue ? parseFloat(addFormData.sizeValue) : null),
-          sizeUnit: hasMultipleSizes ? null : (addFormData.sizeUnit || null),
-          sizeLabel: hasMultipleSizes ? null : (addFormData.sizeLabel || null),
-        }),
-      })
-
-      const result = await response.json() as any
-
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to create product')
-      }
-
-      const productId = result.data?.id || result.products?.id
-
-      // Create variants for each selected size
-      if (hasMultipleSizes && productId) {
-        let variantsCreated = 0
-        const basePrice = parseFloat(addFormData.price)
-        const baseStock = parseInt(addFormData.stock)
-
-        for (let i = 0; i < selectedSizes.length; i++) {
-          const size = selectedSizes[i]
-          const sizeLabel = size.type === 'label'
-            ? size.label
-            : `${size.value}${size.unit}`
-
-          try {
-            const variantResponse = await apiFetch(`/api/admin/products/${productId}/variants`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                name: `${addFormData.name} - ${sizeLabel}`,
-                price: basePrice,
-                comparePrice: addFormData.comparePrice ? parseFloat(addFormData.comparePrice) : null,
-                costPrice: addFormData.costPrice ? parseFloat(addFormData.costPrice) : null,
-                stock: baseStock,
-                size: sizeLabel,
-                isActive: true,
-                isDefault: i === 0, // First variant is default
-                lowStockAlert: 10,
-                reorderLevel: 5,
-                reorderQty: 20,
-              }),
-            })
-
-            const variantResult = await variantResponse.json() as any
-            if (variantResult.success) {
-              variantsCreated++
-            }
-          } catch (err) {
-            console.error('Error creating variant:', err)
-          }
-        }
-
-        toast({
-          title: 'Success',
-          description: `Product created with ${variantsCreated} size variants`,
-        })
-      } else {
-        toast({
-          title: 'Success',
-          description: 'Product created successfully',
-        })
-      }
-
-      setIsAddModalOpen(false)
-      // Reset form
-      setAddFormData({
-        name: '',
-        slug: '',
-        description: '',
-        price: '',
-        comparePrice: '',
-        costPrice: '',
-        categoryId: '',
-        images: [],
-        stock: '0',
-        size: '',
-        color: '',
-        material: '',
-        isActive: true,
-        isFeatured: false,
-        // New fields
-        brandId: '',
-        brandName: '',
-        brandLogo: '',
-        countryOfOrigin: '',
-        sizeType: 'unit',
-        sizeValue: '',
-        sizeUnit: '',
-        sizeLabel: '',
-      })
-      setSelectedSizes([])
-      fetchProducts()
-    } catch (err: any) {
-      console.error('Error adding product:', err)
-      toast({
-        title: 'Error',
-        description: err.message || 'Failed to create product',
-        variant: 'destructive',
-      })
-    }
+  const handleEditProduct = (product: Product) => {
+    setModalMode('edit')
+    setSelectedProduct(product)
+    setIsProductModalOpen(true)
   }
 
   const handleDeleteProduct = async () => {
     if (!deleteProductId) return
 
     try {
-      const response = await apiFetch(`/api/admin/products/${deleteProductId}`, {
+      const response = await fetch(`/api/admin/products/${deleteProductId}`, {
         method: 'DELETE',
       })
 
@@ -570,432 +200,13 @@ export default function ProductsPage() {
       })
 
       setDeleteProductId(null)
+      setProductToDelete(null)
       fetchProducts()
     } catch (err: any) {
       console.error('Error deleting product:', err)
       toast({
         title: 'Error',
         description: err.message || 'Failed to delete product',
-        variant: 'destructive',
-      })
-    }
-  }
-
-  const handleReorder = async (product: Product) => {
-    try {
-      const response = await apiFetch(`/api/admin/products/${product.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          stock: product.stock + product.reorderQty,
-        }),
-      })
-
-      const result = await response.json() as any
-
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to reorder product')
-      }
-
-      toast({
-        title: 'Success',
-        description: `Reordered ${product.reorderQty} units of ${product.name}`,
-      })
-
-      fetchProducts()
-    } catch (err: any) {
-      console.error('Error reordering product:', err)
-      toast({
-        title: 'Error',
-        description: err.message || 'Failed to reorder product',
-        variant: 'destructive',
-      })
-    }
-  }
-
-  // Variant management functions
-  const openVariantsModal = async (product: Product) => {
-    setSelectedProductForVariants(product)
-    setIsVariantsModalOpen(true)
-    await fetchVariants(product.id)
-  }
-
-  const fetchVariants = async (productId: string) => {
-    try {
-      setVariantsLoading(true)
-      const response = await fetch(`/api/admin/products/${productId}/variants`)
-      const result = await response.json() as any
-
-      if (result.success) {
-        const fetchedVariants = result.data.variants || []
-        setVariants(fetchedVariants)
-
-        // Collect unique sizes, colors, materials from existing variants for select options
-        const uniqueSizes = Array.from(new Set(fetchedVariants.map((v: ProductVariant) => v.size).filter(Boolean) as string[])).sort()
-        const uniqueColors = Array.from(new Set(fetchedVariants.map((v: ProductVariant) => v.color).filter(Boolean) as string[])).sort()
-        const uniqueMaterials = Array.from(new Set(fetchedVariants.map((v: ProductVariant) => v.material).filter(Boolean) as string[])).sort()
-
-        setAvailableSizes(uniqueSizes)
-        setAvailableColors(uniqueColors)
-        setAvailableMaterials(uniqueMaterials)
-      }
-    } catch (err: any) {
-      console.error('Error fetching variants:', err)
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch variants',
-        variant: 'destructive',
-      })
-    } finally {
-      setVariantsLoading(false)
-    }
-  }
-
-  const openAddVariantModal = () => {
-    setEditingVariant(null)
-    setVariantFormData(resetVariantForm())
-    setVariantFormData(prev => ({
-      ...prev,
-      isDefault: variants.length === 0,
-    }))
-    setShowAddVariantForm(true)
-  }
-
-  const openEditVariantModal = (variant: ProductVariant) => {
-    setEditingVariant(variant)
-    setVariantFormData({
-      sku: variant.sku,
-      name: variant.name,
-      price: variant.price.toString(),
-      comparePrice: variant.comparePrice?.toString() || '',
-      costPrice: variant.costPrice?.toString() || '',
-      stock: variant.stock.toString(),
-      size: variant.size || '',
-      color: variant.color || '',
-      material: variant.material || '',
-      images: variant.images || [],
-      isDefault: variant.isDefault,
-      isActive: variant.isActive,
-      lowStockAlert: variant.lowStockAlert?.toString() || '10',
-      reorderLevel: variant.reorderLevel?.toString() || '5',
-      reorderQty: variant.reorderQty?.toString() || '20',
-    })
-    setShowAddVariantForm(true)
-  }
-
-  const handleSaveVariant = async () => {
-    if (!selectedProductForVariants) return
-
-    try {
-      const payload = {
-        name: variantFormData.name || `${variantFormData.size} / ${variantFormData.color}`,
-        price: parseFloat(variantFormData.price) || 0,
-        comparePrice: variantFormData.comparePrice ? parseFloat(variantFormData.comparePrice) : null,
-        costPrice: variantFormData.costPrice ? parseFloat(variantFormData.costPrice) : null,
-        stock: parseInt(variantFormData.stock) || 0,
-        size: variantFormData.size || null,
-        color: variantFormData.color || null,
-        material: variantFormData.material || null,
-        images: variantFormData.images,
-        isDefault: variantFormData.isDefault,
-        isActive: variantFormData.isActive,
-        lowStockAlert: variantFormData.lowStockAlert ? parseInt(variantFormData.lowStockAlert) : 10,
-        reorderLevel: variantFormData.reorderLevel ? parseInt(variantFormData.reorderLevel) : 5,
-        reorderQty: variantFormData.reorderQty ? parseInt(variantFormData.reorderQty) : 20,
-      }
-
-      let response
-      if (editingVariant) {
-        // Update existing variant
-        response = await apiFetch(`/api/admin/products/${selectedProductForVariants.id}/variants/${editingVariant.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        })
-      } else {
-        // Create new variant
-        response = await apiFetch(`/api/admin/products/${selectedProductForVariants.id}/variants`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        })
-      }
-
-      const result = await response.json() as any
-
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to save variant')
-      }
-
-      toast({
-        title: 'Success',
-        description: editingVariant ? 'Variant updated successfully' : 'Variant created successfully',
-      })
-
-      await fetchVariants(selectedProductForVariants.id)
-      // Also refresh the main products list to update hasVariants flag
-      fetchProducts()
-      setShowAddVariantForm(false)
-      setVariantFormData(resetVariantForm())
-    } catch (err: any) {
-      console.error('Error saving variant:', err)
-      toast({
-        title: 'Error',
-        description: err.message || 'Failed to save variant',
-        variant: 'destructive',
-      })
-    }
-  }
-
-  const handleDeleteVariant = async (variantId: string) => {
-    if (!selectedProductForVariants) return
-
-    try {
-      const response = await apiFetch(`/api/admin/products/${selectedProductForVariants.id}/variants/${variantId}`, {
-        method: 'DELETE',
-      })
-
-      const result = await response.json() as any
-
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to delete variant')
-      }
-
-      toast({
-        title: 'Success',
-        description: 'Variant deleted successfully',
-      })
-
-      // Close form if deleting the variant being edited
-      if (editingVariant && editingVariant.id === variantId) {
-        setShowAddVariantForm(false)
-        setEditingVariant(null)
-      }
-
-      await fetchVariants(selectedProductForVariants.id)
-    } catch (err: any) {
-      console.error('Error deleting variant:', err)
-      toast({
-        title: 'Error',
-        description: err.message || 'Failed to delete variant',
-        variant: 'destructive',
-      })
-    }
-  }
-
-  const handleReorderVariant = async (variant: ProductVariant) => {
-    if (!selectedProductForVariants) return
-
-    try {
-      const response = await apiFetch(`/api/admin/products/${selectedProductForVariants.id}/variants/${variant.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          stock: variant.stock + (variant.reorderQty || 20),
-        }),
-      })
-
-      const result = await response.json() as any
-
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to reorder variant')
-      }
-
-      toast({
-        title: 'Success',
-        description: `Reordered ${variant.reorderQty || 20} units of ${variant.name}`,
-      })
-
-      await fetchVariants(selectedProductForVariants.id)
-    } catch (err: any) {
-      console.error('Error reordering variant:', err)
-      toast({
-        title: 'Error',
-        description: err.message || 'Failed to reorder variant',
-        variant: 'destructive',
-      })
-    }
-  }
-
-  const handleGenerateMatrix = async () => {
-    if (!selectedProductForVariants) return
-
-    try {
-      const sizes = matrixSizes.split(',').map(s => s.trim()).filter(Boolean)
-      const colors = matrixColors.split(',').map(c => c.trim()).filter(Boolean)
-      const materials = matrixMaterials.split(',').map(m => m.trim()).filter(Boolean)
-      const basePrice = parseFloat(matrixBasePrice) || selectedProductForVariants.price
-      const stock = parseInt(matrixStock) || 0
-
-      console.log('[Matrix Builder] Generating variants with:', { sizes, colors, materials, basePrice, stock })
-
-      if (sizes.length === 0 && colors.length === 0 && materials.length === 0) {
-        toast({
-          title: 'Error',
-          description: 'Please enter at least one size, color, or material',
-          variant: 'destructive',
-        })
-        return
-      }
-
-      // Generate all combinations
-      const combinations: Array<{ size: string | null; color: string | null; material: string | null }> = []
-
-      sizes.forEach(size => {
-        colors.forEach(color => {
-          materials.forEach(material => {
-            combinations.push({ size, color, material })
-          })
-        })
-      })
-
-      console.log('[Matrix Builder] Generated combinations:', combinations)
-
-      // Create variants for each combination
-      let successCount = 0
-      let errorCount = 0
-
-      for (const combo of combinations) {
-        const variantName = [combo.size, combo.color, combo.material].filter(Boolean).join(' / ')
-        const payload = {
-          name: variantName,
-          price: basePrice,
-          comparePrice: null,
-          stock,
-          size: combo.size || null,
-          color: combo.color || null,
-          material: combo.material || null,
-          images: [],
-          isDefault: false,
-          isActive: true,
-        }
-
-        console.log('[Matrix Builder] Creating variant:', { name: variantName, ...combo })
-
-        try {
-          const response = await apiFetch(`/api/admin/products/${selectedProductForVariants.id}/variants`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-          })
-
-          const result = await response.json()
-          
-          if (result.success) {
-            successCount++
-            console.log('[Matrix Builder] Successfully created variant:', result.data.sku)
-          } else {
-            errorCount++
-            console.error('[Matrix Builder] Failed to create variant:', result.error)
-          }
-        } catch (err: any) {
-          errorCount++
-          console.error('[Matrix Builder] Error creating variant:', err)
-        }
-      }
-
-      console.log('[Matrix Builder] Complete. Success:', successCount, 'Failed:', errorCount)
-
-      if (errorCount > 0) {
-        toast({
-          title: 'Partial Success',
-          description: `Created ${successCount} variants successfully, ${errorCount} failed`,
-          variant: 'destructive',
-        })
-      } else {
-        toast({
-          title: 'Success',
-          description: `Created ${combinations.length} variants successfully`,
-        })
-      }
-
-      await fetchVariants(selectedProductForVariants.id)
-
-      // Reset matrix form
-      setMatrixSizes('')
-      setMatrixColors('')
-      setMatrixMaterials('')
-      setMatrixBasePrice('')
-      setMatrixStock('')
-    } catch (err: any) {
-      console.error('[Matrix Builder] Unexpected error:', err)
-      toast({
-        title: 'Error',
-        description: err.message || 'Failed to generate variants',
-        variant: 'destructive',
-      })
-    }
-  }
-
-  const handleVariantBuilderGenerate = async (variants: GeneratedVariant[]) => {
-    if (!selectedProductForVariants) return
-
-    try {
-      // Create each variant via API - use Promise.all to ensure all complete
-      const createPromises = variants.map(async (variant) => {
-        const payload = {
-          name: variant.name,
-          price: variant.price,
-          comparePrice: variant.comparePrice || null,
-          costPrice: variant.costPrice || null,
-          stock: variant.stock,
-          size: variant.size || null,
-          color: variant.color || null,
-          material: variant.material || null,
-          images: variant.images || [],
-          isDefault: variant.isDefault,
-          isActive: variant.isActive,
-          lowStockAlert: variant.lowStockAlert || 10,
-          reorderLevel: variant.reorderLevel || 5,
-          reorderQty: variant.reorderQty || 20,
-        }
-
-        const response = await apiFetch(`/api/admin/products/${selectedProductForVariants.id}/variants`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        })
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}))
-          // Show validation details if available
-          if (errorData.details && Array.isArray(errorData.details)) {
-            const validationErrors = errorData.details.map((d: any) => d.message).join(', ')
-            throw new Error(`Validation error: ${validationErrors}`)
-          }
-          throw new Error(errorData.error || `Failed to create variant: ${variant.name}`)
-        }
-
-        const result = await response.json() as any
-        if (!result.success) {
-          throw new Error(result.error || `Failed to create variant: ${variant.name}`)
-        }
-
-        return result.data
-      })
-
-      // Wait for all variants to be created
-      await Promise.all(createPromises)
-
-      toast({
-        title: 'Success',
-        description: `Created ${variants.length} variants successfully`,
-      })
-
-      // Refresh variants list
-      await fetchVariants(selectedProductForVariants.id)
-      // Also refresh the main products list to update hasVariants flag
-      fetchProducts()
-
-      // Switch to list tab to see results
-      setActiveVariantTab('list')
-    } catch (err: any) {
-      console.error('Error generating variants:', err)
-      toast({
-        title: 'Error',
-        description: err.message || 'Failed to generate variants',
         variant: 'destructive',
       })
     }
@@ -1027,7 +238,7 @@ export default function ProductsPage() {
           <p className="text-sm text-gray-500 mt-1">Manage your product inventory</p>
         </div>
         <Button
-          onClick={() => setIsAddModalOpen(true)}
+          onClick={handleAddProduct}
           className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
         >
           <Plus className="h-4 w-4 mr-2" />
@@ -1158,18 +369,19 @@ export default function ProductsPage() {
             </div>
           ) : (
             <div className="w-full overflow-x-auto -mx-4 px-4">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-gray-50 hover:bg-gray-50">
-                      <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[240px]">Product</TableHead>
-                      <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[140px]">Category</TableHead>
-                      <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[120px]">Price</TableHead>
-                      <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[100px]">Stock</TableHead>
-                      <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[100px]">Sales</TableHead>
-                      <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[100px]">Status</TableHead>
-                      <TableHead className="text-right font-semibold text-gray-700 whitespace-nowrap min-w-[100px]">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gray-50 hover:bg-gray-50">
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[240px]">Product</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[140px]">Category</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[120px]">Price</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[100px]">Stock</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[100px]">Sales</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[100px]">Status</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[100px]">Variants</TableHead>
+                    <TableHead className="text-right font-semibold text-gray-700 whitespace-nowrap min-w-[100px]">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
                 <TableBody>
                   {products.map((product) => (
                     <TableRow key={product.id} className="hover:bg-gray-50">
@@ -1227,6 +439,17 @@ export default function ProductsPage() {
                           {product.isActive ? 'Active' : 'Inactive'}
                         </Badge>
                       </TableCell>
+                      <TableCell>
+                        {product.hasVariants ? (
+                          <Badge variant="secondary" className="bg-violet-100 text-violet-700">
+                            Has Variants
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-gray-500">
+                            No Variants
+                          </Badge>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -1237,25 +460,10 @@ export default function ProductsPage() {
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => openVariantsModal(product)}>
-                              <Layers className="h-4 w-4 mr-2" />
-                              Manage Variants
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => openEditModal(product)}>
+                            <DropdownMenuItem onClick={() => handleEditProduct(product)}>
                               <Edit className="h-4 w-4 mr-2" />
-                              Edit
+                              Edit Product
                             </DropdownMenuItem>
-                            {product.hasVariants ? (
-                              <DropdownMenuItem disabled className="text-gray-400 cursor-not-allowed">
-                                <PackagePlus className="h-4 w-4 mr-2" />
-                                Use Variant Management
-                              </DropdownMenuItem>
-                            ) : (
-                              <DropdownMenuItem onClick={() => handleReorder(product)}>
-                                <PackagePlus className="h-4 w-4 mr-2" />
-                                Quick Reorder (+{product.reorderQty})
-                              </DropdownMenuItem>
-                            )}
                             <DropdownMenuSeparator />
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
@@ -1264,6 +472,7 @@ export default function ProductsPage() {
                                   onSelect={(e) => {
                                     e.preventDefault()
                                     setDeleteProductId(product.id)
+                                    setProductToDelete(product)
                                   }}
                                 >
                                   <Trash2 className="h-4 w-4 mr-2" />
@@ -1274,11 +483,14 @@ export default function ProductsPage() {
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Delete Product</AlertDialogTitle>
                                   <AlertDialogDescription id="delete-product-description">
-                                    Are you sure you want to delete "{product.name}"? This action cannot be undone.
+                                    Are you sure you want to delete "{productToDelete?.name || 'this product'}"? This action cannot be undone.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
-                                  <AlertDialogCancel onClick={() => setDeleteProductId(null)}>Cancel</AlertDialogCancel>
+                                  <AlertDialogCancel onClick={() => {
+                                    setDeleteProductId(null)
+                                    setProductToDelete(null)
+                                  }}>Cancel</AlertDialogCancel>
                                   <AlertDialogAction
                                     onClick={handleDeleteProduct}
                                     className="bg-red-600 hover:bg-red-700"
@@ -1295,801 +507,19 @@ export default function ProductsPage() {
                   ))}
                 </TableBody>
               </Table>
-              </div>
+            </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Edit Product Modal */}
-      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="max-w-6xl w-full max-h-[90vh] overflow-y-auto overflow-x-hidden sm:rounded-lg" aria-describedby="edit-product-description">
-          <DialogHeader>
-            <DialogTitle>Edit Product</DialogTitle>
-            <DialogDescription id="edit-product-description">Update product information</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleUpdateProduct} className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Product Name *</label>
-                <Input
-                  value={editFormData.name}
-                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Slug *</label>
-                <Input
-                  value={editFormData.slug}
-                  onChange={(e) => setEditFormData({ ...editFormData, slug: e.target.value })}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Description</label>
-              <Input
-                value={editFormData.description}
-                onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Price *</label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={editFormData.price}
-                  onChange={(e) => setEditFormData({ ...editFormData, price: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Compare Price</label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={editFormData.comparePrice}
-                  onChange={(e) => setEditFormData({ ...editFormData, comparePrice: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Cost Price</label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={editFormData.costPrice}
-                  onChange={(e) => setEditFormData({ ...editFormData, costPrice: e.target.value })}
-                  placeholder="Purchase cost"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Stock *</label>
-                <Input
-                  type="number"
-                  value={editFormData.stock}
-                  onChange={(e) => setEditFormData({ ...editFormData, stock: e.target.value })}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Category</label>
-              <Select
-                value={editFormData.categoryId}
-                onValueChange={(value) => setEditFormData({ ...editFormData, categoryId: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* New fields: Brand, Country, Size */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <BrandSelector
-                value={editFormData.brandId}
-                onChange={(value, brand) => setEditFormData({
-                  ...editFormData,
-                  brandId: value,
-                  brandName: brand?.name || '',
-                  brandLogo: brand?.logo || '',
-                })}
-              />
-              <CountrySelector
-                value={editFormData.countryOfOrigin}
-                onChange={(value) => setEditFormData({ ...editFormData, countryOfOrigin: value })}
-              />
-            </div>
-
-            <SizeInput
-              value={{
-                type: editFormData.sizeType,
-                value: editFormData.sizeValue ? parseFloat(editFormData.sizeValue) : undefined,
-                unit: editFormData.sizeUnit || undefined,
-                label: editFormData.sizeLabel || undefined,
-              }}
-              onChange={(value) => setEditFormData({
-                ...editFormData,
-                sizeType: value.type,
-                sizeValue: value.value?.toString() || '',
-                sizeUnit: value.unit || '',
-                sizeLabel: value.label || '',
-              })}
-            />
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Images</label>
-              <ImageUpload
-                images={editFormData.images}
-                onImagesChange={(images) => setEditFormData({ ...editFormData, images })}
-                maxImages={10}
-              />
-            </div>
-
-            <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={editFormData.isActive}
-                  onChange={(e) => setEditFormData({ ...editFormData, isActive: e.target.checked })}
-                  className="h-4 w-4"
-                />
-                <span className="text-sm font-medium">Active</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={editFormData.isFeatured}
-                  onChange={(e) => setEditFormData({ ...editFormData, isFeatured: e.target.checked })}
-                  className="h-4 w-4"
-                />
-                <span className="text-sm font-medium">Featured</span>
-              </label>
-            </div>
-
-            <div className="flex gap-2 pt-4">
-              <Button type="submit" className="flex-1 bg-gradient-to-r from-violet-600 to-indigo-600">
-                Update Product
-              </Button>
-              <Button type="button" variant="outline" onClick={() => setIsEditModalOpen(false)}>
-                Cancel
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add Product Modal */}
-      <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-        <DialogContent className="max-w-6xl w-full max-h-[90vh] overflow-y-auto overflow-x-hidden sm:rounded-lg" aria-describedby="add-product-description">
-          <DialogHeader>
-            <DialogTitle>Add New Product</DialogTitle>
-            <DialogDescription id="add-product-description">Create a new product for your store</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleAddProduct} className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Product Name *</label>
-                <Input
-                  value={addFormData.name}
-                  onChange={(e) => setAddFormData({ ...addFormData, name: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Slug</label>
-                <Input
-                  value={addFormData.slug}
-                  onChange={(e) => setAddFormData({ ...addFormData, slug: e.target.value })}
-                  placeholder="Auto-generated from name"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Description</label>
-              <Textarea
-                value={addFormData.description}
-                onChange={(e) => setAddFormData({ ...addFormData, description: e.target.value })}
-                placeholder="Product description..."
-                rows={3}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Price *</label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={addFormData.price}
-                  onChange={(e) => setAddFormData({ ...addFormData, price: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Compare Price</label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={addFormData.comparePrice}
-                  onChange={(e) => setAddFormData({ ...addFormData, comparePrice: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Cost Price</label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={addFormData.costPrice}
-                  onChange={(e) => setAddFormData({ ...addFormData, costPrice: e.target.value })}
-                  placeholder="Purchase cost"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Initial Stock *</label>
-                <Input
-                  type="number"
-                  value={addFormData.stock}
-                  onChange={(e) => setAddFormData({ ...addFormData, stock: e.target.value })}
-                  required
-                />
-              </div>
-            </div>
-
-            {/* New fields: Brand, Country, Size */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <BrandSelector
-                value={addFormData.brandId}
-                onChange={(value, brand) => setAddFormData({
-                  ...addFormData,
-                  brandId: value,
-                  brandName: brand?.name || '',
-                  brandLogo: brand?.logo || '',
-                })}
-              />
-              <CountrySelector
-                value={addFormData.countryOfOrigin}
-                onChange={(value) => setAddFormData({ ...addFormData, countryOfOrigin: value })}
-              />
-            </div>
-
-            {/* Size Selection - Single or Multiple */}
-            <div className="space-y-4 border rounded-lg p-4 bg-gray-50 dark:bg-gray-900">
-              <div className="flex items-center gap-4">
-                <label className="text-sm font-medium">Size Selection Mode:</label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    id="single-size"
-                    name="size-mode"
-                    checked={selectedSizes.length <= 1}
-                    onChange={() => setSelectedSizes([])}
-                    className="h-4 w-4"
-                  />
-                  <label htmlFor="single-size" className="text-sm">Single Size</label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    id="multiple-sizes"
-                    name="size-mode"
-                    checked={selectedSizes.length > 1}
-                    onChange={() => {}}
-                    className="h-4 w-4"
-                  />
-                  <label htmlFor="multiple-sizes" className="text-sm">Multiple Sizes (Create Variants)</label>
-                </div>
-              </div>
-
-              {selectedSizes.length <= 1 ? (
-                <SizeInput
-                  value={{
-                    type: addFormData.sizeType,
-                    value: addFormData.sizeValue ? parseFloat(addFormData.sizeValue) : undefined,
-                    unit: addFormData.sizeUnit || undefined,
-                    label: addFormData.sizeLabel || undefined,
-                  }}
-                  onChange={(value) => {
-                    setAddFormData({
-                      ...addFormData,
-                      sizeType: value.type,
-                      sizeValue: value.value?.toString() || '',
-                      sizeUnit: value.unit || '',
-                      sizeLabel: value.label || '',
-                    })
-                    // Keep single size selected
-                    if (value.type === 'label' && value.label) {
-                      setSelectedSizes([{ type: 'label', label: value.label }])
-                    } else if (value.type === 'unit' && value.value && value.unit) {
-                      setSelectedSizes([{ type: 'unit', value: value.value, unit: value.unit }])
-                    } else {
-                      setSelectedSizes([])
-                    }
-                  }}
-                />
-              ) : (
-                <MultiSizeSelector
-                  selectedSizes={selectedSizes}
-                  onChange={setSelectedSizes}
-                  categoryHint={categories.find(c => c.id === addFormData.categoryId)?.name}
-                />
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Category</label>
-              <Select
-                value={addFormData.categoryId}
-                onValueChange={(value) => setAddFormData({ ...addFormData, categoryId: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Images</label>
-              <ImageUpload
-                images={addFormData.images}
-                onImagesChange={(images) => setAddFormData({ ...addFormData, images })}
-                maxImages={10}
-              />
-            </div>
-
-            <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={addFormData.isActive}
-                  onChange={(e) => setAddFormData({ ...addFormData, isActive: e.target.checked })}
-                  className="h-4 w-4"
-                />
-                <span className="text-sm font-medium">Active</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={addFormData.isFeatured}
-                  onChange={(e) => setAddFormData({ ...addFormData, isFeatured: e.target.checked })}
-                  className="h-4 w-4"
-                />
-                <span className="text-sm font-medium">Featured</span>
-              </label>
-            </div>
-
-            <div className="flex gap-2 pt-4">
-              <Button type="submit" className="flex-1 bg-gradient-to-r from-violet-600 to-indigo-600">
-                Create Product
-              </Button>
-              <Button type="button" variant="outline" onClick={() => setIsAddModalOpen(false)}>
-                Cancel
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Variant Management Modal */}
-      <Dialog open={isVariantsModalOpen} onOpenChange={setIsVariantsModalOpen}>
-        <DialogContent className="max-w-7xl w-full max-h-[90vh] overflow-y-auto overflow-x-hidden sm:rounded-lg" aria-describedby="manage-variants-description">
-          <DialogHeader>
-            <DialogTitle>Manage Variants - {selectedProductForVariants?.name}</DialogTitle>
-            <DialogDescription id="manage-variants-description">Create and manage product variants (sizes, colors, materials)</DialogDescription>
-          </DialogHeader>
-
-          <Tabs value={activeVariantTab} onValueChange={(v) => setActiveVariantTab(v as 'list' | 'matrix')} className="mt-4">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="list">Variant List</TabsTrigger>
-              <TabsTrigger value="matrix">Matrix Builder</TabsTrigger>
-            </TabsList>
-
-            {/* Variant List Tab */}
-            <TabsContent value="list" className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold">Existing Variants ({variants.length})</h3>
-                <Button onClick={openAddVariantModal} className="bg-gradient-to-r from-violet-600 to-indigo-600">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Variant
-                </Button>
-              </div>
-
-              {variantsLoading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
-                </div>
-              ) : variants.length === 0 ? (
-                <div className="text-center py-12 border-2 border-dashed rounded-lg">
-                  <Layers className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-500">No variants yet</p>
-                  <p className="text-sm text-gray-400">Add your first variant or use the Matrix Builder</p>
-                </div>
-              ) : (
-                <div className="border rounded-lg overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-gray-50">
-                        <TableHead className="font-semibold">Variant</TableHead>
-                        <TableHead className="font-semibold">SKU</TableHead>
-                        <TableHead className="font-semibold">Price</TableHead>
-                        <TableHead className="font-semibold">Stock</TableHead>
-                        <TableHead className="font-semibold">Status</TableHead>
-                        <TableHead className="text-right font-semibold">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {variants.map((variant) => (
-                        <TableRow key={variant.id} className="hover:bg-gray-50">
-                          <TableCell>
-                            <div className="space-y-1">
-                              <p className="font-medium text-sm">{variant.name}</p>
-                              <div className="flex gap-1 flex-wrap">
-                                {variant.size && <Badge variant="outline" className="text-xs">{variant.size}</Badge>}
-                                {variant.color && <Badge variant="outline" className="text-xs bg-purple-50">{variant.color}</Badge>}
-                                {variant.material && <Badge variant="outline" className="text-xs bg-blue-50">{variant.material}</Badge>}
-                              </div>
-                              {variant.isDefault && (
-                                <Badge className="text-xs bg-green-100 text-green-700">Default</Badge>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <code className="text-xs bg-gray-100 px-2 py-1 rounded">{variant.sku}</code>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <PriceDisplay value={variant.price} originalPrice={variant.comparePrice || undefined} showDecimals={true} className="font-semibold" />
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <span className={`font-semibold ${
-                              variant.stock === 0 ? 'text-red-600' :
-                              variant.stock < 5 ? 'text-orange-600' : 'text-green-600'
-                            }`}>
-                              {variant.stock}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={variant.isActive ? 'default' : 'secondary'} className={
-                              variant.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
-                            }>
-                              {variant.isActive ? 'Active' : 'Inactive'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => openEditVariantModal(variant)}
-                                title="Edit variant"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleReorderVariant(variant)}
-                                title="Quick reorder (+{variant.reorderQty || 20})"
-                              >
-                                <PackagePlus className="h-4 w-4" />
-                              </Button>
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="text-red-600 hover:text-red-700" title="Delete variant">
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                              <AlertDialogContent aria-describedby="delete-variant-description">
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete Variant</AlertDialogTitle>
-                                  <AlertDialogDescription id="delete-variant-description">
-                                    Are you sure you want to delete "{variant.name}"? This action cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={() => handleDeleteVariant(variant.id)}
-                                      className="bg-red-600 hover:bg-red-700"
-                                    >
-                                      Delete
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-
-              {/* Add/Edit Variant Form */}
-              {showAddVariantForm && (
-                <div className="border-t pt-4">
-                  <h4 className="font-semibold mb-4">{editingVariant ? 'Edit Variant' : 'Add New Variant'}</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label>SKU</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          value={variantFormData.sku}
-                          onChange={(e) => setVariantFormData({ ...variantFormData, sku: e.target.value })}
-                          placeholder="Auto-generated if empty"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Variant Name</Label>
-                      <Input
-                        value={variantFormData.name}
-                        onChange={(e) => setVariantFormData({ ...variantFormData, name: e.target.value })}
-                        placeholder="e.g., Red - XL - Cotton"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Price</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={variantFormData.price}
-                        onChange={(e) => setVariantFormData({ ...variantFormData, price: e.target.value })}
-                        placeholder="0.00"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Compare Price</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={variantFormData.comparePrice}
-                        onChange={(e) => setVariantFormData({ ...variantFormData, comparePrice: e.target.value })}
-                        placeholder="0.00"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Cost Price</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={variantFormData.costPrice}
-                        onChange={(e) => setVariantFormData({ ...variantFormData, costPrice: e.target.value })}
-                        placeholder="0.00"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Stock</Label>
-                      <Input
-                        type="number"
-                        value={variantFormData.stock}
-                        onChange={(e) => setVariantFormData({ ...variantFormData, stock: e.target.value })}
-                        placeholder="0"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Size</Label>
-                      <Select
-                        value={variantFormData.size}
-                        onValueChange={(value) => {
-                          if (value === '__custom__') {
-                            const customSize = prompt('Enter custom size:')
-                            if (customSize) {
-                              setVariantFormData({ ...variantFormData, size: customSize })
-                            }
-                          } else {
-                            setVariantFormData({ ...variantFormData, size: value })
-                          }
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select size" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableSizes.length === 0 && (
-                            <SelectItem value="__none__" disabled>No sizes yet</SelectItem>
-                          )}
-                          {availableSizes.map((size) => (
-                            <SelectItem key={size} value={size}>{size}</SelectItem>
-                          ))}
-                          <SelectItem value="__custom__">+ Add Custom Size</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Color</Label>
-                      <Select
-                        value={variantFormData.color}
-                        onValueChange={(value) => {
-                          if (value === '__custom__') {
-                            const customColor = prompt('Enter custom color:')
-                            if (customColor) {
-                              setVariantFormData({ ...variantFormData, color: customColor })
-                            }
-                          } else {
-                            setVariantFormData({ ...variantFormData, color: value })
-                          }
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select color" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableColors.length === 0 && (
-                            <SelectItem value="__none__" disabled>No colors yet</SelectItem>
-                          )}
-                          {availableColors.map((color) => (
-                            <SelectItem key={color} value={color}>{color}</SelectItem>
-                          ))}
-                          <SelectItem value="__custom__">+ Add Custom Color</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Material</Label>
-                      <Select
-                        value={variantFormData.material}
-                        onValueChange={(value) => {
-                          if (value === '__custom__') {
-                            const customMaterial = prompt('Enter custom material:')
-                            if (customMaterial) {
-                              setVariantFormData({ ...variantFormData, material: customMaterial })
-                            }
-                          } else {
-                            setVariantFormData({ ...variantFormData, material: value })
-                          }
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select material" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableMaterials.length === 0 && (
-                            <SelectItem value="__none__" disabled>No materials yet</SelectItem>
-                          )}
-                          {availableMaterials.map((material) => (
-                            <SelectItem key={material} value={material}>{material}</SelectItem>
-                          ))}
-                          <SelectItem value="__custom__">+ Add Custom Material</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Images</Label>
-                      <ImageUpload
-                        images={variantFormData.images}
-                        onImagesChange={(images) => setVariantFormData({ ...variantFormData, images })}
-                        maxImages={5}
-                      />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <Label>Low Stock Alert</Label>
-                        <Input
-                          type="number"
-                          value={variantFormData.lowStockAlert || ''}
-                          onChange={(e) => setVariantFormData({ ...variantFormData, lowStockAlert: e.target.value })}
-                          placeholder="10"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Reorder Level</Label>
-                        <Input
-                          type="number"
-                          value={variantFormData.reorderLevel || ''}
-                          onChange={(e) => setVariantFormData({ ...variantFormData, reorderLevel: e.target.value })}
-                          placeholder="5"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Reorder Quantity</Label>
-                        <Input
-                          type="number"
-                          value={variantFormData.reorderQty || ''}
-                          onChange={(e) => setVariantFormData({ ...variantFormData, reorderQty: e.target.value })}
-                          placeholder="20"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4 mt-4">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={variantFormData.isDefault}
-                        onChange={(e) => setVariantFormData({ ...variantFormData, isDefault: e.target.checked })}
-                        className="h-4 w-4"
-                      />
-                      <span className="text-sm font-medium">Default Variant</span>
-                    </label>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={variantFormData.isActive}
-                        onChange={(e) => setVariantFormData({ ...variantFormData, isActive: e.target.checked })}
-                        className="h-4 w-4"
-                      />
-                      <span className="text-sm font-medium">Active</span>
-                    </label>
-                  </div>
-                  <div className="flex gap-2 mt-4">
-                    <Button onClick={handleSaveVariant} className="flex-1 bg-gradient-to-r from-violet-600 to-indigo-600">
-                      <CheckCircle2 className="h-4 w-4 mr-2" />
-                      {editingVariant ? 'Update Variant' : 'Create Variant'}
-                    </Button>
-                    <Button variant="outline" onClick={() => {
-                      setShowAddVariantForm(false)
-                      setEditingVariant(null)
-                      setVariantFormData(resetVariantForm())
-                    }}>
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </TabsContent>
-
-            {/* Matrix Builder Tab - Visual Variant Builder */}
-            <TabsContent value="matrix" className="space-y-6">
-              <div>
-                <h3 className="text-lg font-semibold mb-2">Visual Variant Builder</h3>
-                <p className="text-sm text-gray-600">
-                  Create multiple variants at once by defining attributes like Size, Color, and Material. The builder will automatically generate all combinations.
-                </p>
-              </div>
-
-              <VariantBuilder
-                basePrice={selectedProductForVariants?.price}
-                categorySlug={selectedProductForVariants?.category?.slug || 'GEN'}
-                productName={selectedProductForVariants?.name || 'Product'}
-                existingVariants={variants.map(v => ({
-                  id: v.id,
-                  sku: v.sku,
-                  name: v.name,
-                  price: v.price,
-                  comparePrice: v.comparePrice || undefined,
-                  costPrice: v.costPrice || undefined,
-                  stock: v.stock,
-                  size: v.size || undefined,
-                  color: v.color || undefined,
-                  material: v.material || undefined,
-                  images: v.images || undefined,
-                  isDefault: v.isDefault,
-                  isActive: v.isActive,
-                  lowStockAlert: v.lowStockAlert,
-                  reorderLevel: v.reorderLevel,
-                  reorderQty: v.reorderQty,
-                }))}
-                onGenerate={handleVariantBuilderGenerate}
-                loading={variantsLoading}
-              />
-            </TabsContent>
-          </Tabs>
-        </DialogContent>
-      </Dialog>
+      {/* Unified Product Modal */}
+      <ProductModal
+        open={isProductModalOpen}
+        onOpenChange={setIsProductModalOpen}
+        mode={modalMode}
+        product={selectedProduct}
+        onSuccess={fetchProducts}
+      />
     </div>
   )
 }
