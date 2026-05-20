@@ -488,3 +488,33 @@ Stage Summary:
 - Complete elimination of Prisma fallback patterns from the codebase
 - Consistent database access pattern using raw SQL with D1
 - All files now strictly use Cloudflare Workers + D1 without any Prisma dependencies
+
+---
+Task ID: 12
+Agent: main
+Task: Restore deleted upload API route
+
+Work Log:
+- User reported that the upload API was removed
+- Investigation found that `/src/app/api/admin/upload/route.ts` was deleted in commit 34ce4d8
+- The `image-upload.tsx` component was calling `/api/admin/upload` which no longer existed
+- Restored the upload API route from git history (commit 6d30b68)
+
+- Upload API features restored:
+  - POST handler: File upload with validation, size limits, duplicate detection
+  - DELETE handler: File deletion with proper security checks
+  - OPTIONS handler: CORS preflight support
+  - R2 bucket support for Cloudflare Workers production
+  - Local filesystem support for development
+  - Rate limiting (20 uploads per minute per user)
+  - File type and extension validation
+  - Image dimensions detection (PNG, JPEG, WebP, GIF)
+  - SHA256 hash computation for duplicate detection
+  - Media table integration for centralized file management
+  - Admin action logging via audit-logger
+  - Proper error handling and security checks
+
+Stage Summary:
+- Upload API route successfully restored at `/src/app/api/admin/upload/route.ts`
+- Image upload functionality is now working again
+- All upload features intact: R2 support, local filesystem support, validation, rate limiting, media table integration
