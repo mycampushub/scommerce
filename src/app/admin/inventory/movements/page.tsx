@@ -253,19 +253,19 @@ export default function InventoryMovementsPage() {
               <p className="text-gray-500">No inventory movements found</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="w-full overflow-x-auto -mx-4 px-4">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-gray-50 hover:bg-gray-50">
-                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Date</TableHead>
-                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Type</TableHead>
-                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Product</TableHead>
-                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Variant</TableHead>
-                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Quantity</TableHead>
-                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Cost/Unit</TableHead>
-                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Total Cost</TableHead>
-                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Reference</TableHead>
-                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Supplier</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[180px]">Date</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[120px]">Type</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[180px]">Product</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[150px]">Variant</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[100px]">Quantity</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[120px]">Cost/Unit</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[120px]">Total Cost</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[150px]">Reference</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[150px]">Supplier</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -275,14 +275,14 @@ export default function InventoryMovementsPage() {
                     return (
                       <TableRow key={movement.id} className="hover:bg-gray-50">
                         <TableCell>
-                          <span className="text-sm text-gray-600">
+                          <span className="text-sm text-gray-600 whitespace-nowrap">
                             {new Date(movement.createdAt).toLocaleString()}
                           </span>
                         </TableCell>
                         <TableCell>
                           <Badge variant="secondary" className={typeConfig.color}>
-                            <TypeIcon className="h-3 w-3 mr-1" />
-                            {typeConfig.label}
+                            <TypeIcon className="h-3 w-3 mr-1 flex-shrink-0" />
+                            <span className="whitespace-nowrap">{typeConfig.label}</span>
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -292,22 +292,22 @@ export default function InventoryMovementsPage() {
                           <span className="text-sm text-gray-600">{movement.variantName || '-'}</span>
                         </TableCell>
                         <TableCell>
-                          <span className={`text-sm font-medium ${movement.quantity > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          <span className={`text-sm font-medium whitespace-nowrap ${movement.quantity > 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {movement.quantity > 0 ? '+' : ''}{movement.quantity}
                           </span>
                         </TableCell>
                         <TableCell>
-                          <span className="text-sm text-gray-600">
+                          <span className="text-sm text-gray-600 whitespace-nowrap">
                             {movement.costPerUnit ? `৳${movement.costPerUnit.toFixed(2)}` : '-'}
                           </span>
                         </TableCell>
                         <TableCell>
-                          <span className="text-sm text-gray-600">
+                          <span className="text-sm text-gray-600 whitespace-nowrap">
                             {movement.totalCost ? `৳${movement.totalCost.toLocaleString('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
                           </span>
                         </TableCell>
                         <TableCell>
-                          <span className="text-xs text-gray-600">
+                          <span className="text-xs text-gray-600 break-all">
                             {movement.referenceId ? `${movement.referenceType || 'Ref'}: ${movement.referenceId}` : '-'}
                           </span>
                         </TableCell>
@@ -319,7 +319,7 @@ export default function InventoryMovementsPage() {
                   })}
                 </TableBody>
               </Table>
-            </div>
+              </div>
           )}
         </CardContent>
       </Card>

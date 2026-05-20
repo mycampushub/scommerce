@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { purchaseOrderRepository } from '@/db/purchase-order.repository';
 import { verifyAdmin } from '@/lib/auth/admin-auth';
+import { getEnv } from '@/lib/cloudflare';
 
 // POST /api/admin/purchase-orders/[id]/receive - Receive purchase order and update inventory
 export async function POST(
@@ -42,8 +43,10 @@ export async function POST(
       }
     }
 
+    const env = await getEnv();
+
     // Receive the order
-    const updatedPO = await purchaseOrderRepository.receiveOrder(id, items);
+    const updatedPO = await purchaseOrderRepository.receiveOrder(env, id, items);
 
     return NextResponse.json({
       success: true,

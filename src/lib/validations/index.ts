@@ -260,8 +260,12 @@ export const promotionSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional(),
   image: z.string().optional(), // Made optional - not all promotions need images
+  type: z.string().optional().default('banner'),
+  promoCode: z.string().optional(),
   discountType: z.enum(['percentage', 'fixed']).optional().default('percentage'),
   discountValue: z.number().min(0, 'Discount value must be non-negative').optional().default(0),
+  minOrderAmount: z.number().min(0, 'Minimum order amount must be non-negative').optional(),
+  maxDiscountAmount: z.number().min(0, 'Maximum discount amount must be non-negative').optional(),
   discountRules: z.record(z.string(), z.unknown()).optional(),
   applicableProducts: z.array(z.string()).optional().default([]),
   applicableCategories: z.array(z.string()).optional().default([]),
@@ -269,6 +273,9 @@ export const promotionSchema = z.object({
   endDate: z.string().optional(),
   ctaText: z.string().optional(),
   ctaLink: z.string().optional(),
+  usageLimit: z.number().int().min(0, 'Usage limit must be non-negative').optional(),
+  userLimit: z.number().int().min(0, 'User limit must be non-negative').optional(),
+  conditions: z.string().optional(), // Changed to string to match frontend input
   isActive: z.boolean().optional(),
 })
 

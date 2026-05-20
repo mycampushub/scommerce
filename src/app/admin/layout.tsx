@@ -23,7 +23,10 @@ import {
   Ticket,
   Truck,
   FileText,
-  ClipboardList
+  ClipboardList,
+  ChevronDown,
+  ChevronRight,
+  Warehouse
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/use-auth'
@@ -32,17 +35,20 @@ const navigation = [
   { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { name: 'Products', href: '/admin/products', icon: Package },
   { name: 'Orders', href: '/admin/orders', icon: ShoppingCart },
-  { name: 'Purchase Orders', href: '/admin/purchase-orders', icon: ClipboardList },
   { name: 'Customers', href: '/admin/customers', icon: Users },
-  { name: 'Suppliers', href: '/admin/suppliers', icon: Truck },
   { name: 'Staff', href: '/admin/staff', icon: UserCog },
   { name: 'Categories', href: '/admin/categories', icon: Tags },
   { name: 'Coupons', href: '/admin/coupons', icon: Ticket },
-  { name: 'Inventory', href: '/admin/inventory', icon: Box },
-  { name: 'Inventory Reports', href: '/admin/inventory/reports', icon: FileText },
   { name: 'Homepage', href: '/admin/homepage', icon: Home },
   { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
   { name: 'Settings', href: '/admin/settings', icon: Settings },
+]
+
+const inventoryNav = [
+  { name: 'Inventory', href: '/admin/inventory', icon: Box },
+  { name: 'Purchase Orders', href: '/admin/purchase-orders', icon: ClipboardList },
+  { name: 'Suppliers', href: '/admin/suppliers', icon: Truck },
+  { name: 'Inventory Reports', href: '/admin/inventory/reports', icon: FileText },
 ]
 
 export default function AdminLayout({
@@ -53,7 +59,16 @@ export default function AdminLayout({
   const pathname = usePathname()
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [inventoryExpanded, setInventoryExpanded] = useState(false)
   const { user, loading } = useAuth()
+
+  // Auto-expand inventory section if on inventory-related pages
+  useEffect(() => {
+    const isInventoryPage = inventoryNav.some(item => pathname.startsWith(item.href))
+    if (isInventoryPage) {
+      setInventoryExpanded(true)
+    }
+  }, [pathname])
 
   // Client-side auth check - redirect if not authenticated or not admin
   useEffect(() => {
@@ -155,6 +170,53 @@ export default function AdminLayout({
                 )
               })}
             </nav>
+
+            {/* Inventory Management Section */}
+            <div className="mt-4">
+              <button
+                onClick={() => setInventoryExpanded(!inventoryExpanded)}
+                className={cn(
+                  'flex w-full items-center justify-between rounded-lg px-4 py-3 text-sm font-medium transition-all',
+                  inventoryExpanded || inventoryNav.some(item => pathname.startsWith(item.href))
+                    ? 'bg-gray-100 text-gray-900'
+                    : 'text-gray-700 hover:bg-gray-100'
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <Warehouse className={cn('h-5 w-5', inventoryExpanded || inventoryNav.some(item => pathname.startsWith(item.href)) ? 'text-violet-600' : 'text-gray-500')} />
+                  <span>Inventory Management</span>
+                </div>
+                {inventoryExpanded ? (
+                  <ChevronDown className="h-4 w-4 text-gray-500" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-gray-500" />
+                )}
+              </button>
+
+              {inventoryExpanded && (
+                <div className="mt-1 ml-4 space-y-1 border-l-2 border-gray-200 pl-3">
+                  {inventoryNav.map((item) => {
+                    const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        className={cn(
+                          'flex items-center gap-3 rounded-lg px-4 py-2 text-sm font-medium transition-all',
+                          isActive
+                            ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md'
+                            : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                        )}
+                        onClick={() => setSidebarOpen(false)}
+                      >
+                        <item.icon className={cn('h-4 w-4', isActive ? 'text-white' : 'text-gray-500')} />
+                        {item.name}
+                      </Link>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
 
             <Separator className="my-6" />
 

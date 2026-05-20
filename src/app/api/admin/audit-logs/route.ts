@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/auth-utils';
+import { getEnv } from '@/lib/cloudflare';
 import { getAllAuditLogs } from '@/lib/audit-logger';
 import type { AuditEntity, AuditAction } from '@/types/audit';
 
@@ -30,8 +31,11 @@ export async function GET(request: NextRequest) {
     // Validate limit
     const validLimit = Math.min(Math.max(limit, 1), 100); // Max 100 records
 
+    // Get env for database access
+    const env = await getEnv();
+
     // Get audit logs
-    const result = await getAllAuditLogs({
+    const result = await getAllAuditLogs(env, {
       adminId,
       entity,
       action,

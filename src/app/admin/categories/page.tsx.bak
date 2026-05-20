@@ -625,7 +625,7 @@ export default function CategoriesPage() {
               <p className="text-gray-500">No categories found</p>
             </div>
           ) : viewMode === 'tree' ? (
-            <div className="overflow-x-auto -mx-4 px-4">
+            <div class="overflow-x-auto -mx-4 px-4">
               <CategoryTree
                 categories={categoryTree}
                 onAdd={handleTreeAdd}
@@ -633,7 +633,7 @@ export default function CategoriesPage() {
                 onDelete={(cat) => setDeleteCategoryId(cat.id)}
                 onToggleStatus={toggleCategoryStatus}
               />
-            </div>
+            </ScrollArea>
           ) : (
             <div className="w-full overflow-x-auto -mx-4 px-4">
               <Table>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { inventoryMovementRepository } from '@/db/inventory-movement.repository';
 import { verifyAdmin } from '@/lib/auth/admin-auth';
+import { getEnv } from '@/lib/cloudflare';
 
 // GET /api/admin/inventory/reports/movement - Movement summary report
 export async function GET(request: NextRequest) {
@@ -17,14 +18,16 @@ export async function GET(request: NextRequest) {
     const productId = searchParams.get('productId') || undefined;
     const variantId = searchParams.get('variantId') || undefined;
 
+    const env = await getEnv();
+
     // Get summary for all movement types
     const [purchaseSummary, saleSummary, returnSummary, adjustmentSummary, transferSummary, damageSummary] = await Promise.all([
-      inventoryMovementRepository.getSummary({ movementType: 'PURCHASE', startDate, endDate, productId, variantId }),
-      inventoryMovementRepository.getSummary({ movementType: 'SALE', startDate, endDate, productId, variantId }),
-      inventoryMovementRepository.getSummary({ movementType: 'RETURN', startDate, endDate, productId, variantId }),
-      inventoryMovementRepository.getSummary({ movementType: 'ADJUSTMENT', startDate, endDate, productId, variantId }),
-      inventoryMovementRepository.getSummary({ movementType: 'TRANSFER', startDate, endDate, productId, variantId }),
-      inventoryMovementRepository.getSummary({ movementType: 'DAMAGE', startDate, endDate, productId, variantId }),
+      inventoryMovementRepository.getSummary(env, { movementType: 'PURCHASE', startDate, endDate, productId, variantId }),
+      inventoryMovementRepository.getSummary(env, { movementType: 'SALE', startDate, endDate, productId, variantId }),
+      inventoryMovementRepository.getSummary(env, { movementType: 'RETURN', startDate, endDate, productId, variantId }),
+      inventoryMovementRepository.getSummary(env, { movementType: 'ADJUSTMENT', startDate, endDate, productId, variantId }),
+      inventoryMovementRepository.getSummary(env, { movementType: 'TRANSFER', startDate, endDate, productId, variantId }),
+      inventoryMovementRepository.getSummary(env, { movementType: 'DAMAGE', startDate, endDate, productId, variantId }),
     ]);
 
     return NextResponse.json({

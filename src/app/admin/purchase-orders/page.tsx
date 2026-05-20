@@ -515,18 +515,19 @@ export default function PurchaseOrdersPage() {
               <p className="text-gray-500">No purchase orders found</p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-gray-50 hover:bg-gray-50">
-                  <TableHead className="font-semibold text-gray-700 whitespace-nowrap">PO Number</TableHead>
-                  <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Supplier</TableHead>
-                  <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Total Qty</TableHead>
-                  <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Total Amount</TableHead>
-                  <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Expected Date</TableHead>
-                  <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Status</TableHead>
-                  <TableHead className="text-right font-semibold text-gray-700 whitespace-nowrap">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
+            <div className="w-full overflow-x-auto -mx-4 px-4">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gray-50 hover:bg-gray-50">
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[140px]">PO Number</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[180px]">Supplier</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[120px]">Total Qty</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[140px]">Total Amount</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[140px]">Expected Date</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[100px]">Status</TableHead>
+                    <TableHead className="text-right font-semibold text-gray-700 whitespace-nowrap min-w-[100px]">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
               <TableBody>
                 {filteredPOs.map((po) => {
                   const statusConfig = getStatusConfig(po.status)
@@ -534,24 +535,24 @@ export default function PurchaseOrdersPage() {
                   return (
                     <TableRow key={po.id} className="hover:bg-gray-50">
                       <TableCell>
-                        <span className="font-mono text-sm font-medium text-gray-900">{po.orderNumber}</span>
+                        <span className="font-mono text-sm font-medium text-gray-900 whitespace-nowrap">{po.orderNumber}</span>
                       </TableCell>
                       <TableCell>
                         <span className="text-sm text-gray-700">{po.supplierName || 'Unknown'}</span>
                       </TableCell>
                       <TableCell>
-                        <span className="text-sm text-gray-700">{po.totalQuantity}</span>
+                        <span className="text-sm text-gray-700 whitespace-nowrap">{po.totalQuantity}</span>
                       </TableCell>
                       <TableCell>
-                        <span className="text-sm font-medium text-gray-900">৳{po.totalAmount.toLocaleString('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        <span className="text-sm font-medium text-gray-900 whitespace-nowrap">৳{po.totalAmount.toLocaleString('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </TableCell>
                       <TableCell>
-                        <span className="text-sm text-gray-600">{po.expectedDate ? new Date(po.expectedDate).toLocaleDateString() : '-'}</span>
+                        <span className="text-sm text-gray-600 whitespace-nowrap">{po.expectedDate ? new Date(po.expectedDate).toLocaleDateString() : '-'}</span>
                       </TableCell>
                       <TableCell>
                         <Badge variant="secondary" className={statusConfig.color}>
-                          <StatusIcon className="h-3 w-3 mr-1" />
-                          {statusConfig.label}
+                          <StatusIcon className="h-3 w-3 mr-1 flex-shrink-0" />
+                          <span className="whitespace-nowrap">{statusConfig.label}</span>
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
@@ -590,6 +591,7 @@ export default function PurchaseOrdersPage() {
                 })}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>

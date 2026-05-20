@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { getEnv } from '@/lib/cloudflare';
+import { queryFirst, execute } from '@/db/db';
 import { inventoryMovementRepository } from '@/db/inventory-movement.repository';
 import { verifyAdmin } from '@/lib/auth/admin-auth';
 
@@ -9,7 +10,9 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const env = await getEnv();
     const { id } = await params;
+
     // Verify admin access
     const admin = await verifyAdmin(request);
     if (admin instanceof NextResponse) {
@@ -17,9 +20,21 @@ export async function POST(
     }
 
     // Find the adjustment
-    const adjustment = await db.inventory_adjustments.findUnique({
-      where: { id },
-    });
+    const adjustment = await queryFirst<{
+      id: string;
+      productId: string;
+      variantId: string | null;
+      quantityAfter: number;
+      quantityDiff: number;
+      reason: string | null;
+      approved: number;
+    }>(
+      env,
+      `SELECT id, productId, variantId, quantityAfter, quantityDiff, reason, approved
+       FROM inventory_adjustments
+       WHERE id = ?`,
+      id
+    );
 
     if (!adjustment) {
       return NextResponse.json(
@@ -29,7 +44,7 @@ export async function POST(
     }
 
     // Check if already approved
-    if (adjustment.approved) {
+    if (adjustment.approved === 1) {
       return NextResponse.json(
         { success: false, error: 'Adjustment is already approved' },
         { status: 400 }
@@ -38,42 +53,71 @@ export async function POST(
 
     // Update stock
     if (adjustment.variantId) {
-      await db.product_variants.update({
-        where: { id: adjustment.variantId },
-        data: { stock: adjustment.quantityAfter },
-      });
+      await execute(
+        env,
+        'UPDATE product_variants SET stock = ? WHERE id = ?',
+        adjustment.quantityAfter,
+        adjustment.variantId
+      );
     } else {
-      await db.products.update({
-        where: { id: adjustment.productId },
-        data: { stock: adjustment.quantityAfter },
-      });
+      await execute(
+        env,
+        'UPDATE products SET stock = ? WHERE id = ?',
+        adjustment.quantityAfter,
+        adjustment.productId
+      );
     }
 
     // Create inventory movement
-    await inventoryMovementRepository.create({
+    await inventoryMovementRepository.create(env, {
       productId: adjustment.productId,
       variantId: adjustment.variantId,
       movementType: 'ADJUSTMENT',
       quantity: adjustment.quantityDiff,
       notes: adjustment.reason || null,
-      unitCost: 0,
-      totalCost: 0,
+      unitCost: null,
+      totalCost: null,
       referenceId: adjustment.id,
       referenceType: 'ADJUSTMENT',
       supplierId: null,
       approved: 1,
-      approvedAt: new Date(),
+      approvedAt: new Date().toISOString(),
     });
 
     // Update adjustment as approved
-    const updatedAdjustment = await db.inventory_adjustments.update({
-      where: { id },
-      data: {
-        approved: 1,
-        approvedBy: admin.id,
-        approvedAt: new Date(),
-      },
-    });
+    await execute(
+      env,
+      `UPDATE inventory_adjustments
+       SET approved = 1, approvedBy = ?, approvedAt = ?
+       WHERE id = ?`,
+      admin.id,
+      new Date().toISOString(),
+      id
+    );
+
+    // Fetch the updated adjustment
+    const updatedAdjustment = await queryFirst<{
+      id: string;
+      productId: string;
+      variantId: string | null;
+      adjustmentType: string;
+      quantityBefore: number;
+      quantityAfter: number;
+      quantityDiff: number;
+      reason: string;
+      notes: string | null;
+      approvedBy: string | null;
+      approved: number;
+      approvedAt: string | null;
+      createdAt: string;
+    }>(
+      env,
+      `SELECT id, productId, variantId, adjustmentType, quantityBefore, quantityAfter,
+              quantityDiff, reason, notes, approvedBy, approved, approvedAt, createdAt
+       FROM inventory_adjustments
+       WHERE id = ?`,
+      id
+    );
 
     return NextResponse.json({
       success: true,

@@ -1,13 +1,31 @@
-import { db } from '@/lib/db';
-import { purchase_orders, purchase_order_items, suppliers, products } from '@prisma/client';
+import { Env } from './types';
+import { queryFirst, queryAll, execute, count as dbCount, generateId } from './db';
 
-export type PurchaseOrderWithItems = purchase_orders & {
+export type PurchaseOrderWithItems = {
+  id: string;
+  orderNumber: string;
+  supplierId: string;
+  status: string;
+  orderDate: Date | string;
+  expectedDeliveryDate?: Date | string | null;
+  receivedDate?: Date | string | null;
+  notes?: string | null;
+  totalAmount: number;
+  totalQuantity: number;
+  createdAt: Date | string;
+  updatedAt: Date | string;
   supplierName: string;
-  supplier: suppliers;
-  items: (purchase_order_items & { productName?: string })[];
+  supplier: any;
+  items: any[];
 };
 
-export type PurchaseOrderCreateInput = Omit<purchase_orders, 'id' | 'createdAt' | 'updatedAt'> & {
+export type PurchaseOrderCreateInput = {
+  supplierId: string;
+  status?: string;
+  orderDate?: Date | string;
+  expectedDeliveryDate?: Date | string | null;
+  receivedDate?: Date | string | null;
+  notes?: string | null;
   items: Array<{
     productId: string;
     variantId?: string;
@@ -17,212 +35,375 @@ export type PurchaseOrderCreateInput = Omit<purchase_orders, 'id' | 'createdAt' 
 };
 
 class PurchaseOrderRepository {
-  async findById(id: string): Promise<PurchaseOrderWithItems | null> {
-    const po = await db.purchase_orders.findUnique({
-      where: { id },
-      include: {
-        supplier: true,
-        items: true,
-      },
-    });
+  async findById(env: Env | null, id: string): Promise<PurchaseOrderWithItems | null> {
+    const po = await queryFirst<any>(
+      env,
+      `SELECT po.*, s.name as supplierName, 
+              s.id as supplier_id, s.name as supplier_name, s.contact as supplier_contact, 
+              s.email as supplier_email, s.phone as supplier_phone, s.address as supplier_address,
+              s.createdAt as supplier_createdAt, s.updatedAt as supplier_updatedAt
+       FROM purchase_orders po
+       LEFT JOIN suppliers s ON po.supplierId = s.id
+       WHERE po.id = ?`,
+      id
+    );
 
     if (!po) return null;
 
-    // Fetch product names for items
-    const itemIds = po.items.map(item => item.productId);
-    const productRecords = await db.products.findMany({
-      where: { id: { in: itemIds } },
-      select: { id: true, name: true },
-    });
+    const items = await queryAll<any>(
+      env,
+      `SELECT poi.*, p.name as productName
+       FROM purchase_order_items poi
+       LEFT JOIN products p ON poi.productId = p.id
+       WHERE poi.purchaseOrderId = ?`,
+      id
+    );
 
-    const productNameMap = new Map(productRecords.map(p => [p.id, p.name]));
+    const supplier = {
+      id: po.supplier_id,
+      name: po.supplier_name,
+      contact: po.supplier_contact,
+      email: po.supplier_email,
+      phone: po.supplier_phone,
+      address: po.supplier_address,
+      createdAt: po.supplier_createdAt,
+      updatedAt: po.supplier_updatedAt,
+    };
 
-    const itemsWithProductNames = po.items.map(item => ({
+    const itemsWithProductNames = items.map(item => ({
       ...item,
-      productName: productNameMap.get(item.productId) || 'Unknown Product',
+      productName: item.productName || 'Unknown Product',
     }));
 
     return {
-      ...po,
-      supplierName: po.supplier.name,
+      id: po.id,
+      orderNumber: po.orderNumber,
+      supplierId: po.supplierId,
+      status: po.status,
+      orderDate: po.orderDate,
+      expectedDeliveryDate: po.expectedDeliveryDate,
+      receivedDate: po.receivedDate,
+      notes: po.notes,
+      totalAmount: po.totalAmount,
+      totalQuantity: po.totalQuantity,
+      createdAt: po.createdAt,
+      updatedAt: po.updatedAt,
+      supplierName: po.supplierName,
+      supplier,
       items: itemsWithProductNames,
     } as PurchaseOrderWithItems;
   }
 
-  async findByOrderNumber(orderNumber: string): Promise<PurchaseOrderWithItems | null> {
-    const po = await db.purchase_orders.findUnique({
-      where: { orderNumber },
-      include: {
-        supplier: true,
-        items: true,
-      },
-    });
+  async findByOrderNumber(env: Env | null, orderNumber: string): Promise<PurchaseOrderWithItems | null> {
+    const po = await queryFirst<any>(
+      env,
+      `SELECT po.*, s.name as supplierName,
+              s.id as supplier_id, s.name as supplier_name, s.contact as supplier_contact,
+              s.email as supplier_email, s.phone as supplier_phone, s.address as supplier_address,
+              s.createdAt as supplier_createdAt, s.updatedAt as supplier_updatedAt
+       FROM purchase_orders po
+       LEFT JOIN suppliers s ON po.supplierId = s.id
+       WHERE po.orderNumber = ?`,
+      orderNumber
+    );
 
     if (!po) return null;
 
-    // Fetch product names for items
-    const itemIds = po.items.map(item => item.productId);
-    const productRecords = await db.products.findMany({
-      where: { id: { in: itemIds } },
-      select: { id: true, name: true },
-    });
+    const items = await queryAll<any>(
+      env,
+      `SELECT poi.*, p.name as productName
+       FROM purchase_order_items poi
+       LEFT JOIN products p ON poi.productId = p.id
+       WHERE poi.purchaseOrderId = ?`,
+      po.id
+    );
 
-    const productNameMap = new Map(productRecords.map(p => [p.id, p.name]));
+    const supplier = {
+      id: po.supplier_id,
+      name: po.supplier_name,
+      contact: po.supplier_contact,
+      email: po.supplier_email,
+      phone: po.supplier_phone,
+      address: po.supplier_address,
+      createdAt: po.supplier_createdAt,
+      updatedAt: po.supplier_updatedAt,
+    };
 
-    const itemsWithProductNames = po.items.map(item => ({
+    const itemsWithProductNames = items.map(item => ({
       ...item,
-      productName: productNameMap.get(item.productId) || 'Unknown Product',
+      productName: item.productName || 'Unknown Product',
     }));
 
     return {
-      ...po,
-      supplierName: po.supplier.name,
+      id: po.id,
+      orderNumber: po.orderNumber,
+      supplierId: po.supplierId,
+      status: po.status,
+      orderDate: po.orderDate,
+      expectedDeliveryDate: po.expectedDeliveryDate,
+      receivedDate: po.receivedDate,
+      notes: po.notes,
+      totalAmount: po.totalAmount,
+      totalQuantity: po.totalQuantity,
+      createdAt: po.createdAt,
+      updatedAt: po.updatedAt,
+      supplierName: po.supplierName,
+      supplier,
       items: itemsWithProductNames,
     } as PurchaseOrderWithItems;
   }
 
-  async findAll(options?: {
+  async findAll(env: Env | null, options?: {
     supplierId?: string;
     status?: string;
-    startDate?: Date;
-    endDate?: Date;
+    startDate?: Date | string;
+    endDate?: Date | string;
   }): Promise<PurchaseOrderWithItems[]> {
     const { supplierId, status, startDate, endDate } = options || {};
 
-    let where: any = {};
+    const conditions: string[] = [];
+    const params: unknown[] = [];
+
     if (supplierId) {
-      where.supplierId = supplierId;
+      conditions.push('po.supplierId = ?');
+      params.push(supplierId);
     }
     if (status) {
-      where.status = status;
+      conditions.push('po.status = ?');
+      params.push(status);
     }
-    if (startDate || endDate) {
-      const orderDate: any = {};
-      if (startDate) orderDate.gte = startDate;
-      if (endDate) orderDate.lte = endDate;
-      where.orderDate = orderDate;
+    if (startDate) {
+      conditions.push('po.orderDate >= ?');
+      params.push(startDate);
+    }
+    if (endDate) {
+      conditions.push('po.orderDate <= ?');
+      params.push(endDate);
     }
 
-    const pos = await db.purchase_orders.findMany({
-      where,
-      include: {
-        supplier: true,
-        items: true,
-      },
-      orderBy: {
-        orderDate: 'desc',
-      },
-    });
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    // Fetch all product IDs from all PO items
-    const allItemIds = pos.flatMap(po => po.items.map(item => item.productId));
-    const productRecords = await db.products.findMany({
-      where: { id: { in: allItemIds } },
-      select: { id: true, name: true },
-    });
+    const pos = await queryAll<any>(
+      env,
+      `SELECT po.*, s.name as supplierName,
+              s.id as supplier_id, s.name as supplier_name, s.contact as supplier_contact,
+              s.email as supplier_email, s.phone as supplier_phone, s.address as supplier_address,
+              s.createdAt as supplier_createdAt, s.updatedAt as supplier_updatedAt
+       FROM purchase_orders po
+       LEFT JOIN suppliers s ON po.supplierId = s.id
+       ${whereClause}
+       ORDER BY po.orderDate DESC`,
+      ...params
+    );
 
-    const productNameMap = new Map(productRecords.map(p => [p.id, p.name]));
+    const allItemIds = pos.flatMap(po => po.id);
 
-    return pos.map(po => ({
-      ...po,
-      supplierName: po.supplier.name,
-      items: po.items.map(item => ({
+    const items = await queryAll<any>(
+      env,
+      `SELECT poi.*, p.name as productName, poi.purchaseOrderId
+       FROM purchase_order_items poi
+       LEFT JOIN products p ON poi.productId = p.id
+       WHERE poi.purchaseOrderId IN (${allItemIds.map(() => '?').join(',')})`,
+      ...allItemIds
+    );
+
+    const itemsByPO = new Map<string, any[]>();
+    items.forEach(item => {
+      if (!itemsByPO.has(item.purchaseOrderId)) {
+        itemsByPO.set(item.purchaseOrderId, []);
+      }
+      itemsByPO.get(item.purchaseOrderId)!.push({
         ...item,
-        productName: productNameMap.get(item.productId) || 'Unknown Product',
-      })),
-    })) as PurchaseOrderWithItems[];
+        productName: item.productName || 'Unknown Product',
+      });
+    });
+
+    return pos.map(po => {
+      const supplier = {
+        id: po.supplier_id,
+        name: po.supplier_name,
+        contact: po.supplier_contact,
+        email: po.supplier_email,
+        phone: po.supplier_phone,
+        address: po.supplier_address,
+        createdAt: po.supplier_createdAt,
+        updatedAt: po.supplier_updatedAt,
+      };
+
+      return {
+        id: po.id,
+        orderNumber: po.orderNumber,
+        supplierId: po.supplierId,
+        status: po.status,
+        orderDate: po.orderDate,
+        expectedDeliveryDate: po.expectedDeliveryDate,
+        receivedDate: po.receivedDate,
+        notes: po.notes,
+        totalAmount: po.totalAmount,
+        totalQuantity: po.totalQuantity,
+        createdAt: po.createdAt,
+        updatedAt: po.updatedAt,
+        supplierName: po.supplierName,
+        supplier,
+        items: itemsByPO.get(po.id) || [],
+      } as PurchaseOrderWithItems;
+    });
   }
 
-  async create(data: PurchaseOrderCreateInput): Promise<PurchaseOrderWithItems> {
+  async create(env: Env | null, data: PurchaseOrderCreateInput): Promise<PurchaseOrderWithItems> {
     const { items, ...poData } = data;
 
-    // Calculate total amount and quantity
     const totalAmount = items.reduce((sum, item) => sum + (item.unitCost * item.quantity), 0);
     const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
 
-    // Generate order number
-    const orderNumber = await this.generateOrderNumber();
+    const orderNumber = await this.generateOrderNumber(env);
+    const poId = generateId();
+    const now = new Date().toISOString();
+    const orderDate = poData.orderDate ? new Date(poData.orderDate).toISOString() : now;
 
-    // Generate PO ID
-    const poId = `po-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    await execute(
+      env,
+      `INSERT INTO purchase_orders (id, orderNumber, supplierId, status, orderDate, expectedDeliveryDate, receivedDate, notes, totalAmount, totalQuantity, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      poId,
+      orderNumber,
+      poData.supplierId,
+      poData.status || 'PENDING',
+      orderDate,
+      poData.expectedDeliveryDate ? new Date(poData.expectedDeliveryDate).toISOString() : null,
+      poData.receivedDate ? new Date(poData.receivedDate).toISOString() : null,
+      poData.notes || null,
+      totalAmount,
+      totalQuantity,
+      now,
+      now
+    );
 
-    // Create purchase order with items in a transaction
-    const po = await db.purchase_orders.create({
-      data: {
-        ...poData,
-        id: poId,
-        orderNumber,
-        totalAmount,
-        totalQuantity,
-        orderDate: poData.orderDate || new Date(),
-        receivedDate: poData.receivedDate || null,
-        updatedAt: new Date(),
-        items: {
-          create: items.map((item, index) => ({
-            id: `poi-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 5)}`,
-            productId: item.productId,
-            variantId: item.variantId || null,
-            quantity: item.quantity,
-            unitCost: item.unitCost,
-            totalCost: item.unitCost * item.quantity,
-            receivedQty: 0,
-          })),
-        },
-      },
-      include: {
-        supplier: true,
-        items: true,
-      },
-    });
-
-    // Fetch product names for items
-    const itemIds = po.items.map(item => item.productId);
-    const productRecords = await db.products.findMany({
-      where: { id: { in: itemIds } },
-      select: { id: true, name: true },
-    });
-
-    const productNameMap = new Map(productRecords.map(p => [p.id, p.name]));
-
-    const itemsWithProductNames = po.items.map(item => ({
-      ...item,
-      productName: productNameMap.get(item.productId) || 'Unknown Product',
-    }));
-
-    return {
-      ...po,
-      supplierName: po.supplier.name,
-      items: itemsWithProductNames,
-    } as PurchaseOrderWithItems;
-  }
-
-  async update(id: string, data: Partial<Omit<purchase_orders, 'id' | 'createdAt' | 'updatedAt'>>): Promise<purchase_orders | null> {
-    return db.purchase_orders.update({
-      where: { id },
-      data,
-    });
-  }
-
-  async updateStatus(id: string, status: string, receivedDate?: Date): Promise<purchase_orders | null> {
-    const updateData: any = { status };
-    if (receivedDate) {
-      updateData.receivedDate = receivedDate;
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const itemId = generateId();
+      await execute(
+        env,
+        `INSERT INTO purchase_order_items (id, purchaseOrderId, productId, variantId, quantity, unitCost, totalCost, receivedQty)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        itemId,
+        poId,
+        item.productId,
+        item.variantId || null,
+        item.quantity,
+        item.unitCost,
+        item.unitCost * item.quantity,
+        0
+      );
     }
 
-    return db.purchase_orders.update({
-      where: { id },
-      data: updateData,
-    });
+    return this.findById(env, poId) as Promise<PurchaseOrderWithItems>;
   }
 
-  async delete(id: string): Promise<purchase_orders | null> {
-    return db.purchase_orders.delete({
-      where: { id },
-    });
+  async update(env: Env | null, id: string, data: Partial<{
+    supplierId?: string;
+    status?: string;
+    orderDate?: Date | string;
+    expectedDeliveryDate?: Date | string | null;
+    receivedDate?: Date | string | null;
+    notes?: string | null;
+    totalAmount?: number;
+    totalQuantity?: number;
+  }>): Promise<any | null> {
+    const updates: string[] = [];
+    const params: unknown[] = [];
+
+    if (data.supplierId !== undefined) {
+      updates.push('supplierId = ?');
+      params.push(data.supplierId);
+    }
+    if (data.status !== undefined) {
+      updates.push('status = ?');
+      params.push(data.status);
+    }
+    if (data.orderDate !== undefined) {
+      updates.push('orderDate = ?');
+      params.push(new Date(data.orderDate).toISOString());
+    }
+    if (data.expectedDeliveryDate !== undefined) {
+      updates.push('expectedDeliveryDate = ?');
+      params.push(data.expectedDeliveryDate ? new Date(data.expectedDeliveryDate).toISOString() : null);
+    }
+    if (data.receivedDate !== undefined) {
+      updates.push('receivedDate = ?');
+      params.push(data.receivedDate ? new Date(data.receivedDate).toISOString() : null);
+    }
+    if (data.notes !== undefined) {
+      updates.push('notes = ?');
+      params.push(data.notes);
+    }
+    if (data.totalAmount !== undefined) {
+      updates.push('totalAmount = ?');
+      params.push(data.totalAmount);
+    }
+    if (data.totalQuantity !== undefined) {
+      updates.push('totalQuantity = ?');
+      params.push(data.totalQuantity);
+    }
+
+    if (updates.length === 0) {
+      return this.findById(env, id);
+    }
+
+    updates.push('updatedAt = ?');
+    params.push(new Date().toISOString());
+    params.push(id);
+
+    await execute(
+      env,
+      `UPDATE purchase_orders SET ${updates.join(', ')} WHERE id = ?`,
+      ...params
+    );
+
+    return this.findById(env, id);
   }
 
-  async receiveOrder(id: string, receivedItems: Array<{ itemId: string; quantity: number }>): Promise<PurchaseOrderWithItems | null> {
-    const po = await this.findById(id);
+  async updateStatus(env: Env | null, id: string, status: string, receivedDate?: Date): Promise<any | null> {
+    const updates: string[] = ['status = ?', 'updatedAt = ?'];
+    const params: unknown[] = [status, new Date().toISOString()];
+
+    if (receivedDate) {
+      updates.push('receivedDate = ?');
+      params.push(new Date(receivedDate).toISOString());
+    }
+
+    params.push(id);
+
+    await execute(
+      env,
+      `UPDATE purchase_orders SET ${updates.join(', ')} WHERE id = ?`,
+      ...params
+    );
+
+    return this.findById(env, id);
+  }
+
+  async delete(env: Env | null, id: string): Promise<any | null> {
+    const po = await this.findById(env, id);
+    if (!po) return null;
+
+    await execute(
+      env,
+      `DELETE FROM purchase_order_items WHERE purchaseOrderId = ?`,
+      id
+    );
+
+    await execute(
+      env,
+      `DELETE FROM purchase_orders WHERE id = ?`,
+      id
+    );
+
+    return po;
+  }
+
+  async receiveOrder(env: Env | null, id: string, receivedItems: Array<{ itemId: string; quantity: number }>): Promise<PurchaseOrderWithItems | null> {
+    const po = await this.findById(env, id);
     if (!po) {
       throw new Error('Purchase order not found');
     }
@@ -231,29 +412,27 @@ class PurchaseOrderRepository {
       throw new Error('Order has already been received');
     }
 
-    // Update items with received quantities
-    await Promise.all(
-      receivedItems.map((item) =>
-        db.purchase_order_items.update({
-          where: { id: item.itemId },
-          data: { receivedQty: item.quantity },
-        })
-      )
-    );
+    for (const item of receivedItems) {
+      await execute(
+        env,
+        `UPDATE purchase_order_items SET receivedQty = ? WHERE id = ?`,
+        item.quantity,
+        item.itemId
+      );
+    }
 
-    // Update inventory for each item
     for (const item of po.items) {
       const receivedItem = receivedItems.find((ri) => ri.itemId === item.id);
       if (!receivedItem) continue;
 
       const quantity = receivedItem.quantity;
 
-      // Update product/variant stock and cost
       if (item.variantId) {
-        // Update variant
-        const variant = await db.product_variants.findUnique({
-          where: { id: item.variantId },
-        });
+        const variant = await queryFirst<any>(
+          env,
+          `SELECT * FROM product_variants WHERE id = ?`,
+          item.variantId
+        );
 
         if (variant) {
           const newTotalPurchased = variant.totalPurchased + quantity;
@@ -262,22 +441,23 @@ class PurchaseOrderRepository {
           const newTotalCost = oldTotalCost + newCost;
           const newAverageCost = newTotalCost / newTotalPurchased;
 
-          await db.product_variants.update({
-            where: { id: item.variantId },
-            data: {
-              stock: { increment: quantity },
-              totalPurchased: newTotalPurchased,
-              totalCost: newTotalCost,
-              averageCost: newAverageCost,
-              costPrice: newAverageCost,
-            },
-          });
+          await execute(
+            env,
+            `UPDATE product_variants SET stock = stock + ?, totalPurchased = ?, totalCost = ?, averageCost = ?, costPrice = ? WHERE id = ?`,
+            quantity,
+            newTotalPurchased,
+            newTotalCost,
+            newAverageCost,
+            newAverageCost,
+            item.variantId
+          );
         }
       } else {
-        // Update product (no variant)
-        const product = await db.products.findUnique({
-          where: { id: item.productId },
-        });
+        const product = await queryFirst<any>(
+          env,
+          `SELECT * FROM products WHERE id = ?`,
+          item.productId
+        );
 
         if (product) {
           const newTotalPurchased = product.totalPurchased + quantity;
@@ -286,77 +466,86 @@ class PurchaseOrderRepository {
           const newTotalCost = oldTotalCost + newCost;
           const newAverageCost = newTotalCost / newTotalPurchased;
 
-          await db.products.update({
-            where: { id: item.productId },
-            data: {
-              stock: { increment: quantity },
-              totalPurchased: newTotalPurchased,
-              totalCost: newTotalCost,
-              averageCost: newAverageCost,
-              costPrice: newAverageCost,
-              lastPurchaseAt: new Date(),
-              lastPurchaseCost: item.unitCost,
-            },
-          });
+          await execute(
+            env,
+            `UPDATE products SET stock = stock + ?, totalPurchased = ?, totalCost = ?, averageCost = ?, costPrice = ?, lastPurchaseAt = ?, lastPurchaseCost = ? WHERE id = ?`,
+            quantity,
+            newTotalPurchased,
+            newTotalCost,
+            newAverageCost,
+            newAverageCost,
+            new Date().toISOString(),
+            item.unitCost,
+            item.productId
+          );
         }
       }
 
-      // Create inventory movement
-      await db.inventory_movements.create({
-        data: {
-          id: `im-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          productId: item.productId,
-          variantId: item.variantId,
-          movementType: 'PURCHASE',
-          quantity: quantity,
-          unitCost: item.unitCost,
-          totalCost: item.unitCost * quantity,
-          referenceId: id,
-          referenceType: 'PURCHASE_ORDER',
-          supplierId: po.supplierId,
-          approved: 1,
-          approvedAt: new Date(),
-        },
-      });
+      const movementId = generateId();
+      await execute(
+        env,
+        `INSERT INTO inventory_movements (id, productId, variantId, movementType, quantity, unitCost, totalCost, referenceId, referenceType, supplierId, approved, approvedAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        movementId,
+        item.productId,
+        item.variantId,
+        'PURCHASE',
+        quantity,
+        item.unitCost,
+        item.unitCost * quantity,
+        id,
+        'PURCHASE_ORDER',
+        po.supplierId,
+        1,
+        new Date().toISOString()
+      );
     }
 
-    // Update PO status to RECEIVED
-    await this.updateStatus(id, 'RECEIVED', new Date());
+    await this.updateStatus(env, id, 'RECEIVED', new Date());
 
-    return this.findById(id);
+    return this.findById(env, id);
   }
 
-  async count(options?: { supplierId?: string; status?: string }): Promise<number> {
+  async count(env: Env | null, options?: { supplierId?: string; status?: string }): Promise<number> {
     const { supplierId, status } = options || {};
 
-    const where: any = {};
-    if (supplierId) where.supplierId = supplierId;
-    if (status) where.status = status;
+    const conditions: string[] = [];
+    const params: unknown[] = [];
 
-    return db.purchase_orders.count({ where });
+    if (supplierId) {
+      conditions.push('supplierId = ?');
+      params.push(supplierId);
+    }
+    if (status) {
+      conditions.push('status = ?');
+      params.push(status);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    return dbCount(env, `SELECT COUNT(*) as count FROM purchase_orders ${whereClause}`, ...params);
   }
 
-  private async generateOrderNumber(): Promise<string> {
+  private async generateOrderNumber(env: Env | null): Promise<string> {
     const today = new Date();
     const year = today.getFullYear().toString().slice(-2);
     const month = (today.getMonth() + 1).toString().padStart(2, '0');
 
-    // Find the last PO for this month
-    const lastPO = await db.purchase_orders.findFirst({
-      where: {
-        orderNumber: {
-          startsWith: `PO-${year}${month}`,
-        },
-      },
-      orderBy: {
-        orderNumber: 'desc',
-      },
-    });
+    const lastPO = await queryFirst<any>(
+      env,
+      `SELECT orderNumber FROM purchase_orders
+       WHERE orderNumber LIKE ?
+       ORDER BY orderNumber DESC
+       LIMIT 1`,
+      `PO-${year}${month}%`
+    );
 
     let sequence = 1;
-    if (lastPO) {
+    if (lastPO && lastPO.orderNumber) {
       const lastSequence = parseInt(lastPO.orderNumber.slice(-4));
-      sequence = lastSequence + 1;
+      if (!isNaN(lastSequence)) {
+        sequence = lastSequence + 1;
+      }
     }
 
     return `PO-${year}${month}-${sequence.toString().padStart(4, '0')}`;

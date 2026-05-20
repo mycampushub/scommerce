@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { purchaseOrderRepository } from '@/db/purchase-order.repository';
 import { verifyAdmin } from '@/lib/auth/admin-auth';
+import { getEnv } from '@/lib/cloudflare';
 
 // GET /api/admin/purchase-orders - List all purchase orders
 export async function GET(request: NextRequest) {
@@ -17,7 +18,9 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get('startDate') ? new Date(searchParams.get('startDate')!) : undefined;
     const endDate = searchParams.get('endDate') ? new Date(searchParams.get('endDate')!) : undefined;
 
-    const purchaseOrders = await purchaseOrderRepository.findAll({
+    const env = await getEnv();
+
+    const purchaseOrders = await purchaseOrderRepository.findAll(env, {
       supplierId,
       status,
       startDate,
@@ -87,17 +90,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const env = await getEnv();
+
     // Create purchase order
-    const purchaseOrder = await purchaseOrderRepository.create({
+    const purchaseOrder = await purchaseOrderRepository.create(env, {
       supplierId,
       items,
-      orderDate: orderDate ? new Date(orderDate) : new Date(),
-      expectedDate: expectedDate ? new Date(expectedDate) : null,
-      totalAmount: 0, // Will be calculated in repository
-      totalQuantity: 0, // Will be calculated in repository
+      orderDate: orderDate ? new Date(orderDate).toISOString() : new Date().toISOString(),
+      expectedDeliveryDate: expectedDate ? new Date(expectedDate).toISOString() : null,
       status: 'PENDING',
-      orderNumber: '', // Will be generated in repository
-      receivedDate: null, // Will be set when received
       notes: notes || null,
     });
 

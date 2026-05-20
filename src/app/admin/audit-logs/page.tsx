@@ -273,18 +273,18 @@ export default function AuditLogsPage() {
               <p className="text-gray-500">Failed to load audit logs</p>
             </div>
           ) : (
-            <ScrollArea className="h-[600px]">
+            <div className="w-full overflow-x-auto -mx-4 px-4">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-gray-50 hover:bg-gray-50">
-                    <TableHead className="font-semibold text-gray-700">Timestamp</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Admin</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Action</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Entity</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Entity ID</TableHead>
-                    <TableHead className="font-semibold text-gray-700">IP Address</TableHead>
-                    <TableHead className="font-semibold text-gray-700">User Agent</TableHead>
-                    <TableHead className="font-semibold text-gray-700 text-right">Actions</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[180px]">Timestamp</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[200px]">Admin</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[120px]">Action</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[120px]">Entity</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[120px]">Entity ID</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[150px]">IP Address</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[150px]">User Agent</TableHead>
+                    <TableHead className="font-semibold text-gray-700 text-right whitespace-nowrap min-w-[100px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -295,7 +295,9 @@ export default function AuditLogsPage() {
                           {new Date(log.createdAt).toLocaleString()}
                         </div>
                       </TableCell>
-                      <TableCell>{log.adminName}</TableCell>
+                      <TableCell>
+                        <span className="break-all">{log.adminName}</span>
+                      </TableCell>
                       <TableCell>
                         <Badge
                           variant={getBadgeVariant(log.action)}
@@ -307,7 +309,7 @@ export default function AuditLogsPage() {
                       <TableCell>{log.entity}</TableCell>
                       <TableCell>
                         {log.entityId && (
-                          <span className="text-xs font-mono bg-gray-100 px-2 py-1 rounded">
+                          <span className="text-xs font-mono bg-gray-100 px-2 py-1 rounded break-all">
                             {log.entityId.slice(0, 8)}
                           </span>
                         )}
@@ -333,7 +335,7 @@ export default function AuditLogsPage() {
                   ))}
                 </TableBody>
               </Table>
-            </ScrollArea>
+              </div>
           )}
         </CardContent>
       </Card>

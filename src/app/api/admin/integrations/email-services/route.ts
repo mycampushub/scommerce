@@ -18,7 +18,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const services = await IntegrationRepository.getEmailServices();
+    const env = await getEnv();
+    const services = await IntegrationRepository.getEmailServices(env);
     const safeServices = services.map(s => ({ ...s, apiSecret: s.apiSecret ? '********' : undefined }));
 
     return successResponse(safeServices);
@@ -59,10 +60,10 @@ export async function POST(request: NextRequest) {
       return validationErrorResponse('Name and provider are required');
     }
 
-    const existing = await IntegrationRepository.getEmailServices();
+    const existing = await IntegrationRepository.getEmailServices(env);
     const isFirst = existing.length === 0;
 
-    const service = await IntegrationRepository.createEmailService({
+    const service = await IntegrationRepository.createEmailService(env, {
       name: body.name,
       provider: body.provider,
       apiKey: body.apiKey,

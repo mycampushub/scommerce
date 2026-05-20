@@ -710,17 +710,17 @@ export default function CouponsPage() {
               </p>
             </div>
           ) : (
-            <div className="rounded-md border overflow-x-auto">
+            <div className="w-full overflow-x-auto -mx-4 px-4">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Code</TableHead>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Discount</TableHead>
-                    <TableHead>Date Range</TableHead>
-                    <TableHead>Usage</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableHead className="whitespace-nowrap min-w-[140px]">Code</TableHead>
+                    <TableHead className="whitespace-nowrap min-w-[200px]">Title</TableHead>
+                    <TableHead className="whitespace-nowrap min-w-[140px]">Discount</TableHead>
+                    <TableHead className="whitespace-nowrap min-w-[200px]">Date Range</TableHead>
+                    <TableHead className="whitespace-nowrap min-w-[120px]">Usage</TableHead>
+                    <TableHead className="whitespace-nowrap min-w-[100px]">Status</TableHead>
+                    <TableHead className="whitespace-nowrap min-w-[100px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

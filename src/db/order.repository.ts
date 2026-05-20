@@ -1,6 +1,5 @@
 import { Env, Order, OrderItem, OrderStatus, PaymentStatus, TrackingStatus } from '@/db/types';
-import { generateId, generateOrderNumber, boolToNumber, now, queryFirst, queryAll, execute, buildPaginationClause, generateSecureId } from '@/db/db';
-import prisma from '@/lib/database';
+import { generateId, generateOrderNumber, now, queryFirst, queryAll, execute, generateSecureId } from '@/db/db';
 import { runTransaction } from '@/lib/transaction';
 
 export class OrderRepository {
@@ -437,69 +436,33 @@ export class OrderRepository {
         const orderNumber = generateOrderNumber();
         const currentTime = now();
 
-        // Check if using Prisma transaction
-        const isPrisma = !env || !env.DB;
-
         // Create order
-        let order: Order;
-        if (isPrisma) {
-          order = await db.orders.create({
-            data: {
-              id,
-              orderNumber,
-              userId: orderData.userId || null,
-              customerName: orderData.customerName,
-              customerEmail: orderData.customerEmail,
-              customerPhone: orderData.customerPhone || null,
-              shippingAddress: orderData.shippingAddress,
-              billingAddress: orderData.billingAddress || null,
-              city: orderData.city || null,
-              district: orderData.district || null,
-              division: orderData.division || null,
-              subtotal: orderData.subtotal,
-              shipping: orderData.shipping,
-              tax: orderData.tax,
-              discount: orderData.discount,
-              total: orderData.total,
-              status: 'PENDING' as OrderStatus,
-              paymentStatus: 'PENDING' as PaymentStatus,
-              paymentMethod: orderData.paymentMethod || null,
-              promoCode: orderData.promoCode || null,
-              trackingStatus: 'PENDING' as TrackingStatus,
-              createdAt: currentTime,
-              updatedAt: currentTime,
-            }
-          });
-          order = order as unknown as Order;
-        } else {
-          // D1 transaction
-          const columns = [
-            'id', 'orderNumber', 'userId', 'customerName', 'customerEmail', 'customerPhone',
-            'shippingAddress', 'billingAddress', 'city', 'district', 'division',
-            'subtotal', 'shipping', 'tax', 'discount', 'total',
-            'status', 'paymentStatus', 'paymentMethod', 'promoCode', 'trackingStatus',
-            'createdAt', 'updatedAt'
-          ];
+        const columns = [
+          'id', 'orderNumber', 'userId', 'customerName', 'customerEmail', 'customerPhone',
+          'shippingAddress', 'billingAddress', 'city', 'district', 'division',
+          'subtotal', 'shipping', 'tax', 'discount', 'total',
+          'status', 'paymentStatus', 'paymentMethod', 'promoCode', 'trackingStatus',
+          'createdAt', 'updatedAt'
+        ];
 
-          const placeholders = columns.map(() => '?').join(', ');
-          const values = [
-            id, orderNumber, orderData.userId || null, orderData.customerName, orderData.customerEmail,
-            orderData.customerPhone || null, orderData.shippingAddress, orderData.billingAddress || null,
-            orderData.city || null, orderData.district || null, orderData.division || null,
-            orderData.subtotal, orderData.shipping, orderData.tax, orderData.discount, orderData.total,
-            'PENDING', 'PENDING', orderData.paymentMethod || null, orderData.promoCode || null,
-            'PENDING', currentTime, currentTime
-          ];
+        const placeholders = columns.map(() => '?').join(', ');
+        const values = [
+          id, orderNumber, orderData.userId || null, orderData.customerName, orderData.customerEmail,
+          orderData.customerPhone || null, orderData.shippingAddress, orderData.billingAddress || null,
+          orderData.city || null, orderData.district || null, orderData.division || null,
+          orderData.subtotal, orderData.shipping, orderData.tax, orderData.discount, orderData.total,
+          'PENDING', 'PENDING', orderData.paymentMethod || null, orderData.promoCode || null,
+          'PENDING', currentTime, currentTime
+        ];
 
-          const sql = `INSERT INTO orders (${columns.join(', ')}) VALUES (${placeholders})`;
-          const stmt = db.prepare(sql).bind(values);
-          await stmt.run();
+        const sql = `INSERT INTO orders (${columns.join(', ')}) VALUES (${placeholders})`;
+        const stmt = db.prepare(sql).bind(values);
+        await stmt.run();
 
-          // Fetch the created order
-          const orderStmt = db.prepare('SELECT * FROM orders WHERE id = ? LIMIT 1').bind([id]);
-          const orderResult = await orderStmt.first();
-          order = orderResult as Order;
-        }
+        // Fetch the created order
+        const orderStmt = db.prepare('SELECT * FROM orders WHERE id = ? LIMIT 1').bind([id]);
+        const orderResult = await orderStmt.first();
+        const order = orderResult as Order;
 
         // Create order items and update stock
         const items: OrderItem[] = [];
@@ -508,194 +471,87 @@ export class OrderRepository {
           const itemTime = now();
 
           // Create order item
-          if (isPrisma) {
-            const createdItem = await db.order_items.create({
-              data: {
-                id: itemId,
-                orderId: order.id,
-                productId: item.productId,
-                variantId: item.variantId || null,
-                quantity: item.quantity,
-                price: item.price,
-                productName: item.productName,
-                productImage: item.productImage || null,
-                variantSku: item.variantSku || null,
-                variantSize: item.variantSize || null,
-                variantColor: item.variantColor || null,
-                variantMaterial: item.variantMaterial || null,
-                createdAt: itemTime
-              }
-            });
-            items.push(createdItem as unknown as OrderItem);
-          } else {
-            const itemColumns = [
-              'id', 'orderId', 'productId', 'variantId', 'quantity', 'price',
-              'productName', 'productImage', 'variantSku', 'variantSize', 'variantColor',
-              'variantMaterial', 'createdAt'
-            ];
-            const itemPlaceholders = itemColumns.map(() => '?').join(', ');
-            const itemValues = [
-              itemId, order.id, item.productId, item.variantId || null, item.quantity,
-              item.price, item.productName, item.productImage || null, item.variantSku || null,
-              item.variantSize || null, item.variantColor || null, item.variantMaterial || null,
-              itemTime
-            ];
+          const itemColumns = [
+            'id', 'orderId', 'productId', 'variantId', 'quantity', 'price',
+            'productName', 'productImage', 'variantSku', 'variantSize', 'variantColor',
+            'variantMaterial', 'createdAt'
+          ];
+          const itemPlaceholders = itemColumns.map(() => '?').join(', ');
+          const itemValues = [
+            itemId, order.id, item.productId, item.variantId || null, item.quantity,
+            item.price, item.productName, item.productImage || null, item.variantSku || null,
+            item.variantSize || null, item.variantColor || null, item.variantMaterial || null,
+            itemTime
+          ];
 
-            const itemSql = `INSERT INTO order_items (${itemColumns.join(', ')}) VALUES (${itemPlaceholders})`;
-            const itemStmt = db.prepare(itemSql).bind(itemValues);
-            await itemStmt.run();
+          const itemSql = `INSERT INTO order_items (${itemColumns.join(', ')}) VALUES (${itemPlaceholders})`;
+          const itemStmt = db.prepare(itemSql).bind(itemValues);
+          await itemStmt.run();
 
-            // Fetch the created item
-            const fetchItemStmt = db.prepare('SELECT * FROM order_items WHERE id = ? LIMIT 1').bind([itemId]);
-            const fetchedItem = await fetchItemStmt.first();
-            items.push(fetchedItem as OrderItem);
-          }
+          // Fetch the created item
+          const fetchItemStmt = db.prepare('SELECT * FROM order_items WHERE id = ? LIMIT 1').bind([itemId]);
+          const fetchedItem = await fetchItemStmt.first();
+          items.push(fetchedItem as OrderItem);
 
           // Update stock and generate alerts
           if (item.variantId) {
             // Update variant stock
-            if (isPrisma) {
-              const variant = await db.product_variants.findUnique({
-                where: { id: item.variantId },
-                select: { stock: true, lowStockAlert: true, reorderLevel: true }
-              });
+            const variantStmt = db.prepare(
+              'SELECT id, stock, lowStockAlert, reorderLevel FROM product_variants WHERE id = ? LIMIT 1'
+            ).bind([item.variantId]);
+            const variant = await variantStmt.first() as { stock: number; lowStockAlert: number; reorderLevel: number } | null;
 
-              if (variant) {
-                const newStock = Math.max(0, variant.stock - item.quantity);
-                await db.product_variants.update({
-                  where: { id: item.variantId },
-                  data: { stock: newStock }
-                });
+            if (variant) {
+              const newStock = Math.max(0, variant.stock - item.quantity);
+              const updateStockStmt = db.prepare(
+                'UPDATE product_variants SET stock = ? WHERE id = ?'
+              ).bind([newStock, item.variantId]);
+              await updateStockStmt.run();
 
-                // Generate alerts
-                if (newStock === 0 || newStock < variant.reorderLevel || newStock < variant.lowStockAlert) {
-                  const existingAlert = await db.inventory_alerts.findFirst({
-                    where: {
-                      variantId: item.variantId,
-                      alertType: newStock === 0 ? 'OUT_OF_STOCK' :
-                               newStock < variant.reorderLevel ? 'REORDER_NEEDED' : 'LOW_STOCK',
-                      isResolved: 0
-                    }
-                  });
+              // Generate alerts
+              const alertType = newStock === 0 ? 'OUT_OF_STOCK' :
+                                newStock < variant.reorderLevel ? 'REORDER_NEEDED' : 'LOW_STOCK';
 
-                  if (!existingAlert) {
-                    await db.inventory_alerts.create({
-                      data: {
-                        id: generateSecureId(),
-                        variantId: item.variantId,
-                        alertType: newStock === 0 ? 'OUT_OF_STOCK' :
-                                 newStock < variant.reorderLevel ? 'REORDER_NEEDED' : 'LOW_STOCK',
-                        quantity: newStock,
-                        isRead: 0,
-                        isResolved: 0,
-                        createdAt: new Date().toISOString()
-                      }
-                    });
-                  }
-                }
-              }
-            } else {
-              // D1 variant stock update
-              const variantStmt = db.prepare(
-                'SELECT id, stock, lowStockAlert, reorderLevel FROM product_variants WHERE id = ? LIMIT 1'
-              ).bind([item.variantId]);
-              const variant = await variantStmt.first() as { stock: number; lowStockAlert: number; reorderLevel: number } | null;
+              const existingAlertStmt = db.prepare(
+                'SELECT id FROM inventory_alerts WHERE variantId = ? AND alertType = ? AND isResolved = 0 LIMIT 1'
+              ).bind([item.variantId, alertType]);
+              const existingAlert = await existingAlertStmt.first();
 
-              if (variant) {
-                const newStock = Math.max(0, variant.stock - item.quantity);
-                const updateStockStmt = db.prepare(
-                  'UPDATE product_variants SET stock = ? WHERE id = ?'
-                ).bind([newStock, item.variantId]);
-                await updateStockStmt.run();
-
-                // Generate alerts
-                const alertType = newStock === 0 ? 'OUT_OF_STOCK' :
-                                  newStock < variant.reorderLevel ? 'REORDER_NEEDED' : 'LOW_STOCK';
-
-                const existingAlertStmt = db.prepare(
-                  'SELECT id FROM inventory_alerts WHERE variantId = ? AND alertType = ? AND isResolved = 0 LIMIT 1'
-                ).bind([item.variantId, alertType]);
-                const existingAlert = await existingAlertStmt.first();
-
-                if (!existingAlert) {
-                  const createAlertStmt = db.prepare(
-                    'INSERT INTO inventory_alerts (id, variantId, alertType, quantity, isRead, isResolved, createdAt) VALUES (?, ?, ?, ?, 0, 0, ?)'
-                  ).bind([generateSecureId(), item.variantId, alertType, newStock, new Date().toISOString()]);
-                  await createAlertStmt.run();
-                }
+              if (!existingAlert) {
+                const createAlertStmt = db.prepare(
+                  'INSERT INTO inventory_alerts (id, variantId, alertType, quantity, isRead, isResolved, createdAt) VALUES (?, ?, ?, ?, 0, 0, ?)'
+                ).bind([generateSecureId(), item.variantId, alertType, newStock, new Date().toISOString()]);
+                await createAlertStmt.run();
               }
             }
           } else {
             // Update product stock
-            if (isPrisma) {
-              const product = await db.products.findUnique({
-                where: { id: item.productId },
-                select: { stock: true, lowStockAlert: true, reorderLevel: true }
-              });
+            const productStmt = db.prepare(
+              'SELECT id, stock, lowStockAlert, reorderLevel FROM products WHERE id = ? LIMIT 1'
+            ).bind([item.productId]);
+            const product = await productStmt.first() as { stock: number; lowStockAlert: number; reorderLevel: number } | null;
 
-              if (product) {
-                const newStock = Math.max(0, product.stock - item.quantity);
-                await db.products.update({
-                  where: { id: item.productId },
-                  data: { stock: newStock }
-                });
+            if (product) {
+              const newStock = Math.max(0, product.stock - item.quantity);
+              const updateStockStmt = db.prepare(
+                'UPDATE products SET stock = ? WHERE id = ?'
+              ).bind([newStock, item.productId]);
+              await updateStockStmt.run();
 
-                // Generate alerts
-                if (newStock === 0 || newStock < product.reorderLevel || newStock < product.lowStockAlert) {
-                  const existingAlert = await db.inventory_alerts.findFirst({
-                    where: {
-                      productId: item.productId,
-                      alertType: newStock === 0 ? 'OUT_OF_STOCK' :
-                               newStock < product.reorderLevel ? 'REORDER_NEEDED' : 'LOW_STOCK',
-                      isResolved: 0
-                    }
-                  });
+              // Generate alerts
+              const alertType = newStock === 0 ? 'OUT_OF_STOCK' :
+                                newStock < product.reorderLevel ? 'REORDER_NEEDED' : 'LOW_STOCK';
 
-                  if (!existingAlert) {
-                    await db.inventory_alerts.create({
-                      data: {
-                        id: generateSecureId(),
-                        productId: item.productId,
-                        alertType: newStock === 0 ? 'OUT_OF_STOCK' :
-                                 newStock < product.reorderLevel ? 'REORDER_NEEDED' : 'LOW_STOCK',
-                        quantity: newStock,
-                        isRead: 0,
-                        isResolved: 0,
-                        createdAt: new Date().toISOString()
-                      }
-                    });
-                  }
-                }
-              }
-            } else {
-              // D1 product stock update
-              const productStmt = db.prepare(
-                'SELECT id, stock, lowStockAlert, reorderLevel FROM products WHERE id = ? LIMIT 1'
-              ).bind([item.productId]);
-              const product = await productStmt.first() as { stock: number; lowStockAlert: number; reorderLevel: number } | null;
+              const existingAlertStmt = db.prepare(
+                'SELECT id FROM inventory_alerts WHERE productId = ? AND alertType = ? AND isResolved = 0 LIMIT 1'
+              ).bind([item.productId, alertType]);
+              const existingAlert = await existingAlertStmt.first();
 
-              if (product) {
-                const newStock = Math.max(0, product.stock - item.quantity);
-                const updateStockStmt = db.prepare(
-                  'UPDATE products SET stock = ? WHERE id = ?'
-                ).bind([newStock, item.productId]);
-                await updateStockStmt.run();
-
-                // Generate alerts
-                const alertType = newStock === 0 ? 'OUT_OF_STOCK' :
-                                  newStock < product.reorderLevel ? 'REORDER_NEEDED' : 'LOW_STOCK';
-
-                const existingAlertStmt = db.prepare(
-                  'SELECT id FROM inventory_alerts WHERE productId = ? AND alertType = ? AND isResolved = 0 LIMIT 1'
-                ).bind([item.productId, alertType]);
-                const existingAlert = await existingAlertStmt.first();
-
-                if (!existingAlert) {
-                  const createAlertStmt = db.prepare(
-                    'INSERT INTO inventory_alerts (id, productId, alertType, quantity, isRead, isResolved, createdAt) VALUES (?, ?, ?, ?, 0, 0, ?)'
-                  ).bind([generateSecureId(), item.productId, alertType, newStock, new Date().toISOString()]);
-                  await createAlertStmt.run();
-                }
+              if (!existingAlert) {
+                const createAlertStmt = db.prepare(
+                  'INSERT INTO inventory_alerts (id, productId, alertType, quantity, isRead, isResolved, createdAt) VALUES (?, ?, ?, ?, 0, 0, ?)'
+                ).bind([generateSecureId(), item.productId, alertType, newStock, new Date().toISOString()]);
+                await createAlertStmt.run();
               }
             }
           }
@@ -704,40 +560,18 @@ export class OrderRepository {
         // Consume inventory reservations (delete them since stock was already deducted)
         // This prevents reservations from expiring and causing issues
         if (orderData.userId) {
-          if (isPrisma) {
-            // Delete all reservations for this user's order items
-            for (const item of orderItems) {
-              if (item.variantId) {
-                await db.inventory_reservations.deleteMany({
-                  where: {
-                    userId: orderData.userId,
-                    variantId: item.variantId
-                  }
-                });
-              } else {
-                await db.inventory_reservations.deleteMany({
-                  where: {
-                    userId: orderData.userId,
-                    productId: item.productId,
-                    variantId: null
-                  }
-                });
-              }
-            }
-          } else {
-            // D1: Delete reservations for each item
-            for (const item of orderItems) {
-              if (item.variantId) {
-                const deleteResStmt = db.prepare(
-                  'DELETE FROM inventory_reservations WHERE userId = ? AND variantId = ?'
-                ).bind([orderData.userId, item.variantId]);
-                await deleteResStmt.run();
-              } else {
-                const deleteResStmt = db.prepare(
-                  'DELETE FROM inventory_reservations WHERE userId = ? AND productId = ? AND variantId IS NULL'
-                ).bind([orderData.userId, item.productId]);
-                await deleteResStmt.run();
-              }
+          // D1: Delete reservations for each item
+          for (const item of orderItems) {
+            if (item.variantId) {
+              const deleteResStmt = db.prepare(
+                'DELETE FROM inventory_reservations WHERE userId = ? AND variantId = ?'
+              ).bind([orderData.userId, item.variantId]);
+              await deleteResStmt.run();
+            } else {
+              const deleteResStmt = db.prepare(
+                'DELETE FROM inventory_reservations WHERE userId = ? AND productId = ? AND variantId IS NULL'
+              ).bind([orderData.userId, item.productId]);
+              await deleteResStmt.run();
             }
           }
         }
@@ -767,152 +601,69 @@ export class OrderRepository {
   ): Promise<Order | null> {
     const result = await runTransaction(async (db, commit, rollback) => {
       try {
-        const isPrisma = !env || !env.DB;
-
         // Fetch order items first
-        let orderItems: OrderItem[];
-        if (isPrisma) {
-          orderItems = await db.order_items.findMany({
-            where: { orderId },
-          });
-          orderItems = orderItems as unknown as OrderItem[];
-        } else {
-          const stmt = db.prepare('SELECT * FROM order_items WHERE orderId = ?').bind([orderId]);
-          const result = await stmt.all();
-          orderItems = result.results as OrderItem[];
-        }
+        const stmt = db.prepare('SELECT * FROM order_items WHERE orderId = ?').bind([orderId]);
+        const result = await stmt.all();
+        const orderItems = result.results as OrderItem[];
 
         // Restore stock for each item
         for (const item of orderItems) {
           if (item.variantId) {
             // Restore variant stock
-            if (isPrisma) {
-              const variant = await db.product_variants.findUnique({
-                where: { id: item.variantId },
-                select: { stock: true }
-              });
+            const variantStmt = db.prepare('SELECT stock FROM product_variants WHERE id = ?').bind([item.variantId]);
+            const variant = await variantStmt.first() as { stock: number } | null;
 
-              if (variant) {
-                await db.product_variants.update({
-                  where: { id: item.variantId },
-                  data: { stock: variant.stock + item.quantity }
-                });
-              }
-            } else {
-              const variantStmt = db.prepare('SELECT stock FROM product_variants WHERE id = ?').bind([item.variantId]);
-              const variant = await variantStmt.first() as { stock: number } | null;
-
-              if (variant) {
-                const newStock = variant.stock + item.quantity;
-                const updateStmt = db.prepare('UPDATE product_variants SET stock = ? WHERE id = ?').bind([newStock, item.variantId]);
-                await updateStmt.run();
-              }
+            if (variant) {
+              const newStock = variant.stock + item.quantity;
+              const updateStmt = db.prepare('UPDATE product_variants SET stock = ? WHERE id = ?').bind([newStock, item.variantId]);
+              await updateStmt.run();
             }
           } else {
             // Restore product stock
-            if (isPrisma) {
-              const product = await db.products.findUnique({
-                where: { id: item.productId },
-                select: { stock: true }
-              });
+            const productStmt = db.prepare('SELECT stock FROM products WHERE id = ?').bind([item.productId]);
+            const product = await productStmt.first() as { stock: number } | null;
 
-              if (product) {
-                await db.products.update({
-                  where: { id: item.productId },
-                  data: { stock: product.stock + item.quantity }
-                });
-              }
-            } else {
-              const productStmt = db.prepare('SELECT stock FROM products WHERE id = ?').bind([item.productId]);
-              const product = await productStmt.first() as { stock: number } | null;
-
-              if (product) {
-                const newStock = product.stock + item.quantity;
-                const updateStmt = db.prepare('UPDATE products SET stock = ? WHERE id = ?').bind([newStock, item.productId]);
-                await updateStmt.run();
-              }
+            if (product) {
+              const newStock = product.stock + item.quantity;
+              const updateStmt = db.prepare('UPDATE products SET stock = ? WHERE id = ?').bind([newStock, item.productId]);
+              await updateStmt.run();
             }
           }
         }
 
         // Consume any remaining inventory reservations as a safety net
         // This handles edge cases where reservations weren't deleted during order creation
-        if (isPrisma) {
-          // Get order to find userId
-          const order = await db.orders.findUnique({
-            where: { id: orderId },
-            select: { userId: true }
-          });
+        // D1: Get order to find userId
+        const orderStmt = db.prepare('SELECT userId FROM orders WHERE id = ? LIMIT 1').bind([orderId]);
+        const order = await orderStmt.first() as { userId?: string } | null;
 
-          if (order?.userId) {
-            // Delete reservations for each order item
-            for (const item of orderItems) {
-              if (item.variantId) {
-                await db.inventory_reservations.deleteMany({
-                  where: {
-                    userId: order.userId,
-                    variantId: item.variantId
-                  }
-                });
-              } else {
-                await db.inventory_reservations.deleteMany({
-                  where: {
-                    userId: order.userId,
-                    productId: item.productId,
-                    variantId: null
-                  }
-                });
-              }
-            }
-          }
-        } else {
-          // D1: Get order to find userId
-          const orderStmt = db.prepare('SELECT userId FROM orders WHERE id = ? LIMIT 1').bind([orderId]);
-          const order = await orderStmt.first() as { userId?: string } | null;
-
-          if (order?.userId) {
-            // Delete reservations for each item
-            for (const item of orderItems) {
-              if (item.variantId) {
-                const deleteResStmt = db.prepare(
-                  'DELETE FROM inventory_reservations WHERE userId = ? AND variantId = ?'
-                ).bind([order.userId, item.variantId]);
-                await deleteResStmt.run();
-              } else {
-                const deleteResStmt = db.prepare(
-                  'DELETE FROM inventory_reservations WHERE userId = ? AND productId = ? AND variantId IS NULL'
-                ).bind([order.userId, item.productId]);
-                await deleteResStmt.run();
-              }
+        if (order?.userId) {
+          // Delete reservations for each item
+          for (const item of orderItems) {
+            if (item.variantId) {
+              const deleteResStmt = db.prepare(
+                'DELETE FROM inventory_reservations WHERE userId = ? AND variantId = ?'
+              ).bind([order.userId, item.variantId]);
+              await deleteResStmt.run();
+            } else {
+              const deleteResStmt = db.prepare(
+                'DELETE FROM inventory_reservations WHERE userId = ? AND productId = ? AND variantId IS NULL'
+              ).bind([order.userId, item.productId]);
+              await deleteResStmt.run();
             }
           }
         }
 
         // Cancel the order
-        let cancelledOrder: Order;
-        if (isPrisma) {
-          cancelledOrder = await db.orders.update({
-            where: { id: orderId },
-            data: {
-              status: 'CANCELLED' as OrderStatus,
-              cancelledAt: now(),
-              cancelledBy,
-              cancellationReason: reason || null,
-              updatedAt: now()
-            }
-          });
-          cancelledOrder = cancelledOrder as unknown as Order;
-        } else {
-          const cancelStmt = db.prepare(
-            `UPDATE orders SET status = 'CANCELLED', cancelledAt = ?, cancelledBy = ?, cancellationReason = ?, updatedAt = ? WHERE id = ?`
-          ).bind([now(), cancelledBy, reason || null, now(), orderId]);
-          await cancelStmt.run();
+        const cancelStmt = db.prepare(
+          `UPDATE orders SET status = 'CANCELLED', cancelledAt = ?, cancelledBy = ?, cancellationReason = ?, updatedAt = ? WHERE id = ?`
+        ).bind([now(), cancelledBy, reason || null, now(), orderId]);
+        await cancelStmt.run();
 
-          // Fetch updated order
-          const orderStmt = db.prepare('SELECT * FROM orders WHERE id = ? LIMIT 1').bind([orderId]);
-          const result = await orderStmt.first();
-          cancelledOrder = result as Order;
-        }
+        // Fetch updated order
+        const fetchOrderStmt = db.prepare('SELECT * FROM orders WHERE id = ? LIMIT 1').bind([orderId]);
+        const cancelledOrderResult = await fetchOrderStmt.first();
+        const cancelledOrder = cancelledOrderResult as Order;
 
         await commit();
 

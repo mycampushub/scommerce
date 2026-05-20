@@ -4,7 +4,6 @@ import { getEnv } from '@/lib/cloudflare'
 import { UserRepository } from '@/db/user.repository'
 import { queryAll, count, numberToBool, generateId } from '@/db/db'
 import { hashPassword } from '@/lib/bcrypt-wrapper'
-import prisma from '@/lib/database'
 
 
 export async function GET(request: NextRequest) {
@@ -48,35 +47,17 @@ export async function GET(request: NextRequest) {
       const customerIds = customers.map(c => c.id)
       const placeholders = customerIds.map(() => '?').join(',')
 
-      try {
-        const orderCounts = await queryAll<{ userId: string; count: number; total: number }>(
-          env,
-          `SELECT userId, COUNT(*) as count, SUM(total) as total
-           FROM orders
-           WHERE userId IN (${placeholders})
-           GROUP BY userId`,
-          ...customerIds
-        )
-        orderCounts.forEach(oc => {
-          orderCountsMap.set(oc.userId, { count: oc.count, totalSpent: oc.total || 0 })
-        })
-      } catch (e) {
-        console.error('Error fetching order counts:', e)
-        // If D1 query fails, fall back to Prisma for local dev
-        if (!env || !env.DB) {
-          for (const customer of customers) {
-            const orderCount = await prisma.orders.count({
-              where: { userId: customer.id }
-            })
-            const orders = await prisma.orders.findMany({
-              where: { userId: customer.id },
-              select: { total: true }
-            })
-            const totalSpent = orders.reduce((sum, order) => sum + (order.total || 0), 0)
-            orderCountsMap.set(customer.id, { count: orderCount, totalSpent })
-          }
-        }
-      }
+      const orderCounts = await queryAll<{ userId: string; count: number; total: number }>(
+        env,
+        `SELECT userId, COUNT(*) as count, SUM(total) as total
+         FROM orders
+         WHERE userId IN (${placeholders})
+         GROUP BY userId`,
+        ...customerIds
+      )
+      orderCounts.forEach(oc => {
+        orderCountsMap.set(oc.userId, { count: oc.count, totalSpent: oc.total || 0 })
+      })
     }
 
     // Add order counts and convert booleans (no more N+1 query)

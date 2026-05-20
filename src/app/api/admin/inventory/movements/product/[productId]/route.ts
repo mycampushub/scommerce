@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { inventoryMovementRepository } from '@/db/inventory-movement.repository';
 import { verifyAdmin } from '@/lib/auth/admin-auth';
+import { getEnv } from '@/lib/cloudflare';
 
 // GET /api/admin/inventory/movements/product/[productId] - Get movements for a specific product
 export async function GET(
@@ -15,11 +16,13 @@ export async function GET(
       return admin;
     }
 
+    const env = await getEnv();
     const searchParams = request.nextUrl.searchParams;
     const variantId = searchParams.get('variantId') || undefined;
     const limit = parseInt(searchParams.get('limit') || '50');
 
     const movements = await inventoryMovementRepository.findByProduct(
+      env,
       productId,
       variantId,
       limit

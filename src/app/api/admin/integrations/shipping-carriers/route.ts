@@ -17,7 +17,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const carriers = await IntegrationRepository.getShippingCarriers();
+    const env = await getEnv();
+    const carriers = await IntegrationRepository.getShippingCarriers(env);
 
     // Mask API secrets for security
     const safeCarriers = carriers.map(carrier => ({
@@ -77,10 +78,10 @@ export async function POST(request: NextRequest) {
     }
 
     // If this is first carrier, make it default
-    const existingCarriers = await IntegrationRepository.getShippingCarriers();
+    const existingCarriers = await IntegrationRepository.getShippingCarriers(env);
     const isFirstCarrier = existingCarriers.length === 0;
 
-    const carrier = await IntegrationRepository.createShippingCarrier({
+    const carrier = await IntegrationRepository.createShippingCarrier(env, {
       name: body.name,
       provider: body.provider,
       apiKey: body.apiKey,

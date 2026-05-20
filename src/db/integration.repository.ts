@@ -1,6 +1,5 @@
-import { PrismaClient } from '@prisma/client';
-import prisma from '@/lib/database';
-import { generateId } from '@/db/db';
+import { queryAll, execute, generateSecureId } from '@/db/db';
+import type { Env } from '@/db/types';
 
 // Integration Types
 export type IntegrationType = 'payment' | 'shipping' | 'analytics' | 'email';
@@ -19,9 +18,10 @@ export interface PaymentGateway {
   isActive: boolean;
   isDefault: boolean;
   settings: string | null;
-  lastTested: Date | null;
+  lastTested: string | null;
   testStatus: string | null;
-  createdAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // Shipping Carrier
@@ -38,9 +38,10 @@ export interface ShippingCarrier {
   isActive: boolean;
   isDefault: boolean;
   settings: string | null;
-  lastTested: Date | null;
+  lastTested: string | null;
   testStatus: string | null;
-  createdAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // Analytics Integration
@@ -53,8 +54,8 @@ export interface AnalyticsIntegration {
   pixelId: string | null;
   isActive: boolean;
   settings: string | null;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // Email Service
@@ -71,9 +72,14 @@ export interface EmailService {
   isActive: boolean;
   isDefault: boolean;
   settings: string | null;
-  lastTested: Date | null;
+  lastTested: string | null;
   testStatus: string | null;
-  createdAt: Date;
+  createdAt: string;
+  updatedAt: string;
+}
+
+function nowISO(): string {
+  return new Date().toISOString();
 }
 
 /**
@@ -86,144 +92,86 @@ export class IntegrationRepository {
   /**
    * Get all payment gateways
    */
-  static async getPaymentGateways(): Promise<PaymentGateway[]> {
-    const gateways = await prisma.payment_gateways.findMany({
-      orderBy: { createdAt: 'desc' }
-    });
-
-    return gateways.map(gateway => ({
-      id: gateway.id,
-      name: gateway.name,
-      provider: gateway.provider,
-      apiKey: gateway.apiKey,
-      apiSecret: gateway.apiSecret,
-      webhookUrl: gateway.webhookUrl,
-      webhookSecret: gateway.webhookSecret,
-      sandboxMode: gateway.sandboxMode,
-      supportedCurrencies: gateway.supportedCurrencies,
-      isActive: Boolean(gateway.isActive),
-      isDefault: Boolean(gateway.isDefault),
-      settings: gateway.settings,
-      lastTested: gateway.lastTested,
-      testStatus: gateway.testStatus,
-      createdAt: gateway.createdAt
-    }));
+  static async getPaymentGateways(env: Env | null): Promise<PaymentGateway[]> {
+    const rows = await queryAll<PaymentGateway>(env, 'SELECT * FROM payment_gateways ORDER BY createdAt DESC');
+    return rows;
   }
 
   /**
    * Get payment gateway by ID
    */
-  static async getPaymentGatewayById(id: string): Promise<PaymentGateway | null> {
-    const gateway = await prisma.payment_gateways.findUnique({
-      where: { id }
-    });
-
-    if (!gateway) return null;
-
-    return {
-      ...gateway,
-      isActive: Boolean(gateway.isActive),
-      isDefault: Boolean(gateway.isDefault)
-    };
+  static async getPaymentGatewayById(env: Env | null, id: string): Promise<PaymentGateway | null> {
+    const rows = await queryAll<any>(env, 'SELECT * FROM payment_gateways WHERE id = ?', id);
+    return rows.length > 0 ? rows[0] : null;
   }
 
   /**
    * Get default payment gateway
    */
-  static async getDefaultPaymentGateway(): Promise<PaymentGateway | null> {
-    const gateway = await prisma.payment_gateways.findFirst({
-      where: { isDefault: true }
-    });
-
-    if (!gateway) return null;
-
-    return {
-      ...gateway,
-      isActive: Boolean(gateway.isActive),
-      isDefault: Boolean(gateway.isDefault)
-    };
+  static async getDefaultPaymentGateway(env: Env | null): Promise<PaymentGateway | null> {
+    const rows = await queryAll<any>(env, 'SELECT * FROM payment_gateways WHERE isDefault = 1 LIMIT 1');
+    return rows.length > 0 ? rows[0] : null;
   }
 
   /**
    * Create payment gateway
    */
-  static async createPaymentGateway(data: Omit<PaymentGateway, 'id' | 'createdAt' | 'lastTested' | 'testStatus'>): Promise<PaymentGateway> {
-    const gateway = await prisma.payment_gateways.create({
-      data: {
-        id: generateId(),
-        name: data.name,
-        provider: data.provider,
-        apiKey: data.apiKey,
-        apiSecret: data.apiSecret,
-        webhookUrl: data.webhookUrl,
-        webhookSecret: data.webhookSecret || null,
-        sandboxMode: data.sandboxMode || 0,
-        supportedCurrencies: data.supportedCurrencies || null,
-        isActive: data.isActive,
-        isDefault: data.isDefault,
-        settings: data.settings,
-        updatedAt: new Date()
-      }
-    });
-
-    return {
-      ...gateway,
-      isActive: Boolean(gateway.isActive),
-      isDefault: Boolean(gateway.isDefault)
-    };
+  static async createPaymentGateway(env: Env | null, data: Omit<PaymentGateway, 'id' | 'createdAt' | 'updatedAt' | 'lastTested' | 'testStatus'>): Promise<PaymentGateway> {
+    const id = generateSecureId();
+    const now = nowISO();
+    await execute(
+      env,
+      `INSERT INTO payment_gateways (id, name, provider, apiKey, apiSecret, webhookUrl, webhookSecret, sandboxMode, supportedCurrencies, isActive, isDefault, settings, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      id, data.name, data.provider, data.apiKey, data.apiSecret, data.webhookUrl, data.webhookSecret,
+      data.sandboxMode, data.supportedCurrencies, data.isActive ? 1 : 0, data.isDefault ? 1 : 0,
+      data.settings, now, now
+    );
+    return { id, ...data, lastTested: null, testStatus: null, createdAt: now, updatedAt: now };
   }
 
   /**
    * Update payment gateway
    */
-  static async updatePaymentGateway(id: string, data: Partial<Omit<PaymentGateway, 'id' | 'createdAt'>>): Promise<PaymentGateway | null> {
-    const gateway = await prisma.payment_gateways.update({
-      where: { id },
-      data: {
-        ...(data.name !== undefined && { name: data.name }),
-        ...(data.provider !== undefined && { provider: data.provider }),
-        ...(data.apiKey !== undefined && { apiKey: data.apiKey }),
-        ...(data.apiSecret !== undefined && { apiSecret: data.apiSecret }),
-        ...(data.webhookUrl !== undefined && { webhookUrl: data.webhookUrl }),
-        ...(data.isActive !== undefined && { isActive: data.isActive }),
-        ...(data.isDefault !== undefined && { isDefault: data.isDefault }),
-        ...(data.settings !== undefined && { settings: data.settings }),
-        ...(data.lastTested !== undefined && { lastTested: data.lastTested }),
-        ...(data.testStatus !== undefined && { testStatus: data.testStatus })
-      }
-    });
+  static async updatePaymentGateway(env: Env | null, id: string, data: Partial<Omit<PaymentGateway, 'id' | 'createdAt' | 'updatedAt'>>): Promise<PaymentGateway | null> {
+    const existing = await this.getPaymentGatewayById(env, id);
+    if (!existing) return null;
 
-    return {
-      ...gateway,
-      isActive: Boolean(gateway.isActive),
-      isDefault: Boolean(gateway.isDefault)
-    };
+    const sets: string[] = [];
+    const params: any[] = [];
+    const fields: (keyof typeof data)[] = ['name', 'provider', 'apiKey', 'apiSecret', 'webhookUrl', 'webhookSecret', 'sandboxMode', 'supportedCurrencies', 'isActive', 'isDefault', 'settings', 'lastTested', 'testStatus'];
+
+    for (const field of fields) {
+      if (data[field] !== undefined) {
+        sets.push(`${field} = ?`);
+        params.push(field === 'isActive' || field === 'isDefault' ? (data[field] ? 1 : 0) : data[field]);
+      }
+    }
+
+    if (sets.length === 0) return existing;
+
+    const now = nowISO();
+    sets.push('updatedAt = ?');
+    params.push(now);
+    params.push(id);
+
+    await execute(env, `UPDATE payment_gateways SET ${sets.join(', ')} WHERE id = ?`, ...params);
+    return this.getPaymentGatewayById(env, id);
   }
 
   /**
    * Delete payment gateway
    */
-  static async deletePaymentGateway(id: string): Promise<void> {
-    await prisma.payment_gateways.delete({
-      where: { id }
-    });
+  static async deletePaymentGateway(env: Env | null, id: string): Promise<void> {
+    await execute(env, 'DELETE FROM payment_gateways WHERE id = ?', id);
   }
 
   /**
    * Set default payment gateway
    */
-  static async setDefaultPaymentGateway(id: string): Promise<void> {
-    await prisma.$transaction([
-      // Reset all gateways
-      prisma.payment_gateways.updateMany({
-        data: { isDefault: false }
-      }),
-      // Set new default
-      prisma.payment_gateways.update({
-        where: { id },
-        data: { isDefault: true }
-      })
-    ]);
+  static async setDefaultPaymentGateway(env: Env | null, id: string): Promise<void> {
+    await execute(env, 'UPDATE payment_gateways SET isDefault = 0');
+    await execute(env, 'UPDATE payment_gateways SET isDefault = 1 WHERE id = ?', id);
   }
 
   // ============ Shipping Carriers ============
@@ -231,133 +179,86 @@ export class IntegrationRepository {
   /**
    * Get all shipping carriers
    */
-  static async getShippingCarriers(): Promise<ShippingCarrier[]> {
-    const carriers = await prisma.shipping_carriers.findMany({
-      orderBy: { createdAt: 'desc' }
-    });
-
-    return carriers.map(carrier => ({
-      ...carrier,
-      isActive: Boolean(carrier.isActive),
-      isDefault: Boolean(carrier.isDefault)
-    }));
+  static async getShippingCarriers(env: Env | null): Promise<ShippingCarrier[]> {
+    const rows = await queryAll<ShippingCarrier>(env, 'SELECT * FROM shipping_carriers ORDER BY createdAt DESC');
+    return rows;
   }
 
   /**
    * Get shipping carrier by ID
    */
-  static async getShippingCarrierById(id: string): Promise<ShippingCarrier | null> {
-    const carrier = await prisma.shipping_carriers.findUnique({
-      where: { id }
-    });
-
-    if (!carrier) return null;
-
-    return {
-      ...carrier,
-      isActive: Boolean(carrier.isActive),
-      isDefault: Boolean(carrier.isDefault)
-    };
+  static async getShippingCarrierById(env: Env | null, id: string): Promise<ShippingCarrier | null> {
+    const rows = await queryAll<any>(env, 'SELECT * FROM shipping_carriers WHERE id = ?', id);
+    return rows.length > 0 ? rows[0] : null;
   }
 
   /**
    * Get default shipping carrier
    */
-  static async getDefaultShippingCarrier(): Promise<ShippingCarrier | null> {
-    const carrier = await prisma.shipping_carriers.findFirst({
-      where: { isDefault: true }
-    });
-
-    if (!carrier) return null;
-
-    return {
-      ...carrier,
-      isActive: Boolean(carrier.isActive),
-      isDefault: Boolean(carrier.isDefault)
-    };
+  static async getDefaultShippingCarrier(env: Env | null): Promise<ShippingCarrier | null> {
+    const rows = await queryAll<any>(env, 'SELECT * FROM shipping_carriers WHERE isDefault = 1 LIMIT 1');
+    return rows.length > 0 ? rows[0] : null;
   }
 
   /**
    * Create shipping carrier
    */
-  static async createShippingCarrier(data: Omit<ShippingCarrier, 'id' | 'createdAt' | 'lastTested' | 'testStatus'>): Promise<ShippingCarrier> {
-    const carrier = await prisma.shipping_carriers.create({
-      data: {
-        id: generateId(),
-        name: data.name,
-        provider: data.provider,
-        apiKey: data.apiKey,
-        apiSecret: data.apiSecret,
-        accountNumber: data.accountNumber,
-        webhookUrl: data.webhookUrl,
-        sandboxMode: data.sandboxMode || 0,
-        shippingMethods: data.shippingMethods || null,
-        isActive: data.isActive,
-        isDefault: data.isDefault,
-        settings: data.settings,
-        updatedAt: new Date()
-      }
-    });
-
-    return {
-      ...carrier,
-      isActive: Boolean(carrier.isActive),
-      isDefault: Boolean(carrier.isDefault)
-    };
+  static async createShippingCarrier(env: Env | null, data: Omit<ShippingCarrier, 'id' | 'createdAt' | 'updatedAt' | 'lastTested' | 'testStatus'>): Promise<ShippingCarrier> {
+    const id = generateSecureId();
+    const now = nowISO();
+    await execute(
+      env,
+      `INSERT INTO shipping_carriers (id, name, provider, apiKey, apiSecret, accountNumber, webhookUrl, sandboxMode, shippingMethods, isActive, isDefault, settings, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      id, data.name, data.provider, data.apiKey, data.apiSecret, data.accountNumber, data.webhookUrl,
+      data.sandboxMode, data.shippingMethods, data.isActive ? 1 : 0, data.isDefault ? 1 : 0,
+      data.settings, now, now
+    );
+    return { id, ...data, lastTested: null, testStatus: null, createdAt: now, updatedAt: now };
   }
 
   /**
    * Update shipping carrier
    */
-  static async updateShippingCarrier(id: string, data: Partial<Omit<ShippingCarrier, 'id' | 'createdAt'>>): Promise<ShippingCarrier | null> {
-    const carrier = await prisma.shipping_carriers.update({
-      where: { id },
-      data: {
-        ...(data.name !== undefined && { name: data.name }),
-        ...(data.provider !== undefined && { provider: data.provider }),
-        ...(data.apiKey !== undefined && { apiKey: data.apiKey }),
-        ...(data.apiSecret !== undefined && { apiSecret: data.apiSecret }),
-        ...(data.accountNumber !== undefined && { accountNumber: data.accountNumber }),
-        ...(data.webhookUrl !== undefined && { webhookUrl: data.webhookUrl }),
-        ...(data.isActive !== undefined && { isActive: data.isActive }),
-        ...(data.isDefault !== undefined && { isDefault: data.isDefault }),
-        ...(data.settings !== undefined && { settings: data.settings }),
-        ...(data.lastTested !== undefined && { lastTested: data.lastTested }),
-        ...(data.testStatus !== undefined && { testStatus: data.testStatus })
-      }
-    });
+  static async updateShippingCarrier(env: Env | null, id: string, data: Partial<Omit<ShippingCarrier, 'id' | 'createdAt' | 'updatedAt'>>): Promise<ShippingCarrier | null> {
+    const existing = await this.getShippingCarrierById(env, id);
+    if (!existing) return null;
 
-    return {
-      ...carrier,
-      isActive: Boolean(carrier.isActive),
-      isDefault: Boolean(carrier.isDefault)
-    };
+    const sets: string[] = [];
+    const params: any[] = [];
+    const fields: (keyof typeof data)[] = ['name', 'provider', 'apiKey', 'apiSecret', 'accountNumber', 'webhookUrl', 'sandboxMode', 'shippingMethods', 'isActive', 'isDefault', 'settings', 'lastTested', 'testStatus'];
+
+    for (const field of fields) {
+      if (data[field] !== undefined) {
+        sets.push(`${field} = ?`);
+        params.push(field === 'isActive' || field === 'isDefault' ? (data[field] ? 1 : 0) : data[field]);
+      }
+    }
+
+    if (sets.length === 0) return existing;
+
+    const now = nowISO();
+    sets.push('updatedAt = ?');
+    params.push(now);
+    params.push(id);
+
+    await execute(env, `UPDATE shipping_carriers SET ${sets.join(', ')} WHERE id = ?`, ...params);
+    return this.getShippingCarrierById(env, id);
   }
 
   /**
    * Delete shipping carrier
    */
-  static async deleteShippingCarrier(id: string): Promise<void> {
-    await prisma.shipping_carriers.delete({
-      where: { id }
-    });
+  static async deleteShippingCarrier(env: Env | null, id: string): Promise<void> {
+    await execute(env, 'DELETE FROM shipping_carriers WHERE id = ?', id);
   }
 
   /**
    * Set default shipping carrier
    */
-  static async setDefaultShippingCarrier(id: string): Promise<void> {
-    await prisma.$transaction([
-      // Reset all carriers
-      prisma.shipping_carriers.updateMany({
-        data: { isDefault: false }
-      }),
-      // Set new default
-      prisma.shipping_carriers.update({
-        where: { id },
-        data: { isDefault: true }
-      })
-    ]);
+  static async setDefaultShippingCarrier(env: Env | null, id: string): Promise<void> {
+    await execute(env, 'UPDATE shipping_carriers SET isDefault = 0');
+    await execute(env, 'UPDATE shipping_carriers SET isDefault = 1 WHERE id = ?', id);
   }
 
   // ============ Analytics Integrations ============
@@ -365,87 +266,69 @@ export class IntegrationRepository {
   /**
    * Get all analytics integrations
    */
-  static async getAnalyticsIntegrations(): Promise<AnalyticsIntegration[]> {
-    const integrations = await prisma.analytics_integrations.findMany({
-      orderBy: { createdAt: 'desc' }
-    });
-
-    return integrations.map(integration => ({
-      ...integration,
-      isActive: Boolean(integration.isActive)
-    }));
+  static async getAnalyticsIntegrations(env: Env | null): Promise<AnalyticsIntegration[]> {
+    const rows = await queryAll<AnalyticsIntegration>(env, 'SELECT * FROM analytics_integrations ORDER BY createdAt DESC');
+    return rows;
   }
 
   /**
    * Get analytics integration by ID
    */
-  static async getAnalyticsIntegrationById(id: string): Promise<AnalyticsIntegration | null> {
-    const integration = await prisma.analytics_integrations.findUnique({
-      where: { id }
-    });
-
-    if (!integration) return null;
-
-    return {
-      ...integration,
-      isActive: Boolean(integration.isActive)
-    };
+  static async getAnalyticsIntegrationById(env: Env | null, id: string): Promise<AnalyticsIntegration | null> {
+    const rows = await queryAll<any>(env, 'SELECT * FROM analytics_integrations WHERE id = ?', id);
+    return rows.length > 0 ? rows[0] : null;
   }
 
   /**
    * Create analytics integration
    */
-  static async createAnalyticsIntegration(data: Omit<AnalyticsIntegration, 'id' | 'createdAt' | 'updatedAt' | 'lastTested' | 'testStatus'>): Promise<AnalyticsIntegration> {
-    const integration = await prisma.analytics_integrations.create({
-      data: {
-        id: generateId(),
-        name: data.name,
-        provider: data.provider,
-        trackingId: data.trackingId,
-        apiKey: data.apiKey,
-        pixelId: data.pixelId,
-        isActive: data.isActive,
-        settings: data.settings,
-        updatedAt: new Date()
-      }
-    });
-
-    return {
-      ...integration,
-      isActive: Boolean(integration.isActive)
-    };
+  static async createAnalyticsIntegration(env: Env | null, data: Omit<AnalyticsIntegration, 'id' | 'createdAt' | 'updatedAt'>): Promise<AnalyticsIntegration> {
+    const id = generateSecureId();
+    const now = nowISO();
+    await execute(
+      env,
+      `INSERT INTO analytics_integrations (id, name, provider, trackingId, apiKey, pixelId, isActive, settings, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      id, data.name, data.provider, data.trackingId, data.apiKey, data.pixelId,
+      data.isActive ? 1 : 0, data.settings, now, now
+    );
+    return { id, ...data, createdAt: now, updatedAt: now };
   }
 
   /**
    * Update analytics integration
    */
-  static async updateAnalyticsIntegration(id: string, data: Partial<Omit<AnalyticsIntegration, 'id' | 'createdAt' | 'updatedAt'>>): Promise<AnalyticsIntegration | null> {
-    const integration = await prisma.analytics_integrations.update({
-      where: { id },
-      data: {
-        ...(data.name !== undefined && { name: data.name }),
-        ...(data.provider !== undefined && { provider: data.provider }),
-        ...(data.trackingId !== undefined && { trackingId: data.trackingId }),
-        ...(data.apiKey !== undefined && { apiKey: data.apiKey }),
-        ...(data.pixelId !== undefined && { pixelId: data.pixelId }),
-        ...(data.isActive !== undefined && { isActive: data.isActive }),
-        ...(data.settings !== undefined && { settings: data.settings })
-      }
-    });
+  static async updateAnalyticsIntegration(env: Env | null, id: string, data: Partial<Omit<AnalyticsIntegration, 'id' | 'createdAt' | 'updatedAt'>>): Promise<AnalyticsIntegration | null> {
+    const existing = await this.getAnalyticsIntegrationById(env, id);
+    if (!existing) return null;
 
-    return {
-      ...integration,
-      isActive: Boolean(integration.isActive)
-    };
+    const sets: string[] = [];
+    const params: any[] = [];
+    const fields: (keyof typeof data)[] = ['name', 'provider', 'trackingId', 'apiKey', 'pixelId', 'isActive', 'settings'];
+
+    for (const field of fields) {
+      if (data[field] !== undefined) {
+        sets.push(`${field} = ?`);
+        params.push(field === 'isActive' ? (data[field] ? 1 : 0) : data[field]);
+      }
+    }
+
+    if (sets.length === 0) return existing;
+
+    const now = nowISO();
+    sets.push('updatedAt = ?');
+    params.push(now);
+    params.push(id);
+
+    await execute(env, `UPDATE analytics_integrations SET ${sets.join(', ')} WHERE id = ?`, ...params);
+    return this.getAnalyticsIntegrationById(env, id);
   }
 
   /**
    * Delete analytics integration
    */
-  static async deleteAnalyticsIntegration(id: string): Promise<void> {
-    await prisma.analytics_integrations.delete({
-      where: { id }
-    });
+  static async deleteAnalyticsIntegration(env: Env | null, id: string): Promise<void> {
+    await execute(env, 'DELETE FROM analytics_integrations WHERE id = ?', id);
   }
 
   // ============ Email Services ============
@@ -453,134 +336,85 @@ export class IntegrationRepository {
   /**
    * Get all email services
    */
-  static async getEmailServices(): Promise<EmailService[]> {
-    const services = await prisma.email_services.findMany({
-      orderBy: { createdAt: 'desc' }
-    });
-
-    return services.map(service => ({
-      ...service,
-      isActive: Boolean(service.isActive),
-      isDefault: Boolean(service.isDefault)
-    }));
+  static async getEmailServices(env: Env | null): Promise<EmailService[]> {
+    const rows = await queryAll<EmailService>(env, 'SELECT * FROM email_services ORDER BY createdAt DESC');
+    return rows;
   }
 
   /**
    * Get email service by ID
    */
-  static async getEmailServiceById(id: string): Promise<EmailService | null> {
-    const service = await prisma.email_services.findUnique({
-      where: { id }
-    });
-
-    if (!service) return null;
-
-    return {
-      ...service,
-      isActive: Boolean(service.isActive),
-      isDefault: Boolean(service.isDefault)
-    };
+  static async getEmailServiceById(env: Env | null, id: string): Promise<EmailService | null> {
+    const rows = await queryAll<any>(env, 'SELECT * FROM email_services WHERE id = ?', id);
+    return rows.length > 0 ? rows[0] : null;
   }
 
   /**
    * Get default email service
    */
-  static async getDefaultEmailService(): Promise<EmailService | null> {
-    const service = await prisma.email_services.findFirst({
-      where: { isDefault: true }
-    });
-
-    if (!service) return null;
-
-    return {
-      ...service,
-      isActive: Boolean(service.isActive),
-      isDefault: Boolean(service.isDefault)
-    };
+  static async getDefaultEmailService(env: Env | null): Promise<EmailService | null> {
+    const rows = await queryAll<any>(env, 'SELECT * FROM email_services WHERE isDefault = 1 LIMIT 1');
+    return rows.length > 0 ? rows[0] : null;
   }
 
   /**
    * Create email service
    */
-  static async createEmailService(data: Omit<EmailService, 'id' | 'createdAt' | 'lastTested' | 'testStatus'>): Promise<EmailService> {
-    const service = await prisma.email_services.create({
-      data: {
-        id: generateId(),
-        name: data.name,
-        provider: data.provider,
-        apiKey: data.apiKey,
-        apiSecret: data.apiSecret,
-        fromEmail: data.fromEmail,
-        fromName: data.fromName,
-        webhookUrl: data.webhookUrl,
-        sandboxMode: data.sandboxMode || 0,
-        isActive: data.isActive,
-        isDefault: data.isDefault,
-        settings: data.settings,
-        updatedAt: new Date()
-      }
-    });
-
-    return {
-      ...service,
-      isActive: Boolean(service.isActive),
-      isDefault: Boolean(service.isDefault)
-    };
+  static async createEmailService(env: Env | null, data: Omit<EmailService, 'id' | 'createdAt' | 'updatedAt' | 'lastTested' | 'testStatus'>): Promise<EmailService> {
+    const id = generateSecureId();
+    const now = nowISO();
+    await execute(
+      env,
+      `INSERT INTO email_services (id, name, provider, apiKey, apiSecret, fromEmail, fromName, webhookUrl, sandboxMode, isActive, isDefault, settings, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      id, data.name, data.provider, data.apiKey, data.apiSecret, data.fromEmail, data.fromName, data.webhookUrl,
+      data.sandboxMode, data.isActive ? 1 : 0, data.isDefault ? 1 : 0, data.settings, now, now
+    );
+    return { id, ...data, lastTested: null, testStatus: null, createdAt: now, updatedAt: now };
   }
 
   /**
    * Update email service
    */
-  static async updateEmailService(id: string, data: Partial<Omit<EmailService, 'id' | 'createdAt'>>): Promise<EmailService | null> {
-    const service = await prisma.email_services.update({
-      where: { id },
-      data: {
-        ...(data.name !== undefined && { name: data.name }),
-        ...(data.provider !== undefined && { provider: data.provider }),
-        ...(data.apiKey !== undefined && { apiKey: data.apiKey }),
-        ...(data.apiSecret !== undefined && { apiSecret: data.apiSecret }),
-        ...(data.fromEmail !== undefined && { fromEmail: data.fromEmail }),
-        ...(data.fromName !== undefined && { fromName: data.fromName }),
-        ...(data.webhookUrl !== undefined && { webhookUrl: data.webhookUrl }),
-        ...(data.isActive !== undefined && { isActive: data.isActive }),
-        ...(data.isDefault !== undefined && { isDefault: data.isDefault }),
-        ...(data.settings !== undefined && { settings: data.settings }),
-        ...(data.lastTested !== undefined && { lastTested: data.lastTested }),
-        ...(data.testStatus !== undefined && { testStatus: data.testStatus })
-      }
-    });
+  static async updateEmailService(env: Env | null, id: string, data: Partial<Omit<EmailService, 'id' | 'createdAt' | 'updatedAt'>>): Promise<EmailService | null> {
+    const existing = await this.getEmailServiceById(env, id);
+    if (!existing) return null;
 
-    return {
-      ...service,
-      isActive: Boolean(service.isActive),
-      isDefault: Boolean(service.isDefault)
-    };
+    const sets: string[] = [];
+    const params: any[] = [];
+    const fields: (keyof typeof data)[] = ['name', 'provider', 'apiKey', 'apiSecret', 'fromEmail', 'fromName', 'webhookUrl', 'sandboxMode', 'isActive', 'isDefault', 'settings', 'lastTested', 'testStatus'];
+
+    for (const field of fields) {
+      if (data[field] !== undefined) {
+        sets.push(`${field} = ?`);
+        params.push(field === 'isActive' || field === 'isDefault' ? (data[field] ? 1 : 0) : data[field]);
+      }
+    }
+
+    if (sets.length === 0) return existing;
+
+    const now = nowISO();
+    sets.push('updatedAt = ?');
+    params.push(now);
+    params.push(id);
+
+    await execute(env, `UPDATE email_services SET ${sets.join(', ')} WHERE id = ?`, ...params);
+    return this.getEmailServiceById(env, id);
   }
 
   /**
    * Delete email service
    */
-  static async deleteEmailService(id: string): Promise<void> {
-    await prisma.email_services.delete({
-      where: { id }
-    });
+  static async deleteEmailService(env: Env | null, id: string): Promise<void> {
+    await execute(env, 'DELETE FROM email_services WHERE id = ?', id);
   }
 
   /**
    * Set default email service
    */
-  static async setDefaultEmailService(id: string): Promise<void> {
-    await prisma.$transaction([
-      // Reset all services
-      prisma.email_services.updateMany({
-        data: { isDefault: false }
-      }),
-      // Set new default
-      prisma.email_services.update({
-        where: { id },
-        data: { isDefault: true }
-      })
-    ]);
+  static async setDefaultEmailService(env: Env | null, id: string): Promise<void> {
+    await execute(env, 'UPDATE email_services SET isDefault = 0');
+    await execute(env, 'UPDATE email_services SET isDefault = 1 WHERE id = ?', id);
   }
 
   // ============ Test Integration ============
@@ -588,24 +422,24 @@ export class IntegrationRepository {
   /**
    * Test payment gateway connection
    */
-  static async testPaymentGateway(id: string): Promise<{ success: boolean; message: string }> {
+  static async testPaymentGateway(env: Env | null, id: string): Promise<{ success: boolean; message: string }> {
     try {
-      const gateway = await this.getPaymentGatewayById(id);
+      const gateway = await this.getPaymentGatewayById(env, id);
       if (!gateway) {
         return { success: false, message: 'Payment gateway not found' };
       }
 
       // In a real implementation, this would make an actual test request to the payment gateway
       // For now, we'll simulate a successful test
-      await this.updatePaymentGateway(id, {
-        lastTested: new Date(),
+      await this.updatePaymentGateway(env, id, {
+        lastTested: nowISO(),
         testStatus: 'success'
       });
 
       return { success: true, message: 'Connection successful' };
     } catch (error) {
-      await this.updatePaymentGateway(id, {
-        lastTested: new Date(),
+      await this.updatePaymentGateway(env, id, {
+        lastTested: nowISO(),
         testStatus: 'failed'
       });
       return { success: false, message: 'Connection failed' };
@@ -615,23 +449,23 @@ export class IntegrationRepository {
   /**
    * Test shipping carrier connection
    */
-  static async testShippingCarrier(id: string): Promise<{ success: boolean; message: string }> {
+  static async testShippingCarrier(env: Env | null, id: string): Promise<{ success: boolean; message: string }> {
     try {
-      const carrier = await this.getShippingCarrierById(id);
+      const carrier = await this.getShippingCarrierById(env, id);
       if (!carrier) {
         return { success: false, message: 'Shipping carrier not found' };
       }
 
       // In a real implementation, this would make an actual test request to the shipping carrier
-      await this.updateShippingCarrier(id, {
-        lastTested: new Date(),
+      await this.updateShippingCarrier(env, id, {
+        lastTested: nowISO(),
         testStatus: 'success'
       });
 
       return { success: true, message: 'Connection successful' };
     } catch (error) {
-      await this.updateShippingCarrier(id, {
-        lastTested: new Date(),
+      await this.updateShippingCarrier(env, id, {
+        lastTested: nowISO(),
         testStatus: 'failed'
       });
       return { success: false, message: 'Connection failed' };
@@ -641,23 +475,23 @@ export class IntegrationRepository {
   /**
    * Test email service connection
    */
-  static async testEmailService(id: string): Promise<{ success: boolean; message: string }> {
+  static async testEmailService(env: Env | null, id: string): Promise<{ success: boolean; message: string }> {
     try {
-      const service = await this.getEmailServiceById(id);
+      const service = await this.getEmailServiceById(env, id);
       if (!service) {
         return { success: false, message: 'Email service not found' };
       }
 
       // In a real implementation, this would send a test email
-      await this.updateEmailService(id, {
-        lastTested: new Date(),
+      await this.updateEmailService(env, id, {
+        lastTested: nowISO(),
         testStatus: 'success'
       });
 
       return { success: true, message: 'Test email sent successfully' };
     } catch (error) {
-      await this.updateEmailService(id, {
-        lastTested: new Date(),
+      await this.updateEmailService(env, id, {
+        lastTested: nowISO(),
         testStatus: 'failed'
       });
       return { success: false, message: 'Test email failed' };

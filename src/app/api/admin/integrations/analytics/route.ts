@@ -17,7 +17,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const analytics = await IntegrationRepository.getAnalyticsIntegrations();
+    const env = await getEnv();
+    const analytics = await IntegrationRepository.getAnalyticsIntegrations(env);
 
     // Mask API keys for security
     const safeAnalytics = analytics.map(integration => ({
@@ -76,7 +77,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const analytics = await IntegrationRepository.createAnalyticsIntegration({
+    const analytics = await IntegrationRepository.createAnalyticsIntegration(env, {
       name: body.name,
       provider: body.provider,
       apiKey: body.apiKey,

@@ -1,111 +1,213 @@
-import { db } from '@/lib/db';
-import { inventory_adjustments } from '@prisma/client';
+import { Env } from './types';
+import { queryFirst, queryAll, execute, count as dbCount, generateId, now, boolToNumber } from './db';
+
+interface InventoryAdjustment {
+  id: string;
+  productId: string;
+  variantId: string | null;
+  adjustmentType: string;
+  quantityBefore: number;
+  quantityAfter: number;
+  quantityDiff: number;
+  reason: string;
+  notes: string | null;
+  approvedBy: string | null;
+  approved: number;
+  approvedAt: string | null;
+  createdAt: string;
+}
+
+interface InventoryAdjustmentWithRelations extends InventoryAdjustment {
+  product: {
+    id: string;
+    name: string;
+    slug: string;
+    stock: number;
+    categoryId: string;
+    brandName: string | null;
+    countryOfOrigin: string | null;
+    sizeType: string | null;
+    sizeValue: string | null;
+    sizeUnit: string | null;
+    sizeLabel: string | null;
+  } | null;
+  variant: {
+    id: string;
+    name: string;
+    stock: number;
+    productId: string;
+  } | null;
+}
 
 class InventoryAdjustmentRepository {
-  async findById(id: string): Promise<inventory_adjustments | null> {
-    return db.inventory_adjustments.findUnique({
-      where: { id },
-    });
+  async findById(env: Env | null, id: string): Promise<InventoryAdjustment | null> {
+    const sql = `
+      SELECT 
+        id, productId, variantId, adjustmentType, 
+        quantityBefore, quantityAfter, quantityDiff, 
+        reason, notes, approvedBy, approved, approvedAt, createdAt
+      FROM inventory_adjustments
+      WHERE id = ?
+    `;
+    return await queryFirst<InventoryAdjustment>(env, sql, id);
   }
 
-  async findAll(options?: {
-    productId?: string;
-    variantId?: string;
-    adjustmentType?: string;
-    limit?: number;
-    offset?: number;
-  }): Promise<any[]> {
+  async findAll(
+    env: Env | null,
+    options?: {
+      productId?: string;
+      variantId?: string;
+      adjustmentType?: string;
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<InventoryAdjustmentWithRelations[]> {
     const { productId, variantId, adjustmentType, limit = 100, offset = 0 } = options || {};
 
-    let where: any = {};
-    if (productId) where.productId = productId;
-    if (variantId) where.variantId = variantId;
-    if (adjustmentType) where.adjustmentType = adjustmentType;
+    // Build WHERE clause conditions
+    const conditions: string[] = [];
+    const params: unknown[] = [];
 
-    const adjustments = await db.inventory_adjustments.findMany({
-      where,
-      orderBy: {
-        createdAt: 'desc',
-      },
-      take: limit,
-      skip: offset,
-    });
-
-    // Fetch all related products
-    const productIds = [...new Set(adjustments.map(a => a.productId))];
-    const products = await db.products.findMany({
-      where: { id: { in: productIds } },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        stock: true,
-        categoryId: true,
-        brandName: true,
-        countryOfOrigin: true,
-        sizeType: true,
-        sizeValue: true,
-        sizeUnit: true,
-        sizeLabel: true,
-      }
-    });
-
-    // Fetch all related variants
-    const variantIds = adjustments.map(a => a.variantId).filter(Boolean) as string[];
-    let variants: any[] = [];
-    if (variantIds.length > 0) {
-      variants = await db.product_variants.findMany({
-        where: { id: { in: variantIds } },
-        select: {
-          id: true,
-          name: true,
-          stock: true,
-          productId: true,
-        }
-      });
+    if (productId) {
+      conditions.push('ia.productId = ?');
+      params.push(productId);
+    }
+    if (variantId) {
+      conditions.push('ia.variantId = ?');
+      params.push(variantId);
+    }
+    if (adjustmentType) {
+      conditions.push('ia.adjustmentType = ?');
+      params.push(adjustmentType);
     }
 
-    // Create maps for quick lookup
-    const productMap = new Map(products.map(p => [p.id, p]));
-    const variantMap = new Map(variants.map(v => [v.id, v]));
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    // Merge data
-    return adjustments.map(adjustment => ({
-      ...adjustment,
-      product: productMap.get(adjustment.productId) || null,
-      variant: adjustment.variantId ? variantMap.get(adjustment.variantId) : null,
+    // Main query with JOINs for products and variants
+    const sql = `
+      SELECT 
+        ia.id,
+        ia.productId,
+        ia.variantId,
+        ia.adjustmentType,
+        ia.quantityBefore,
+        ia.quantityAfter,
+        ia.quantityDiff,
+        ia.reason,
+        ia.notes,
+        ia.approvedBy,
+        ia.approved,
+        ia.approvedAt,
+        ia.createdAt,
+        json_object(
+          'id', p.id,
+          'name', p.name,
+          'slug', p.slug,
+          'stock', p.stock,
+          'categoryId', p.categoryId,
+          'brandName', p.brandName,
+          'countryOfOrigin', p.countryOfOrigin,
+          'sizeType', p.sizeType,
+          'sizeValue', p.sizeValue,
+          'sizeUnit', p.sizeUnit,
+          'sizeLabel', p.sizeLabel
+        ) as product,
+        CASE WHEN ia.variantId IS NOT NULL THEN
+          json_object(
+            'id', v.id,
+            'name', v.name,
+            'stock', v.stock,
+            'productId', v.productId
+          )
+        ELSE NULL END as variant
+      FROM inventory_adjustments ia
+      LEFT JOIN products p ON ia.productId = p.id
+      LEFT JOIN product_variants v ON ia.variantId = v.id
+      ${whereClause}
+      ORDER BY ia.createdAt DESC
+      LIMIT ? OFFSET ?
+    `;
+
+    const results = await queryAll<
+      InventoryAdjustmentWithRelations & { product: string; variant: string }
+    >(env, sql, ...params, limit, offset);
+
+    // Parse JSON fields
+    return results.map(row => ({
+      ...row,
+      product: row.product ? JSON.parse(row.product) : null,
+      variant: row.variant ? JSON.parse(row.variant) : null,
     }));
   }
 
-  async findByProduct(productId: string, variantId?: string, limit: number = 50): Promise<inventory_adjustments[]> {
-    return this.findAll({ productId, variantId, limit });
+  async findByProduct(
+    env: Env | null,
+    productId: string,
+    variantId?: string,
+    limit: number = 50
+  ): Promise<InventoryAdjustmentWithRelations[]> {
+    return this.findAll(env, { productId, variantId, limit });
   }
 
-  async create(data: Omit<inventory_adjustments, 'id' | 'createdAt'>): Promise<inventory_adjustments> {
-    return db.inventory_adjustments.create({
-      data: {
-        ...data,
-        id: `ia-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      },
-    });
+  async create(
+    env: Env | null,
+    data: Omit<InventoryAdjustment, 'id' | 'createdAt'>
+  ): Promise<InventoryAdjustment> {
+    const id = generateId();
+    const createdAt = now();
+
+    const sql = `
+      INSERT INTO inventory_adjustments (
+        id, productId, variantId, adjustmentType,
+        quantityBefore, quantityAfter, quantityDiff,
+        reason, notes, approvedBy, approved, approvedAt, createdAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+
+    await execute(
+      env,
+      sql,
+      id,
+      data.productId,
+      data.variantId,
+      data.adjustmentType,
+      data.quantityBefore,
+      data.quantityAfter,
+      data.quantityDiff,
+      data.reason,
+      data.notes,
+      data.approvedBy,
+      data.approved,
+      data.approvedAt,
+      createdAt
+    );
+
+    return {
+      id,
+      ...data,
+      createdAt,
+    };
   }
 
-  async applyAdjustment(data: {
-    productId: string;
-    variantId?: string;
-    adjustmentType: string;
-    quantityBefore: number;
-    quantityAfter: number;
-    reason: string;
-    approvedBy?: string;
-  }): Promise<{ adjustment: inventory_adjustments; movement: any }> {
+  async applyAdjustment(
+    env: Env | null,
+    data: {
+      productId: string;
+      variantId?: string;
+      adjustmentType: string;
+      quantityBefore: number;
+      quantityAfter: number;
+      reason: string;
+      approvedBy?: string;
+    }
+  ): Promise<{ adjustment: InventoryAdjustment; movement: any }> {
     const { productId, variantId, adjustmentType, quantityBefore, quantityAfter, reason, approvedBy } = data;
 
     // Calculate difference
     const quantityDiff = quantityAfter - quantityBefore;
 
     // Create adjustment record
-    const adjustment = await this.create({
+    const adjustment = await this.create(env, {
       productId,
       variantId: variantId || null,
       adjustmentType,
@@ -121,55 +223,82 @@ class InventoryAdjustmentRepository {
 
     // Update inventory
     if (variantId) {
-      await db.product_variants.update({
-        where: { id: variantId },
-        data: {
-          stock: quantityAfter,
-        },
-      });
+      const updateVariantSql = `
+        UPDATE product_variants
+        SET stock = ?
+        WHERE id = ?
+      `;
+      await execute(env, updateVariantSql, quantityAfter, variantId);
     } else {
-      await db.products.update({
-        where: { id: productId },
-        data: {
-          stock: quantityAfter,
-        },
-      });
+      const updateProductSql = `
+        UPDATE products
+        SET stock = ?
+        WHERE id = ?
+      `;
+      await execute(env, updateProductSql, quantityAfter, productId);
     }
 
     // Create inventory movement
-    const movement = await db.inventory_movements.create({
-      data: {
-        id: `im-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        productId,
-        variantId: variantId || null,
-        movementType: 'ADJUSTMENT',
-        quantity: quantityDiff,
-        unitCost: null,
-        totalCost: null,
-        referenceId: adjustment.id,
-        referenceType: 'ADJUSTMENT',
-        supplierId: null,
-        approved: 1,
-        approvedAt: new Date(),
-      },
-    });
+    const movementId = generateId();
+    const movementSql = `
+      INSERT INTO inventory_movements (
+        id, productId, variantId, movementType, quantity,
+        unitCost, totalCost, referenceId, referenceType,
+        supplierId, approved, approvedAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+
+    await execute(
+      env,
+      movementSql,
+      movementId,
+      productId,
+      variantId || null,
+      'ADJUSTMENT',
+      quantityDiff,
+      null,
+      null,
+      adjustment.id,
+      'ADJUSTMENT',
+      null,
+      1,
+      now()
+    );
+
+    const movement = await queryFirst<any>(env, 'SELECT * FROM inventory_movements WHERE id = ?', movementId);
 
     return { adjustment, movement };
   }
 
-  async count(options?: {
-    productId?: string;
-    variantId?: string;
-    adjustmentType?: string;
-  }): Promise<number> {
+  async count(
+    env: Env | null,
+    options?: {
+      productId?: string;
+      variantId?: string;
+      adjustmentType?: string;
+    }
+  ): Promise<number> {
     const { productId, variantId, adjustmentType } = options || {};
 
-    let where: any = {};
-    if (productId) where.productId = productId;
-    if (variantId) where.variantId = variantId;
-    if (adjustmentType) where.adjustmentType = adjustmentType;
+    const conditions: string[] = [];
+    const params: unknown[] = [];
 
-    return db.inventory_adjustments.count({ where });
+    if (productId) {
+      conditions.push('productId = ?');
+      params.push(productId);
+    }
+    if (variantId) {
+      conditions.push('variantId = ?');
+      params.push(variantId);
+    }
+    if (adjustmentType) {
+      conditions.push('adjustmentType = ?');
+      params.push(adjustmentType);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    return await dbCount(env, `SELECT COUNT(*) as count FROM inventory_adjustments ${whereClause}`, ...params);
   }
 }
 

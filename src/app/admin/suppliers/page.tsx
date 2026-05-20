@@ -306,54 +306,54 @@ export default function SuppliersPage() {
               <p className="text-gray-500">No suppliers found</p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-gray-50 hover:bg-gray-50">
-                  <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Code</TableHead>
-                  <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Supplier</TableHead>
-                  <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Contact</TableHead>
-                  <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Location</TableHead>
-                  <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Status</TableHead>
-                  <TableHead className="text-right font-semibold text-gray-700 whitespace-nowrap">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
+            <div className="w-full overflow-x-auto -mx-4 px-4">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gray-50 hover:bg-gray-50">
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[120px]">Code</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[180px]">Supplier</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[250px]">Contact</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[200px]">Location</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap">Status</TableHead>
+                    <TableHead className="text-right font-semibold text-gray-700 whitespace-nowrap">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
               <TableBody>
                 {filteredSuppliers.map((supplier) => (
                   <TableRow key={supplier.id} className="hover:bg-gray-50">
                     <TableCell>
-                      <span className="font-mono text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded">{supplier.code}</span>
+                      <span className="font-mono text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded whitespace-nowrap">{supplier.code}</span>
                     </TableCell>
                     <TableCell>
-                      <div>
+                      <div className="min-w-[180px]">
                         <p className="font-medium text-sm text-gray-900">{supplier.name}</p>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="space-y-1">
+                      <div className="space-y-1 min-w-[250px]">
                         {supplier.email && (
                           <div className="flex items-center gap-1 text-xs text-gray-600">
-                            <Mail className="h-3 w-3" />
-                            {supplier.email}
+                            <Mail className="h-3 w-3 flex-shrink-0" />
+                            <span className="break-all">{supplier.email}</span>
                           </div>
                         )}
                         {supplier.phone && (
                           <div className="flex items-center gap-1 text-xs text-gray-600">
-                            <Phone className="h-3 w-3" />
-                            {supplier.phone}
+                            <Phone className="h-3 w-3 flex-shrink-0" />
+                            <span className="break-all">{supplier.phone}</span>
                           </div>
                         )}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="space-y-1">
+                      <div className="space-y-1 min-w-[200px]">
                         {supplier.address && (
-                          <p className="text-xs text-gray-600">{supplier.address}</p>
+                          <p className="text-xs text-gray-600 truncate">{supplier.address}</p>
                         )}
                         {(supplier.city || supplier.country) && (
                           <div className="flex items-center gap-1 text-xs text-gray-600">
-                            <MapPin className="h-3 w-3" />
-                            {supplier.city && `${supplier.city}, `}
-                            {supplier.country}
+                            <MapPin className="h-3 w-3 flex-shrink-0" />
+                            <span className="truncate">{supplier.city && `${supplier.city}, `}{supplier.country}</span>
                           </div>
                         )}
                       </div>
@@ -386,6 +386,7 @@ export default function SuppliersPage() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>

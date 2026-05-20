@@ -1,7 +1,6 @@
 import { getEnv } from '@/lib/cloudflare';
 import { Env } from '@/db/types';
 import { execute } from '@/db/db';
-import prisma from '@/lib/database';
 
 /**
  * Transaction result type
@@ -23,7 +22,7 @@ export type TransactionCallback<T = any> = (
 
 /**
  * Execute a transaction
- * Works with both Prisma (local dev) and D1 (Cloudflare)
+ * Works with D1 (Cloudflare Workers)
  *
  * @param callback Function to execute within the transaction
  * @returns Transaction result with data or error
@@ -33,46 +32,15 @@ export async function runTransaction<T = any>(
 ): Promise<TransactionResult<T>> {
   const env = await getEnv();
 
-  // Use Prisma transaction for local development
   if (!env || !env.DB) {
-    return await runPrismaTransaction(callback);
+    return {
+      success: false,
+      error: 'Database not available. This transaction requires Cloudflare Workers environment.',
+    };
   }
 
   // Use D1 transaction for Cloudflare
   return await runD1Transaction(env, callback);
-}
-
-/**
- * Run Prisma transaction
- */
-async function runPrismaTransaction<T>(
-  callback: TransactionCallback<T>
-): Promise<TransactionResult<T>> {
-  try {
-    const result = await prisma.$transaction(async (tx) => {
-      const commit = async () => {
-        // Prisma auto-commits on success, no manual commit needed
-      };
-
-      const rollback = async () => {
-        // Prisma auto-rolls back on throw
-        throw new Error('Transaction rolled back');
-      };
-
-      return await callback(tx, commit, rollback);
-    });
-
-    return {
-      success: true,
-      data: result,
-    };
-  } catch (error) {
-    console.error('Prisma transaction error:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Transaction failed',
-    };
-  }
 }
 
 /**

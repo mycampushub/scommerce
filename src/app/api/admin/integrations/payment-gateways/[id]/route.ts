@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { IntegrationRepository } from '@/db/integration';
 import { verifyAdminAuth } from '@/lib/admin-auth';
+import { getEnv } from '@/lib/cloudflare';
 
 /**
  * GET /api/admin/integrations/payment-gateways/[id]
@@ -17,8 +18,9 @@ export async function GET(
   }
 
   try {
+    const env = await getEnv();
     const { id } = await params;
-    const gateway = await IntegrationRepository.getPaymentGatewayById(id);
+    const gateway = await IntegrationRepository.getPaymentGatewayById(env, id);
 
     if (!gateway) {
       return NextResponse.json(
@@ -64,10 +66,11 @@ export async function PUT(
   }
 
   try {
+    const env = await getEnv();
     const { id } = await params;
     const body = await request.json();
 
-    const gateway = await IntegrationRepository.updatePaymentGateway(id, body);
+    const gateway = await IntegrationRepository.updatePaymentGateway(env, id, body);
 
     if (!gateway) {
       return NextResponse.json(
@@ -114,8 +117,9 @@ export async function DELETE(
   }
 
   try {
+    const env = await getEnv();
     const { id } = await params;
-    await IntegrationRepository.deletePaymentGateway(id);
+    await IntegrationRepository.deletePaymentGateway(env, id);
 
     return NextResponse.json({
       success: true,

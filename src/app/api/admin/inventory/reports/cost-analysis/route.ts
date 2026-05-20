@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { queryAll } from '@/db/db';
+import { getEnv } from '@/lib/cloudflare';
 import { verifyAdmin } from '@/lib/auth/admin-auth';
 
 // GET /api/admin/inventory/reports/cost-analysis - Cost analysis report
@@ -11,33 +12,91 @@ export async function GET(request: NextRequest) {
       return admin;
     }
 
+    // Get Cloudflare env for D1 database
+    const env = await getEnv(request);
+
     const searchParams = request.nextUrl.searchParams;
     const categoryId = searchParams.get('categoryId') || undefined;
     const brandId = searchParams.get('brandId') || undefined;
     const sortBy = searchParams.get('sortBy') || 'margin'; // margin, profit, cost, revenue
 
-    // Get all products with filters
-    let where: any = {
-      isActive: 1,
-    };
+    // Build WHERE conditions
+    const whereConditions: string[] = ['p.isActive = 1'];
+    const params: unknown[] = [];
 
-    if (categoryId) where.categoryId = categoryId;
-    if (brandId) where.brandId = brandId;
+    if (categoryId) {
+      whereConditions.push('p.categoryId = ?');
+      params.push(categoryId);
+    }
+    if (brandId) {
+      whereConditions.push('p.brandId = ?');
+      params.push(brandId);
+    }
 
-    const products = await db.products.findMany({
-      where,
-      include: {
-        categories: true,
-        product_variants: true,
-      },
+    const whereClause = 'WHERE ' + whereConditions.join(' AND ');
+
+    // Get all products with categories
+    const products = await queryAll<any>(
+      env,
+      `SELECT 
+        p.id,
+        p.name,
+        p.slug,
+        p.stock,
+        p.basePrice,
+        p.costPrice,
+        p.averageCost,
+        p.hasVariants,
+        p.brandName,
+        p.totalSold,
+        p.totalPurchased,
+        c.id as categoryId,
+        c.name as categoryName
+      FROM products p
+      LEFT JOIN categories c ON p.categoryId = c.id
+      ${whereClause}`,
+      ...params
+    );
+
+    // Get variants for all products
+    const variantParams = products.length > 0 ? products.map(() => '?') : [];
+    const variants = products.length > 0
+      ? await queryAll<any>(
+          env,
+          `SELECT 
+            v.id,
+            v.productId,
+            v.sku,
+            v.name,
+            v.stock,
+            v.price,
+            v.costPrice,
+            v.averageCost,
+            v.totalSold,
+            v.totalPurchased
+          FROM product_variants v
+          WHERE v.productId IN (${variantParams.join(',')})`,
+          ...products.map(p => p.id)
+        )
+      : [];
+
+    // Group variants by product
+    const variantsByProduct: Record<string, any[]> = {};
+    variants.forEach((variant) => {
+      if (!variantsByProduct[variant.productId]) {
+        variantsByProduct[variant.productId] = [];
+      }
+      variantsByProduct[variant.productId].push(variant);
     });
 
     const costAnalysis: any[] = [];
 
     products.forEach((product) => {
-      if (product.hasVariants && product.product_variants.length > 0) {
+      const productVariants = variantsByProduct[product.id] || [];
+      
+      if (product.hasVariants === 1 && productVariants.length > 0) {
         // Product with variants
-        product.product_variants.forEach((variant) => {
+        productVariants.forEach((variant) => {
           const cost = variant.averageCost || variant.costPrice || 0;
           const revenue = variant.stock * variant.price;
           const totalCost = variant.stock * cost;
@@ -51,7 +110,7 @@ export async function GET(request: NextRequest) {
             productName: product.name,
             variantName: variant.name,
             sku: variant.sku,
-            category: product.categories?.name || 'N/A',
+            category: product.categoryName || 'N/A',
             brand: product.brandName || 'N/A',
             stock: variant.stock,
             unitCost: cost,
@@ -79,7 +138,7 @@ export async function GET(request: NextRequest) {
           productName: product.name,
           variantName: null,
           sku: product.slug,
-          category: product.categories?.name || 'N/A',
+          category: product.categoryName || 'N/A',
           brand: product.brandName || 'N/A',
           stock: product.stock,
           unitCost: cost,

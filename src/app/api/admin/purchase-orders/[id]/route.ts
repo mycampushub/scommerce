@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { purchaseOrderRepository } from '@/db/purchase-order.repository';
 import { verifyAdmin } from '@/lib/auth/admin-auth';
+import { getEnv } from '@/lib/cloudflare';
 
 // GET /api/admin/purchase-orders/[id] - Get single purchase order
 export async function GET(
@@ -8,6 +9,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const env = await getEnv();
     const { id } = await params;
     // Verify admin access
     const admin = await verifyAdmin(request);
@@ -15,7 +17,7 @@ export async function GET(
       return admin;
     }
 
-    const purchaseOrder = await purchaseOrderRepository.findById(id);
+    const purchaseOrder = await purchaseOrderRepository.findById(env, id);
 
     if (!purchaseOrder) {
       return NextResponse.json(
@@ -43,6 +45,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const env = await getEnv();
     const { id } = await params;
     // Verify admin access
     const admin = await verifyAdmin(request);
@@ -50,7 +53,7 @@ export async function PUT(
       return admin;
     }
 
-    const po = await purchaseOrderRepository.findById(id);
+    const po = await purchaseOrderRepository.findById(env, id);
     if (!po) {
       return NextResponse.json(
         { success: false, error: 'Purchase order not found' },
@@ -79,7 +82,7 @@ export async function PUT(
       updateData.status = status;
     }
 
-    const updatedPO = await purchaseOrderRepository.update(id, updateData);
+    const updatedPO = await purchaseOrderRepository.update(env, id, updateData);
 
     return NextResponse.json({
       success: true,
@@ -100,6 +103,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const env = await getEnv();
     const { id } = await params;
     // Verify admin access
     const admin = await verifyAdmin(request);
@@ -107,7 +111,7 @@ export async function DELETE(
       return admin;
     }
 
-    const po = await purchaseOrderRepository.findById(id);
+    const po = await purchaseOrderRepository.findById(env, id);
     if (!po) {
       return NextResponse.json(
         { success: false, error: 'Purchase order not found' },
@@ -123,7 +127,7 @@ export async function DELETE(
       );
     }
 
-    await purchaseOrderRepository.delete(id);
+    await purchaseOrderRepository.delete(env, id);
 
     return NextResponse.json({
       success: true,

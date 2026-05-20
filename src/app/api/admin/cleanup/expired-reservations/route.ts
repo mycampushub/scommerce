@@ -3,7 +3,6 @@ import { verifyAdminAuth } from '@/lib/admin-auth'
 import { successResponse, errorResponse } from '@/lib/api-response'
 import { getEnv } from '@/lib/cloudflare'
 import { execute, queryAll, queryFirst } from '@/db/db'
-import prisma from '@/lib/database'
 import { cleanupExpiredReservations } from '@/db/inventory-reservation.repository'
 
 /**
@@ -52,23 +51,14 @@ export async function GET(request: NextRequest) {
   const env = await getEnv()
 
   try {
-    let expiredCount = 0
     const now = new Date().toISOString()
 
-    if (!env || !env.DB) {
-      expiredCount = await prisma.inventory_reservations.count({
-        where: {
-          expiresAt: { lt: now }
-        }
-      })
-    } else {
-      const result = await queryFirst<{ count: number }>(
-        env,
-        'SELECT COUNT(*) as count FROM inventory_reservations WHERE expiresAt < ?',
-        now
-      )
-      expiredCount = result?.count || 0
-    }
+    const result = await queryFirst<{ count: number }>(
+      env,
+      'SELECT COUNT(*) as count FROM inventory_reservations WHERE expiresAt < ?',
+      now
+    )
+    const expiredCount = result?.count || 0
 
     return successResponse({
       expiredCount,

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { queryAll } from '@/db/db';
+import { getEnv } from '@/lib/cloudflare';
 import { verifyAdmin } from '@/lib/auth/admin-auth';
 
 // GET /api/admin/inventory/reports/stock - Stock status report
@@ -11,23 +12,85 @@ export async function GET(request: NextRequest) {
       return admin;
     }
 
+    // Get Cloudflare env for D1 database
+    const env = await getEnv(request);
+
     const searchParams = request.nextUrl.searchParams;
     const categoryId = searchParams.get('categoryId') || undefined;
     const brandId = searchParams.get('brandId') || undefined;
     const status = searchParams.get('status') || 'all'; // all, low, out, overstock
 
-    // Get all products with filters
-    let where: any = {};
+    // Build WHERE conditions
+    const whereConditions: string[] = [];
+    const params: unknown[] = [];
 
-    if (categoryId) where.categoryId = categoryId;
-    if (brandId) where.brandId = brandId;
+    if (categoryId) {
+      whereConditions.push('p.categoryId = ?');
+      params.push(categoryId);
+    }
+    if (brandId) {
+      whereConditions.push('p.brandId = ?');
+      params.push(brandId);
+    }
 
-    const products = await db.products.findMany({
-      where,
-      include: {
-        categories: true,
-        product_variants: true,
-      },
+    const whereClause = whereConditions.length > 0 ? 'WHERE ' + whereConditions.join(' AND ') : '';
+
+    // Get all products with categories and variants
+    const products = await queryAll<any>(
+      env,
+      `SELECT 
+        p.id,
+        p.name,
+        p.slug,
+        p.stock,
+        p.lowStockAlert,
+        p.reorderLevel,
+        p.reorderQty,
+        p.basePrice,
+        p.costPrice,
+        p.averageCost,
+        p.hasVariants,
+        p.brandName,
+        c.id as categoryId,
+        c.name as categoryName
+      FROM products p
+      LEFT JOIN categories c ON p.categoryId = c.id
+      ${whereClause}`,
+      ...params
+    );
+
+    // Get variants for all products
+    const variantParams = products.length > 0 ? products.map(() => '?') : [];
+    const variants = products.length > 0
+      ? await queryAll<any>(
+          env,
+          `SELECT 
+            v.id,
+            v.productId,
+            v.sku,
+            v.name,
+            v.stock,
+            v.lowStockAlert,
+            v.reorderLevel,
+            v.reorderQty,
+            v.price,
+            v.costPrice,
+            v.averageCost,
+            v.totalSold,
+            v.totalPurchased
+          FROM product_variants v
+          WHERE v.productId IN (${variantParams.join(',')})`,
+          ...products.map(p => p.id)
+        )
+      : [];
+
+    // Group variants by product
+    const variantsByProduct: Record<string, any[]> = {};
+    variants.forEach((variant) => {
+      if (!variantsByProduct[variant.productId]) {
+        variantsByProduct[variant.productId] = [];
+      }
+      variantsByProduct[variant.productId].push(variant);
     });
 
     const stockStatus: any[] = [];
@@ -39,9 +102,11 @@ export async function GET(request: NextRequest) {
     let overstock = 0;
 
     products.forEach((product) => {
-      if (product.hasVariants && product.product_variants.length > 0) {
+      const productVariants = variantsByProduct[product.id] || [];
+      
+      if (product.hasVariants === 1 && productVariants.length > 0) {
         // Product with variants
-        product.product_variants.forEach((variant) => {
+        productVariants.forEach((variant) => {
           totalVariants++;
           const statusInfo = getStockStatus(variant.stock, variant.lowStockAlert, variant.reorderLevel);
           stockStatus.push({
@@ -51,7 +116,7 @@ export async function GET(request: NextRequest) {
             productName: product.name,
             variantName: variant.name,
             sku: variant.sku,
-            category: product.categories?.name || 'N/A',
+            category: product.categoryName || 'N/A',
             stock: variant.stock,
             lowStockAlert: variant.lowStockAlert,
             reorderLevel: variant.reorderLevel,
@@ -79,7 +144,7 @@ export async function GET(request: NextRequest) {
           productName: product.name,
           variantName: null,
           sku: product.slug,
-          category: product.categories?.name || 'N/A',
+          category: product.categoryName || 'N/A',
           stock: product.stock,
           lowStockAlert: product.lowStockAlert,
           reorderLevel: product.reorderLevel,

@@ -37,6 +37,7 @@ export async function GET(request: NextRequest) {
         discountRules: parseJSON<any>(p.discountRules) || null,
         applicableProducts: Array.isArray(parsedProducts) ? parsedProducts : [],
         applicableCategories: Array.isArray(parsedCategories) ? parsedCategories : [],
+        conditions: p.conditions || null, // Keep conditions as string
         isActive: typeof p.isActive === 'boolean' ? p.isActive : numberToBool(p.isActive),
       }
 
@@ -138,7 +139,7 @@ export async function POST(request: NextRequest) {
       validatedData.title,
       validatedData.description || null,
       validatedData.image || null, // Handle undefined/null
-      body.type || 'banner',
+      validatedData.type || 'banner',
       validatedData.ctaText || null,
       validatedData.ctaLink || null,
       validatedData.discountType || 'percentage',
@@ -148,13 +149,13 @@ export async function POST(request: NextRequest) {
       validatedData.applicableCategories ? stringifyJSON(validatedData.applicableCategories) : null,
       validatedData.startDate || null,
       validatedData.endDate || null,
-      body.promoCode || null,
-      body.minOrderAmount || null,
-      body.maxDiscountAmount || null,
-      body.usageLimit || null,
+      validatedData.promoCode || null,
+      validatedData.minOrderAmount ?? null,
+      validatedData.maxDiscountAmount ?? null,
+      validatedData.usageLimit ?? null,
       0, // usedCount
-      body.userLimit || null,
-      body.conditions ? stringifyJSON(body.conditions) : null,
+      validatedData.userLimit ?? null,
+      validatedData.conditions || null, // Store conditions as-is (string)
       boolToNumber(validatedData.isActive ?? true),
       promotionOrder,
       currentTime,
@@ -174,6 +175,7 @@ export async function POST(request: NextRequest) {
         discountRules: parseJSON<any>(promotion.discountRules) || null,
         applicableProducts: parseJSON<string[]>(promotion.applicableProducts) || [],
         applicableCategories: parseJSON<string[]>(promotion.applicableCategories) || [],
+        conditions: promotion.conditions || null, // Keep conditions as string
         isActive: typeof promotion.isActive === 'boolean' ? promotion.isActive : numberToBool(promotion.isActive),
       }
     }, { status: 201 })

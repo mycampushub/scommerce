@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { purchaseOrderRepository } from '@/db/purchase-order.repository';
-import { db } from '@/lib/db';
+import { getEnv } from '@/lib/cloudflare';
+import { queryAll } from '@/db/db';
 import { verifyAdmin } from '@/lib/auth/admin-auth';
 
 // GET /api/admin/inventory/reports/purchase - Purchase history report
@@ -12,6 +13,8 @@ export async function GET(request: NextRequest) {
       return admin;
     }
 
+    const env = await getEnv();
+
     const searchParams = request.nextUrl.searchParams;
     const startDate = searchParams.get('startDate') ? new Date(searchParams.get('startDate')!) : undefined;
     const endDate = searchParams.get('endDate') ? new Date(searchParams.get('endDate')!) : undefined;
@@ -19,7 +22,7 @@ export async function GET(request: NextRequest) {
     const productId = searchParams.get('productId') || undefined;
 
     // Get purchase orders
-    const purchaseOrders = await purchaseOrderRepository.findAll({
+    const purchaseOrders = await purchaseOrderRepository.findAll(env, {
       supplierId,
       status: 'RECEIVED',
       startDate,
@@ -32,11 +35,16 @@ export async function GET(request: NextRequest) {
       po.items.forEach(item => productIds.add(item.productId));
     });
 
-    // Fetch all products
-    const products = await db.products.findMany({
-      where: { id: { in: Array.from(productIds) } },
-      select: { id: true, name: true },
-    });
+    // Fetch all products using raw SQL
+    let products: any[] = [];
+    if (productIds.size > 0) {
+      const placeholders = Array.from(productIds).map(() => '?').join(',');
+      products = await queryAll<any>(
+        env,
+        `SELECT id, name FROM products WHERE id IN (${placeholders})`,
+        ...Array.from(productIds)
+      );
+    }
 
     // Create product name map
     const productNames = new Map(products.map(p => [p.id, p.name]));

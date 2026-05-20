@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { inventoryAdjustmentRepository } from '@/db/inventory-adjustment.repository';
-import { db } from '@/lib/db';
+import { getEnv } from '@/lib/cloudflare';
+import { queryFirst } from '@/db/db';
 import { verifyAdmin } from '@/lib/auth/admin-auth';
 
 // GET /api/admin/inventory/adjustments - Get inventory adjustments
 export async function GET(request: NextRequest) {
   try {
+    const env = await getEnv();
+
     // Verify admin access
     const admin = await verifyAdmin(request);
     if (admin instanceof NextResponse) {
@@ -19,7 +22,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '100');
     const offset = parseInt(searchParams.get('offset') || '0');
 
-    const adjustments = await inventoryAdjustmentRepository.findAll({
+    const adjustments = await inventoryAdjustmentRepository.findAll(env, {
       productId,
       variantId,
       adjustmentType,
@@ -43,6 +46,8 @@ export async function GET(request: NextRequest) {
 // POST /api/admin/inventory/adjustments - Create stock adjustment
 export async function POST(request: NextRequest) {
   try {
+    const env = await getEnv();
+
     // Verify admin access
     const admin = await verifyAdmin(request);
     if (admin instanceof NextResponse) {
@@ -87,9 +92,11 @@ export async function POST(request: NextRequest) {
     // Verify current stock matches quantityBefore
     let currentStock = 0;
     if (variantId) {
-      const variant = await db.product_variants.findUnique({
-        where: { id: variantId },
-      });
+      const variant = await queryFirst<{ id: string; stock: number }>(
+        env,
+        'SELECT id, stock FROM product_variants WHERE id = ?',
+        variantId
+      );
       if (!variant) {
         return NextResponse.json(
           { success: false, error: 'Variant not found' },
@@ -98,9 +105,11 @@ export async function POST(request: NextRequest) {
       }
       currentStock = variant.stock;
     } else {
-      const product = await db.products.findUnique({
-        where: { id: productId },
-      });
+      const product = await queryFirst<{ id: string; stock: number }>(
+        env,
+        'SELECT id, stock FROM products WHERE id = ?',
+        productId
+      );
       if (!product) {
         return NextResponse.json(
           { success: false, error: 'Product not found' },
@@ -116,7 +125,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Apply adjustment
-    const result = await inventoryAdjustmentRepository.applyAdjustment({
+    const result = await inventoryAdjustmentRepository.applyAdjustment(env, {
       productId,
       variantId: variantId || null,
       adjustmentType,

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { getEnv } from '@/lib/cloudflare';
+import { queryFirst, execute } from '@/db/db';
 import { verifyAdmin } from '@/lib/auth/admin-auth';
 
 // DELETE /api/admin/inventory/adjustments/[id] - Delete a stock adjustment
@@ -8,7 +9,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const env = await getEnv();
     const { id } = await params;
+
     // Verify admin access
     const admin = await verifyAdmin(request);
     if (admin instanceof NextResponse) {
@@ -16,9 +19,14 @@ export async function DELETE(
     }
 
     // Find the adjustment
-    const adjustment = await db.inventory_adjustments.findUnique({
-      where: { id },
-    });
+    const adjustment = await queryFirst<{
+      id: string;
+      approved: number;
+    }>(
+      env,
+      'SELECT id, approved FROM inventory_adjustments WHERE id = ?',
+      id
+    );
 
     if (!adjustment) {
       return NextResponse.json(
@@ -28,7 +36,7 @@ export async function DELETE(
     }
 
     // Prevent deletion if already approved
-    if (adjustment.approved) {
+    if (adjustment.approved === 1) {
       return NextResponse.json(
         { success: false, error: 'Cannot delete an approved adjustment' },
         { status: 400 }
@@ -36,9 +44,7 @@ export async function DELETE(
     }
 
     // Delete the adjustment
-    await db.inventory_adjustments.delete({
-      where: { id },
-    });
+    await execute(env, 'DELETE FROM inventory_adjustments WHERE id = ?', id);
 
     return NextResponse.json({
       success: true,

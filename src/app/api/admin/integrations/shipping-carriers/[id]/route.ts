@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { IntegrationRepository } from '@/db/integration';
 import { verifyAdminAuth } from '@/lib/admin-auth';
 import { successResponse, errorResponse, notFoundResponse } from '@/lib/api-response';
+import { getEnv } from '@/lib/cloudflare';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   // Verify admin authentication
@@ -11,8 +12,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   try {
+    const env = await getEnv();
     const { id } = await params;
-    const carrier = await IntegrationRepository.getShippingCarrierById(id);
+    const carrier = await IntegrationRepository.getShippingCarrierById(env, id);
     if (!carrier) {
       return notFoundResponse('Shipping carrier not found');
     }
@@ -33,9 +35,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   try {
+    const env = await getEnv();
     const { id } = await params;
     const body = await request.json();
-    const carrier = await IntegrationRepository.updateShippingCarrier(id, body);
+    const carrier = await IntegrationRepository.updateShippingCarrier(env, id, body);
 
     if (!carrier) {
       return notFoundResponse('Shipping carrier not found');
@@ -57,8 +60,9 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   }
 
   try {
+    const env = await getEnv();
     const { id } = await params;
-    await IntegrationRepository.deleteShippingCarrier(id);
+    await IntegrationRepository.deleteShippingCarrier(env, id);
     return successResponse(null, 'Shipping carrier deleted successfully');
   } catch (error) {
     console.error('Error deleting shipping carrier:', error);

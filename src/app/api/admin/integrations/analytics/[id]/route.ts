@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { IntegrationRepository } from '@/db/integration';
 import { verifyAdminAuth } from '@/lib/admin-auth';
 import { successResponse, errorResponse, notFoundResponse } from '@/lib/api-response';
+import { getEnv } from '@/lib/cloudflare';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   // Verify admin authentication
@@ -11,8 +12,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   try {
+    const env = await getEnv();
     const { id } = await params;
-    const analytics = await IntegrationRepository.getAnalyticsIntegrationById(id);
+    const analytics = await IntegrationRepository.getAnalyticsIntegrationById(env, id);
     if (!analytics) {
       return notFoundResponse('Analytics integration not found');
     }
@@ -33,9 +35,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   try {
+    const env = await getEnv();
     const { id } = await params;
     const body = await request.json();
-    const analytics = await IntegrationRepository.updateAnalyticsIntegration(id, body);
+    const analytics = await IntegrationRepository.updateAnalyticsIntegration(env, id, body);
 
     if (!analytics) {
       return notFoundResponse('Analytics integration not found');
@@ -57,8 +60,9 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   }
 
   try {
+    const env = await getEnv();
     const { id } = await params;
-    await IntegrationRepository.deleteAnalyticsIntegration(id);
+    await IntegrationRepository.deleteAnalyticsIntegration(env, id);
     return successResponse(null, 'Analytics integration deleted successfully');
   } catch (error) {
     console.error('Error deleting analytics integration:', error);

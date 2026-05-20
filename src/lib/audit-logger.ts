@@ -1,4 +1,3 @@
-import { db } from '@/lib/db';
 import { generateId, execute, queryAll, queryFirst } from '@/db/db';
 import type { AuditAction, AuditEntity } from '@/types/audit';
 import type { Env } from '@/db/types';
@@ -15,45 +14,28 @@ export interface AuditLogOptions {
 
 /**
  * Log an admin action to the AdminLog table
- * This function is called from server-side code (API routes, server actions)
- * Supports both Prisma (local dev) and D1 (Cloudflare)
+ * Cloudflare D1-only version (no Prisma fallback)
  */
 export async function logAuditEvent(
   env: Env | null,
   options: AuditLogOptions
 ): Promise<void> {
   try {
-    // Use Prisma if env is null or env.DB doesn't exist (local dev)
-    if (!env || !env.DB) {
-      await db.admin_logs.create({
-        data: {
-          id: generateId(),
-          adminId: options.adminId,
-          action: options.action,
-          entity: options.entity,
-          entityId: options.entityId,
-          details: options.details,
-          ipAddress: options.ipAddress,
-          userAgent: options.userAgent,
-        },
-      });
-    } else {
-      // D1 environment
-      await execute(
-        env,
-        `INSERT INTO admin_logs (id, adminId, action, entity, entityId, details, ipAddress, userAgent, createdAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        generateId(),
-        options.adminId,
-        options.action,
-        options.entity,
-        options.entityId || null,
-        options.details || null,
-        options.ipAddress || null,
-        options.userAgent || null,
-        new Date().toISOString()
-      );
-    }
+    // D1 environment only - use raw SQL
+    await execute(
+      env,
+      `INSERT INTO admin_logs (id, adminId, action, entity, entityId, details, ipAddress, userAgent, createdAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      generateId(),
+      options.adminId,
+      options.action,
+      options.entity,
+      options.entityId || null,
+      options.details || null,
+      options.ipAddress || null,
+      options.userAgent || null,
+      new Date().toISOString()
+    );
   } catch (error) {
     // Don't throw errors for audit logging failures to avoid breaking main functionality
     console.error('Failed to log audit event:', error);
@@ -64,82 +46,150 @@ export async function logAuditEvent(
  * Get audit logs for a specific admin
  */
 export async function getAdminAuditLogs(
+  env: Env | null,
   adminId: string,
   limit: number = 50,
   offset: number = 0
 ) {
-  return await db.admin_logs.findMany({
-    where: { adminId },
-    orderBy: { createdAt: 'desc' },
-    take: limit,
-    skip: offset,
-  });
+  // Use SQL JOIN to get admin details
+  const logs = await queryAll<any>(
+    env,
+    `SELECT 
+      al.*,
+      u.name as adminName,
+      u.email as adminEmail
+     FROM admin_logs al
+     LEFT JOIN users u ON al.adminId = u.id
+     WHERE al.adminId = ?
+     ORDER BY al.createdAt DESC
+     LIMIT ? OFFSET ?`,
+    adminId,
+    limit,
+    offset
+  );
+
+  const totalResult = await queryFirst<{ count: number }>(
+    env,
+    'SELECT COUNT(*) as count FROM admin_logs WHERE adminId = ?',
+    adminId
+  );
+
+  return {
+    logs,
+    total: totalResult?.count || 0
+  };
 }
 
 /**
  * Get all audit logs (for admin dashboard)
  */
-export async function getAllAuditLogs(filters: {
-  adminId?: string;
-  entity?: string;
-  action?: string;
-  limit?: number;
-  offset?: number;
-} = {}) {
+export async function getAllAuditLogs(
+  env: Env | null,
+  filters: {
+    adminId?: string;
+    entity?: string;
+    action?: string;
+    limit?: number;
+    offset?: number;
+  } = {}
+) {
   const { adminId, entity, action, limit = 50, offset = 0 } = filters;
 
-  const where: any = {};
-  if (adminId) where.adminId = adminId;
-  if (entity) where.entity = entity;
-  if (action) where.action = action;
+  // Build WHERE clause
+  const conditions: string[] = [];
+  const params: unknown[] = [];
 
-  const [logs, total] = await Promise.all([
-    db.admin_logs.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-      skip: offset,
-      include: {
-        users: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-      },
-    }),
-    db.admin_logs.count({ where }),
-  ]);
+  if (adminId) {
+    conditions.push('al.adminId = ?');
+    params.push(adminId);
+  }
+  if (entity) {
+    conditions.push('al.entity = ?');
+    params.push(entity);
+  }
+  if (action) {
+    conditions.push('al.action = ?');
+    params.push(action);
+  }
 
-  return { logs, total };
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  // Get logs with admin details
+  const logs = await queryAll<any>(
+    env,
+    `SELECT 
+      al.*,
+      u.id as admin_id,
+      u.name as adminName,
+      u.email as adminEmail
+     FROM admin_logs al
+     LEFT JOIN users u ON al.adminId = u.id
+     ${whereClause}
+     ORDER BY al.createdAt DESC
+     LIMIT ? OFFSET ?`,
+    ...params,
+    limit,
+    offset
+  );
+
+  // Get total count
+  const totalResult = await queryFirst<{ count: number }>(
+    env,
+    `SELECT COUNT(*) as count FROM admin_logs al ${whereClause}`,
+    ...params
+  );
+
+  // Format results to match original structure
+  const formattedLogs = logs.map(log => ({
+    ...log,
+    users: {
+      id: log.admin_id,
+      name: log.adminName,
+      email: log.adminEmail,
+    },
+  }));
+
+  return { 
+    logs: formattedLogs, 
+    total: totalResult?.count || 0 
+  };
 }
 
 /**
  * Get audit logs for a specific entity
  */
 export async function getEntityAuditLogs(
+  env: Env | null,
   entity: string,
   entityId: string,
   limit: number = 20
 ) {
-  return await db.admin_logs.findMany({
-    where: {
-      entity,
-      entityId,
+  const logs = await queryAll<any>(
+    env,
+    `SELECT 
+      al.*,
+      u.id as admin_id,
+      u.name as adminName,
+      u.email as adminEmail
+     FROM admin_logs al
+     LEFT JOIN users u ON al.adminId = u.id
+     WHERE al.entity = ? AND al.entityId = ?
+     ORDER BY al.createdAt DESC
+     LIMIT ?`,
+    entity,
+    entityId,
+    limit
+  );
+
+  // Format results to match original structure
+  return logs.map(log => ({
+    ...log,
+    users: {
+      id: log.admin_id,
+      name: log.adminName,
+      email: log.adminEmail,
     },
-    orderBy: { createdAt: 'desc' },
-    take: limit,
-    include: {
-      users: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-        },
-      },
-    },
-  });
+  }));
 }
 
 /**

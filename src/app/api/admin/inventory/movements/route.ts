@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { inventoryMovementRepository } from '@/db/inventory-movement.repository';
 import { verifyAdmin } from '@/lib/auth/admin-auth';
+import { getEnv } from '@/lib/cloudflare';
 
 // GET /api/admin/inventory/movements - Get inventory movements
 export async function GET(request: NextRequest) {
@@ -10,6 +11,8 @@ export async function GET(request: NextRequest) {
     if (admin instanceof NextResponse) {
       return admin;
     }
+
+    const env = await getEnv();
 
     const searchParams = request.nextUrl.searchParams;
     const productId = searchParams.get('productId') || undefined;
@@ -23,7 +26,7 @@ export async function GET(request: NextRequest) {
 
     if (summary) {
       // Return summary statistics
-      const summaryData = await inventoryMovementRepository.getSummary({
+      const summaryData = await inventoryMovementRepository.getSummary(env, {
         productId,
         variantId,
         movementType,
@@ -37,7 +40,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const movements = await inventoryMovementRepository.findAll({
+    const movements = await inventoryMovementRepository.findAll(env, {
       productId,
       variantId,
       movementType,
@@ -70,6 +73,8 @@ export async function POST(request: NextRequest) {
       return admin;
     }
 
+    const env = await getEnv();
+
     const body = await request.json();
     const { productId, variantId, movementType, quantity, unitCost, totalCost, referenceId, referenceType, notes, supplierId } = body;
 
@@ -94,7 +99,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create movement
-    const movement = await inventoryMovementRepository.create({
+    const movement = await inventoryMovementRepository.create(env, {
       productId,
       variantId: variantId || null,
       movementType,
@@ -106,7 +111,7 @@ export async function POST(request: NextRequest) {
       supplierId: supplierId || null,
       notes: notes || null,
       approved: 1,
-      approvedAt: new Date(),
+      approvedAt: new Date().toISOString(),
     });
 
     return NextResponse.json({

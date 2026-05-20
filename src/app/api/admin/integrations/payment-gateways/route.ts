@@ -17,7 +17,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const gateways = await IntegrationRepository.getPaymentGateways();
+    const env = await getEnv();
+    const gateways = await IntegrationRepository.getPaymentGateways(env);
 
     // Mask API secrets for security
     const safeGateways = gateways.map(gw => ({
@@ -77,10 +78,10 @@ export async function POST(request: NextRequest) {
     }
 
     // If this is first gateway, make it default
-    const existingGateways = await IntegrationRepository.getPaymentGateways();
+    const existingGateways = await IntegrationRepository.getPaymentGateways(env);
     const isFirstGateway = existingGateways.length === 0;
 
-    const gateway = await IntegrationRepository.createPaymentGateway({
+    const gateway = await IntegrationRepository.createPaymentGateway(env, {
       name: body.name,
       provider: body.provider,
       apiKey: body.apiKey,

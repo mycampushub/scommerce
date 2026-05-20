@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { IntegrationRepository } from '@/db/integration';
 import { verifyAdminAuth } from '@/lib/admin-auth';
+import { getEnv } from '@/lib/cloudflare';
 
 /**
  * POST /api/admin/integrations/payment-gateways/[id]/set-default
@@ -17,8 +18,9 @@ export async function POST(
   }
 
   try {
+    const env = await getEnv();
     const { id } = await params;
-    await IntegrationRepository.setDefaultPaymentGateway(id);
+    await IntegrationRepository.setDefaultPaymentGateway(env, id);
 
     return NextResponse.json({
       success: true,

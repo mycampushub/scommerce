@@ -35,6 +35,7 @@ export async function GET(
         discountRules: parseJSON<any>(promotion.discountRules) || null,
         applicableProducts: parseJSON<string[]>(promotion.applicableProducts) || [],
         applicableCategories: parseJSON<string[]>(promotion.applicableCategories) || [],
+        conditions: promotion.conditions || null,
         isActive: typeof promotion.isActive === 'boolean' ? promotion.isActive : numberToBool(promotion.isActive),
       }
     })
@@ -95,6 +96,14 @@ export async function PUT(
       updates.push('image = ?')
       values.push(validatedData.image)
     }
+    if (validatedData.type !== undefined) {
+      updates.push('type = ?')
+      values.push(validatedData.type)
+    }
+    if (validatedData.promoCode !== undefined) {
+      updates.push('promoCode = ?')
+      values.push(validatedData.promoCode)
+    }
     if (validatedData.discountType !== undefined) {
       updates.push('discountType = ?')
       values.push(validatedData.discountType)
@@ -102,6 +111,14 @@ export async function PUT(
     if (validatedData.discountValue !== undefined) {
       updates.push('discountValue = ?')
       values.push(validatedData.discountValue)
+    }
+    if (validatedData.minOrderAmount !== undefined) {
+      updates.push('minOrderAmount = ?')
+      values.push(validatedData.minOrderAmount)
+    }
+    if (validatedData.maxDiscountAmount !== undefined) {
+      updates.push('maxDiscountAmount = ?')
+      values.push(validatedData.maxDiscountAmount)
     }
     if (validatedData.discountRules !== undefined) {
       updates.push('discountRules = ?')
@@ -131,6 +148,18 @@ export async function PUT(
       updates.push('ctaLink = ?')
       values.push(validatedData.ctaLink)
     }
+    if (validatedData.usageLimit !== undefined) {
+      updates.push('usageLimit = ?')
+      values.push(validatedData.usageLimit)
+    }
+    if (validatedData.userLimit !== undefined) {
+      updates.push('userLimit = ?')
+      values.push(validatedData.userLimit)
+    }
+    if (validatedData.conditions !== undefined) {
+      updates.push('conditions = ?')
+      values.push(validatedData.conditions)
+    }
     if (validatedData.isActive !== undefined) {
       updates.push('isActive = ?')
       values.push(boolToNumber(validatedData.isActive))
@@ -153,6 +182,7 @@ export async function PUT(
           discountRules: parseJSON<any>(promotion.discountRules) || null,
           applicableProducts: parseJSON<string[]>(promotion.applicableProducts) || [],
           applicableCategories: parseJSON<string[]>(promotion.applicableCategories) || [],
+          conditions: promotion.conditions || null,
           isActive: typeof promotion.isActive === 'boolean' ? promotion.isActive : numberToBool(promotion.isActive),
         }
       })
@@ -181,6 +211,7 @@ export async function PUT(
         discountRules: parseJSON<any>(promotion.discountRules) || null,
         applicableProducts: parseJSON<string[]>(promotion.applicableProducts) || [],
         applicableCategories: parseJSON<string[]>(promotion.applicableCategories) || [],
+        conditions: promotion.conditions || null,
         isActive: typeof promotion.isActive === 'boolean' ? promotion.isActive : numberToBool(promotion.isActive),
       }
     })
