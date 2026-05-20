@@ -81,9 +81,10 @@ class InventoryMovementRepository {
     if (variantId) where.variantId = variantId;
     if (movementType) where.movementType = movementType;
     if (startDate || endDate) {
-      where.createdAt = {};
-      if (startDate) where.createdAt.gte = startDate;
-      if (endDate) where.createdAt.lte = endDate;
+      const createdAt: any = {};
+      if (startDate) createdAt.gte = startDate;
+      if (endDate) createdAt.lte = endDate;
+      where.createdAt = createdAt;
     }
 
     return db.inventory_movements.count({ where });
@@ -109,9 +110,10 @@ class InventoryMovementRepository {
     if (variantId) where.variantId = variantId;
     if (movementType) where.movementType = movementType;
     if (startDate || endDate) {
-      where.createdAt = {};
-      if (startDate) where.createdAt.gte = startDate;
-      if (endDate) where.createdAt.lte = endDate;
+      const createdAt: any = {};
+      if (startDate) createdAt.gte = startDate;
+      if (endDate) createdAt.lte = endDate;
+      where.createdAt = createdAt;
     }
 
     const movements = await db.inventory_movements.findMany({

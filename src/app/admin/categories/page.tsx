@@ -100,7 +100,7 @@ export default function CategoriesPage() {
     description: '',
     image: '',
     isActive: true,
-    parentId: '',
+    parentId: 'none',
     sortOrder: 0,
   })
   const [addFormErrors, setAddFormErrors] = useState<Record<string, string>>({})
@@ -114,7 +114,7 @@ export default function CategoriesPage() {
     description: '',
     image: '',
     isActive: true,
-    parentId: '',
+    parentId: 'none',
     sortOrder: 0,
   })
   const [editFormErrors, setEditFormErrors] = useState<Record<string, string>>({})
@@ -244,7 +244,7 @@ export default function CategoriesPage() {
           description: addFormData.description,
           image: addFormData.image || null,
           isActive: addFormData.isActive,
-          parentId: addFormData.parentId || null,
+          parentId: addFormData.parentId === 'none' ? null : addFormData.parentId,
           sortOrder: addFormData.sortOrder || 0,
         }),
       })
@@ -261,7 +261,7 @@ export default function CategoriesPage() {
       })
 
       setIsAddModalOpen(false)
-      setAddFormData({ name: '', slug: '', description: '', image: '', isActive: true, parentId: '', sortOrder: 0 })
+      setAddFormData({ name: '', slug: '', description: '', image: '', isActive: true, parentId: 'none', sortOrder: 0 })
       setAddImagePreview(null)
       setAddFormErrors({})
       fetchCategories()
@@ -285,7 +285,7 @@ export default function CategoriesPage() {
       description: category.description || '',
       image: category.image || '',
       isActive: category.isActive,
-      parentId: category.parentId || '',
+      parentId: category.parentId || 'none',
       sortOrder: category.sortOrder,
     })
     setEditImagePreview(category.image || null)
@@ -320,7 +320,7 @@ export default function CategoriesPage() {
           description: editFormData.description,
           image: editFormData.image || null,
           isActive: editFormData.isActive,
-          parentId: editFormData.parentId || null,
+          parentId: editFormData.parentId === 'none' ? null : editFormData.parentId,
           sortOrder: editFormData.sortOrder,
         }),
       })
@@ -813,7 +813,7 @@ export default function CategoriesPage() {
                   <SelectValue placeholder="No parent (root category)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No parent (root category)</SelectItem>
+                  <SelectItem value="none">No parent (root category)</SelectItem>
                   {categories
                     .filter(c => c.id !== editingCategory?.id && !c.parentId)
                     .map((category) => (
@@ -963,7 +963,7 @@ export default function CategoriesPage() {
                   <SelectValue placeholder="No parent (root category)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No parent (root category)</SelectItem>
+                  <SelectItem value="none">No parent (root category)</SelectItem>
                   {categories
                     .filter(c => c.id !== editingCategory?.id && !c.parentId)
                     .map((category) => (

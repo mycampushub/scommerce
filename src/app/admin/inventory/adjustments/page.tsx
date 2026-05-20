@@ -90,7 +90,7 @@ export default function StockAdjustmentsPage() {
   // Form states
   const [formData, setFormData] = useState({
     productId: '',
-    variantId: '',
+    variantId: 'none',
     adjustmentType: 'STOCK_TAKE' as const,
     quantityAfter: 0,
     reason: '',
@@ -184,7 +184,7 @@ export default function StockAdjustmentsPage() {
 
   // Handle product selection
   const handleProductChange = (productId: string) => {
-    setFormData({ ...formData, productId, variantId: '' });
+    setFormData({ ...formData, productId, variantId: 'none' });
     if (productId) {
       const product = products.find(p => p.id === productId);
       if (product) {
@@ -204,7 +204,7 @@ export default function StockAdjustmentsPage() {
     try {
       const payload = {
         productId: formData.productId,
-        ...(formData.variantId ? { variantId: formData.variantId } : {}),
+        ...(formData.variantId && formData.variantId !== 'none' ? { variantId: formData.variantId } : {}),
         adjustmentType: formData.adjustmentType,
         quantityBefore: currentStock,
         quantityAfter: parseInt(formData.quantityAfter.toString()),
@@ -275,7 +275,7 @@ export default function StockAdjustmentsPage() {
   const resetForm = () => {
     setFormData({
       productId: '',
-      variantId: '',
+      variantId: 'none',
       adjustmentType: 'STOCK_TAKE',
       quantityAfter: 0,
       reason: '',
@@ -632,7 +632,7 @@ export default function StockAdjustmentsPage() {
                       <SelectValue placeholder="Select variant" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No variant</SelectItem>
+                      <SelectItem value="none">No variant</SelectItem>
                       {variants.map((variant) => (
                         <SelectItem key={variant.id} value={variant.id}>
                           {variant.name} - Stock: {variant.stock}

@@ -194,7 +194,7 @@ export default function PurchaseOrdersPage() {
     }
     setFormData({
       ...formData,
-      items: [...formData.items, { productId: '', productName: '', quantity: 1, unitCost: 0, variantId: '' }],
+      items: [...formData.items, { productId: '', productName: '', quantity: 1, unitCost: 0, variantId: 'none' }],
     })
   }
 
@@ -257,7 +257,7 @@ export default function PurchaseOrdersPage() {
           notes: formData.notes || null,
           items: formData.items.map(item => ({
             productId: item.productId,
-            variantId: (item as any).variantId || undefined,
+            variantId: (item as any).variantId === 'none' ? undefined : (item as any).variantId,
             quantity: item.quantity,
             unitCost: item.unitCost,
           })),
@@ -653,14 +653,14 @@ export default function PurchaseOrdersPage() {
 
                         {hasVariants && variants.length > 0 && (
                           <Select
-                            value={(item as any).variantId || ''}
+                            value={(item as any).variantId || 'none'}
                             onValueChange={(val) => updateItem(index, 'variantId', val)}
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Select variant" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">No variant</SelectItem>
+                              <SelectItem value="none">No variant</SelectItem>
                               {variants.map(variant => (
                                 <SelectItem key={variant.id} value={variant.id}>
                                   {variant.name}

@@ -97,9 +97,10 @@ class PurchaseOrderRepository {
       where.status = status;
     }
     if (startDate || endDate) {
-      where.orderDate = {};
-      if (startDate) where.orderDate.gte = startDate;
-      if (endDate) where.orderDate.lte = endDate;
+      const orderDate: any = {};
+      if (startDate) orderDate.gte = startDate;
+      if (endDate) orderDate.lte = endDate;
+      where.orderDate = orderDate;
     }
 
     const pos = await db.purchase_orders.findMany({

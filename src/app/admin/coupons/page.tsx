@@ -20,7 +20,7 @@ interface Promotion {
   title: string
   description?: string
   promoCode: string
-  discountType: 'PERCENTAGE' | 'FIXED_AMOUNT'
+  discountType: 'percentage' | 'fixed'
   discountValue: number
   minOrderAmount?: number
   maxDiscountAmount?: number
@@ -64,7 +64,7 @@ export default function CouponsPage() {
     title: '',
     description: '',
     promoCode: '',
-    discountType: 'PERCENTAGE' as 'PERCENTAGE' | 'FIXED_AMOUNT',
+    discountType: 'percentage' as 'percentage' | 'fixed',
     discountValue: 0,
     minOrderAmount: 0,
     maxDiscountAmount: 0,
@@ -166,7 +166,7 @@ export default function CouponsPage() {
       title: '',
       description: '',
       promoCode: '',
-      discountType: 'PERCENTAGE',
+      discountType: 'percentage',
       discountValue: 0,
       minOrderAmount: 0,
       maxDiscountAmount: 0,
@@ -404,7 +404,7 @@ export default function CouponsPage() {
                     <Label htmlFor="discountType">Discount Type *</Label>
                     <Select
                       value={formData.discountType}
-                      onValueChange={(value: 'PERCENTAGE' | 'FIXED_AMOUNT') =>
+                      onValueChange={(value: 'percentage' | 'fixed') =>
                         setFormData({ ...formData, discountType: value })
                       }
                     >
@@ -412,26 +412,26 @@ export default function CouponsPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="PERCENTAGE">Percentage</SelectItem>
-                        <SelectItem value="FIXED_AMOUNT">Fixed Amount</SelectItem>
+                        <SelectItem value="percentage">Percentage</SelectItem>
+                        <SelectItem value="fixed">Fixed Amount</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="discountValue">
-                      Discount Value ({formData.discountType === 'PERCENTAGE' ? '%' : 'currency'}) *
+                      Discount Value ({formData.discountType === 'percentage' ? '%' : 'currency'}) *
                     </Label>
                     <Input
                       id="discountValue"
                       type="number"
                       min="0"
-                      step={formData.discountType === 'PERCENTAGE' ? '1' : '0.01'}
+                      step={formData.discountType === 'percentage' ? '1' : '0.01'}
                       value={formData.discountValue}
                       onChange={(e) =>
                         setFormData({ ...formData, discountValue: parseFloat(e.target.value) || 0 })
                       }
                       placeholder={
-                        formData.discountType === 'PERCENTAGE' ? 'e.g., 20' : 'e.g., 500'
+                        formData.discountType === 'percentage' ? 'e.g., 20' : 'e.g., 500'
                       }
                       required
                     />
@@ -746,7 +746,7 @@ export default function CouponsPage() {
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline">
-                            {promotion.discountType === 'PERCENTAGE'
+                            {promotion.discountType === 'percentage'
                               ? `${promotion.discountValue}% off`
                               : <PriceDisplay value={promotion.discountValue} />}
                           </Badge>

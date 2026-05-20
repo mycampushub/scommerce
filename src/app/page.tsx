@@ -1246,11 +1246,11 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
   return (
     <>
       <section
-        className="homevideocarousel clr container mx-auto px-4 py-12"
+        className="homevideocarousel clr container mx-auto px-4"
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
       >
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 pt-12">
           <h3 className="text-2xl md:text-3xl font-bold flex items-center gap-2 text-gray-900">
             <span className="text-pink-600">⚡</span>
             Video Shorts
@@ -1267,18 +1267,18 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
         </div>
 
         {/* Modern Infinite Carousel */}
-        <div className="relative" ref={containerRef}>
+        <div className="relative overflow-visible" ref={containerRef} style={{ minHeight: '480px' }}>
           {/* Navigation Buttons */}
           <button
             onClick={handlePrev}
-            className="absolute left-0 md:-left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 bg-white shadow-lg rounded-full flex items-center justify-center hover:bg-pink-50 hover:scale-110 transition-all border border-gray-200"
+            className="absolute left-0 md:-left-4 top-1/2 -translate-y-1/2 z-30 w-10 h-10 md:w-12 md:h-12 bg-white shadow-lg rounded-full flex items-center justify-center hover:bg-pink-50 hover:scale-110 transition-all border border-gray-200"
             aria-label="Previous video"
           >
             <ChevronLeft className="w-5 h-5 md:w-6 md:h-6 text-gray-700" strokeWidth={2.5} />
           </button>
           <button
             onClick={handleNext}
-            className="absolute right-0 md:-right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 bg-white shadow-lg rounded-full flex items-center justify-center hover:bg-pink-50 hover:scale-110 transition-all border border-gray-200"
+            className="absolute right-0 md:-right-4 top-1/2 -translate-y-1/2 z-30 w-10 h-10 md:w-12 md:h-12 bg-white shadow-lg rounded-full flex items-center justify-center hover:bg-pink-50 hover:scale-110 transition-all border border-gray-200"
             aria-label="Next video"
           >
             <ChevronRight className="w-5 h-5 md:w-6 md:h-6 text-gray-700" strokeWidth={2.5} />
@@ -1286,7 +1286,7 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
 
           {/* Carousel Container */}
           <div
-            className="relative flex items-center justify-center overflow-hidden py-8 md:py-12 select-none"
+            className="relative w-full flex items-center justify-center overflow-visible"
             onTouchStart={handleDragStart}
             onTouchMove={handleDragMove}
             onTouchEnd={handleDragEnd}
@@ -1297,7 +1297,8 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
               if (isDragging) handleDragEnd()
             }}
             style={{
-              cursor: isDragging ? 'grabbing' : 'grab'
+              cursor: isDragging ? 'grabbing' : 'grab',
+              minHeight: '480px'
             }}
           >
             <div
@@ -1312,71 +1313,45 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
                 const normalizedDiff = diff > reels.length / 2 ? diff - reels.length : diff
 
                 // Calculate styles based on position
-                let scale = 0.7
-                let opacity = 0.3
+                let scale = 0.75
+                let opacity = 0.4
                 let zIndex = 1
                 let translateX = 0
-                let translateY = 0
-                let blur = 8
-                let cardWidth = '120px'
-                let aspectRatioClass = 'aspect-[9/16]'
+                let cardWidth = 140
+                let overlapAmount = 80
+
+                // Desktop values
+                if (typeof window !== 'undefined' && window.innerWidth >= 768) {
+                  cardWidth = 200
+                  overlapAmount = 120
+                }
 
                 if (normalizedDiff === 0) {
-                  // Center card (active)
+                  // Center card (active) - fully visible, largest
                   scale = 1
                   opacity = 1
                   zIndex = 10
                   translateX = 0
-                  translateY = 0
-                  blur = 0
-                  cardWidth = '180px'
                 } else if (Math.abs(normalizedDiff) === 1) {
-                  // First side cards
-                  scale = 0.85
-                  opacity = 0.8
-                  zIndex = 5
-                  translateX = normalizedDiff * 140
-                  translateY = 20
-                  blur = 2
-                  cardWidth = '150px'
+                  // First side cards - slightly smaller, partially overlapping
+                  scale = 0.9
+                  opacity = 0.9
+                  zIndex = 8
+                  translateX = normalizedDiff * (cardWidth * scale - overlapAmount)
                 } else if (Math.abs(normalizedDiff) === 2) {
-                  // Second side cards
-                  scale = 0.7
-                  opacity = 0.5
-                  zIndex = 3
-                  translateX = normalizedDiff * 220
-                  translateY = 40
-                  blur = 4
-                  cardWidth = '120px'
+                  // Second side cards - smaller, more overlapping
+                  scale = 0.8
+                  opacity = 0.7
+                  zIndex = 6
+                  translateX = normalizedDiff * ((cardWidth * scale) - overlapAmount + (cardWidth * 0.9 - overlapAmount))
                 } else {
-                  // Far side cards
-                  scale = 0.6
-                  opacity = 0.2
-                  zIndex = 1
-                  translateX = normalizedDiff * 280
-                  translateY = 60
-                  blur = 6
-                  cardWidth = '100px'
-                }
-
-                // Mobile adjustments
-                if (typeof window !== 'undefined' && window.innerWidth < 768) {
-                  if (normalizedDiff === 0) {
-                    cardWidth = '160px'
-                    translateX = 0
-                  } else if (Math.abs(normalizedDiff) === 1) {
-                    cardWidth = '130px'
-                    translateX = normalizedDiff * 110
-                    translateY = 10
-                  } else if (Math.abs(normalizedDiff) === 2) {
-                    cardWidth = '100px'
-                    translateX = normalizedDiff * 170
-                    translateY = 20
-                  } else {
-                    cardWidth = '80px'
-                    translateX = normalizedDiff * 210
-                    translateY = 30
-                  }
+                  // Further cards - progressively smaller
+                  const prevScale = 0.8 - (Math.abs(normalizedDiff) - 2) * 0.1
+                  scale = Math.max(0.6, prevScale)
+                  opacity = Math.max(0.3, 0.7 - (Math.abs(normalizedDiff) - 2) * 0.2)
+                  zIndex = Math.max(1, 5 - (Math.abs(normalizedDiff) - 2))
+                  const totalWidth = (cardWidth * scale) + (cardWidth * 0.9 - overlapAmount) + ((cardWidth * 0.8) - overlapAmount) * (Math.abs(normalizedDiff) - 2)
+                  translateX = normalizedDiff * totalWidth
                 }
 
                 return (
@@ -1385,19 +1360,18 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
                     onClick={() => normalizedDiff === 0 && setSelectedReel(reel)}
                     className="absolute transition-all duration-500 ease-out cursor-pointer"
                     style={{
-                      transform: `translateX(${translateX}px) translateY(${translateY}px) scale(${scale})`,
+                      transform: `translateX(${translateX}px) scale(${scale})`,
                       opacity: opacity,
                       zIndex: zIndex,
-                      filter: `blur(${blur}px)`,
-                      width: cardWidth,
-                      pointerEvents: normalizedDiff === 0 ? 'auto' : 'none'
+                      width: `${cardWidth}px`,
+                      height: `${cardWidth * 16 / 9}px`
                     }}
                   >
                     <div
-                      className={`relative ${aspectRatioClass} overflow-hidden bg-gray-100 rounded-2xl shadow-2xl transition-all duration-300 ${
+                      className={`relative w-full h-full overflow-hidden bg-gray-100 rounded-2xl shadow-xl transition-all duration-300 ${
                         normalizedDiff === 0
-                          ? 'ring-4 ring-pink-500 ring-offset-2 shadow-pink-500/20'
-                          : ''
+                          ? 'ring-4 ring-pink-500 ring-offset-2 shadow-pink-500/30'
+                          : 'hover:scale-105'
                       }`}
                     >
                       <img
@@ -1406,7 +1380,7 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
                         className="w-full h-full object-cover"
                         loading="lazy"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/30" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20" />
                       {normalizedDiff === 0 && (
                         <>
                           <div className="absolute inset-0 flex items-center justify-center">
@@ -1432,7 +1406,7 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
           </div>
 
           {/* Dots Indicator */}
-          <div className="flex justify-center gap-2 mt-4">
+          <div className="flex justify-center gap-2 mt-8">
             {reels.map((_, index) => (
               <button
                 key={index}
@@ -1447,6 +1421,7 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
             ))}
           </div>
         </div>
+        <div className="pb-12"></div>
       </section>
 
       {/* Fullscreen Video Modal */}
