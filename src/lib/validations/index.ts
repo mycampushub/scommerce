@@ -25,7 +25,7 @@ export const productSchema = z.object({
   name: z.string().min(1, 'Product name is required'),
   slug: z.string().optional(), // Optional - will be auto-generated from name if not provided
   description: z.string().min(1, 'Description is required'),
-  price: z.number().positive('Price must be positive'),
+  basePrice: z.number().positive('Price must be positive'),
   comparePrice: z.number().positive().nullable().optional(),
   costPrice: z.number().min(0).nullable().optional(),
   categoryId: z.string().min(1, 'Category ID is required'),
@@ -45,6 +45,8 @@ export const categorySchema = z.object({
   slug: z.string().min(1, 'Category slug is required'),
   description: z.string().optional(),
   image: z.string().optional(),
+  parentId: z.string().optional(),
+  sortOrder: z.number().int().min(0).optional().default(0),
   isActive: z.boolean().optional(),
 });
 
@@ -56,18 +58,16 @@ export const addressSchema = z.object({
   addressLine1: z.string().min(1, 'Address line 1 is required'),
   addressLine2: z.string().optional(),
   city: z.string().min(1, 'City is required'),
-  state: z.string().min(1, 'State is required'),
   district: z.string().optional(),
-  division: z.string().optional(),
-  zipCode: z.string().min(1, 'Zip code is required'),
-  country: z.string().min(1, 'Country is required'),
+  division: z.string().min(1, 'Division is required'),
+  postalCode: z.string().optional(),
   phone: z.string().min(10, 'Phone number must be at least 10 digits'),
 });
 
 // Address can be either an object or a string (for backward compatibility)
 // Support two address formats:
 // 1. Standard format with fullName, addressLine1, etc.
-// 2. Checkout format with address, city, zipCode, etc.
+// 2. Checkout format with address, city, postalCode, etc.
 export const addressSchemaFlexible = z.union([
   addressSchema,
   z.object({
@@ -75,7 +75,7 @@ export const addressSchemaFlexible = z.union([
     city: z.string().min(1, 'City is required'),
     district: z.string().trim().optional(),
     division: z.string().min(1, 'Please select a division'),
-    zipCode: z.string().min(1, 'ZIP/postal code is required'),
+    postalCode: z.string().optional(),
     country: z.string().trim().optional(),
   }),
 ]);
@@ -163,36 +163,72 @@ export const adminLogSchema = z.object({
   details: z.record(z.string(), z.unknown()).optional(),
 });
 
+// Brand Schema
+export const brandSchema = z.object({
+  name: z.string().min(1, 'Brand name is required'),
+  slug: z.string().optional(),
+  logo: z.string().optional(),
+  website: z.string().url().optional().or(z.literal('')),
+  description: z.string().optional(),
+  country: z.string().optional(),
+  isActive: z.boolean().optional().default(true),
+  featured: z.boolean().optional().default(false),
+  sortOrder: z.number().int().min(0).optional().default(0),
+});
+
+export const updateBrandSchema = brandSchema.partial();
+
+// Helper to validate URLs that can be absolute or relative (starting with /)
+const urlOrRelativeSchema = z.string().refine((val) => {
+  if (!val || typeof val !== 'string') return false;
+  // Allow relative URLs starting with /
+  if (val.startsWith('/')) return true;
+  // Validate absolute URLs
+  try {
+    new URL(val);
+    return true;
+  } catch {
+    return false;
+  }
+}, 'Must be a valid URL or start with /');
+
+// Helper to validate URLs that can be absolute, relative, or empty string
+const urlOrRelativeOrEmptySchema = z.union([
+  urlOrRelativeSchema,
+  z.literal(''),
+  z.literal(null).transform(() => ''),
+]);
+
 // Homepage Schemas
 export const bannerSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  subtitle: z.string().optional(),
-  imageDesktop: z.string(),
-  imageMobile: z.string(),
-  ctaText: z.string().optional(),
-  ctaLink: z.string().optional(),
-  isActive: z.boolean().optional(),
+  id: z.string().optional(),
+  title: z.string().min(1, 'Title is required'),
+  description: z.string().optional(),
+  image: urlOrRelativeSchema,
+  mobileImage: urlOrRelativeOrEmptySchema,
+  buttonText: z.string().optional(),
+  buttonLink: urlOrRelativeOrEmptySchema,
+  isActive: z.boolean().optional().default(true),
+  order: z.number().int().min(0).optional(),
 });
 
 export const storySchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  thumbnail: z.string(),
-  mediaUrls: z.array(z.string()),
-  type: z.enum(['image', 'video']),
-  productId: z.string().optional(),
-  duration: z.number().int().positive().optional(),
-  isActive: z.boolean().optional(),
+  id: z.string().optional(),
+  title: z.string().min(1, 'Title is required'),
+  thumbnail: urlOrRelativeSchema,
+  images: z.array(urlOrRelativeSchema).min(1, 'At least one image is required'),
+  isActive: z.boolean().optional().default(true),
+  order: z.number().int().min(0).optional(),
 });
 
 export const reelSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  thumbnail: z.string(),
-  videoUrl: z.string(),
-  productId: z.string().optional(),
-  isActive: z.boolean().optional(),
+  id: z.string().optional(),
+  title: z.string().min(1, 'Title is required'),
+  thumbnail: urlOrRelativeSchema,
+  videoUrl: z.string().min(1, 'Video URL is required'),
+  productIds: z.array(z.string()).optional(),
+  isActive: z.boolean().optional().default(true),
+  order: z.number().int().min(0).optional(),
 });
 
 // Settings Schemas
@@ -304,6 +340,8 @@ export const schemas = {
   updateProduct: updateProductSchema,
   category: categorySchema,
   updateCategory: updateCategorySchema,
+  brand: brandSchema,
+  updateBrand: updateBrandSchema,
   address: addressSchema,
   orderItem: orderItemSchema,
   createOrder: createOrderSchema,

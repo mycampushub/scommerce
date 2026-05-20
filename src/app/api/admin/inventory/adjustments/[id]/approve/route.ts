@@ -55,6 +55,7 @@ export async function POST(
       variantId: adjustment.variantId,
       movementType: 'ADJUSTMENT',
       quantity: adjustment.quantityDiff,
+      notes: adjustment.reason || null,
       unitCost: 0,
       totalCost: 0,
       referenceId: adjustment.id,

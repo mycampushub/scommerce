@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { brandRepository } from '@/db/brand.repository';
 import { verifyAdmin } from '@/lib/auth/admin-auth';
+import { updateBrandSchema } from '@/lib/validations';
+import { logAdminAction } from '@/lib/audit-logger';
 
 // GET /api/admin/brands/[id] - Get single brand
 export async function GET(
@@ -65,11 +67,21 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { name, slug, logo, website, description, country, isActive, featured, sortOrder } = body;
+
+    // Validate with Zod
+    const validation = updateBrandSchema.safeParse(body);
+    if (!validation.success) {
+      return NextResponse.json(
+        { success: false, error: validation.error.issues[0].message, details: validation.error.issues },
+        { status: 400 }
+      );
+    }
+
+    const validatedData = validation.data;
 
     // If updating slug, check uniqueness
-    if (slug && slug !== brand.slug) {
-      const existingBySlug = await brandRepository.findBySlug(slug);
+    if (validatedData.slug && validatedData.slug !== brand.slug) {
+      const existingBySlug = await brandRepository.findBySlug(validatedData.slug);
       if (existingBySlug) {
         return NextResponse.json(
           { success: false, error: 'Brand with this slug already exists' },
@@ -80,17 +92,28 @@ export async function PUT(
 
     // Prepare update data
     const updateData: any = {};
-    if (name !== undefined) updateData.name = name;
-    if (slug !== undefined) updateData.slug = slug;
-    if (logo !== undefined) updateData.logo = logo;
-    if (website !== undefined) updateData.website = website;
-    if (description !== undefined) updateData.description = description;
-    if (country !== undefined) updateData.country = country;
-    if (isActive !== undefined) updateData.isActive = isActive;
-    if (featured !== undefined) updateData.featured = featured;
-    if (sortOrder !== undefined) updateData.sortOrder = sortOrder;
+    if (validatedData.name !== undefined) updateData.name = validatedData.name;
+    if (validatedData.slug !== undefined) updateData.slug = validatedData.slug;
+    if (validatedData.logo !== undefined) updateData.logo = validatedData.logo;
+    if (validatedData.website !== undefined) updateData.website = validatedData.website;
+    if (validatedData.description !== undefined) updateData.description = validatedData.description;
+    if (validatedData.country !== undefined) updateData.country = validatedData.country;
+    if (validatedData.isActive !== undefined) updateData.isActive = validatedData.isActive ? 1 : 0;
+    if (validatedData.featured !== undefined) updateData.featured = validatedData.featured ? 1 : 0;
+    if (validatedData.sortOrder !== undefined) updateData.sortOrder = validatedData.sortOrder;
 
     const updatedBrand = await brandRepository.update(id, updateData);
+
+    // Log audit event
+    await logAdminAction(
+      null,
+      request,
+      admin.id,
+      'UPDATE',
+      'Brand',
+      brand.id,
+      `Updated brand "${brand.name}"`
+    );
 
     return NextResponse.json({
       success: true,

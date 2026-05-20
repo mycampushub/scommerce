@@ -40,15 +40,13 @@ class InventoryAdjustmentRepository {
         name: true,
         slug: true,
         stock: true,
+        categoryId: true,
         brandName: true,
         countryOfOrigin: true,
         sizeType: true,
         sizeValue: true,
         sizeUnit: true,
         sizeLabel: true,
-        categories: {
-          select: { id: true, name: true }
-        }
       }
     });
 
@@ -115,6 +113,7 @@ class InventoryAdjustmentRepository {
       quantityAfter,
       quantityDiff,
       reason,
+      notes: reason || null,
       approvedBy: approvedBy || null,
       approved: 0,
       approvedAt: null,

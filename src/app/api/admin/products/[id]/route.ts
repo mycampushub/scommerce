@@ -114,8 +114,8 @@ export async function PUT(
     if (validatedData.name && validatedData.name !== existing.name) {
       changes.push(`name: "${existing.name}" → "${validatedData.name}"`)
     }
-    if (validatedData.price && validatedData.price !== existing.basePrice) {
-      changes.push(`price: ${existing.basePrice} → ${validatedData.price}`)
+    if (validatedData.basePrice && validatedData.basePrice !== existing.basePrice) {
+      changes.push(`price: ${existing.basePrice} → ${validatedData.basePrice}`)
     }
     if (typeof validatedData.isActive !== 'undefined' && validatedData.isActive !== numberToBool(existing.isActive)) {
       changes.push(`isActive: ${numberToBool(existing.isActive)} → ${validatedData.isActive}`)

@@ -767,6 +767,7 @@ CREATE TABLE "purchase_orders" (
     "orderDate" DATETIME NOT NULL,
     "expectedDate" DATETIME,
     "receivedDate" DATETIME,
+    "notes" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
     CONSTRAINT "purchase_orders_supplierId_fkey" FOREIGN KEY ("supplierId") REFERENCES "suppliers" ("id") ON DELETE CASCADE ON UPDATE CASCADE
@@ -810,6 +811,7 @@ CREATE TABLE "inventory_movements" (
     "approved" INTEGER NOT NULL DEFAULT 0,
     "approvedAt" DATETIME,
     "supplierId" TEXT,
+    "notes" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "inventory_movements_supplierId_fkey" FOREIGN KEY ("supplierId") REFERENCES "suppliers" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
@@ -835,6 +837,7 @@ CREATE TABLE "inventory_adjustments" (
     "approvedBy" TEXT,
     "approved" INTEGER NOT NULL DEFAULT 0,
     "approvedAt" DATETIME,
+    "notes" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

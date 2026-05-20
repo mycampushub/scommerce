@@ -83,7 +83,11 @@ class BrandRepository {
 
   async create(data: BrandCreateInput): Promise<brands> {
     return db.brands.create({
-      data: data as any,
+      data: {
+        ...data,
+        id: `brand-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        updatedAt: new Date(),
+      },
     });
   }
 

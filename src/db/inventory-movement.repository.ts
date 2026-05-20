@@ -3,16 +3,42 @@ import { inventory_movements, suppliers } from '@prisma/client';
 
 export type InventoryMovementWithDetails = inventory_movements & {
   supplier?: suppliers | null;
+  productName?: string;
+  variantName?: string;
 };
 
 class InventoryMovementRepository {
   async findById(id: string): Promise<InventoryMovementWithDetails | null> {
-    return db.inventory_movements.findUnique({
+    const movement = await db.inventory_movements.findUnique({
       where: { id },
       include: {
         supplier: true,
       },
-    }) as Promise<InventoryMovementWithDetails | null>;
+    });
+
+    if (!movement) return null;
+
+    // Fetch product name
+    const product = await db.products.findUnique({
+      where: { id: movement.productId },
+      select: { name: true },
+    });
+
+    // Fetch variant name if applicable
+    let variantName: string | null | undefined = undefined;
+    if (movement.variantId) {
+      const variant = await db.product_variants.findUnique({
+        where: { id: movement.variantId },
+        select: { name: true },
+      });
+      variantName = variant?.name;
+    }
+
+    return {
+      ...movement,
+      productName: product?.name,
+      variantName,
+    } as InventoryMovementWithDetails;
   }
 
   async findAll(options?: {
@@ -33,7 +59,7 @@ class InventoryMovementRepository {
     if (referenceId) where.referenceId = referenceId;
     if (referenceType) where.referenceType = referenceType;
 
-    return db.inventory_movements.findMany({
+    const movements = await db.inventory_movements.findMany({
       where,
       include: {
         supplier: true,
@@ -43,7 +69,35 @@ class InventoryMovementRepository {
       },
       take: limit,
       skip: offset,
-    }) as Promise<InventoryMovementWithDetails[]>;
+    });
+
+    // Fetch all unique product and variant IDs
+    const productIds = [...new Set(movements.map(m => m.productId))];
+    const variantIds = [...new Set(movements.map(m => m.variantId).filter(Boolean) as string[])];
+
+    // Fetch products and variants in batch
+    const products = await db.products.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, name: true },
+    });
+
+    const variants = variantIds.length > 0
+      ? await db.product_variants.findMany({
+          where: { id: { in: variantIds } },
+          select: { id: true, name: true },
+        })
+      : [];
+
+    // Create maps for quick lookup
+    const productMap = new Map(products.map(p => [p.id, p.name]));
+    const variantMap = new Map(variants.map(v => [v.id, v.name]));
+
+    // Enrich movements with product and variant names
+    return movements.map(movement => ({
+      ...movement,
+      productName: productMap.get(movement.productId),
+      variantName: movement.variantId ? variantMap.get(movement.variantId) : undefined,
+    })) as InventoryMovementWithDetails[];
   }
 
   async findByProduct(productId: string, variantId?: string, limit: number = 50): Promise<InventoryMovementWithDetails[]> {

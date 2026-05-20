@@ -98,6 +98,7 @@ export async function POST(request: NextRequest) {
       status: 'PENDING',
       orderNumber: '', // Will be generated in repository
       receivedDate: null, // Will be set when received
+      notes: notes || null,
     });
 
     return NextResponse.json({

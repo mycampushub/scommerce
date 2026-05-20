@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { brandRepository } from '@/db/brand.repository';
 import { verifyAdmin } from '@/lib/auth/admin-auth';
+import { brandSchema } from '@/lib/validations';
+import { logAdminAction } from '@/lib/audit-logger';
 
 // GET /api/admin/brands - List all brands
 export async function GET(request: NextRequest) {
@@ -59,18 +61,20 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, slug, logo, website, description, country, isActive = 1, featured = 0, sortOrder = 0 } = body;
 
-    // Validation
-    if (!name) {
+    // Validate with Zod
+    const validation = brandSchema.safeParse(body);
+    if (!validation.success) {
       return NextResponse.json(
-        { success: false, error: 'Brand name is required' },
+        { success: false, error: validation.error.issues[0].message, details: validation.error.issues },
         { status: 400 }
       );
     }
 
+    const validatedData = validation.data;
+
     // Generate slug if not provided
-    const brandSlug = slug || name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    const brandSlug = validatedData.slug || validatedData.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
 
     // Check if brand with same name or slug already exists
     const existingByName = await brandRepository.findBySlug(brandSlug);
@@ -83,16 +87,27 @@ export async function POST(request: NextRequest) {
 
     // Create brand
     const brand = await brandRepository.create({
-      name,
+      name: validatedData.name,
       slug: brandSlug,
-      logo: logo || null,
-      website: website || null,
-      description: description || null,
-      country: country || null,
-      isActive,
-      featured,
-      sortOrder,
+      logo: validatedData.logo || null,
+      website: validatedData.website || null,
+      description: validatedData.description || null,
+      country: validatedData.country || null,
+      isActive: validatedData.isActive !== undefined ? (validatedData.isActive ? 1 : 0) : 1,
+      featured: validatedData.featured !== undefined ? (validatedData.featured ? 1 : 0) : 0,
+      sortOrder: validatedData.sortOrder || 0,
     });
+
+    // Log audit event
+    await logAdminAction(
+      null,
+      request,
+      admin.id,
+      'CREATE',
+      'Brand',
+      brand.id,
+      `Created brand "${brand.name}"`
+    );
 
     return NextResponse.json({
       success: true,

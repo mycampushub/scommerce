@@ -175,7 +175,7 @@ model inventory_alerts {
   quantity         Int
   isRead           Int               @default(0)
   isResolved       Int               @default(0)
-  resolvedAt       String?
+  resolvedAt       DateTime?
   createdAt        DateTime          @default(now())
   product_variants product_variants? @relation(fields: [variantId], references: [id], onDelete: Cascade)
   products         products?         @relation(fields: [productId], references: [id], onDelete: Cascade)
@@ -440,7 +440,7 @@ model promotions {
   id                   String    @id
   title                String
   description          String?
-  image                String
+  image                String?
   ctaText              String?
   ctaLink              String?
   type                 String    @default("banner")
@@ -457,6 +457,7 @@ model promotions {
   applicableCategories String?
   applicableProducts   String?
   conditions           String?
+  discountRules        String?
   isActive             Int       @default(1)
   order                Int       @default(0)
   createdAt            DateTime  @default(now())
@@ -626,6 +627,7 @@ model purchase_orders {
   orderDate       DateTime
   expectedDate    DateTime?
   receivedDate    DateTime?
+  notes           String?
   createdAt       DateTime              @default(now())
   updatedAt       DateTime
   supplier        suppliers             @relation(fields: [supplierId], references: [id], onDelete: Cascade)
@@ -667,6 +669,7 @@ model inventory_movements {
   approvedAt      DateTime?
   supplierId      String?
   supplier        suppliers?   @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  notes           String?
   createdAt       DateTime       @default(now())
 
   @@index([productId, createdAt])
@@ -689,6 +692,7 @@ model inventory_adjustments {
   approvedBy      String?
   approved      Int      @default(0)
   approvedAt      DateTime?
+  notes           String?
   createdAt       DateTime       @default(now())
 
   @@index([productId, createdAt])

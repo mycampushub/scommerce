@@ -143,11 +143,14 @@ class PurchaseOrderRepository {
     // Generate order number
     const orderNumber = await this.generateOrderNumber();
 
+    // Generate PO ID
+    const poId = `po-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
     // Create purchase order with items in a transaction
     const po = await db.purchase_orders.create({
       data: {
         ...poData,
-        id: `po-${Date.now()}`,
+        id: poId,
         orderNumber,
         totalAmount,
         totalQuantity,
@@ -156,7 +159,7 @@ class PurchaseOrderRepository {
         updatedAt: new Date(),
         items: {
           create: items.map((item, index) => ({
-            id: `poi-${Date.now()}-${index}`,
+            id: `poi-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 5)}`,
             productId: item.productId,
             variantId: item.variantId || null,
             quantity: item.quantity,

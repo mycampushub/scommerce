@@ -139,6 +139,7 @@ const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.SETTINGS_VIEW,
   ],
   user: [],
+  vip: [],
 };
 
 /**

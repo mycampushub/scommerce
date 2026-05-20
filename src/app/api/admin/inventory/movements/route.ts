@@ -104,6 +104,7 @@ export async function POST(request: NextRequest) {
       referenceId: referenceId || null,
       referenceType: referenceType || null,
       supplierId: supplierId || null,
+      notes: notes || null,
       approved: 1,
       approvedAt: new Date(),
     });
