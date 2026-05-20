@@ -99,8 +99,19 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json() as any
 
+    // Convert empty strings to null for optional string fields
+    const sanitizedBody = {
+      ...body,
+      promoCode: body.promoCode || undefined,
+      startDate: body.startDate || null,
+      endDate: body.endDate || null,
+      ctaText: body.ctaText || null,
+      ctaLink: body.ctaLink || null,
+      conditions: body.conditions || null,
+    }
+
     // Validate with Zod
-    const validation = promotionSchema.safeParse(body)
+    const validation = promotionSchema.safeParse(sanitizedBody)
     if (!validation.success) {
       console.error('Promotion validation failed:', validation.error.issues)
       return NextResponse.json(

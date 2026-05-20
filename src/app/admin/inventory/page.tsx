@@ -143,7 +143,7 @@ export default function InventoryPage() {
     const result = await response.json() as any
 
     if (result.success) {
-      setProducts(result.data || [])
+      setProducts(result.products || [])
     }
   }
 

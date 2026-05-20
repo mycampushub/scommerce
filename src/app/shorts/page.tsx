@@ -57,8 +57,48 @@ interface ReelApiResponse {
 
 // Function to extract YouTube video ID from URL
 function getYoutubeId(url: string): string {
-  const match = url.match(/(?:embed\/|v=)([a-zA-Z0-9_-]+)/);
-  return match ? match[1] : '';
+  // Handle various YouTube URL formats
+  const patterns = [
+    /(?:embed\/|v=)([a-zA-Z0-9_-]+)/,           // youtube.com/embed/ID or youtube.com/watch?v=ID
+    /youtu\.be\/([a-zA-Z0-9_-]+)/,            // youtu.be/ID
+    /youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/ // youtube.com/shorts/ID
+  ];
+
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match) return match[1];
+  }
+  return '';
+}
+
+// Function to get proper YouTube embed URL
+function getYoutubeEmbedUrl(videoUrl: string): string {
+  const videoId = getYoutubeId(videoUrl);
+  if (!videoId) return videoUrl;
+  return `https://www.youtube.com/embed/${videoId}`;
+}
+
+// Function to detect video type
+function getVideoType(url: string): 'youtube' | 'vimeo' | 'direct' | 'unknown' {
+  if (url.includes('youtube.com') || url.includes('youtu.be')) {
+    return 'youtube';
+  }
+  if (url.includes('vimeo.com')) {
+    return 'vimeo';
+  }
+  if (url.match(/\.(mp4|webm|ogg|mov)(\?.*)?$/i)) {
+    return 'direct';
+  }
+  return 'unknown';
+}
+
+// Function to get Vimeo embed URL
+function getVimeoEmbedUrl(videoUrl: string): string {
+  const match = videoUrl.match(/vimeo\.com\/(\d+)/);
+  if (match) {
+    return `https://player.vimeo.com/video/${match[1]}?autoplay=1&mute=1&playsinline=1`;
+  }
+  return videoUrl;
 }
 
 // Function to transform API reel data to ShortVideo format
@@ -368,17 +408,65 @@ export default function ShortsPage() {
               >
                 {/* Video Element */}
                 <div className="relative w-full h-full">
-                  {currentVideo && (
-                    <iframe
-                      key={currentIndex}
-                      src={`${currentVideo.videoUrl}?autoplay=1&mute=1&playsinline=1&controls=0&loop=1&playlist=${getYoutubeId(currentVideo.videoUrl)}`}
-                      title={currentVideo.title}
-                      className="w-full h-full object-cover"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                      style={{ border: 'none' }}
-                    />
-                  )}
+                  {currentVideo && (() => {
+                    const videoType = getVideoType(currentVideo.videoUrl);
+
+                    if (videoType === 'youtube') {
+                      const youtubeId = getYoutubeId(currentVideo.videoUrl);
+                      return (
+                        <iframe
+                          key={currentIndex}
+                          src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=1&playsinline=1&controls=0&loop=1&playlist=${youtubeId}&rel=0&enablejsapi=1&origin=${encodeURIComponent(window.location.origin)}`}
+                          title={currentVideo.title}
+                          className="w-full h-full object-cover"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                          allowFullScreen
+                          style={{ border: 'none' }}
+                        />
+                      );
+                    } else if (videoType === 'vimeo') {
+                      const vimeoUrl = getVimeoEmbedUrl(currentVideo.videoUrl);
+                      return (
+                        <iframe
+                          key={currentIndex}
+                          src={vimeoUrl}
+                          title={currentVideo.title}
+                          className="w-full h-full object-cover"
+                          allow="autoplay; fullscreen; picture-in-picture"
+                          allowFullScreen
+                          style={{ border: 'none' }}
+                        />
+                      );
+                    } else if (videoType === 'direct') {
+                      return (
+                        <video
+                          key={currentIndex}
+                          src={currentVideo.videoUrl}
+                          title={currentVideo.title}
+                          className="w-full h-full object-cover"
+                          autoPlay
+                          muted
+                          loop
+                          playsInline
+                          controls={false}
+                          style={{ border: 'none' }}
+                        />
+                      );
+                    } else {
+                      // Fallback: Try to load in iframe for other URL types
+                      return (
+                        <iframe
+                          key={currentIndex}
+                          src={currentVideo.videoUrl}
+                          title={currentVideo.title}
+                          className="w-full h-full object-cover"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                          allowFullScreen
+                          style={{ border: 'none' }}
+                        />
+                      );
+                    }
+                  })()}
                 </div>
 
                 {/* Video Overlay Gradient */}

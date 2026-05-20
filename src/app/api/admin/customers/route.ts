@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
         orders: orderData.count,
         totalSpent: orderData.totalSpent,
         status: customer.isBanned === 1 ? 'banned' : (customer.name ? 'active' : 'inactive'),
-        isVIP: false, // TODO: Implement VIP logic
+        isVIP: customer.role === 'vip', // VIP status is determined by role, not a separate column
         joined: customer.createdAt || new Date().toISOString(),
         avatar: customer.avatar || null,
       }

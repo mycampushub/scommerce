@@ -530,7 +530,7 @@ CREATE TABLE "promotions" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "title" TEXT NOT NULL,
     "description" TEXT,
-    "image" TEXT NOT NULL,
+    "image" TEXT,
     "ctaText" TEXT,
     "ctaLink" TEXT,
     "type" TEXT NOT NULL DEFAULT 'banner',

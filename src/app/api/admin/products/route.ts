@@ -335,8 +335,18 @@ export async function POST(request: NextRequest) {
       const productData = {
         ...validatedData,
         slug: generatedSlug,
+        description: validatedData.description ?? undefined,
+        images: validatedData.images ?? undefined,
         comparePrice: validatedData.comparePrice ?? undefined,
         costPrice: validatedData.costPrice ?? undefined,
+        brandId: validatedData.brandId ?? undefined,
+        brandName: validatedData.brandName ?? undefined,
+        brandLogo: validatedData.brandLogo ?? undefined,
+        sizeType: validatedData.sizeType ?? undefined,
+        sizeValue: validatedData.sizeValue ?? undefined,
+        sizeUnit: validatedData.sizeUnit ?? undefined,
+        sizeLabel: validatedData.sizeLabel ?? undefined,
+        countryOfOrigin: validatedData.countryOfOrigin ?? undefined,
       }
 
       const product = await ProductRepository.create(env, productData)

@@ -713,10 +713,15 @@ export default function CustomersPage() {
                               <UserPlus className="h-4 w-4 mr-2" />
                               Edit Customer
                             </DropdownMenuItem>
-                            {!customer.isVIP && (
+                            {!customer.isVIP ? (
                               <DropdownMenuItem onClick={() => handleToggleVIP(customer)}>
                                 <Star className="h-4 w-4 mr-2" />
                                 Mark as VIP
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem onClick={() => handleToggleVIP(customer)}>
+                                <Star className="h-4 w-4 mr-2" />
+                                Remove VIP
                               </DropdownMenuItem>
                             )}
                             {customer.status === 'active' ? (

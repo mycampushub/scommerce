@@ -20,6 +20,7 @@ interface Promotion {
   title: string
   description?: string
   promoCode: string
+  type?: string
   discountType: 'percentage' | 'fixed'
   discountValue: number
   minOrderAmount?: number
@@ -64,6 +65,7 @@ export default function CouponsPage() {
     title: '',
     description: '',
     promoCode: '',
+    type: 'coupon' as string, // Set default type to coupon
     discountType: 'percentage' as 'percentage' | 'fixed',
     discountValue: 0,
     minOrderAmount: 0,
@@ -166,6 +168,7 @@ export default function CouponsPage() {
       title: '',
       description: '',
       promoCode: '',
+      type: 'coupon',
       discountType: 'percentage',
       discountValue: 0,
       minOrderAmount: 0,
@@ -188,6 +191,7 @@ export default function CouponsPage() {
       title: promotion.title,
       description: promotion.description || '',
       promoCode: promotion.promoCode,
+      type: promotion.type || 'coupon',
       discountType: promotion.discountType,
       discountValue: promotion.discountValue,
       minOrderAmount: promotion.minOrderAmount || 0,

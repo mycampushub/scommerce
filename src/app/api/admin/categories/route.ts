@@ -127,6 +127,8 @@ export async function POST(request: NextRequest) {
       description: validatedData.description,
       image: validatedData.image,
       isActive: validatedData.isActive ?? true,
+      parentId: validatedData.parentId,
+      sortOrder: validatedData.sortOrder ?? 0,
     })
 
     // Log audit event

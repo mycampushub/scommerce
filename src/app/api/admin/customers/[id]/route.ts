@@ -57,6 +57,8 @@ export async function GET(
       address: parseJSON<string>(user.address) || null,
       emailVerified: numberToBool(user.emailVerified as number),
       isBanned: numberToBool(user.isBanned as number),
+      status: numberToBool(user.isBanned as number) ? 'banned' : 'active',
+      isVIP: user.role === 'vip',
     }
 
     const responseData = {

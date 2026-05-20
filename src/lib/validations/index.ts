@@ -24,12 +24,12 @@ export const loginSchema = z.object({
 export const productSchema = z.object({
   name: z.string().min(1, 'Product name is required'),
   slug: z.string().optional(), // Optional - will be auto-generated from name if not provided
-  description: z.string().min(1, 'Description is required'),
+  description: z.string().min(1, 'Description is required').nullable().optional(),
   basePrice: z.number().positive('Price must be positive'),
   comparePrice: z.number().positive().nullable().optional(),
   costPrice: z.number().min(0).nullable().optional(),
   categoryId: z.string().min(1, 'Category ID is required'),
-  images: z.array(z.string()).optional(), // Made optional - products can be created without images initially
+  images: z.array(z.string()).nullable().optional(), // Made nullable - products can be created without images initially
   stock: z.number().int().min(0, 'Stock must be a non-negative integer'),
   lowStockAlert: z.number().int().min(0).optional(),
   isActive: z.boolean().optional(),
@@ -37,16 +37,16 @@ export const productSchema = z.object({
   hasVariants: z.boolean().optional(),
   attributes: z.record(z.string(), z.unknown()).optional(),
   // Brand fields
-  brandId: z.string().optional(),
-  brandName: z.string().optional(),
-  brandLogo: z.string().optional(),
+  brandId: z.string().nullable().optional(),
+  brandName: z.string().nullable().optional(),
+  brandLogo: z.string().nullable().optional(),
   // Size system fields
-  sizeType: z.enum(['unit', 'label']).optional(),
-  sizeValue: z.number().optional(),
-  sizeUnit: z.string().optional(),
-  sizeLabel: z.string().optional(),
+  sizeType: z.enum(['unit', 'label']).nullable().optional(),
+  sizeValue: z.number().nullable().optional(),
+  sizeUnit: z.string().nullable().optional(),
+  sizeLabel: z.string().nullable().optional(),
   // Country of origin
-  countryOfOrigin: z.string().optional(),
+  countryOfOrigin: z.string().nullable().optional(),
 });
 
 export const updateProductSchema = productSchema.partial();
@@ -269,13 +269,13 @@ export const promotionSchema = z.object({
   discountRules: z.record(z.string(), z.unknown()).optional(),
   applicableProducts: z.array(z.string()).optional().default([]),
   applicableCategories: z.array(z.string()).optional().default([]),
-  startDate: z.string().optional(),
-  endDate: z.string().optional(),
-  ctaText: z.string().optional(),
-  ctaLink: z.string().optional(),
+  startDate: z.string().nullable().optional(),
+  endDate: z.string().nullable().optional(),
+  ctaText: z.string().nullable().optional(),
+  ctaLink: z.string().nullable().optional(),
   usageLimit: z.number().int().min(0, 'Usage limit must be non-negative').optional(),
   userLimit: z.number().int().min(0, 'User limit must be non-negative').optional(),
-  conditions: z.string().optional(), // Changed to string to match frontend input
+  conditions: z.string().nullable().optional(), // Changed to string to match frontend input
   isActive: z.boolean().optional(),
 })
 

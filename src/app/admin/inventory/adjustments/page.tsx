@@ -62,6 +62,21 @@ const ADJUSTMENT_TYPES = {
   LOSS: { label: 'Loss', icon: XCircle, color: 'bg-orange-500', variant: 'secondary' as const },
   THEFT: { label: 'Theft', icon: AlertTriangle, color: 'bg-purple-500', variant: 'outline' as const },
   CORRECTION: { label: 'Correction', icon: CheckCircle, color: 'bg-green-500', variant: 'default' as const },
+} as const;
+
+// Safe type config getter with validation
+const getAdjustmentTypeConfig = (type: string) => {
+  const validTypes = Object.keys(ADJUSTMENT_TYPES) as readonly (keyof typeof ADJUSTMENT_TYPES)[];
+  if (!type || !validTypes.includes(type as keyof typeof ADJUSTMENT_TYPES)) {
+    console.warn(`[Stock Adjustments] Invalid adjustment type: "${type}". Falling back to CORRECTION.`);
+    return ADJUSTMENT_TYPES.CORRECTION;
+  }
+  const config = ADJUSTMENT_TYPES[type as keyof typeof ADJUSTMENT_TYPES];
+  if (!config || !config.icon) {
+    console.error(`[Stock Adjustments] Missing icon config for type: "${type}", config:`, config);
+    return ADJUSTMENT_TYPES.CORRECTION;
+  }
+  return config;
 };
 
 const STATUS_BADGES = {
@@ -100,6 +115,8 @@ export default function StockAdjustmentsPage() {
   // Fetch adjustments
   const fetchAdjustments = async () => {
     try {
+      console.log('[Stock Adjustments] Fetching adjustments with filters:', { searchTerm, typeFilter, statusFilter });
+      
       const params = new URLSearchParams();
       if (searchTerm) params.append('search', searchTerm);
       if (typeFilter !== 'all') params.append('type', typeFilter);
@@ -107,11 +124,35 @@ export default function StockAdjustmentsPage() {
       if (statusFilter === 'approved') params.append('approved', 'true');
 
       const response = await fetch(`/api/admin/inventory/adjustments?${params.toString()}`);
-      if (!response.ok) throw new Error('Failed to fetch adjustments');
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[Stock Adjustments] Fetch failed:', response.status, errorText);
+        throw new Error('Failed to fetch adjustments');
+      }
+      
       const data = await response.json();
-      setAdjustments(data.data || []);
+      console.log('[Stock Adjustments] Fetched data:', data);
+      
+      // Validate adjustment data structure
+      if (!data.success) {
+        console.error('[Stock Adjustments] API returned error:', data.error);
+        toast.error(data.error || 'Failed to load stock adjustments');
+        return;
+      }
+      
+      const adjustments = Array.isArray(data.data) ? data.data : [];
+      console.log('[Stock Adjustments] Validated adjustments count:', adjustments.length);
+      
+      // Log any adjustments with invalid types for debugging
+      const validTypes = Object.keys(ADJUSTMENT_TYPES);
+      const invalidAdjustments = adjustments.filter(adj => !adj.type || !validTypes.includes(adj.type));
+      if (invalidAdjustments.length > 0) {
+        console.warn('[Stock Adjustments] Found adjustments with invalid types:', invalidAdjustments);
+      }
+      
+      setAdjustments(adjustments);
     } catch (error) {
-      console.error('Error fetching adjustments:', error);
+      console.error('[Stock Adjustments] Error fetching adjustments:', error);
       toast.error('Failed to load stock adjustments');
     }
   };
@@ -202,6 +243,11 @@ export default function StockAdjustmentsPage() {
     e.preventDefault();
 
     try {
+      console.log('[Stock Adjustments] Creating adjustment with data:', {
+        ...formData,
+        quantityBefore: currentStock,
+      });
+      
       const payload = {
         productId: formData.productId,
         ...(formData.variantId && formData.variantId !== 'none' ? { variantId: formData.variantId } : {}),
@@ -218,15 +264,25 @@ export default function StockAdjustmentsPage() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to create adjustment');
+        const errorText = await response.text();
+        console.error('[Stock Adjustments] Create failed:', response.status, errorText);
+        try {
+          const error = await response.json();
+          throw new Error(error.message || error.error || 'Failed to create adjustment');
+        } catch {
+          throw new Error('Failed to create adjustment');
+        }
       }
 
+      const result = await response.json();
+      console.log('[Stock Adjustments] Created successfully:', result);
+      
       toast.success('Stock adjustment created successfully');
       setIsAddModalOpen(false);
       resetForm();
       fetchAdjustments();
     } catch (error: any) {
+      console.error('[Stock Adjustments] Create error:', error);
       toast.error(error.message || 'Failed to create stock adjustment');
     }
   };
@@ -234,18 +290,27 @@ export default function StockAdjustmentsPage() {
   // Handle approve adjustment
   const handleApprove = async (adjustmentId: string) => {
     try {
+      console.log('[Stock Adjustments] Approving adjustment:', adjustmentId);
+      
       const response = await fetch(`/api/admin/inventory/adjustments/${adjustmentId}/approve`, {
         method: 'POST',
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to approve adjustment');
+        const errorText = await response.text();
+        console.error('[Stock Adjustments] Approve failed:', response.status, errorText);
+        try {
+          const error = await response.json();
+          throw new Error(error.message || error.error || 'Failed to approve adjustment');
+        } catch {
+          throw new Error('Failed to approve adjustment');
+        }
       }
 
       toast.success('Stock adjustment approved successfully');
       fetchAdjustments();
     } catch (error: any) {
+      console.error('[Stock Adjustments] Approve error:', error);
       toast.error(error.message || 'Failed to approve stock adjustment');
     }
   };
@@ -255,18 +320,27 @@ export default function StockAdjustmentsPage() {
     if (!confirm('Are you sure you want to delete this adjustment?')) return;
 
     try {
+      console.log('[Stock Adjustments] Deleting adjustment:', adjustmentId);
+      
       const response = await fetch(`/api/admin/inventory/adjustments/${adjustmentId}`, {
         method: 'DELETE',
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to delete adjustment');
+        const errorText = await response.text();
+        console.error('[Stock Adjustments] Delete failed:', response.status, errorText);
+        try {
+          const error = await response.json();
+          throw new Error(error.message || error.error || 'Failed to delete adjustment');
+        } catch {
+          throw new Error('Failed to delete adjustment');
+        }
       }
 
       toast.success('Stock adjustment deleted successfully');
       fetchAdjustments();
     } catch (error: any) {
+      console.error('[Stock Adjustments] Delete error:', error);
       toast.error(error.message || 'Failed to delete stock adjustment');
     }
   };
@@ -470,11 +544,23 @@ export default function StockAdjustmentsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredAdjustments.map((adjustment) => {
-                    const typeConfig = ADJUSTMENT_TYPES[adjustment.type];
+                  {filteredAdjustments.map((adjustment, index) => {
+                    // Safely get type config with validation
+                    const typeConfig = getAdjustmentTypeConfig(adjustment.type);
                     const statusKey = adjustment.approved ? 'approved' : 'pending';
-                    const statusConfig = STATUS_BADGES[statusKey];
-                    const TypeIcon = typeConfig.icon;
+                    const statusConfig = STATUS_BADGES[statusKey] || STATUS_BADGES.pending;
+                    
+                    // Safe icon access with detailed error logging
+                    let TypeIcon = CheckCircle;
+                    try {
+                      if (typeConfig && typeConfig.icon && typeof typeConfig.icon === 'function') {
+                        TypeIcon = typeConfig.icon;
+                      } else {
+                        console.error(`[Stock Adjustments] Row ${index}: Invalid icon for type "${adjustment.type}":`, typeConfig);
+                      }
+                    } catch (error) {
+                      console.error(`[Stock Adjustments] Row ${index}: Error accessing icon:`, error);
+                    }
 
                     return (
                       <tr key={adjustment.id} className="border-b hover:bg-muted/50">
@@ -503,9 +589,9 @@ export default function StockAdjustmentsPage() {
                           </div>
                         </td>
                         <td className="p-4">
-                          <Badge variant={typeConfig.variant} className="flex items-center gap-2 w-fit">
+                          <Badge variant={typeConfig?.variant || 'default'} className="flex items-center gap-2 w-fit">
                             <TypeIcon className="h-3 w-3" />
-                            {typeConfig.label}
+                            {typeConfig?.label || 'Adjustment'}
                           </Badge>
                         </td>
                         <td className="p-4 text-center">

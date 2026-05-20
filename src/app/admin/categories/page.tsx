@@ -815,7 +815,6 @@ export default function CategoriesPage() {
                 <SelectContent>
                   <SelectItem value="none">No parent (root category)</SelectItem>
                   {categories
-                    .filter(c => c.id !== editingCategory?.id && !c.parentId)
                     .map((category) => (
                       <SelectItem key={category.id} value={category.id}>
                         {category.name}
@@ -965,7 +964,7 @@ export default function CategoriesPage() {
                 <SelectContent>
                   <SelectItem value="none">No parent (root category)</SelectItem>
                   {categories
-                    .filter(c => c.id !== editingCategory?.id && !c.parentId)
+                    .filter(c => c.id !== editingCategory?.id)
                     .map((category) => (
                       <SelectItem key={category.id} value={category.id}>
                         {category.name}

@@ -123,6 +123,8 @@ export async function PUT(
       ...(validatedData.description !== undefined && { description: validatedData.description }),
       ...(validatedData.image !== undefined && { image: validatedData.image }),
       ...(validatedData.isActive !== undefined && { isActive: boolToNumber(validatedData.isActive) }),
+      ...(validatedData.parentId !== undefined && { parentId: validatedData.parentId }),
+      ...(validatedData.sortOrder !== undefined && { sortOrder: validatedData.sortOrder }),
     })
 
     if (!category) {
