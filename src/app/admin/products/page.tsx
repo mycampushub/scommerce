@@ -79,6 +79,7 @@ import { apiFetch } from '@/lib/api-client'
 import { BrandSelector } from '@/components/admin/brand-selector'
 import { CountrySelector } from '@/components/admin/country-selector'
 import { SizeInput } from '@/components/admin/size-input'
+import { MultiSizeSelector, SelectedSize } from '@/components/admin/multi-size-selector'
 
 interface Product {
   id: string
@@ -197,6 +198,10 @@ export default function ProductsPage() {
     sizeLabel: '',
   })
 
+  // Multiple sizes selection for product variants
+  const [selectedSizes, setSelectedSizes] = useState<SelectedSize[]>([])
+  const [createVariantsFromSizes, setCreateVariantsFromSizes] = useState(false)
+
   // Delete modal state
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null)
 
@@ -274,7 +279,7 @@ export default function ProductsPage() {
       }
 
       // Map category fields to match frontend expectations
-      const productsWithCategory = (result.data || []).map((p: any) => ({
+      const productsWithCategory = (result.products || []).map((p: any) => ({
         ...p,
         category: {
           id: p.categoryId,
@@ -412,6 +417,8 @@ export default function ProductsPage() {
     e.preventDefault()
 
     try {
+      const hasMultipleSizes = selectedSizes.length > 1
+
       const response = await apiFetch('/api/admin/products', {
         method: 'POST',
         headers: {
@@ -426,9 +433,9 @@ export default function ProductsPage() {
           costPrice: addFormData.costPrice ? parseFloat(addFormData.costPrice) : null,
           categoryId: addFormData.categoryId || null,
           images: addFormData.images,
-          stock: parseInt(addFormData.stock),
-          hasVariants: false,
-          size: addFormData.size || null,
+          stock: hasMultipleSizes ? 0 : parseInt(addFormData.stock), // If multiple sizes, stock is tracked in variants
+          hasVariants: hasMultipleSizes,
+          size: hasMultipleSizes ? null : (addFormData.size || null),
           color: addFormData.color || null,
           material: addFormData.material || null,
           isActive: addFormData.isActive,
@@ -438,10 +445,10 @@ export default function ProductsPage() {
           brandName: addFormData.brandName || null,
           brandLogo: addFormData.brandLogo || null,
           countryOfOrigin: addFormData.countryOfOrigin || null,
-          sizeType: addFormData.sizeType,
-          sizeValue: addFormData.sizeValue ? parseFloat(addFormData.sizeValue) : null,
-          sizeUnit: addFormData.sizeUnit || null,
-          sizeLabel: addFormData.sizeLabel || null,
+          sizeType: hasMultipleSizes ? null : addFormData.sizeType,
+          sizeValue: hasMultipleSizes ? null : (addFormData.sizeValue ? parseFloat(addFormData.sizeValue) : null),
+          sizeUnit: hasMultipleSizes ? null : (addFormData.sizeUnit || null),
+          sizeLabel: hasMultipleSizes ? null : (addFormData.sizeLabel || null),
         }),
       })
 
@@ -451,12 +458,61 @@ export default function ProductsPage() {
         throw new Error(result.error || 'Failed to create product')
       }
 
-      toast({
-        title: 'Success',
-        description: 'Product created successfully',
-      })
+      const productId = result.data?.id || result.products?.id
+
+      // Create variants for each selected size
+      if (hasMultipleSizes && productId) {
+        let variantsCreated = 0
+        const basePrice = parseFloat(addFormData.price)
+        const baseStock = parseInt(addFormData.stock)
+
+        for (let i = 0; i < selectedSizes.length; i++) {
+          const size = selectedSizes[i]
+          const sizeLabel = size.type === 'label'
+            ? size.label
+            : `${size.value}${size.unit}`
+
+          try {
+            const variantResponse = await apiFetch(`/api/admin/products/${productId}/variants`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                name: `${addFormData.name} - ${sizeLabel}`,
+                price: basePrice,
+                comparePrice: addFormData.comparePrice ? parseFloat(addFormData.comparePrice) : null,
+                costPrice: addFormData.costPrice ? parseFloat(addFormData.costPrice) : null,
+                stock: baseStock,
+                size: sizeLabel,
+                isActive: true,
+                isDefault: i === 0, // First variant is default
+                lowStockAlert: 10,
+                reorderLevel: 5,
+                reorderQty: 20,
+              }),
+            })
+
+            const variantResult = await variantResponse.json() as any
+            if (variantResult.success) {
+              variantsCreated++
+            }
+          } catch (err) {
+            console.error('Error creating variant:', err)
+          }
+        }
+
+        toast({
+          title: 'Success',
+          description: `Product created with ${variantsCreated} size variants`,
+        })
+      } else {
+        toast({
+          title: 'Success',
+          description: 'Product created successfully',
+        })
+      }
 
       setIsAddModalOpen(false)
+      // Reset form
       setAddFormData({
         name: '',
         slug: '',
@@ -482,6 +538,7 @@ export default function ProductsPage() {
         sizeUnit: '',
         sizeLabel: '',
       })
+      setSelectedSizes([])
       fetchProducts()
     } catch (err: any) {
       console.error('Error adding product:', err)
@@ -1510,21 +1567,68 @@ export default function ProductsPage() {
               />
             </div>
 
-            <SizeInput
-              value={{
-                type: addFormData.sizeType,
-                value: addFormData.sizeValue ? parseFloat(addFormData.sizeValue) : undefined,
-                unit: addFormData.sizeUnit || undefined,
-                label: addFormData.sizeLabel || undefined,
-              }}
-              onChange={(value) => setAddFormData({
-                ...addFormData,
-                sizeType: value.type,
-                sizeValue: value.value?.toString() || '',
-                sizeUnit: value.unit || '',
-                sizeLabel: value.label || '',
-              })}
-            />
+            {/* Size Selection - Single or Multiple */}
+            <div className="space-y-4 border rounded-lg p-4 bg-gray-50 dark:bg-gray-900">
+              <div className="flex items-center gap-4">
+                <label className="text-sm font-medium">Size Selection Mode:</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    id="single-size"
+                    name="size-mode"
+                    checked={selectedSizes.length <= 1}
+                    onChange={() => setSelectedSizes([])}
+                    className="h-4 w-4"
+                  />
+                  <label htmlFor="single-size" className="text-sm">Single Size</label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    id="multiple-sizes"
+                    name="size-mode"
+                    checked={selectedSizes.length > 1}
+                    onChange={() => {}}
+                    className="h-4 w-4"
+                  />
+                  <label htmlFor="multiple-sizes" className="text-sm">Multiple Sizes (Create Variants)</label>
+                </div>
+              </div>
+
+              {selectedSizes.length <= 1 ? (
+                <SizeInput
+                  value={{
+                    type: addFormData.sizeType,
+                    value: addFormData.sizeValue ? parseFloat(addFormData.sizeValue) : undefined,
+                    unit: addFormData.sizeUnit || undefined,
+                    label: addFormData.sizeLabel || undefined,
+                  }}
+                  onChange={(value) => {
+                    setAddFormData({
+                      ...addFormData,
+                      sizeType: value.type,
+                      sizeValue: value.value?.toString() || '',
+                      sizeUnit: value.unit || '',
+                      sizeLabel: value.label || '',
+                    })
+                    // Keep single size selected
+                    if (value.type === 'label' && value.label) {
+                      setSelectedSizes([{ type: 'label', label: value.label }])
+                    } else if (value.type === 'unit' && value.value && value.unit) {
+                      setSelectedSizes([{ type: 'unit', value: value.value, unit: value.unit }])
+                    } else {
+                      setSelectedSizes([])
+                    }
+                  }}
+                />
+              ) : (
+                <MultiSizeSelector
+                  selectedSizes={selectedSizes}
+                  onChange={setSelectedSizes}
+                  categoryHint={categories.find(c => c.id === addFormData.categoryId)?.name}
+                />
+              )}
+            </div>
 
             <div className="space-y-2">
               <label className="text-sm font-medium">Category</label>

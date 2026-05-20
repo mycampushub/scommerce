@@ -34,7 +34,19 @@ export const productSchema = z.object({
   lowStockAlert: z.number().int().min(0).optional(),
   isActive: z.boolean().optional(),
   isFeatured: z.boolean().optional(),
+  hasVariants: z.boolean().optional(),
   attributes: z.record(z.string(), z.unknown()).optional(),
+  // Brand fields
+  brandId: z.string().optional(),
+  brandName: z.string().optional(),
+  brandLogo: z.string().optional(),
+  // Size system fields
+  sizeType: z.enum(['unit', 'label']).optional(),
+  sizeValue: z.number().optional(),
+  sizeUnit: z.string().optional(),
+  sizeLabel: z.string().optional(),
+  // Country of origin
+  countryOfOrigin: z.string().optional(),
 });
 
 export const updateProductSchema = productSchema.partial();
