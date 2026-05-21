@@ -111,7 +111,9 @@ export default function PurchaseOrdersPage() {
   const fetchPurchaseOrders = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/admin/purchase-orders')
+      const response = await fetch('/api/admin/purchase-orders', {
+        credentials: 'include',
+      })
       const result = await response.json()
 
       if (result.success) {
@@ -131,7 +133,9 @@ export default function PurchaseOrdersPage() {
 
   const fetchSuppliers = async () => {
     try {
-      const response = await fetch('/api/admin/suppliers?activeOnly=true')
+      const response = await fetch('/api/admin/suppliers?activeOnly=true', {
+        credentials: 'include',
+      })
       const result = await response.json()
 
       if (result.success) {
@@ -144,7 +148,9 @@ export default function PurchaseOrdersPage() {
 
   const fetchProducts = async () => {
     try {
-      const response = await fetch('/api/admin/products?isActive=true')
+      const response = await fetch('/api/admin/products?isActive=true', {
+        credentials: 'include',
+      })
       const result = await response.json()
 
       if (result.success) {
@@ -157,7 +163,9 @@ export default function PurchaseOrdersPage() {
 
   const fetchVariants = async (productId: string): Promise<ProductVariant[]> => {
     try {
-      const response = await fetch(`/api/admin/products/${productId}/variants`)
+      const response = await fetch(`/api/admin/products/${productId}/variants`, {
+        credentials: 'include',
+      })
       const result = await response.json()
       return result.variants || []
     } catch (err) {
@@ -250,6 +258,7 @@ export default function PurchaseOrdersPage() {
     try {
       const response = await fetch('/api/admin/purchase-orders', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -295,7 +304,9 @@ export default function PurchaseOrdersPage() {
 
     try {
       // Get PO details to fetch items
-      const poResponse = await fetch(`/api/admin/purchase-orders/${po.id}`)
+      const poResponse = await fetch(`/api/admin/purchase-orders/${po.id}`, {
+        credentials: 'include',
+      })
       const poResult = await poResponse.json()
 
       if (!poResult.success || !poResult.data.items) {
@@ -310,6 +321,7 @@ export default function PurchaseOrdersPage() {
 
       const response = await fetch(`/api/admin/purchase-orders/${po.id}/receive`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -345,6 +357,7 @@ export default function PurchaseOrdersPage() {
     try {
       const response = await fetch(`/api/admin/purchase-orders/${po.id}`, {
         method: 'DELETE',
+        credentials: 'include',
       })
 
       const result = await response.json()
@@ -370,7 +383,9 @@ export default function PurchaseOrdersPage() {
 
   const handleView = async (po: PurchaseOrder) => {
     try {
-      const response = await fetch(`/api/admin/purchase-orders/${po.id}`)
+      const response = await fetch(`/api/admin/purchase-orders/${po.id}`, {
+        credentials: 'include',
+      })
       const result = await response.json()
 
       if (result.success) {

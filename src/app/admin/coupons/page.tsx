@@ -219,6 +219,7 @@ export default function CouponsPage() {
     try {
       const response = await fetch(`/api/admin/promotions/${id}`, {
         method: 'DELETE',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -283,6 +284,7 @@ export default function CouponsPage() {
 
       const response = await fetch(url, {
         method: editingPromotion ? 'PUT' : 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -319,6 +321,7 @@ export default function CouponsPage() {
     try {
       const response = await fetch(`/api/admin/promotions/${id}`, {
         method: 'PUT',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
