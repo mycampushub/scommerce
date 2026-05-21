@@ -44,7 +44,7 @@ interface Adjustment {
   variantId: string | null;
   product: Product;
   variant?: Variant;
-  type: 'STOCK_TAKE' | 'DAMAGE' | 'LOSS' | 'THEFT' | 'CORRECTION';
+  adjustmentType: 'STOCK_TAKE' | 'DAMAGE' | 'LOSS' | 'THEFT' | 'CORRECTION';
   quantityBefore: number;
   quantityAfter: number;
   quantityDiff: number;
@@ -145,7 +145,7 @@ export default function StockAdjustmentsPage() {
       
       // Log any adjustments with invalid types for debugging
       const validTypes = Object.keys(ADJUSTMENT_TYPES);
-      const invalidAdjustments = adjustments.filter(adj => !adj.type || !validTypes.includes(adj.type));
+      const invalidAdjustments = adjustments.filter(adj => !adj.adjustmentType || !validTypes.includes(adj.adjustmentType));
       if (invalidAdjustments.length > 0) {
         console.warn('[Stock Adjustments] Found adjustments with invalid types:', invalidAdjustments);
       }
@@ -361,7 +361,7 @@ export default function StockAdjustmentsPage() {
   // Filter and sort adjustments
   const filteredAdjustments = adjustments
     .filter(adjustment => {
-      if (typeFilter !== 'all' && adjustment.type !== typeFilter) return false;
+      if (typeFilter !== 'all' && adjustment.adjustmentType !== typeFilter) return false;
       if (statusFilter === 'pending' && adjustment.approved) return false;
       if (statusFilter === 'approved' && !adjustment.approved) return false;
       if (searchTerm && !adjustment.product.name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
@@ -546,17 +546,17 @@ export default function StockAdjustmentsPage() {
                 <tbody>
                   {filteredAdjustments.map((adjustment, index) => {
                     // Safely get type config with validation
-                    const typeConfig = getAdjustmentTypeConfig(adjustment.type);
+                    const typeConfig = getAdjustmentTypeConfig(adjustment.adjustmentType);
                     const statusKey = adjustment.approved ? 'approved' : 'pending';
                     const statusConfig = STATUS_BADGES[statusKey] || STATUS_BADGES.pending;
-                    
+
                     // Safe icon access with detailed error logging
                     let TypeIcon = CheckCircle;
                     try {
                       if (typeConfig && typeConfig.icon && typeof typeConfig.icon === 'function') {
                         TypeIcon = typeConfig.icon;
                       } else {
-                        console.error(`[Stock Adjustments] Row ${index}: Invalid icon for type "${adjustment.type}":`, typeConfig);
+                        console.error(`[Stock Adjustments] Row ${index}: Invalid icon for type "${adjustment.adjustmentType}":`, typeConfig);
                       }
                     } catch (error) {
                       console.error(`[Stock Adjustments] Row ${index}: Error accessing icon:`, error);
@@ -668,7 +668,7 @@ export default function StockAdjustmentsPage() {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create Stock Adjustment</DialogTitle>
-            <DialogDescription>
+            <DialogDescription id="add-adjustment-description">
               Adjust stock quantity for a product or variant
             </DialogDescription>
           </DialogHeader>
@@ -795,6 +795,9 @@ export default function StockAdjustmentsPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Adjustment Details</DialogTitle>
+            <DialogDescription id="view-adjustment-description">
+              View detailed information about this stock adjustment
+            </DialogDescription>
           </DialogHeader>
           {selectedAdjustment && (
             <div className="space-y-4">
@@ -811,7 +814,7 @@ export default function StockAdjustmentsPage() {
                 <div>
                   <Label className="text-muted-foreground">Type</Label>
                   <div className="font-medium">
-                    {ADJUSTMENT_TYPES[selectedAdjustment.type].label}
+                    {ADJUSTMENT_TYPES[selectedAdjustment.adjustmentType]?.label || 'Adjustment'}
                   </div>
                 </div>
                 <div>

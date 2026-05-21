@@ -393,10 +393,10 @@ export default function SuppliersPage() {
 
       {/* Add/Edit Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="overflow-x-hidden sm:rounded-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="overflow-x-hidden sm:rounded-lg max-h-[90vh] overflow-y-auto" aria-describedby="supplier-modal-description">
           <DialogHeader>
             <DialogTitle>{editingSupplier ? 'Edit Supplier' : 'Add New Supplier'}</DialogTitle>
-            <DialogDescription>
+            <DialogDescription id="supplier-modal-description">
               {editingSupplier ? 'Update supplier information' : 'Enter supplier details to add a new supplier'}
             </DialogDescription>
           </DialogHeader>

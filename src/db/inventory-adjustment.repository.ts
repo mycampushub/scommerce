@@ -12,7 +12,7 @@ interface InventoryAdjustment {
   reason: string;
   notes: string | null;
   approvedBy: string | null;
-  approved: number;
+  approved: number | boolean;
   approvedAt: string | null;
   createdAt: string;
 }
@@ -132,11 +132,12 @@ class InventoryAdjustmentRepository {
       InventoryAdjustmentWithRelations & { product: string; variant: string }
     >(env, sql, ...params, limit, offset);
 
-    // Parse JSON fields
+    // Parse JSON fields and convert approved to boolean
     return results.map(row => ({
       ...row,
       product: row.product ? JSON.parse(row.product) : null,
       variant: row.variant ? JSON.parse(row.variant) : null,
+      approved: row.approved === 1,
     }));
   }
 
@@ -177,7 +178,7 @@ class InventoryAdjustmentRepository {
       data.reason,
       data.notes,
       data.approvedBy,
-      data.approved,
+      typeof data.approved === 'boolean' ? (data.approved ? 1 : 0) : data.approved,
       data.approvedAt,
       createdAt
     );
@@ -185,6 +186,7 @@ class InventoryAdjustmentRepository {
     return {
       id,
       ...data,
+      approved: typeof data.approved === 'boolean' ? data.approved : data.approved === 1,
       createdAt,
     };
   }
