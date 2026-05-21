@@ -3,6 +3,7 @@ import { purchaseOrderRepository } from '@/db/purchase-order.repository';
 import { verifyAdminAuth } from '@/lib/admin-auth';
 import { getEnv } from '@/lib/cloudflare';
 import { logAdminAction } from '@/lib/audit-logger';
+import { checkEnv } from '@/lib/api-helpers';
 
 // GET /api/admin/purchase-orders - List all purchase orders
 export async function GET(request: NextRequest) {
@@ -14,6 +15,13 @@ export async function GET(request: NextRequest) {
     }
 
     const env = await getEnv();
+
+    // Check if database is available
+    const envCheck = checkEnv(env);
+    if (envCheck) {
+      return envCheck;
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const supplierId = searchParams.get('supplierId') || undefined;
     const status = searchParams.get('status') || undefined;
@@ -61,6 +69,12 @@ export async function POST(request: NextRequest) {
 
     const admin = userOrResponse as { id: string; email: string; role: string; name?: string };
     const env = await getEnv();
+
+    // Check if database is available
+    const envCheck = checkEnv(env);
+    if (envCheck) {
+      return envCheck;
+    }
 
     const body = await request.json();
     const { supplierId, items, orderDate, expectedDate, notes } = body;

@@ -222,36 +222,115 @@ export function buildPaginationClause(options: { limit?: number; offset?: number
 
 /**
  * Execute SQL within a transaction
- * Supports both D1 and Prisma (SQLite)
+ * Cloudflare D1 uses batch() for atomic transactions
+ * Prisma/SQLite uses BEGIN/COMMIT
  */
 export async function transaction<T>(
   env: Env | null,
-  callback: (db: any) => Promise<T>
+  callback: (env: Env | null) => Promise<T>
 ): Promise<T> {
   const db = getDatabase(env);
   if (!db) {
     throw new Error('Database not available');
   }
 
-  try {
-    // Begin transaction
-    await execute(env, 'BEGIN TRANSACTION');
-    
-    // Execute callback
-    const result = await callback(db);
-    
-    // Commit transaction
-    await execute(env, 'COMMIT');
-    
-    return result;
-  } catch (error) {
-    // Rollback on error
+  // Check if we're using Cloudflare D1 (has batch method)
+  if (db && typeof (db as any).batch === 'function') {
+    // Cloudflare D1 - execute without explicit BEGIN/COMMIT
+    // NOTE: For atomic operations in D1, use batchTransaction() instead
+    console.warn('[db.ts] Cloudflare D1 detected - using non-atomic execution. Use batchTransaction() for atomic operations.');
+    return await callback(env);
+  } else {
+    // Prisma/SQLite - use traditional transactions
     try {
-      await execute(env, 'ROLLBACK');
-    } catch (rollbackError) {
-      console.error('[db.ts] Error during rollback:', rollbackError);
+      // Begin transaction
+      await execute(env, 'BEGIN TRANSACTION');
+
+      // Execute callback
+      const result = await callback(env);
+
+      // Commit transaction
+      await execute(env, 'COMMIT');
+
+      return result;
+    } catch (error) {
+      // Rollback on error
+      try {
+        await execute(env, 'ROLLBACK');
+      } catch (rollbackError) {
+        console.error('[db.ts] Error during rollback:', rollbackError);
+      }
+      throw error;
     }
-    throw error;
+  }
+}
+
+/**
+ * Execute multiple SQL statements atomically using D1 batch() API
+ * This provides true atomicity for Cloudflare D1
+ * For Prisma/SQLite, falls back to traditional transaction
+ *
+ * @param env - Environment object with database binding
+ * @param operations - Array of { sql, params } objects to execute atomically
+ * @returns Array of results from each operation
+ */
+export async function batchTransaction(
+  env: Env | null,
+  operations: Array<{ sql: string; params?: unknown[] }>
+): Promise<void> {
+  const db = getDatabase(env);
+  if (!db) {
+    throw new Error('Database not available');
+  }
+
+  // Check if we're using Cloudflare D1
+  if (db && typeof (db as any).batch === 'function') {
+    // Cloudflare D1 - use batch() for atomic execution
+    console.log('[db.ts] Executing batch transaction with', operations.length, 'operations');
+
+    try {
+      // Prepare all statements
+      const statements = operations.map(op => {
+        const stmt = db.prepare(op.sql);
+        return op.params ? stmt.bind(...op.params) : stmt;
+      });
+
+      // Execute all statements atomically
+      const results = await (db as any).batch(statements);
+
+      // Check for errors in any of the results
+      for (let i = 0; i < results.length; i++) {
+        const result = results[i];
+        if ('error' in result && result.error) {
+          console.error('[db.ts] Batch operation failed at index', i, ':', result.error);
+          throw new Error(`Batch operation failed: ${result.error.message}`);
+        }
+      }
+
+      console.log('[db.ts] Batch transaction completed successfully');
+    } catch (error) {
+      console.error('[db.ts] Batch transaction error:', error);
+      throw error;
+    }
+  } else {
+    // Prisma/SQLite - fall back to traditional transaction
+    console.log('[db.ts] Using traditional transaction for non-D1 database');
+    try {
+      await execute(env, 'BEGIN TRANSACTION');
+
+      for (const op of operations) {
+        await execute(env, op.sql, ...(op.params || []));
+      }
+
+      await execute(env, 'COMMIT');
+    } catch (error) {
+      try {
+        await execute(env, 'ROLLBACK');
+      } catch (rollbackError) {
+        console.error('[db.ts] Error during rollback:', rollbackError);
+      }
+      throw error;
+    }
   }
 }
 

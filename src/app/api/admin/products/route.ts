@@ -19,6 +19,7 @@ import { generateUniqueSlug, isValidSlug, createSlug } from '@/lib/slug'
 import { logAdminAction } from '@/lib/audit-logger'
 import { rateLimit, createRateLimitResponse } from '@/lib/rate-limit'
 import { getClientIp } from '@/lib/rate-limit'
+import { checkEnv } from '@/lib/api-helpers'
 
 
 export async function GET(request: NextRequest) {
@@ -30,6 +31,13 @@ export async function GET(request: NextRequest) {
 
   try {
     const env = await getEnv()
+
+    // Check if database is available
+    const envCheck = checkEnv(env)
+    if (envCheck) {
+      return envCheck
+    }
+
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search') || ''
     const categorySlug = searchParams.get('category') || ''
@@ -127,8 +135,16 @@ export async function POST(request: NextRequest) {
 
   const admin = userOrResponse as { id: string; email: string; role: string; name?: string }
 
-  // Rate limiting: 30 products per minute per admin
+  // Get environment and check availability
   const env = await getEnv()
+
+  // Check if database is available
+  const envCheck = checkEnv(env)
+  if (envCheck) {
+    return envCheck
+  }
+
+  // Rate limiting: 30 products per minute per admin
   const clientIp = getClientIp(request)
   const rateLimitKey = `admin-product-create:${clientIp}`
   const rateLimitResult = await rateLimit(env, rateLimitKey, {

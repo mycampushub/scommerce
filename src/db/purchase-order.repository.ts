@@ -1,5 +1,5 @@
 import { Env } from './types';
-import { queryFirst, queryAll, execute, count as dbCount, generateId, transaction, retry } from './db';
+import { queryFirst, queryAll, execute, count as dbCount, generateId, retry, batchTransaction } from './db';
 
 export type PurchaseOrderWithItems = {
   id: string;
@@ -284,18 +284,18 @@ class PurchaseOrderRepository {
     try {
       await execute(
         env,
-        `INSERT INTO purchase_orders (id, orderNumber, supplierId, status, orderDate, expectedDate, receivedDate, notes, totalAmount, totalQuantity, createdAt, updatedAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO purchase_orders (id, orderNumber, supplierId, status, totalAmount, totalQuantity, orderDate, expectedDate, receivedDate, notes, createdAt, updatedAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         poId,
         orderNumber,
         poData.supplierId,
         poData.status || 'PENDING',
+        totalAmount,
+        totalQuantity,
         orderDate,
         poData.expectedDate ? new Date(poData.expectedDate).toISOString() : null,
         poData.receivedDate ? new Date(poData.receivedDate).toISOString() : null,
         poData.notes || null,
-        totalAmount,
-        totalQuantity,
         now,
         now
       );
@@ -445,100 +445,134 @@ class PurchaseOrderRepository {
   }
 
   async receiveOrder(env: Env | null, id: string, receivedItems: Array<{ itemId: string; quantity: number }>): Promise<PurchaseOrderWithItems | null> {
-    // Wrap the entire receive operation in a transaction to ensure data integrity
-    return transaction(env, async () => {
-      const po = await this.findById(env, id);
-      if (!po) {
-        throw new Error('Purchase order not found');
-      }
+    const po = await this.findById(env, id);
+    if (!po) {
+      throw new Error('Purchase order not found');
+    }
 
-      if (po.status === 'RECEIVED') {
-        throw new Error('Order has already been received');
-      }
+    if (po.status === 'RECEIVED') {
+      throw new Error('Order has already been received');
+    }
 
-      // Update purchase order items with received quantities
-      for (const item of receivedItems) {
-        await execute(
-          env,
-          `UPDATE purchase_order_items SET receivedQty = ? WHERE id = ?`,
-          item.quantity,
-          item.itemId
-        );
-      }
+    console.log('[receiveOrder] Starting to receive PO:', id);
 
-      // Update inventory for each item and create inventory movements
-      for (const item of po.items) {
-        const receivedItem = receivedItems.find((ri) => ri.itemId === item.id);
-        if (!receivedItem) continue;
+    // First, fetch all variant and product data we need
+    const variantIds = po.items
+      .filter(item => item.variantId)
+      .map(item => item.variantId)
+      .filter(Boolean) as string[];
 
-        const quantity = receivedItem.quantity;
+    const productIds = po.items
+      .filter(item => !item.variantId)
+      .map(item => item.productId);
 
-        if (item.variantId) {
-          const variant = await queryFirst<any>(
-            env,
-            `SELECT * FROM product_variants WHERE id = ?`,
-            item.variantId
-          );
+    const variants: Record<string, any> = {};
+    const products: Record<string, any> = {};
 
-          if (!variant) {
-            console.error(`[receiveOrder] Variant not found: ${item.variantId}. Skipping stock update for item: ${item.productName || item.productId}`);
-            continue;
-          }
+    // Fetch variants
+    if (variantIds.length > 0) {
+      const variantRecords = await queryAll<any>(
+        env,
+        `SELECT * FROM product_variants WHERE id IN (${variantIds.map(() => '?').join(',')})`,
+        ...variantIds
+      );
+      variantRecords.forEach(v => {
+        variants[v.id] = v;
+      });
+    }
 
-          const newTotalPurchased = variant.totalPurchased + quantity;
-          const oldTotalCost = variant.totalCost || 0;
-          const newCost = item.unitCost * quantity;
-          const newTotalCost = oldTotalCost + newCost;
-          const newAverageCost = newTotalCost / newTotalPurchased;
+    // Fetch products
+    if (productIds.length > 0) {
+      const productRecords = await queryAll<any>(
+        env,
+        `SELECT * FROM products WHERE id IN (${productIds.map(() => '?').join(',')})`,
+        ...productIds
+      );
+      productRecords.forEach(p => {
+        products[p.id] = p;
+      });
+    }
 
-          await execute(
-            env,
-            `UPDATE product_variants SET stock = stock + ?, totalPurchased = ?, totalCost = ?, averageCost = ?, costPrice = ? WHERE id = ?`,
-            quantity,
-            newTotalPurchased,
-            newTotalCost,
-            newAverageCost,
-            newAverageCost,
-            item.variantId
-          );
-        } else {
-          const product = await queryFirst<any>(
-            env,
-            `SELECT * FROM products WHERE id = ?`,
-            item.productId
-          );
+    // Collect all operations for atomic batch execution
+    const operations: Array<{ sql: string; params?: unknown[] }> = [];
+    const currentTime = new Date().toISOString();
 
-          if (!product) {
-            console.error(`[receiveOrder] Product not found: ${item.productId}. Skipping stock update for item: ${item.productName || item.productId}`);
-            continue;
-          }
+    // Update purchase order items with received quantities
+    for (const item of receivedItems) {
+      operations.push({
+        sql: `UPDATE purchase_order_items SET receivedQty = ? WHERE id = ?`,
+        params: [item.quantity, item.itemId]
+      });
+      console.log('[receiveOrder] Queued update for receivedQty item:', item.itemId);
+    }
 
-          const newTotalPurchased = product.totalPurchased + quantity;
-          const oldTotalCost = product.totalCost || 0;
-          const newCost = item.unitCost * quantity;
-          const newTotalCost = oldTotalCost + newCost;
-          const newAverageCost = newTotalCost / newTotalPurchased;
+    // Update inventory for each item and prepare inventory movement records
+    for (const item of po.items) {
+      const receivedItem = receivedItems.find((ri) => ri.itemId === item.id);
+      if (!receivedItem) continue;
 
-          await execute(
-            env,
-            `UPDATE products SET stock = stock + ?, totalPurchased = ?, totalCost = ?, averageCost = ?, costPrice = ?, lastPurchaseAt = ?, lastPurchaseCost = ? WHERE id = ?`,
-            quantity,
-            newTotalPurchased,
-            newTotalCost,
-            newAverageCost,
-            newAverageCost,
-            new Date().toISOString(),
-            item.unitCost,
-            item.productId
-          );
+      const quantity = receivedItem.quantity;
+
+      if (item.variantId) {
+        const variant = variants[item.variantId];
+        if (!variant) {
+          console.error(`[receiveOrder] Variant not found: ${item.variantId}. Skipping stock update for item: ${item.productName || item.productId}`);
+          continue;
         }
 
-        // Create inventory movement record for audit trail
-        const movementId = generateId();
-        await execute(
-          env,
-          `INSERT INTO inventory_movements (id, productId, variantId, movementType, quantity, unitCost, totalCost, referenceId, referenceType, supplierId, approved, approvedAt)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        const newTotalPurchased = variant.totalPurchased + quantity;
+        const oldTotalCost = variant.totalCost || 0;
+        const newCost = item.unitCost * quantity;
+        const newTotalCost = oldTotalCost + newCost;
+        const newAverageCost = newTotalCost / newTotalPurchased;
+
+        operations.push({
+          sql: `UPDATE product_variants SET stock = stock + ?, totalPurchased = ?, totalCost = ?, averageCost = ?, costPrice = ? WHERE id = ?`,
+          params: [
+            quantity,
+            newTotalPurchased,
+            newTotalCost,
+            newAverageCost,
+            newAverageCost,
+            item.variantId
+          ]
+        });
+        console.log('[receiveOrder] Queued variant stock update:', item.variantId);
+      } else {
+        const product = products[item.productId];
+        if (!product) {
+          console.error(`[receiveOrder] Product not found: ${item.productId}. Skipping stock update for item: ${item.productName || item.productId}`);
+          continue;
+        }
+
+        const newTotalPurchased = product.totalPurchased + quantity;
+        const oldTotalCost = product.totalCost || 0;
+        const newCost = item.unitCost * quantity;
+        const newTotalCost = oldTotalCost + newCost;
+        const newAverageCost = newTotalCost / newTotalPurchased;
+
+        operations.push({
+          sql: `UPDATE products SET stock = stock + ?, totalPurchased = ?, totalCost = ?, averageCost = ?, costPrice = ?, lastPurchaseAt = ?, lastPurchaseCost = ? WHERE id = ?`,
+          params: [
+            quantity,
+            newTotalPurchased,
+            newTotalCost,
+            newAverageCost,
+            newAverageCost,
+            currentTime,
+            item.unitCost,
+            item.productId
+          ]
+        });
+        console.log('[receiveOrder] Queued product stock update:', item.productId);
+      }
+
+      // Create inventory movement record for audit trail
+      const movementId = generateId();
+      operations.push({
+        sql: `INSERT INTO inventory_movements (id, productId, variantId, movementType, quantity, unitCost, totalCost, referenceId, referenceType, approved, approvedAt, supplierId)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        params: [
           movementId,
           item.productId,
           item.variantId,
@@ -548,19 +582,34 @@ class PurchaseOrderRepository {
           item.unitCost * quantity,
           id,
           'PURCHASE_ORDER',
-          po.supplierId,
           1,
-          new Date().toISOString()
-        );
-      }
+          currentTime,
+          po.supplierId
+        ]
+      });
+      console.log('[receiveOrder] Queued inventory movement:', movementId);
+    }
 
-      // Update PO status to RECEIVED
-      await this.updateStatus(env, id, 'RECEIVED', new Date());
-
-      // Return the updated PO
-      const result = await this.findById(env, id);
-      return result;
+    // Update PO status to RECEIVED
+    operations.push({
+      sql: `UPDATE purchase_orders SET status = ?, receivedDate = ?, updatedAt = ? WHERE id = ?`,
+      params: ['RECEIVED', currentTime, currentTime, id]
     });
+    console.log('[receiveOrder] Queued PO status update to RECEIVED:', id);
+
+    // Execute all operations atomically using batchTransaction
+    try {
+      console.log('[receiveOrder] Executing batch transaction with', operations.length, 'operations');
+      await batchTransaction(env, operations);
+      console.log('[receiveOrder] Batch transaction completed successfully');
+    } catch (error) {
+      console.error('[receiveOrder] Batch transaction failed:', error);
+      throw new Error(`Failed to receive purchase order: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+
+    // Return the updated PO
+    const result = await this.findById(env, id);
+    return result;
   }
 
   async count(env: Env | null, options?: { supplierId?: string; status?: string }): Promise<number> {

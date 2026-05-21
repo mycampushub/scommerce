@@ -106,6 +106,9 @@ export interface Product {
   isActive: number;
   isFeatured: number;
   hasVariants: number;
+  weight: number | null;
+  dimensions: string | null;
+  tags: string | null;
   // Brand fields
   brandId: string | null;
   brandName: string | null;

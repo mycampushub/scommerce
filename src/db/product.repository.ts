@@ -76,6 +76,9 @@ export class ProductRepository {
     isActive?: boolean;
     isFeatured?: boolean;
     hasVariants?: boolean;
+    weight?: number;
+    dimensions?: string;
+    tags?: string[];
     // Brand fields (inline, no separate table)
     brandId?: string;
     brandName?: string;
@@ -100,15 +103,11 @@ export class ProductRepository {
 
     await execute(
       env,
-      `INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, costPrice,
-       discount, discountType, images, stock, lowStockAlert, reorderLevel, reorderQty,
-       isActive, isFeatured, hasVariants,
-       brandId, brandName, brandLogo,
-       sizeType, sizeValue, sizeUnit, sizeLabel,
-       countryOfOrigin,
-       totalPurchased, totalSold, totalCost, averageCost, lastPurchaseAt, lastPurchaseCost,
-       createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, discount, discountType,
+       images, stock, lowStockAlert, reorderLevel, reorderQty, isActive, isFeatured, hasVariants, weight, dimensions, tags,
+       createdAt, updatedAt, costPrice, brandId, brandName, brandLogo, sizeType, sizeValue, sizeUnit, sizeLabel,
+       countryOfOrigin, totalPurchased, totalSold, totalCost, averageCost, lastPurchaseAt, lastPurchaseCost)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       id,
       data.name,
       data.slug,
@@ -117,7 +116,6 @@ export class ProductRepository {
       data.price ?? data.basePrice ?? 0,
       data.basePrice || 0,
       data.comparePrice || null,
-      data.costPrice || null,
       data.discount || 0,
       data.discountType || 'percentage',
       data.images ? stringifyJSON(data.images) : null,
@@ -128,6 +126,12 @@ export class ProductRepository {
       boolToNumber(data.isActive ?? true),
       boolToNumber(data.isFeatured || false),
       boolToNumber(data.hasVariants || false),
+      data.weight || null,
+      data.dimensions || null,
+      data.tags ? stringifyJSON(data.tags) : null,
+      currentTime,
+      currentTime,
+      data.costPrice || null,
       data.brandId || null,
       data.brandName || null,
       data.brandLogo || null,
@@ -141,9 +145,7 @@ export class ProductRepository {
       data.totalCost || 0,
       data.averageCost || 0,
       data.lastPurchaseAt || null,
-      data.lastPurchaseCost || null,
-      currentTime,
-      currentTime
+      data.lastPurchaseCost || null
     );
 
     return (await this.findById(env, id))!;
@@ -512,18 +514,16 @@ export class ProductRepository {
 
     await execute(
       env,
-      `INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, costPrice, stock,
-       images, size, color, material, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty,
-       sizeType, sizeValue, sizeUnit, sizeLabel, countryOfOrigin,
-       totalPurchased, totalSold, totalCost, averageCost, createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, images, size, color, material,
+       isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, createdAt, updatedAt, costPrice,
+       sizeType, sizeValue, sizeUnit, sizeLabel, countryOfOrigin, totalPurchased, totalSold, totalCost, averageCost)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       id,
       data.productId,
       data.sku,
       data.name,
       data.price,
       data.comparePrice || null,
-      data.costPrice || null,
       data.stock || 0,
       data.images ? stringifyJSON(data.images) : null,
       data.size || null,
@@ -534,6 +534,9 @@ export class ProductRepository {
       data.lowStockAlert || 10,
       data.reorderLevel || 5,
       data.reorderQty || 20,
+      currentTime,
+      currentTime,
+      data.costPrice || null,
       data.sizeType || null,
       data.sizeValue || null,
       data.sizeUnit || null,
@@ -542,9 +545,7 @@ export class ProductRepository {
       data.totalPurchased || 0,
       data.totalSold || 0,
       data.totalCost || 0,
-      data.averageCost || 0,
-      currentTime,
-      currentTime
+      data.averageCost || 0
     );
 
     return (await this.findVariantById(env, id))!;

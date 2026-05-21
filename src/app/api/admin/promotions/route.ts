@@ -5,11 +5,19 @@ import { promotionSchema } from '@/lib/validations'
 import { queryAll, queryFirst, execute, boolToNumber, numberToBool, parseJSON, stringifyJSON, now, generateId } from '@/db/db'
 import { rateLimit, createRateLimitResponse } from '@/lib/rate-limit'
 import { getClientIp } from '@/lib/rate-limit'
+import { checkEnv } from '@/lib/api-helpers'
 
 
 export async function GET(request: NextRequest) {
   try {
     const env = await getEnv()
+
+    // Check if database is available
+    const envCheck = checkEnv(env)
+    if (envCheck) {
+      return envCheck
+    }
+
     const searchParams = request.nextUrl.searchParams
     const activeOnly = searchParams.get('activeOnly') === 'true'
 
@@ -83,8 +91,16 @@ export async function POST(request: NextRequest) {
     return userOrResponse
   }
 
-  // Rate limiting: 20 requests per minute per admin
+  // Get environment and check availability
   const env = await getEnv()
+
+  // Check if database is available
+  const envCheck = checkEnv(env)
+  if (envCheck) {
+    return envCheck
+  }
+
+  // Rate limiting: 20 requests per minute per admin
   const clientIp = getClientIp(request)
   const rateLimitKey = `admin-promotion-create:${clientIp}`
   const rateLimitResult = await rateLimit(env, rateLimitKey, {
@@ -206,32 +222,32 @@ export async function POST(request: NextRequest) {
 
     await execute(
       env,
-      `INSERT INTO promotions (id, title, description, image, type, ctaText, ctaLink,
-       discountType, discountValue, discountRules, applicableProducts, applicableCategories,
-       startDate, endDate, promoCode, minOrderAmount, maxDiscountAmount,
-       usageLimit, usedCount, userLimit, conditions, isActive, \`order\`, createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO promotions (id, title, description, image, ctaText, ctaLink, type,
+       promoCode, discountType, discountValue, minOrderAmount, maxDiscountAmount,
+       startDate, endDate, usageLimit, usedCount, userLimit, applicableCategories,
+       applicableProducts, conditions, discountRules, isActive, \`order\`, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       id,
       validatedData.title,
       validatedData.description || null,
-      validatedData.image || null, // Handle undefined/null
-      validatedData.type || 'banner',
+      validatedData.image || null,
       validatedData.ctaText || null,
       validatedData.ctaLink || null,
-      validatedData.discountType || 'percentage',
-      validatedData.discountValue ?? 0,
-      validatedData.discountRules ? stringifyJSON(validatedData.discountRules) : null,
-      validatedData.applicableProducts ? stringifyJSON(validatedData.applicableProducts) : null,
-      validatedData.applicableCategories ? stringifyJSON(validatedData.applicableCategories) : null,
-      validatedData.startDate || null,
-      validatedData.endDate || null,
+      validatedData.type || 'banner',
       validatedData.promoCode || null,
+      validatedData.discountType || 'percentage',
+      validatedData.discountValue ?? null,
       validatedData.minOrderAmount ?? null,
       validatedData.maxDiscountAmount ?? null,
+      validatedData.startDate || null,
+      validatedData.endDate || null,
       validatedData.usageLimit ?? null,
       0, // usedCount
       validatedData.userLimit ?? null,
-      validatedData.conditions || null, // Store conditions as-is (string)
+      validatedData.applicableCategories ? stringifyJSON(validatedData.applicableCategories) : null,
+      validatedData.applicableProducts ? stringifyJSON(validatedData.applicableProducts) : null,
+      validatedData.conditions || null,
+      validatedData.discountRules ? stringifyJSON(validatedData.discountRules) : null,
       boolToNumber(validatedData.isActive ?? true),
       promotionOrder,
       currentTime,
