@@ -1,5 +1,6 @@
 'use client'
 
+import React from 'react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -49,8 +50,38 @@ import {
   ArrowRight,
   FileText,
   BarChart3,
-  GitCompare
+  GitCompare,
+  ChevronDown,
+  ChevronRight,
+  Layers
 } from 'lucide-react'
+
+interface ProductVariant {
+  id: string
+  sku: string
+  name: string
+  price: number
+  comparePrice: number | null
+  stock: number
+  lowStockAlert: number
+  reorderLevel: number
+  reorderQty: number
+  size: string | null
+  color: string | null
+  material: string | null
+  isActive: boolean
+  isDefault: boolean
+  sizeType?: 'unit' | 'label' | null
+  sizeValue?: number | null
+  sizeUnit?: string | null
+  sizeLabel?: string | null
+  countryOfOrigin?: string | null
+  averageCost?: number | null
+  totalCost?: number | null
+  totalPurchased?: number | null
+  totalSold?: number | null
+  costPrice?: number | null
+}
 
 interface Product {
   id: string
@@ -66,7 +97,7 @@ interface Product {
     name: string
   } | null
   createdAt: string
-  // New fields
+  hasVariants: boolean
   brandName?: string | null
   brandLogo?: string | null
   countryOfOrigin?: string | null
@@ -80,17 +111,20 @@ interface Product {
   lastPurchaseCost?: number | null
   totalPurchased?: number | null
   totalSold?: number | null
+  variants?: ProductVariant[]
 }
 
 interface InventoryAlert {
   id: string
-  productId: string
+  productId: string | null
+  variantId: string | null
   alertType: string
   quantity: number
   isRead: boolean
   isResolved: boolean
   createdAt: string
   product: Product
+  variant?: ProductVariant
 }
 
 export default function InventoryPage() {
@@ -106,16 +140,21 @@ export default function InventoryPage() {
   const [countryFilter, setCountryFilter] = useState('all')
   const [sizeTypeFilter, setSizeTypeFilter] = useState('all')
   const [autoRefresh, setAutoRefresh] = useState(false)
-  const [refreshInterval, setRefreshInterval] = useState(30000) // 30 seconds default
+  const [refreshInterval, setRefreshInterval] = useState(30000)
+
+  // Expanded products for variant view
+  const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set())
 
   // Add Stock modal state
   const [isAddStockOpen, setIsAddStockOpen] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null)
   const [addStockQty, setAddStockQty] = useState<number>(0)
 
   // Edit Stock modal state
   const [isEditStockOpen, setIsEditStockOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [editingVariant, setEditingVariant] = useState<ProductVariant | null>(null)
   const [editStockQty, setEditStockQty] = useState<number>(0)
   const [editLowStockAlert, setEditLowStockAlert] = useState<number>(0)
   const [editReorderLevel, setEditReorderLevel] = useState<number>(0)
@@ -143,7 +182,20 @@ export default function InventoryPage() {
     const result = await response.json() as any
 
     if (result.success) {
-      setProducts(result.products || [])
+      const productsWithVariants = await Promise.all(
+        (result.products || []).map(async (product: Product) => {
+          if (product.hasVariants) {
+            const variantsResponse = await fetch(`/api/admin/products/${product.id}/variants`)
+            const variantsResult = await variantsResponse.json() as any
+            return {
+              ...product,
+              variants: variantsResult.variants || [],
+            }
+          }
+          return product
+        })
+      )
+      setProducts(productsWithVariants)
     }
   }
 
@@ -245,22 +297,30 @@ export default function InventoryPage() {
     }
   }
 
-  const handleReorder = async (product: Product) => {
+  const handleReorder = async (product: Product, variant?: ProductVariant) => {
     try {
-      const response = await fetch(`/api/admin/products/${product.id}`, {
+      const endpoint = variant
+        ? `/api/admin/products/${product.id}/variants/${variant.id}`
+        : `/api/admin/products/${product.id}`
+
+      const currentStock = variant ? variant.stock : product.stock
+      const reorderQty = variant ? variant.reorderQty : product.reorderQty
+
+      const response = await fetch(endpoint, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          stock: product.stock + product.reorderQty,
+          stock: currentStock + reorderQty,
         }),
       })
 
       if (response.ok) {
+        const item = variant ? `${variant.name} (${variant.sku})` : product.name
         toast({
           title: 'Success',
-          description: `Reordered ${product.reorderQty} units of ${product.name}`,
+          description: `Reordered ${reorderQty} units of ${item}`,
         })
         fetchData()
       }
@@ -268,23 +328,38 @@ export default function InventoryPage() {
       console.error('Error reordering:', err)
       toast({
         title: 'Error',
-        description: 'Failed to reorder product',
+        description: 'Failed to reorder',
         variant: 'destructive',
       })
     }
   }
 
-  const openAddStockModal = () => {
+  const toggleExpandProduct = (productId: string) => {
+    setExpandedProducts(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(productId)) {
+        newSet.delete(productId)
+      } else {
+        newSet.add(productId)
+      }
+      return newSet
+    })
+  }
+
+  const openAddStockModal = (product: Product, variant?: ProductVariant) => {
+    setSelectedProduct(product)
+    setSelectedVariant(variant || null)
     setAddStockQty(10)
     setIsAddStockOpen(true)
   }
 
-  const openEditStockModal = (product: Product) => {
+  const openEditStockModal = (product: Product, variant?: ProductVariant) => {
     setEditingProduct(product)
-    setEditStockQty(product.stock)
-    setEditLowStockAlert(product.lowStockAlert)
-    setEditReorderLevel(product.reorderLevel)
-    setEditReorderQty(product.reorderQty)
+    setEditingVariant(variant || null)
+    setEditStockQty(variant ? variant.stock : product.stock)
+    setEditLowStockAlert(variant ? variant.lowStockAlert : product.lowStockAlert)
+    setEditReorderLevel(variant ? variant.reorderLevel : product.reorderLevel)
+    setEditReorderQty(variant ? variant.reorderQty : product.reorderQty)
     setIsEditStockOpen(true)
   }
 
@@ -292,7 +367,11 @@ export default function InventoryPage() {
     if (!editingProduct) return
 
     try {
-      const response = await fetch(`/api/admin/products/${editingProduct.id}`, {
+      const endpoint = editingVariant
+        ? `/api/admin/products/${editingProduct.id}/variants/${editingVariant.id}`
+        : `/api/admin/products/${editingProduct.id}`
+
+      const response = await fetch(endpoint, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -306,12 +385,14 @@ export default function InventoryPage() {
       })
 
       if (response.ok) {
+        const itemName = editingVariant ? editingVariant.name : editingProduct.name
         toast({
           title: 'Success',
-          description: `Updated stock settings for ${editingProduct.name}`,
+          description: `Updated stock settings for ${itemName}`,
         })
         setIsEditStockOpen(false)
         setEditingProduct(null)
+        setEditingVariant(null)
         fetchData()
       }
     } catch (err) {
@@ -335,23 +416,31 @@ export default function InventoryPage() {
     }
 
     try {
-      const response = await fetch(`/api/admin/products/${selectedProduct.id}`, {
+      const endpoint = selectedVariant
+        ? `/api/admin/products/${selectedProduct.id}/variants/${selectedVariant.id}`
+        : `/api/admin/products/${selectedProduct.id}`
+
+      const currentStock = selectedVariant ? selectedVariant.stock : selectedProduct.stock
+
+      const response = await fetch(endpoint, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          stock: selectedProduct.stock + addStockQty,
+          stock: currentStock + addStockQty,
         }),
       })
 
       if (response.ok) {
+        const itemName = selectedVariant ? selectedVariant.name : selectedProduct.name
         toast({
           title: 'Success',
-          description: `Added ${addStockQty} units to ${selectedProduct.name}`,
+          description: `Added ${addStockQty} units to ${itemName}`,
         })
         setIsAddStockOpen(false)
         setSelectedProduct(null)
+        setSelectedVariant(null)
         setAddStockQty(0)
         fetchData()
       }
@@ -365,41 +454,75 @@ export default function InventoryPage() {
     }
   }
 
-  const getStockStatus = (product: Product) => {
-    if (product.stock === 0) return 'out-of-stock'
-    if (product.stock < product.lowStockAlert) return 'low-stock'
+  const getStockStatus = (stock: number, lowStockAlert: number) => {
+    if (stock === 0) return 'out-of-stock'
+    if (stock < lowStockAlert) return 'low-stock'
     return 'in-stock'
+  }
+
+  const getTotalStock = (product: Product) => {
+    if (product.hasVariants && product.variants) {
+      return product.variants.reduce((sum, v) => sum + v.stock, 0)
+    }
+    return product.stock
+  }
+
+  const getAverageLowStockAlert = (product: Product) => {
+    if (product.hasVariants && product.variants && product.variants.length > 0) {
+      return Math.round(product.variants.reduce((sum, v) => sum + v.lowStockAlert, 0) / product.variants.length)
+    }
+    return product.lowStockAlert
   }
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          product.slug.toLowerCase().includes(searchTerm.toLowerCase())
-    const stockStatus = getStockStatus(product)
+
+    // For products with variants, also check variant names
+    const matchesVariantSearch = product.hasVariants && product.variants
+      ? product.variants.some(v => v.name.toLowerCase().includes(searchTerm.toLowerCase()) || v.sku.toLowerCase().includes(searchTerm.toLowerCase()))
+      : false
+
+    const totalStock = getTotalStock(product)
+    const avgLowStock = getAverageLowStockAlert(product)
+    const stockStatus = getStockStatus(totalStock, avgLowStock)
+
     const matchesStock = stockFilter === 'all' || stockStatus === stockFilter
     const matchesBrand = brandFilter === 'all' || (brandFilter === 'unbranded' ? !product.brandName : product.brandName === brandFilter)
     const matchesCountry = countryFilter === 'all' || (countryFilter === 'unspecified' ? !product.countryOfOrigin : product.countryOfOrigin === countryFilter)
     const matchesSizeType = sizeTypeFilter === 'all' || product.sizeType === sizeTypeFilter
-    return matchesSearch && matchesStock && matchesBrand && matchesCountry && matchesSizeType
+
+    return (matchesSearch || matchesVariantSearch) && matchesStock && matchesBrand && matchesCountry && matchesSizeType
   })
 
-  // Get unique brands and countries for filters
   const brands = Array.from(new Set(products.map(p => p.brandName).filter(Boolean)))
   const countries = Array.from(new Set(products.map(p => p.countryOfOrigin).filter(Boolean)))
 
-  // Calculate total inventory value
   const totalInventoryValue = products.reduce((sum, p) => {
-    if (p.stock > 0 && p.averageCost) {
-      return sum + (p.stock * p.averageCost)
+    let stockValue = 0
+    if (p.hasVariants && p.variants) {
+      stockValue = p.variants.reduce((variantSum, v) => {
+        if (v.stock > 0 && v.averageCost) {
+          return variantSum + (v.stock * v.averageCost)
+        }
+        return variantSum
+      }, 0)
+    } else if (p.stock > 0 && p.averageCost) {
+      stockValue = p.stock * p.averageCost
     }
-    return sum
+    return sum + stockValue
   }, 0)
 
   const stats = products.reduce(
     (acc, product) => {
       acc.total++
-      if (product.stock > 0) acc.inStock++
-      if (product.stock > 0 && product.stock < product.lowStockAlert) acc.lowStock++
-      if (product.stock === 0) acc.outOfStock++
+      const totalStock = getTotalStock(product)
+      const avgLowStock = getAverageLowStockAlert(product)
+
+      if (totalStock > 0) acc.inStock++
+      if (totalStock > 0 && totalStock < avgLowStock) acc.lowStock++
+      if (totalStock === 0) acc.outOfStock++
+
       return acc
     },
     { total: 0, inStock: 0, lowStock: 0, outOfStock: 0 }
@@ -416,11 +539,12 @@ export default function InventoryPage() {
 
   const exportAlerts = () => {
     const csvContent = [
-      ['Alert ID', 'Product Name', 'Alert Type', 'Quantity', 'Created At', 'Status'].join(','),
+      ['Alert ID', 'Product', 'Variant', 'Alert Type', 'Quantity', 'Created At', 'Status'].join(','),
       ...alerts.map(alert =>
         [
           alert.id,
           alert.product.name,
+          alert.variant ? alert.variant.name : '-',
           alert.alertType,
           alert.quantity,
           alert.createdAt,
@@ -449,7 +573,7 @@ export default function InventoryPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Inventory</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage product stock and inventory alerts</p>
+          <p className="text-sm text-gray-500 mt-1">Manage product and variant stock levels</p>
         </div>
         <div className="flex gap-2">
           <Select value={refreshInterval.toString()} onValueChange={(val) => setRefreshInterval(parseInt(val))}>
@@ -478,7 +602,7 @@ export default function InventoryPage() {
           </Button>
           <Button
             className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
-            onClick={openAddStockModal}
+            onClick={() => openAddStockModal(products[0])}
           >
             <PackagePlus className="h-4 w-4 mr-2" />
             Add Stock
@@ -675,6 +799,13 @@ export default function InventoryPage() {
               {alerts.map((alert) => {
                 const config = getAlertTypeConfig(alert.alertType)
                 const Icon = config.icon
+                const itemName = alert.variant
+                  ? `${alert.product.name} - ${alert.variant.name}`
+                  : alert.product.name
+
+                const item = alert.variant || alert.product
+                const reorderQty = alert.variant ? alert.variant.reorderQty : alert.product.reorderQty
+
                 return (
                   <div key={alert.id} className={`p-4 rounded-lg border ${alert.isRead ? 'bg-gray-50 border-gray-200' : 'bg-white border-orange-200 shadow-sm'}`}>
                     <div className="flex items-start justify-between gap-4">
@@ -684,7 +815,12 @@ export default function InventoryPage() {
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <p className="font-semibold text-sm text-gray-900">{alert.product.name}</p>
+                            <p className="font-semibold text-sm text-gray-900">{itemName}</p>
+                            {alert.variant && (
+                              <Badge variant="outline" className="text-xs">
+                                {alert.variant.sku}
+                              </Badge>
+                            )}
                             {!alert.isRead && (
                               <Badge variant="secondary" className="bg-blue-100 text-blue-700 text-xs">New</Badge>
                             )}
@@ -701,10 +837,10 @@ export default function InventoryPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleReorder(alert.product)}
+                          onClick={() => handleReorder(alert.product, alert.variant)}
                           className="text-xs"
                         >
-                          Reorder (+{alert.product.reorderQty})
+                          Reorder (+{reorderQty})
                         </Button>
                         {!alert.isRead && (
                           <Button
@@ -751,7 +887,7 @@ export default function InventoryPage() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
-                placeholder="Search products..."
+                placeholder="Search products or variants..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -806,106 +942,211 @@ export default function InventoryPage() {
         </CardHeader>
         <CardContent>
           <div className="w-full overflow-x-auto -mx-4 px-4">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-gray-50 hover:bg-gray-50">
-                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[200px]">Product</TableHead>
-                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[140px]">Category</TableHead>
-                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[140px]">Brand</TableHead>
-                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[100px]">Size</TableHead>
-                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[120px]">Country</TableHead>
-                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[100px]">Stock</TableHead>
-                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap text-right min-w-[120px]">Avg Cost</TableHead>
-                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap text-right min-w-[130px]">Total Cost</TableHead>
-                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[100px]">Status</TableHead>
-                    <TableHead className="text-right font-semibold text-gray-700 whitespace-nowrap min-w-[100px]">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gray-50 hover:bg-gray-50">
+                  <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[40px]"></TableHead>
+                  <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[200px]">Product/Variant</TableHead>
+                  <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[100px]">SKU</TableHead>
+                  <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[120px]">Category</TableHead>
+                  <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[100px]">Attributes</TableHead>
+                  <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[100px]">Stock</TableHead>
+                  <TableHead className="font-semibold text-gray-700 whitespace-nowrap text-right min-w-[120px]">Avg Cost</TableHead>
+                  <TableHead className="font-semibold text-gray-700 whitespace-nowrap text-right min-w-[130px]">Total Cost</TableHead>
+                  <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[100px]">Status</TableHead>
+                  <TableHead className="text-right font-semibold text-gray-700 whitespace-nowrap min-w-[100px]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
               <TableBody>
-                {filteredProducts.map((product) => (
-                  <TableRow key={product.id} className="hover:bg-gray-50">
-                    <TableCell>
-                      <div className="flex items-center gap-3 min-w-[200px]">
-                        <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-violet-100 to-indigo-100 flex items-center justify-center text-xs font-bold text-violet-600 flex-shrink-0">
-                          {product.name.substring(0, 2).toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm text-gray-900">{product.name}</p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="bg-gray-100 whitespace-nowrap">
-                        {product.category?.name || 'Uncategorized'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {product.brandName ? (
-                        <div className="flex items-center gap-2 min-w-[140px]">
-                          {product.brandLogo && (
-                            <img src={product.brandLogo} alt={product.brandName} className="h-5 w-5 object-contain rounded flex-shrink-0" />
+                {filteredProducts.map((product) => {
+                  const totalStock = getTotalStock(product)
+                  const avgLowStock = getAverageLowStockAlert(product)
+                  const stockStatus = getStockStatus(totalStock, avgLowStock)
+                  const isExpanded = expandedProducts.has(product.id)
+                  const hasVariants = product.hasVariants && product.variants && product.variants.length > 0
+
+                  return (
+                    <React.Fragment key={product.id}>
+                      <TableRow className="hover:bg-gray-50">
+                        <TableCell>
+                          {hasVariants && (
+                            <button
+                              onClick={() => toggleExpandProduct(product.id)}
+                              className="p-1 hover:bg-gray-100 rounded transition-colors"
+                            >
+                              {isExpanded ? (
+                                <ChevronDown className="h-4 w-4 text-gray-500" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4 text-gray-500" />
+                              )}
+                            </button>
                           )}
-                          <span className="text-sm text-gray-700">{product.brandName}</span>
-                        </div>
-                      ) : (
-                        <span className="text-sm text-gray-400">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm text-gray-600 whitespace-nowrap">
-                        {product.sizeType === 'label' && product.sizeLabel ? product.sizeLabel :
-                         product.sizeType === 'unit' && product.sizeValue && product.sizeUnit ? `${product.sizeValue} ${product.sizeUnit}` :
-                         '-'}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm text-gray-600 whitespace-nowrap">
-                        {product.countryOfOrigin ? `🇦🇧 ${product.countryOfOrigin}` : '-'}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Package className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                        <button
-                          onClick={() => openEditStockModal(product)}
-                          className={`font-semibold hover:underline cursor-pointer bg-transparent border-none p-0 whitespace-nowrap ${
-                            product.stock === 0 ? 'text-red-600' :
-                            product.stock < product.lowStockAlert ? 'text-orange-600' :
-                            'text-gray-900'
-                          }`}
-                        >
-                          {product.stock}
-                        </button>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className="text-sm text-gray-600 whitespace-nowrap">
-                        {product.averageCost ? `৳${product.averageCost.toFixed(2)}` : '-'}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className="text-sm text-gray-600 whitespace-nowrap">
-                        {product.totalCost ? `৳${product.totalCost.toLocaleString('en-BD', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-'}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <StockStatusBadge status={getStockStatus(product)} />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleReorder(product)}
-                          className="h-8"
-                        >
-                          <PackagePlus className="h-3 w-3 mr-1 flex-shrink-0" />
-                          +{product.reorderQty}
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-3 min-w-[200px]">
+                            <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-violet-100 to-indigo-100 flex items-center justify-center text-xs font-bold text-violet-600 flex-shrink-0">
+                              {product.name.substring(0, 2).toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm text-gray-900">{product.name}</p>
+                              {hasVariants && (
+                                <p className="text-xs text-gray-500">{product.variants?.length} variants</p>
+                              )}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm text-gray-400">-</span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="bg-gray-100 whitespace-nowrap">
+                            {product.category?.name || 'Uncategorized'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm text-gray-600 space-y-1">
+                            {product.brandName && (
+                              <div className="flex items-center gap-2">
+                                {product.brandLogo && (
+                                  <img src={product.brandLogo} alt={product.brandName} className="h-4 w-4 object-contain rounded" />
+                                )}
+                                <span className="truncate">{product.brandName}</span>
+                              </div>
+                            )}
+                            {product.sizeType === 'label' && product.sizeLabel && (
+                              <div>Size: {product.sizeLabel}</div>
+                            )}
+                            {product.sizeType === 'unit' && product.sizeValue && product.sizeUnit && (
+                              <div>Size: {product.sizeValue} {product.sizeUnit}</div>
+                            )}
+                            {product.countryOfOrigin && (
+                              <div>🇦🇧 {product.countryOfOrigin}</div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Package className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                            <button
+                              onClick={() => openEditStockModal(product)}
+                              className={`font-semibold hover:underline cursor-pointer bg-transparent border-none p-0 whitespace-nowrap ${
+                                totalStock === 0 ? 'text-red-600' :
+                                totalStock < avgLowStock ? 'text-orange-600' :
+                                'text-gray-900'
+                              }`}
+                            >
+                              {totalStock}
+                            </button>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span className="text-sm text-gray-600 whitespace-nowrap">
+                            {product.averageCost ? `৳${product.averageCost.toFixed(2)}` : '-'}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span className="text-sm text-gray-600 whitespace-nowrap">
+                            {product.totalCost ? `৳${product.totalCost.toLocaleString('en-BD', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-'}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <StockStatusBadge status={stockStatus} />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleReorder(product)}
+                              className="h-8"
+                            >
+                              <PackagePlus className="h-3 w-3 mr-1 flex-shrink-0" />
+                              +{product.reorderQty}
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+
+                      {/* Variant rows */}
+                      {isExpanded && hasVariants && product.variants?.map((variant) => {
+                        const variantStatus = getStockStatus(variant.stock, variant.lowStockAlert)
+                        return (
+                          <TableRow key={variant.id} className="bg-violet-50/50 hover:bg-violet-100/50">
+                            <TableCell></TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-3 min-w-[200px] pl-6">
+                                <div className="h-8 w-8 rounded bg-violet-200 flex items-center justify-center text-xs font-bold text-violet-700 flex-shrink-0">
+                                  <Layers className="h-4 w-4" />
+                                </div>
+                                <div>
+                                  <p className="font-medium text-sm text-gray-900">{variant.name}</p>
+                                  <p className="text-xs text-gray-500">{variant.sku}</p>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="text-xs font-mono">
+                                {variant.sku}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-sm text-gray-400">-</span>
+                            </TableCell>
+                            <TableCell>
+                              <div className="text-sm text-gray-600 space-y-1">
+                                {variant.size && <div>Size: {variant.size}</div>}
+                                {variant.color && <div>Color: {variant.color}</div>}
+                                {variant.material && <div>Material: {variant.material}</div>}
+                                {variant.countryOfOrigin && <div>🇦🇧 {variant.countryOfOrigin}</div>}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Package className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                                <button
+                                  onClick={() => openEditStockModal(product, variant)}
+                                  className={`font-semibold hover:underline cursor-pointer bg-transparent border-none p-0 whitespace-nowrap ${
+                                    variant.stock === 0 ? 'text-red-600' :
+                                    variant.stock < variant.lowStockAlert ? 'text-orange-600' :
+                                    'text-gray-900'
+                                  }`}
+                                >
+                                  {variant.stock}
+                                </button>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <span className="text-sm text-gray-600 whitespace-nowrap">
+                                {variant.averageCost ? `৳${variant.averageCost.toFixed(2)}` : '-'}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <span className="text-sm text-gray-600 whitespace-nowrap">
+                                {variant.totalCost ? `৳${variant.totalCost.toLocaleString('en-BD', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-'}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <StockStatusBadge status={variantStatus} />
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleReorder(product, variant)}
+                                  className="h-8"
+                                >
+                                  <PackagePlus className="h-3 w-3 mr-1 flex-shrink-0" />
+                                  +{variant.reorderQty}
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </React.Fragment>
+                  )
+                })}
               </TableBody>
             </Table>
           </div>
@@ -917,30 +1158,47 @@ export default function InventoryPage() {
         <DialogContent className="overflow-x-hidden sm:rounded-lg" aria-describedby="add-stock-description">
           <DialogHeader>
             <DialogTitle>Add Stock</DialogTitle>
-            <DialogDescription id="add-stock-description">Select a product and add stock quantity</DialogDescription>
+            <DialogDescription id="add-stock-description">
+              {selectedVariant
+                ? `Add stock to variant: ${selectedVariant.name}`
+                : 'Select a product and add stock quantity'
+              }
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div>
-              <Label htmlFor="product-select">Select Product</Label>
-              <Select
-                value={selectedProduct?.id || ''}
-                onValueChange={(val) => {
-                  const product = products.find(p => p.id === val)
-                  setSelectedProduct(product || null)
-                }}
-              >
-                <SelectTrigger id="product-select">
-                  <SelectValue placeholder="Choose a product..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {products.map(product => (
-                    <SelectItem key={product.id} value={product.id}>
-                      {product.name} (Current: {product.stock} units)
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {selectedProduct && (
+              <div>
+                <Label htmlFor="product-select">Product</Label>
+                <Input
+                  value={selectedProduct.name}
+                  disabled
+                  className="bg-gray-50"
+                />
+              </div>
+            )}
+            {selectedProduct?.hasVariants && !selectedVariant && (
+              <div>
+                <Label htmlFor="variant-select">Select Variant</Label>
+                <Select
+                  value=""
+                  onValueChange={(val) => {
+                    const variant = selectedProduct?.variants?.find(v => v.id === val)
+                    setSelectedVariant(variant || null)
+                  }}
+                >
+                  <SelectTrigger id="variant-select">
+                    <SelectValue placeholder="Choose a variant..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {selectedProduct?.variants?.map(variant => (
+                      <SelectItem key={variant.id} value={variant.id}>
+                        {variant.name} (Current: {variant.stock} units)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div>
               <Label htmlFor="stock-qty">Quantity to Add</Label>
               <Input
@@ -952,16 +1210,16 @@ export default function InventoryPage() {
                 placeholder="Enter quantity"
               />
             </div>
-            {selectedProduct && (
+            {(selectedVariant || selectedProduct) && (
               <div className="p-3 bg-gray-50 rounded-lg">
                 <p className="text-sm text-gray-600">
-                  <strong>{selectedProduct.name}</strong>
+                  <strong>{selectedVariant ? selectedVariant.name : selectedProduct?.name}</strong>
                 </p>
                 <p className="text-sm text-gray-600">
-                  Current Stock: {selectedProduct.stock}
+                  Current Stock: {selectedVariant ? selectedVariant.stock : selectedProduct?.stock}
                 </p>
                 <p className="text-sm text-gray-600">
-                  New Stock: {selectedProduct.stock + addStockQty}
+                  New Stock: {(selectedVariant ? selectedVariant.stock : selectedProduct?.stock || 0) + addStockQty}
                 </p>
               </div>
             )}
@@ -972,7 +1230,7 @@ export default function InventoryPage() {
             </Button>
             <Button
               onClick={handleAddStock}
-              disabled={!selectedProduct}
+              disabled={!selectedProduct || (selectedProduct.hasVariants && !selectedVariant)}
               className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -987,11 +1245,35 @@ export default function InventoryPage() {
         <DialogContent className="overflow-x-hidden sm:rounded-lg" aria-describedby="edit-stock-description">
           <DialogHeader>
             <DialogTitle>Edit Stock Settings</DialogTitle>
-            <DialogDescription id="edit-stock-description">Update stock levels and alert thresholds for {editingProduct?.name}</DialogDescription>
+            <DialogDescription id="edit-stock-description">
+              Update stock levels and alert thresholds for {editingVariant ? editingVariant.name : editingProduct?.name}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            {editingProduct && (
+            {(editingProduct || editingVariant) && (
               <>
+                {editingProduct && !editingVariant && (
+                  <div>
+                    <Label htmlFor="product-name">Product</Label>
+                    <Input
+                      id="product-name"
+                      value={editingProduct.name}
+                      disabled
+                      className="bg-gray-50"
+                    />
+                  </div>
+                )}
+                {editingVariant && (
+                  <div>
+                    <Label htmlFor="variant-name">Variant</Label>
+                    <Input
+                      id="variant-name"
+                      value={`${editingProduct?.name} - ${editingVariant.name} (${editingVariant.sku})`}
+                      disabled
+                      className="bg-gray-50"
+                    />
+                  </div>
+                )}
                 <div>
                   <Label htmlFor="edit-stock-qty">Current Stock Level</Label>
                   <Input
@@ -1014,7 +1296,7 @@ export default function InventoryPage() {
                     onChange={(e) => setEditLowStockAlert(parseInt(e.target.value) || 0)}
                     placeholder="Alert when stock below this level"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Current: {editingProduct.lowStockAlert}</p>
+                  <p className="text-xs text-gray-500 mt-1">Current: {editingVariant ? editingVariant.lowStockAlert : editingProduct?.lowStockAlert}</p>
                 </div>
                 <div>
                   <Label htmlFor="edit-reorder-level">Reorder Level</Label>
@@ -1026,7 +1308,7 @@ export default function InventoryPage() {
                     onChange={(e) => setEditReorderLevel(parseInt(e.target.value) || 0)}
                     placeholder="Stock level to trigger reorder"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Current: {editingProduct.reorderLevel}</p>
+                  <p className="text-xs text-gray-500 mt-1">Current: {editingVariant ? editingVariant.reorderLevel : editingProduct?.reorderLevel}</p>
                 </div>
                 <div>
                   <Label htmlFor="edit-reorder-qty">Reorder Quantity</Label>
@@ -1038,14 +1320,14 @@ export default function InventoryPage() {
                     onChange={(e) => setEditReorderQty(parseInt(e.target.value) || 0)}
                     placeholder="Quantity to reorder when stock is low"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Current: {editingProduct.reorderQty}</p>
+                  <p className="text-xs text-gray-500 mt-1">Current: {editingVariant ? editingVariant.reorderQty : editingProduct?.reorderQty}</p>
                 </div>
                 <div className="p-4 bg-gray-50 rounded-lg">
                   <p className="text-sm text-gray-600 mb-2">
-                    <strong>{editingProduct.name}</strong>
+                    <strong>{editingVariant ? editingVariant.name : editingProduct?.name}</strong>
                   </p>
                   <div className="space-y-1 text-sm text-gray-600">
-                    <p>Current Stock: <span className="font-semibold">{editingProduct.stock}</span></p>
+                    <p>Current Stock: <span className="font-semibold">{editingVariant ? editingVariant.stock : editingProduct?.stock}</span></p>
                     <p>Will Update To: <span className="font-semibold text-violet-600">{editStockQty}</span></p>
                   </div>
                 </div>
@@ -1058,7 +1340,7 @@ export default function InventoryPage() {
             </Button>
             <Button
               onClick={handleEditStock}
-              disabled={!editingProduct}
+              disabled={!editingProduct && !editingVariant}
               className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
             >
               <Edit className="h-4 w-4 mr-2" />

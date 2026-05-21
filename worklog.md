@@ -407,3 +407,137 @@ Stage Summary:
 - All API routes compiled successfully
 - Middleware: 40.8 kB
 - Shared chunks: 105 kB
+
+---
+Task ID: Product Creation Fix
+Agent: Z.ai Code
+Task: Fix product creation not working
+
+Work Log:
+- Investigated product creation API endpoint and validation schema
+- Found issue: categoryId was being sent as null when no category was selected
+- Validation schema requires categoryId to be a non-empty string
+- Added client-side validation in handleCreateProduct function:
+  * Check if product name is provided
+  * Check if category is selected
+  * Check if price is valid and greater than 0
+- Removed `|| null` from categoryId in request body to send the actual value
+- Rebuilt application successfully with no errors
+
+Stage Summary:
+**Problem Identified:**
+- When creating a product, if no category was selected, `categoryId` was sent as `null`
+- The validation schema (src/lib/validations/index.ts, line 31) requires:
+  ```typescript
+  categoryId: z.string().min(1, 'Category ID is required'),
+  ```
+- This caused validation to fail silently or with generic error message
+
+**Solution Implemented:**
+1. Added client-side validation in `handleCreateProduct` (lines 233-320):
+   - Validate product name is not empty
+   - Validate category is selected (not empty string)
+   - Validate price is greater than 0
+   - Show specific error messages for each validation failure
+
+2. Fixed request body (line 275):
+   - Changed from `categoryId: formData.categoryId || null`
+   - To `categoryId: formData.categoryId`
+   - Now sends the actual value (empty string if not selected, which will be caught by validation)
+
+**Files Modified:**
+- `/home/z/my-project/src/components/admin/product-modal.tsx`
+  - Added validation checks in handleCreateProduct function
+  - Fixed categoryId to send actual value instead of null
+
+**Build Status:**
+✓ Build completed successfully
+✓ No type errors
+✓ No linting errors
+
+**User Experience Improvements:**
+- Clear error messages when required fields are missing
+- Prevents invalid API calls
+- Better feedback during product creation
+
+---
+Task ID: Multiple Issues Fix
+Agent: Z.ai Code
+Task: Fix product creation, brand creation, and coupon page issues
+
+Work Log:
+- Identified and fixed validation issue in product creation
+- Fixed coupon page to filter only coupons (not banners)
+- Improved brand selector error handling
+- Rebuilt application successfully
+
+Stage Summary:
+**Issue 1: Product Creation Error**
+**Problem**: 
+- Even when category was selected, product creation failed
+- Root cause: description field validation required min(1) character
+- If description was empty string "", validation failed
+
+**Fix Applied** (src/lib/validations/index.ts, line 27):
+- Changed from: `description: z.string().min(1, 'Description is required').nullable().optional()`
+- Changed to: `description: z.string().optional().nullable()`
+- Now description is truly optional and won't cause validation errors
+
+**Issue 2: Coupon Page Showing Banners**
+**Problem**:
+- Coupon page was showing all promotions including banners
+- The API returns both "banner" and "coupon" types
+- Users saw banner promotions in the coupon list
+
+**Fix Applied** (src/app/admin/coupons/page.tsx, lines 107-110):
+- Added filter to show only coupons:
+  ```typescript
+  const couponsOnly = promotionsList.filter(p => 
+    p.type === 'coupon' || (p.promoCode && p.promoCode.length > 0)
+  )
+  ```
+- Now only promotions with type="coupon" or those with a promoCode are shown
+
+**Issue 3: Brand Creation Not Working**
+**Problem**:
+- "Add New Brand" feature not creating brands properly
+- New brands not appearing in the dropdown immediately
+
+**Fix Applied** (src/components/admin/brand-selector.tsx, lines 108-119):
+- Updated filteredBrands state when new brand is created
+- Added better error logging for debugging
+- Improved error messages with actual error details
+- Changed: `setFilteredBrands([newBrand, ...brands])`
+
+**Files Modified**:
+1. `/home/z/my-project/src/lib/validations/index.ts` - Fixed product description validation
+2. `/home/z/my-project/src/app/admin/coupons/page.tsx` - Added coupon filtering
+3. `/home/z/my-project/src/components/admin/brand-selector.tsx` - Improved brand creation handling
+
+**Build Status**:
+✓ Build completed successfully
+✓ No type errors
+✓ No linting errors
+
+**Testing Instructions**:
+1. Product Creation:
+   - Go to /admin/products
+   - Click "Add Product"
+   - Fill in name, category (required), price (required)
+   - Description is now optional
+   - Should work without errors
+
+2. Coupon Creation:
+   - Go to /admin/coupons
+   - Should only show coupon-type promotions
+   - Banners are filtered out
+
+3. Brand Creation:
+   - In product form, click "Add New Brand" in brand selector
+   - Enter brand name and create
+   - Brand should immediately appear in dropdown
+
+**Pending Issue**:
+- Inventory page needs to be updated to support variant-based stock management
+- Currently only shows product-level stock
+- Needs to fetch and display individual variant stocks

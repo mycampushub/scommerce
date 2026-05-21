@@ -106,15 +106,17 @@ export function BrandSelector({
         // Add new brand to list
         const newBrand = result.data;
         setBrands([newBrand, ...brands]);
+        setFilteredBrands([newBrand, ...brands]); // Also update filtered list
         onChange(newBrand.id, newBrand);
         setIsCreateModalOpen(false);
         setNewBrandName('');
       } else {
+        console.error('Brand creation failed:', result);
         alert(result.error || 'Failed to create brand');
       }
     } catch (error) {
       console.error('Error creating brand:', error);
-      alert('Failed to create brand');
+      alert('Failed to create brand: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setCreating(false);
     }

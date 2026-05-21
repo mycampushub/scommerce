@@ -231,6 +231,34 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
   }
 
   const handleCreateProduct = async () => {
+    // Validation: Check required fields
+    if (!formData.name || formData.name.trim() === '') {
+      toast({
+        title: 'Error',
+        description: 'Product name is required',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (!formData.categoryId || formData.categoryId.trim() === '') {
+      toast({
+        title: 'Error',
+        description: 'Please select a category',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (!formData.price || parseFloat(formData.price) <= 0) {
+      toast({
+        title: 'Error',
+        description: 'Please enter a valid price',
+        variant: 'destructive',
+      })
+      return
+    }
+
     try {
       const hasVariants = newVariants.length > 0
 
@@ -244,7 +272,7 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
           basePrice: parseFloat(formData.price),
           comparePrice: formData.comparePrice ? parseFloat(formData.comparePrice) : null,
           costPrice: formData.costPrice ? parseFloat(formData.costPrice) : null,
-          categoryId: formData.categoryId || null,
+          categoryId: formData.categoryId,
           images: formData.images,
           stock: hasVariants ? 0 : parseInt(formData.stock),
           hasVariants: hasVariants,

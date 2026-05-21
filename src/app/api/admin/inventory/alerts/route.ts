@@ -52,9 +52,10 @@ export async function GET(request: NextRequest) {
     console.log('[inventory alerts API] Using D1 for alerts query')
     console.log('[inventory alerts API] Fetched', alerts.length, 'alerts')
 
-    // Enrich with product data - Fix N+1 query by batching
+    // Enrich with product and variant data - Fix N+1 query by batching
     // Collect unique product IDs
     const productIds = [...new Set(alerts.map(alert => alert.productId).filter(Boolean))]
+    const variantIds = [...new Set(alerts.map(alert => alert.variantId).filter(Boolean))]
 
     // Batch fetch all products in a single query
     const productsMap = new Map<string, any>()
@@ -69,9 +70,23 @@ export async function GET(request: NextRequest) {
       products.forEach(p => productsMap.set(p.id, p))
     }
 
-    // Attach product data to alerts
+    // Batch fetch all variants in a single query
+    const variantsMap = new Map<string, any>()
+    if (variantIds.length > 0) {
+      console.log('[inventory alerts API] Using D1 to fetch variants')
+      const variantPlaceholders = variantIds.map(() => '?').join(',')
+      const variants = await queryAll<any>(
+        env,
+        `SELECT id, name, sku, stock FROM product_variants WHERE id IN (${variantPlaceholders})`,
+        ...variantIds
+      )
+      variants.forEach(v => variantsMap.set(v.id, v))
+    }
+
+    // Attach product and variant data to alerts
     for (const alert of alerts) {
       ;(alert as any).product = productsMap.get(alert.productId) || null
+      ;(alert as any).variant = variantsMap.get(alert.variantId) || null
       alert.isRead = numberToBool(alert.isRead)
       alert.isResolved = numberToBool(alert.isResolved)
     }
@@ -175,10 +190,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Enrich with product data
+    // Enrich with product and variant data
     const product = await ProductRepository.findById(env, alert.productId)
+    let variant = null
+    if (alert.variantId) {
+      variant = await queryFirst<any>(
+        env,
+        'SELECT id, name, sku, stock FROM product_variants WHERE id = ?',
+        alert.variantId
+      )
+    }
 
     ;(alert as any).product = product
+    ;(alert as any).variant = variant
     alert.isRead = numberToBool(alert.isRead)
     alert.isResolved = numberToBool(alert.isResolved)
 

@@ -80,7 +80,7 @@ export default function CouponsPage() {
     isActive: true,
   })
 
-  // Fetch promotions
+  // Fetch promotions (only coupons)
   const fetchPromotions = async () => {
     try {
       setLoading(true)
@@ -104,15 +104,20 @@ export default function CouponsPage() {
 
         console.log('[CouponsPage] Parsed promotionsList:', promotionsList)
 
+        // Filter only coupons (type === 'coupon' or type === undefined with promoCode)
+        const couponsOnly = promotionsList.filter(p => 
+          p.type === 'coupon' || (p.promoCode && p.promoCode.length > 0)
+        )
+
         // Ensure each promotion has array fields
-        promotionsList = promotionsList.map(p => ({
+        const promotionsWithArrays = couponsOnly.map(p => ({
           ...p,
           applicableCategories: Array.isArray(p.applicableCategories) ? p.applicableCategories : [],
           applicableProducts: Array.isArray(p.applicableProducts) ? p.applicableProducts : [],
         }))
 
-        console.log('[CouponsPage] Final promotions with arrays:', promotionsList)
-        setPromotions(promotionsList)
+        console.log('[CouponsPage] Final coupons after filtering:', promotionsWithArrays)
+        setPromotions(promotionsWithArrays)
       }
     } catch (error) {
       console.error('Error fetching promotions:', error)

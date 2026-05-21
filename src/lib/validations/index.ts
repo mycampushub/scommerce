@@ -24,7 +24,7 @@ export const loginSchema = z.object({
 export const productSchema = z.object({
   name: z.string().min(1, 'Product name is required'),
   slug: z.string().optional(), // Optional - will be auto-generated from name if not provided
-  description: z.string().min(1, 'Description is required').nullable().optional(),
+  description: z.string().optional().nullable(), // Optional description
   basePrice: z.number().positive('Price must be positive'),
   comparePrice: z.number().positive().nullable().optional(),
   costPrice: z.number().min(0).nullable().optional(),

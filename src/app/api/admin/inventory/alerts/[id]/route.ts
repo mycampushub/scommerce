@@ -77,14 +77,23 @@ export async function PUT(
       alertId
     )
 
-    // Enrich with product data
+    // Enrich with product and variant data
     const product = await ProductRepository.findById(env, alert.productId)
+    let variant = null
+    if (alert.variantId) {
+      variant = await queryFirst<any>(
+        env,
+        'SELECT id, name, sku, stock FROM product_variants WHERE id = ?',
+        alert.variantId
+      )
+    }
 
     return NextResponse.json({
       success: true,
       data: {
         ...alert,
         product,
+        variant,
         isRead: numberToBool(alert.isRead as number),
         isResolved: numberToBool(alert.isResolved as number),
       },
