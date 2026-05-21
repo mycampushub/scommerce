@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { brandRepository } from '@/db/brand.repository';
-import { verifyAdmin } from '@/lib/auth/admin-auth';
+import { BrandRepository } from '@/db/brand.repository';
+import { verifyAdminAuth } from '@/lib/admin-auth';
+import { getEnv } from '@/lib/cloudflare';
 import { updateBrandSchema } from '@/lib/validations';
 import { logAdminAction } from '@/lib/audit-logger';
 
@@ -12,12 +13,13 @@ export async function GET(
   try {
     const { id } = await params;
     // Verify admin access
-    const admin = await verifyAdmin(request);
-    if (admin instanceof NextResponse) {
-      return admin;
+    const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff']);
+    if (userOrResponse instanceof NextResponse) {
+      return userOrResponse;
     }
 
-    const brand = await brandRepository.findById(id);
+    const env = await getEnv();
+    const brand = await BrandRepository.findById(env, id);
 
     if (!brand) {
       return NextResponse.json(
@@ -27,7 +29,7 @@ export async function GET(
     }
 
     // Get product count
-    const usage = await brandRepository.checkUsage(id);
+    const usage = await BrandRepository.checkUsage(env, id);
 
     return NextResponse.json({
       success: true,
@@ -37,9 +39,14 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error('Error fetching brand:', error);
+    console.error('[Brand API] Error fetching brand:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch brand' },
+      {
+        success: false,
+        error: 'Failed to fetch brand',
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+      },
       { status: 500 }
     );
   }
@@ -53,12 +60,15 @@ export async function PUT(
   try {
     const { id } = await params;
     // Verify admin access
-    const admin = await verifyAdmin(request);
-    if (admin instanceof NextResponse) {
-      return admin;
+    const userOrResponse = await verifyAdminAuth(request, ['admin']);
+    if (userOrResponse instanceof NextResponse) {
+      return userOrResponse;
     }
 
-    const brand = await brandRepository.findById(id);
+    const admin = userOrResponse as { id: string; email: string; role: string; name?: string };
+    const env = await getEnv();
+
+    const brand = await BrandRepository.findById(env, id);
     if (!brand) {
       return NextResponse.json(
         { success: false, error: 'Brand not found' },
@@ -81,11 +91,11 @@ export async function PUT(
 
     // If updating slug, check uniqueness
     if (validatedData.slug && validatedData.slug !== brand.slug) {
-      const existingBySlug = await brandRepository.findBySlug(validatedData.slug);
+      const existingBySlug = await BrandRepository.findBySlug(env, validatedData.slug);
       if (existingBySlug) {
         return NextResponse.json(
           { success: false, error: 'Brand with this slug already exists' },
-          { status: 400 }
+          { status: 409 }
         );
       }
     }
@@ -102,27 +112,37 @@ export async function PUT(
     if (validatedData.featured !== undefined) updateData.featured = validatedData.featured ? 1 : 0;
     if (validatedData.sortOrder !== undefined) updateData.sortOrder = validatedData.sortOrder;
 
-    const updatedBrand = await brandRepository.update(id, updateData);
+    const updatedBrand = await BrandRepository.update(env, id, updateData);
 
     // Log audit event
-    await logAdminAction(
-      null,
-      request,
-      admin.id,
-      'UPDATE',
-      'Brand',
-      brand.id,
-      `Updated brand "${brand.name}"`
-    );
+    try {
+      await logAdminAction(
+        env,
+        request,
+        admin.id,
+        'UPDATE',
+        'Brand',
+        brand.id,
+        `Updated brand "${brand.name}"`
+      );
+    } catch (error) {
+      // Don't fail the request if audit logging fails
+      console.error('[Brand API] Failed to log audit event:', error);
+    }
 
     return NextResponse.json({
       success: true,
       data: updatedBrand,
     });
   } catch (error) {
-    console.error('Error updating brand:', error);
+    console.error('[Brand API] Error updating brand:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { success: false, error: 'Failed to update brand' },
+      {
+        success: false,
+        error: 'Failed to update brand',
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+      },
       { status: 500 }
     );
   }
@@ -136,12 +156,15 @@ export async function DELETE(
   try {
     const { id } = await params;
     // Verify admin access
-    const admin = await verifyAdmin(request);
-    if (admin instanceof NextResponse) {
-      return admin;
+    const userOrResponse = await verifyAdminAuth(request, ['admin']);
+    if (userOrResponse instanceof NextResponse) {
+      return userOrResponse;
     }
 
-    const brand = await brandRepository.findById(id);
+    const admin = userOrResponse as { id: string; email: string; role: string; name?: string };
+    const env = await getEnv();
+
+    const brand = await BrandRepository.findById(env, id);
     if (!brand) {
       return NextResponse.json(
         { success: false, error: 'Brand not found' },
@@ -150,7 +173,7 @@ export async function DELETE(
     }
 
     // Check if brand is in use
-    const usage = await brandRepository.checkUsage(id);
+    const usage = await BrandRepository.checkUsage(env, id);
     if (usage.products > 0) {
       return NextResponse.json(
         {
@@ -161,16 +184,37 @@ export async function DELETE(
       );
     }
 
-    await brandRepository.delete(id);
+    await BrandRepository.delete(env, id);
+
+    // Log audit event
+    try {
+      await logAdminAction(
+        env,
+        request,
+        admin.id,
+        'DELETE',
+        'Brand',
+        id,
+        `Deleted brand "${brand.name}"`
+      );
+    } catch (error) {
+      // Don't fail the request if audit logging fails
+      console.error('[Brand API] Failed to log audit event:', error);
+    }
 
     return NextResponse.json({
       success: true,
       message: 'Brand deleted successfully',
     });
   } catch (error) {
-    console.error('Error deleting brand:', error);
+    console.error('[Brand API] Error deleting brand:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { success: false, error: 'Failed to delete brand' },
+      {
+        success: false,
+        error: 'Failed to delete brand',
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+      },
       { status: 500 }
     );
   }

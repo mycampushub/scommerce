@@ -247,9 +247,39 @@ export default function CouponsPage() {
     e.preventDefault()
 
     try {
+      // Validate form data before sending
+      if (!formData.title.trim()) {
+        toast({
+          variant: 'destructive',
+          title: 'Validation Error',
+          description: 'Title is required',
+        })
+        return
+      }
+
+      if (!formData.promoCode.trim()) {
+        toast({
+          variant: 'destructive',
+          title: 'Validation Error',
+          description: 'Promo code is required',
+        })
+        return
+      }
+
+      if (formData.discountValue <= 0) {
+        toast({
+          variant: 'destructive',
+          title: 'Validation Error',
+          description: 'Discount value must be greater than 0',
+        })
+        return
+      }
+
       const url = editingPromotion
         ? `/api/admin/promotions/${editingPromotion.id}`
         : '/api/admin/promotions'
+
+      console.log('[CouponsPage] Submitting promotion:', formData)
 
       const response = await fetch(url, {
         method: editingPromotion ? 'PUT' : 'POST',
@@ -258,6 +288,9 @@ export default function CouponsPage() {
         },
         body: JSON.stringify(formData),
       })
+
+      const responseData = await response.json()
+      console.log('[CouponsPage] Response:', response.status, responseData)
 
       if (response.ok) {
         toast({
@@ -270,11 +303,10 @@ export default function CouponsPage() {
         resetForm()
         fetchPromotions()
       } else {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to save promotion')
+        throw new Error(responseData.error || responseData.details || 'Failed to save promotion')
       }
     } catch (error: any) {
-      console.error('Error saving promotion:', error)
+      console.error('[CouponsPage] Error saving promotion:', error)
       toast({
         variant: 'destructive',
         title: 'Error',

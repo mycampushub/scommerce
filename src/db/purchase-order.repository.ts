@@ -7,7 +7,7 @@ export type PurchaseOrderWithItems = {
   supplierId: string;
   status: string;
   orderDate: Date | string;
-  expectedDeliveryDate?: Date | string | null;
+  expectedDate?: Date | string | null;
   receivedDate?: Date | string | null;
   notes?: string | null;
   totalAmount: number;
@@ -23,7 +23,7 @@ export type PurchaseOrderCreateInput = {
   supplierId: string;
   status?: string;
   orderDate?: Date | string;
-  expectedDeliveryDate?: Date | string | null;
+  expectedDate?: Date | string | null;
   receivedDate?: Date | string | null;
   notes?: string | null;
   items: Array<{
@@ -81,7 +81,7 @@ class PurchaseOrderRepository {
       supplierId: po.supplierId,
       status: po.status,
       orderDate: po.orderDate,
-      expectedDeliveryDate: po.expectedDeliveryDate,
+      expectedDate: po.expectedDate,
       receivedDate: po.receivedDate,
       notes: po.notes,
       totalAmount: po.totalAmount,
@@ -140,7 +140,7 @@ class PurchaseOrderRepository {
       supplierId: po.supplierId,
       status: po.status,
       orderDate: po.orderDate,
-      expectedDeliveryDate: po.expectedDeliveryDate,
+      expectedDate: po.expectedDate,
       receivedDate: po.receivedDate,
       notes: po.notes,
       totalAmount: po.totalAmount,
@@ -236,7 +236,7 @@ class PurchaseOrderRepository {
         supplierId: po.supplierId,
         status: po.status,
         orderDate: po.orderDate,
-        expectedDeliveryDate: po.expectedDeliveryDate,
+        expectedDate: po.expectedDate,
         receivedDate: po.receivedDate,
         notes: po.notes,
         totalAmount: po.totalAmount,
@@ -263,14 +263,14 @@ class PurchaseOrderRepository {
 
     await execute(
       env,
-      `INSERT INTO purchase_orders (id, orderNumber, supplierId, status, orderDate, expectedDeliveryDate, receivedDate, notes, totalAmount, totalQuantity, createdAt, updatedAt)
+      `INSERT INTO purchase_orders (id, orderNumber, supplierId, status, orderDate, expectedDate, receivedDate, notes, totalAmount, totalQuantity, createdAt, updatedAt)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       poId,
       orderNumber,
       poData.supplierId,
       poData.status || 'PENDING',
       orderDate,
-      poData.expectedDeliveryDate ? new Date(poData.expectedDeliveryDate).toISOString() : null,
+      poData.expectedDate ? new Date(poData.expectedDate).toISOString() : null,
       poData.receivedDate ? new Date(poData.receivedDate).toISOString() : null,
       poData.notes || null,
       totalAmount,
@@ -304,7 +304,7 @@ class PurchaseOrderRepository {
     supplierId?: string;
     status?: string;
     orderDate?: Date | string;
-    expectedDeliveryDate?: Date | string | null;
+    expectedDate?: Date | string | null;
     receivedDate?: Date | string | null;
     notes?: string | null;
     totalAmount?: number;
@@ -325,9 +325,9 @@ class PurchaseOrderRepository {
       updates.push('orderDate = ?');
       params.push(new Date(data.orderDate).toISOString());
     }
-    if (data.expectedDeliveryDate !== undefined) {
-      updates.push('expectedDeliveryDate = ?');
-      params.push(data.expectedDeliveryDate ? new Date(data.expectedDeliveryDate).toISOString() : null);
+    if (data.expectedDate !== undefined) {
+      updates.push('expectedDate = ?');
+      params.push(data.expectedDate ? new Date(data.expectedDate).toISOString() : null);
     }
     if (data.receivedDate !== undefined) {
       updates.push('receivedDate = ?');

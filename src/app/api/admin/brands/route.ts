@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { brandRepository } from '@/db/brand.repository';
-import { verifyAdmin } from '@/lib/auth/admin-auth';
+import { BrandRepository } from '@/db/brand.repository';
+import { verifyAdminAuth } from '@/lib/admin-auth';
+import { getEnv } from '@/lib/cloudflare';
 import { brandSchema } from '@/lib/validations';
 import { logAdminAction } from '@/lib/audit-logger';
 
@@ -8,11 +9,12 @@ import { logAdminAction } from '@/lib/audit-logger';
 export async function GET(request: NextRequest) {
   try {
     // Verify admin access
-    const admin = await verifyAdmin(request);
-    if (admin instanceof NextResponse) {
-      return admin;
+    const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff']);
+    if (userOrResponse instanceof NextResponse) {
+      return userOrResponse;
     }
 
+    const env = await getEnv();
     const searchParams = request.nextUrl.searchParams;
     const search = searchParams.get('search');
     const activeOnly = searchParams.get('activeOnly') === 'true';
@@ -23,9 +25,9 @@ export async function GET(request: NextRequest) {
     let brands;
 
     if (search) {
-      brands = await brandRepository.search(search, activeOnly);
+      brands = await BrandRepository.search(env, search, activeOnly);
     } else {
-      brands = await brandRepository.findAll({
+      brands = await BrandRepository.findAll(env, {
         activeOnly,
         featuredOnly,
         includeProductCount,
@@ -43,9 +45,14 @@ export async function GET(request: NextRequest) {
       count: brands.length,
     });
   } catch (error) {
-    console.error('Error fetching brands:', error);
+    console.error('[Brands API] Error fetching brands:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch brands' },
+      {
+        success: false,
+        error: 'Failed to fetch brands',
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+      },
       { status: 500 }
     );
   }
@@ -55,16 +62,22 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Verify admin access
-    const admin = await verifyAdmin(request);
-    if (admin instanceof NextResponse) {
-      return admin;
+    const userOrResponse = await verifyAdminAuth(request, ['admin']);
+    if (userOrResponse instanceof NextResponse) {
+      return userOrResponse;
     }
 
+    const admin = userOrResponse as { id: string; email: string; role: string; name?: string };
+    const env = await getEnv();
+
     const body = await request.json();
+
+    console.log('[Brands API] Creating brand with body:', body);
 
     // Validate with Zod
     const validation = brandSchema.safeParse(body);
     if (!validation.success) {
+      console.error('[Brands API] Validation failed:', validation.error.issues);
       return NextResponse.json(
         { success: false, error: validation.error.issues[0].message, details: validation.error.issues },
         { status: 400 }
@@ -76,17 +89,20 @@ export async function POST(request: NextRequest) {
     // Generate slug if not provided
     const brandSlug = validatedData.slug || validatedData.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
 
+    console.log('[Brands API] Generated slug:', brandSlug);
+
     // Check if brand with same name or slug already exists
-    const existingByName = await brandRepository.findBySlug(brandSlug);
+    const existingByName = await BrandRepository.findBySlug(env, brandSlug);
     if (existingByName) {
+      console.error('[Brands API] Brand already exists with slug:', brandSlug);
       return NextResponse.json(
         { success: false, error: 'Brand with this name or slug already exists' },
-        { status: 400 }
+        { status: 409 }
       );
     }
 
     // Create brand
-    const brand = await brandRepository.create({
+    const brand = await BrandRepository.create(env, {
       name: validatedData.name,
       slug: brandSlug,
       logo: validatedData.logo || null,
@@ -99,16 +115,19 @@ export async function POST(request: NextRequest) {
     });
 
     if (!brand) {
+      console.error('[Brands API] Failed to create brand - no data returned');
       return NextResponse.json(
         { success: false, error: 'Failed to create brand - no data returned' },
         { status: 500 }
       );
     }
 
+    console.log('[Brands API] Brand created successfully:', brand);
+
     // Log audit event
     try {
       await logAdminAction(
-        null,
+        env,
         request,
         admin.id,
         'CREATE',
@@ -118,17 +137,37 @@ export async function POST(request: NextRequest) {
       );
     } catch (error) {
       // Don't fail the request if audit logging fails
-      console.error('Failed to log audit event:', error);
+      console.error('[Brands API] Failed to log audit event:', error);
     }
 
     return NextResponse.json({
       success: true,
       data: brand,
-    });
+    }, { status: 201 });
   } catch (error) {
-    console.error('Error creating brand:', error);
+    console.error('[Brands API] Error creating brand:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+
+    // Check if it's a database constraint error
+    if (errorMessage.includes('UNIQUE constraint failed') || errorMessage.includes('unique')) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Brand with this name or slug already exists',
+          details: 'Please use a different name or slug'
+        },
+        { status: 409 }
+      );
+    }
+
     return NextResponse.json(
-      { success: false, error: 'Failed to create brand' },
+      {
+        success: false,
+        error: 'Failed to create brand',
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+        stack: process.env.NODE_ENV === 'development' ? errorStack : undefined
+      },
       { status: 500 }
     );
   }

@@ -99,10 +99,33 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json() as any
 
+    console.log('[Promotions POST] Received body:', body)
+
+    // Check for duplicate promo code if provided
+    if (body.promoCode && body.promoCode.trim().length > 0) {
+      const existingPromo = await queryFirst<any>(
+        env,
+        'SELECT id, promoCode FROM promotions WHERE promoCode = ? LIMIT 1',
+        body.promoCode.trim().toUpperCase()
+      )
+      
+      if (existingPromo) {
+        console.error('[Promotions POST] Duplicate promo code:', body.promoCode)
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'A promotion with this promo code already exists',
+            details: `Promo code "${body.promoCode}" is already in use`
+          },
+          { status: 409 }
+        )
+      }
+    }
+
     // Convert empty strings to null for optional string fields
     const sanitizedBody = {
       ...body,
-      promoCode: body.promoCode || undefined,
+      promoCode: body.promoCode && body.promoCode.trim().length > 0 ? body.promoCode.trim().toUpperCase() : undefined,
       startDate: body.startDate || null,
       endDate: body.endDate || null,
       ctaText: body.ctaText || null,
@@ -110,10 +133,12 @@ export async function POST(request: NextRequest) {
       conditions: body.conditions || null,
     }
 
+    console.log('[Promotions POST] Sanitized body:', sanitizedBody)
+
     // Validate with Zod
     const validation = promotionSchema.safeParse(sanitizedBody)
     if (!validation.success) {
-      console.error('Promotion validation failed:', validation.error.issues)
+      console.error('[Promotions POST] Validation failed:', validation.error.issues)
       return NextResponse.json(
         {
           success: false,
@@ -125,6 +150,7 @@ export async function POST(request: NextRequest) {
     }
 
     const validatedData = validation.data
+    console.log('[Promotions POST] Validated data:', validatedData)
 
     // Get highest order value if not provided
     let promotionOrder = body.order
@@ -173,11 +199,20 @@ export async function POST(request: NextRequest) {
       currentTime
     )
 
+    console.log('[Promotions POST] Inserted promotion with ID:', id)
+
     const promotion = await queryFirst<any>(
       env,
       'SELECT * FROM promotions WHERE id = ? LIMIT 1',
       id
     )
+
+    if (!promotion) {
+      console.error('[Promotions POST] Failed to retrieve created promotion with ID:', id)
+      throw new Error('Promotion was created but could not be retrieved')
+    }
+
+    console.log('[Promotions POST] Retrieved promotion:', promotion)
 
     return NextResponse.json({
       success: true,
@@ -191,13 +226,28 @@ export async function POST(request: NextRequest) {
       }
     }, { status: 201 })
   } catch (error) {
-    console.error('Error creating promotion:', error)
+    console.error('[Promotions POST] Error creating promotion:', error)
     const errorMessage = error instanceof Error ? error.message : String(error)
+    const errorStack = error instanceof Error ? error.stack : undefined
+
+    // Check if it's a database constraint error
+    if (errorMessage.includes('UNIQUE constraint failed') || errorMessage.includes('unique')) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'A promotion with this promo code already exists',
+          details: 'Please use a different promo code'
+        },
+        { status: 409 }
+      )
+    }
+
     return NextResponse.json(
       {
         success: false,
         error: 'Failed to create promotion',
-        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+        stack: process.env.NODE_ENV === 'development' ? errorStack : undefined
       },
       { status: 500 }
     )

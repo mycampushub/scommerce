@@ -147,6 +147,8 @@ export async function POST(request: NextRequest) {
     if (contentType.includes('multipart/form-data')) {
       const formData = await request.formData()
 
+      console.log('[Products API] Creating product from multipart form data')
+
       // Validate required fields manually for multipart
       const name = formData.get('name') as string
       const slug = formData.get('slug') as string
@@ -161,6 +163,7 @@ export async function POST(request: NextRequest) {
 
       // Manual validation for multipart
       if (!name || name.trim().length === 0) {
+        console.error('[Products API] Product name is required')
         return NextResponse.json(
           { success: false, error: 'Product name is required' },
           { status: 400 }
@@ -172,7 +175,11 @@ export async function POST(request: NextRequest) {
       if (!slug || slug.trim().length === 0) {
         finalSlug = createSlug(name)
       }
+
+      console.log('[Products API] Generated slug from name:', finalSlug)
+
       if (!description || description.trim().length === 0) {
+        console.error('[Products API] Description is required')
         return NextResponse.json(
           { success: false, error: 'Description is required' },
           { status: 400 }
@@ -181,12 +188,14 @@ export async function POST(request: NextRequest) {
       const costPrice = formData.get('costPrice') as string | null
       const price = parseFloat(basePrice)
       if (isNaN(price) || price <= 0) {
+        console.error('[Products API] Invalid price:', basePrice)
         return NextResponse.json(
           { success: false, error: 'Price must be a positive number' },
           { status: 400 }
         )
       }
       if (!categoryId) {
+        console.error('[Products API] Category ID is required')
         return NextResponse.json(
           { success: false, error: 'Category ID is required' },
           { status: 400 }
@@ -194,6 +203,7 @@ export async function POST(request: NextRequest) {
       }
       const stockNum = parseInt(stock)
       if (isNaN(stockNum) || stockNum < 0) {
+        console.error('[Products API] Invalid stock:', stock)
         return NextResponse.json(
           { success: false, error: 'Stock must be a non-negative integer' },
           { status: 400 }
@@ -202,6 +212,7 @@ export async function POST(request: NextRequest) {
 
       // Validate slug format
       if (!isValidSlug(finalSlug)) {
+        console.error('[Products API] Invalid slug format:', finalSlug)
         return NextResponse.json(
           { success: false, error: 'Invalid slug format. Use only lowercase letters, numbers, and hyphens.' },
           { status: 400 }
@@ -218,6 +229,8 @@ export async function POST(request: NextRequest) {
         existingProduct = await ProductRepository.findBySlug(env, generatedSlug)
       }
 
+      console.log('[Products API] Final unique slug:', generatedSlug)
+
       // Handle image uploads
       const imagesJson = formData.get('images') as string | null
       let images: string[] = []
@@ -225,7 +238,7 @@ export async function POST(request: NextRequest) {
         try {
           images = JSON.parse(imagesJson)
         } catch (e) {
-          console.error('Failed to parse images JSON:', e)
+          console.error('[Products API] Failed to parse images JSON:', e)
         }
       }
 
@@ -247,7 +260,7 @@ export async function POST(request: NextRequest) {
 
           if (!uploadResponse.ok) {
             const errorText = await uploadResponse.text()
-            console.error('Upload failed:', errorText)
+            console.error('[Products API] Upload failed:', errorText)
             continue
           }
 
@@ -257,6 +270,8 @@ export async function POST(request: NextRequest) {
           }
         }
       }
+
+      console.log('[Products API] Creating product with images:', images)
 
       const product = await ProductRepository.create(env, {
         name,
@@ -274,16 +289,31 @@ export async function POST(request: NextRequest) {
         hasVariants: false,
       })
 
+      if (!product) {
+        console.error('[Products API] Failed to create product - no data returned')
+        return NextResponse.json(
+          { success: false, error: 'Failed to create product - no data returned' },
+          { status: 500 }
+        )
+      }
+
+      console.log('[Products API] Product created successfully:', product)
+
       // Log audit event
-      await logAdminAction(
-        env,
-        request,
-        admin.id,
-        'CREATE',
-        'Product',
-        product.id,
-        `Created product "${name}" (ID: ${product.id})`
-      )
+      try {
+        await logAdminAction(
+          env,
+          request,
+          admin.id,
+          'CREATE',
+          'Product',
+          product.id,
+          `Created product "${name}" (ID: ${product.id})`
+        )
+      } catch (error) {
+        // Don't fail the request if audit logging fails
+        console.error('[Products API] Failed to log audit event:', error)
+      }
 
       // Fetch category for response
       let category: any = null
@@ -297,29 +327,35 @@ export async function POST(request: NextRequest) {
           ...product,
           category,
         },
-      })
+      }, { status: 201 })
     }
 
     // Handle JSON content type (from admin panel)
     if (contentType.includes('application/json')) {
       const body = await request.json()
 
+      console.log('[Products API] Creating product with body:', body)
+
       // Validate using Zod schema
       const validation = productSchema.safeParse(body)
       if (!validation.success) {
+        console.error('[Products API] Validation failed:', validation.error.issues)
         return NextResponse.json(
-          { success: false, error: validation.error.issues[0].message },
+          { success: false, error: validation.error.issues[0].message, details: validation.error.issues },
           { status: 400 }
         )
       }
 
       const validatedData = validation.data
+      console.log('[Products API] Validated data:', validatedData)
 
       // Auto-generate slug from name if not provided
       let finalSlug = validatedData.slug
       if (!finalSlug || finalSlug.trim().length === 0) {
         finalSlug = createSlug(validatedData.name)
       }
+
+      console.log('[Products API] Generated slug:', finalSlug)
 
       // Check for unique slug and generate unique slug if needed
       let generatedSlug = finalSlug
@@ -330,6 +366,8 @@ export async function POST(request: NextRequest) {
         counter++
         existingProduct = await ProductRepository.findBySlug(env, generatedSlug)
       }
+
+      console.log('[Products API] Final unique slug:', generatedSlug)
 
       // Convert null values to undefined for repository
       const productData = {
@@ -349,18 +387,35 @@ export async function POST(request: NextRequest) {
         countryOfOrigin: validatedData.countryOfOrigin ?? undefined,
       }
 
+      console.log('[Products API] Creating product with data:', productData)
+
       const product = await ProductRepository.create(env, productData)
 
+      if (!product) {
+        console.error('[Products API] Failed to create product - no data returned')
+        return NextResponse.json(
+          { success: false, error: 'Failed to create product - no data returned' },
+          { status: 500 }
+        )
+      }
+
+      console.log('[Products API] Product created successfully:', product)
+
       // Log audit event
-      await logAdminAction(
-        env,
-        request,
-        admin.id,
-        'CREATE',
-        'Product',
-        product.id,
-        `Created product "${validatedData.name}" (ID: ${product.id})`
-      )
+      try {
+        await logAdminAction(
+          env,
+          request,
+          admin.id,
+          'CREATE',
+          'Product',
+          product.id,
+          `Created product "${validatedData.name}" (ID: ${product.id})`
+        )
+      } catch (error) {
+        // Don't fail the request if audit logging fails
+        console.error('[Products API] Failed to log audit event:', error)
+      }
 
       // Fetch category for response
       let category: any = null
@@ -374,7 +429,7 @@ export async function POST(request: NextRequest) {
           ...product,
           category,
         },
-      })
+      }, { status: 201 })
     }
 
     // Unsupported content type
@@ -383,13 +438,30 @@ export async function POST(request: NextRequest) {
       { status: 415 }
     )
   } catch (error) {
-    console.error('Error creating product:', error)
+    console.error('[Products API] Error creating product:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+
+    // Check if it's a database constraint error
+    if (errorMessage.includes('UNIQUE constraint failed') || errorMessage.includes('unique')) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'A product with this slug already exists',
+          details: 'Please use a different product name or slug'
+        },
+        { status: 409 }
+      );
+    }
+
     return NextResponse.json(
       {
         success: false,
         error: 'Failed to create product',
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+        stack: process.env.NODE_ENV === 'development' ? errorStack : undefined
       },
       { status: 500 }
-    )
+    );
   }
 }

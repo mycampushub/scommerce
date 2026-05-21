@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { purchaseOrderRepository } from '@/db/purchase-order.repository';
-import { verifyAdmin } from '@/lib/auth/admin-auth';
+import { verifyAdminAuth } from '@/lib/admin-auth';
 import { getEnv } from '@/lib/cloudflare';
+import { logAdminAction } from '@/lib/audit-logger';
 
 // GET /api/admin/purchase-orders/[id] - Get single purchase order
 export async function GET(
@@ -12,9 +13,9 @@ export async function GET(
     const env = await getEnv();
     const { id } = await params;
     // Verify admin access
-    const admin = await verifyAdmin(request);
-    if (admin instanceof NextResponse) {
-      return admin;
+    const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff']);
+    if (userOrResponse instanceof NextResponse) {
+      return userOrResponse;
     }
 
     const purchaseOrder = await purchaseOrderRepository.findById(env, id);
@@ -31,9 +32,14 @@ export async function GET(
       data: purchaseOrder,
     });
   } catch (error) {
-    console.error('Error fetching purchase order:', error);
+    console.error('[Purchase Orders API] Error fetching purchase order:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch purchase order' },
+      {
+        success: false,
+        error: 'Failed to fetch purchase order',
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+      },
       { status: 500 }
     );
   }
@@ -48,10 +54,12 @@ export async function PUT(
     const env = await getEnv();
     const { id } = await params;
     // Verify admin access
-    const admin = await verifyAdmin(request);
-    if (admin instanceof NextResponse) {
-      return admin;
+    const userOrResponse = await verifyAdminAuth(request, ['admin']);
+    if (userOrResponse instanceof NextResponse) {
+      return userOrResponse;
     }
+
+    const admin = userOrResponse as { id: string; email: string; role: string; name?: string };
 
     const po = await purchaseOrderRepository.findById(env, id);
     if (!po) {
@@ -72,6 +80,8 @@ export async function PUT(
     const body = await request.json();
     const { supplierId, orderDate, expectedDate, notes, status } = body;
 
+    console.log('[Purchase Orders API] Updating PO:', id, body);
+
     // Prepare update data
     const updateData: any = {};
     if (supplierId !== undefined) updateData.supplierId = supplierId;
@@ -84,14 +94,37 @@ export async function PUT(
 
     const updatedPO = await purchaseOrderRepository.update(env, id, updateData);
 
+    console.log('[Purchase Orders API] PO updated successfully:', updatedPO?.orderNumber);
+
+    // Log audit event
+    try {
+      await logAdminAction(
+        env,
+        request,
+        admin.id,
+        'UPDATE',
+        'PurchaseOrder',
+        id,
+        `Updated purchase order "${po.orderNumber}"`
+      );
+    } catch (error) {
+      // Don't fail the request if audit logging fails
+      console.error('[Purchase Orders API] Failed to log audit event:', error);
+    }
+
     return NextResponse.json({
       success: true,
       data: updatedPO,
     });
   } catch (error) {
-    console.error('Error updating purchase order:', error);
+    console.error('[Purchase Orders API] Error updating purchase order:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { success: false, error: 'Failed to update purchase order' },
+      {
+        success: false,
+        error: 'Failed to update purchase order',
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+      },
       { status: 500 }
     );
   }
@@ -106,10 +139,12 @@ export async function DELETE(
     const env = await getEnv();
     const { id } = await params;
     // Verify admin access
-    const admin = await verifyAdmin(request);
-    if (admin instanceof NextResponse) {
-      return admin;
+    const userOrResponse = await verifyAdminAuth(request, ['admin']);
+    if (userOrResponse instanceof NextResponse) {
+      return userOrResponse;
     }
+
+    const admin = userOrResponse as { id: string; email: string; role: string; name?: string };
 
     const po = await purchaseOrderRepository.findById(env, id);
     if (!po) {
@@ -129,14 +164,37 @@ export async function DELETE(
 
     await purchaseOrderRepository.delete(env, id);
 
+    console.log('[Purchase Orders API] PO deleted successfully:', po.orderNumber);
+
+    // Log audit event
+    try {
+      await logAdminAction(
+        env,
+        request,
+        admin.id,
+        'DELETE',
+        'PurchaseOrder',
+        id,
+        `Deleted purchase order "${po.orderNumber}"`
+      );
+    } catch (error) {
+      // Don't fail the request if audit logging fails
+      console.error('[Purchase Orders API] Failed to log audit event:', error);
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Purchase order cancelled successfully',
     });
   } catch (error) {
-    console.error('Error deleting purchase order:', error);
+    console.error('[Purchase Orders API] Error deleting purchase order:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { success: false, error: 'Failed to delete purchase order' },
+      {
+        success: false,
+        error: 'Failed to delete purchase order',
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+      },
       { status: 500 }
     );
   }
