@@ -253,7 +253,7 @@ export default function PurchaseOrdersPage() {
         },
         body: JSON.stringify({
           supplierId: formData.supplierId,
-          expectedDeliveryDate: formData.expectedDate || null,
+          expectedDate: formData.expectedDate || null,
           notes: formData.notes || null,
           items: formData.items.map(item => ({
             productId: item.productId,

@@ -102,9 +102,17 @@ export function BrandSelector({
 
       const result = await response.json();
 
-      if (result.success) {
+      console.log('Brand creation response:', result); // Debug log
+
+      if (result.success && result.data && typeof result.data === 'object') {
         // Add new brand to list
         const newBrand = result.data;
+
+        // Validate that newBrand has required properties
+        if (!newBrand.id || !newBrand.name) {
+          throw new Error('Invalid brand data received from server');
+        }
+
         setBrands([newBrand, ...brands]);
         setFilteredBrands([newBrand, ...brands]); // Also update filtered list
         onChange(newBrand.id, newBrand);

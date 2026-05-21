@@ -293,7 +293,7 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        products: {
+        data: {
           ...product,
           category,
         },
@@ -370,7 +370,7 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        products: {
+        data: {
           ...product,
           category,
         },

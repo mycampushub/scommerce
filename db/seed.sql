@@ -204,6 +204,16 @@ VALUES
 ('promo-003', 'Free Shipping', 'Free shipping on orders above 5000 BDT', 'https://images.unsplash.com/photo-1586281380383-0156275b6614?w=1200&h=600&fit=crop', 'Learn More', '/shipping', 'banner', 1, 3, datetime('now'), datetime('now'));
 
 -- ============================================
+-- COUPONS (Promotions with promoCode)
+-- ============================================
+INSERT OR IGNORE INTO promotions (id, title, description, image, ctaText, ctaLink, type, discountType, discountValue, minOrderAmount, maxDiscountAmount, promoCode, startDate, endDate, usageLimit, usedCount, userLimit, conditions, isActive, "order", createdAt, updatedAt)
+VALUES
+('coupon-001', 'Welcome Offer', 'Get 10% off on your first order', null, null, null, 'coupon', 'percentage', 10, 1000, 500, 'WELCOME10', datetime('now'), datetime('now', '+90 days'), 100, 0, 1, null, 1, 100, datetime('now'), datetime('now')),
+('coupon-002', 'Festival Special', 'Flat 500 BDT discount on orders above 3000', null, null, null, 'coupon', 'fixed', 500, 3000, null, 'FESTIVAL500', datetime('now'), datetime('now', '+30 days'), 200, 0, 2, null, 1, 101, datetime('now'), datetime('now')),
+('coupon-003', 'Summer Sale', 'Up to 20% off on all products', null, null, null, 'coupon', 'percentage', 20, 2000, 1000, 'SUMMER20', datetime('now'), datetime('now', '+60 days'), 500, 0, 5, null, 1, 102, datetime('now'), datetime('now')),
+('coupon-004', 'Free Shipping', 'Free shipping on orders above 5000', null, null, null, 'coupon', 'fixed', 150, 5000, null, 'FREESHIP', null, null, 1000, 0, 1, null, 1, 103, datetime('now'), datetime('now'));
+
+-- ============================================
 -- BANNERS
 -- ============================================
 INSERT OR IGNORE INTO banners (id, title, description, image, mobileImage, buttonText, buttonLink, isActive, "order", createdAt, updatedAt)

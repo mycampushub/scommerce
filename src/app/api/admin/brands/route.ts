@@ -98,16 +98,28 @@ export async function POST(request: NextRequest) {
       sortOrder: validatedData.sortOrder || 0,
     });
 
+    if (!brand) {
+      return NextResponse.json(
+        { success: false, error: 'Failed to create brand - no data returned' },
+        { status: 500 }
+      );
+    }
+
     // Log audit event
-    await logAdminAction(
-      null,
-      request,
-      admin.id,
-      'CREATE',
-      'Brand',
-      brand.id,
-      `Created brand "${brand.name}"`
-    );
+    try {
+      await logAdminAction(
+        null,
+        request,
+        admin.id,
+        'CREATE',
+        'Brand',
+        brand.id,
+        `Created brand "${brand.name}"`
+      );
+    } catch (error) {
+      // Don't fail the request if audit logging fails
+      console.error('Failed to log audit event:', error);
+    }
 
     return NextResponse.json({
       success: true,
