@@ -3,7 +3,7 @@ compatibility_date = "2026-04-30"
 compatibility_flags = ["nodejs_compat"]
 
 # For Cloudflare Pages deployment
-main = "_worker.js"
+main = ".open-next/worker.js"
 # Note: This worker serves both Next.js (via OpenNext) and static assets
 
 # Environment Variables
