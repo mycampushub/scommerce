@@ -26,8 +26,8 @@ export const productSchema = z.object({
   slug: z.string().optional(), // Optional - will be auto-generated from name if not provided
   description: z.string().optional().nullable(), // Optional description
   basePrice: z.number().positive('Price must be positive'),
-  comparePrice: z.number().positive().nullable().optional(),
-  costPrice: z.number().min(0).nullable().optional(),
+  comparePrice: z.union([z.literal(null), z.number().positive('Compare price must be positive')]).optional(),
+  costPrice: z.union([z.literal(null), z.number().min(0, 'Cost price must be non-negative')]).optional(),
   categoryId: z.string().min(1, 'Category ID is required'),
   images: z.array(z.string()).nullable().optional(), // Made nullable - products can be created without images initially
   stock: z.number().int().min(0, 'Stock must be a non-negative integer'),
@@ -37,16 +37,16 @@ export const productSchema = z.object({
   hasVariants: z.boolean().optional(),
   attributes: z.record(z.string(), z.unknown()).optional(),
   // Brand fields
-  brandId: z.string().nullable().optional(),
-  brandName: z.string().nullable().optional(),
-  brandLogo: z.string().nullable().optional(),
+  brandId: z.union([z.literal(null), z.string()]).optional(),
+  brandName: z.union([z.literal(null), z.string()]).optional(),
+  brandLogo: z.union([z.literal(null), z.string()]).optional(),
   // Size system fields
   sizeType: z.enum(['unit', 'label']).nullable().optional(),
-  sizeValue: z.number().nullable().optional(),
-  sizeUnit: z.string().nullable().optional(),
-  sizeLabel: z.string().nullable().optional(),
+  sizeValue: z.union([z.literal(null), z.number()]).optional(),
+  sizeUnit: z.union([z.literal(null), z.string()]).optional(),
+  sizeLabel: z.union([z.literal(null), z.string()]).optional(),
   // Country of origin
-  countryOfOrigin: z.string().nullable().optional(),
+  countryOfOrigin: z.union([z.literal(null), z.string()]).optional(),
 });
 
 export const updateProductSchema = productSchema.partial();

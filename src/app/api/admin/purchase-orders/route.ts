@@ -66,6 +66,7 @@ export async function POST(request: NextRequest) {
     const { supplierId, items, orderDate, expectedDate, notes } = body;
 
     console.log('[Purchase Orders API] Creating PO with body:', body);
+    console.log('[Purchase Orders API] Env available:', !!env);
 
     // Validation
     if (!supplierId) {
@@ -85,7 +86,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate items
-    for (const item of items) {
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      console.log(`[Purchase Orders API] Validating item ${i + 1}:`, item);
       if (!item.productId) {
         console.error('[Purchase Orders API] Product ID is required for each item');
         return NextResponse.json(
@@ -110,6 +113,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create purchase order
+    console.log('[Purchase Orders API] Calling purchaseOrderRepository.create...');
     const purchaseOrder = await purchaseOrderRepository.create(env, {
       supplierId,
       items,
@@ -119,10 +123,12 @@ export async function POST(request: NextRequest) {
       notes: notes || null,
     });
 
+    console.log('[Purchase Orders API] Repository returned:', purchaseOrder);
+
     if (!purchaseOrder) {
-      console.error('[Purchase Orders API] Failed to create purchase order - no data returned');
+      console.error('[Purchase Orders API] Failed to create purchase order - no data returned from repository');
       return NextResponse.json(
-        { success: false, error: 'Failed to create purchase order - no data returned' },
+        { success: false, error: 'Failed to create purchase order - no data returned from repository' },
         { status: 500 }
       );
     }
@@ -151,6 +157,10 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
   } catch (error) {
     console.error('[Purchase Orders API] Error creating purchase order:', error);
+    console.error('[Purchase Orders API] Error stack:', error instanceof Error ? error.stack : 'No stack available');
+    console.error('[Purchase Orders API] Error message:', error instanceof Error ? error.message : String(error));
+    console.error('[Purchase Orders API] Error name:', error instanceof Error ? error.name : 'Unknown');
+
     const errorMessage = error instanceof Error ? error.message : String(error);
     const errorStack = error instanceof Error ? error.stack : undefined;
 
@@ -163,6 +173,19 @@ export async function POST(request: NextRequest) {
           details: 'Please try again'
         },
         { status: 409 }
+      );
+    }
+
+    // Check if it's a database structure error
+    if (errorMessage.includes('has no column') || errorMessage.includes('datatype mismatch') || errorMessage.includes('wrong number of parameters')) {
+      console.error('[Purchase Orders API] Database structure error:', errorMessage);
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Database structure error',
+          details: process.env.NODE_ENV === 'development' ? errorMessage : 'Contact administrator'
+        },
+        { status: 500 }
       );
     }
 

@@ -251,53 +251,83 @@ class PurchaseOrderRepository {
   }
 
   async create(env: Env | null, data: PurchaseOrderCreateInput): Promise<PurchaseOrderWithItems> {
+    console.log('[PurchaseOrderRepository.create] Starting creation with data:', data);
+    console.log('[PurchaseOrderRepository.create] Env available:', !!env);
+
     const { items, ...poData } = data;
 
     const totalAmount = items.reduce((sum, item) => sum + (item.unitCost * item.quantity), 0);
     const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
+
+    console.log('[PurchaseOrderRepository.create] Calculated totals:', { totalAmount, totalQuantity });
 
     const orderNumber = await this.generateOrderNumber(env);
     const poId = generateId();
     const now = new Date().toISOString();
     const orderDate = poData.orderDate ? new Date(poData.orderDate).toISOString() : now;
 
-    await execute(
-      env,
-      `INSERT INTO purchase_orders (id, orderNumber, supplierId, status, orderDate, expectedDate, receivedDate, notes, totalAmount, totalQuantity, createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      poId,
-      orderNumber,
-      poData.supplierId,
-      poData.status || 'PENDING',
-      orderDate,
-      poData.expectedDate ? new Date(poData.expectedDate).toISOString() : null,
-      poData.receivedDate ? new Date(poData.receivedDate).toISOString() : null,
-      poData.notes || null,
-      totalAmount,
-      totalQuantity,
-      now,
-      now
-    );
+    console.log('[PurchaseOrderRepository.create] Generated orderNumber:', orderNumber);
+    console.log('[PurchaseOrderRepository.create] Generated poId:', poId);
+
+    try {
+      await execute(
+        env,
+        `INSERT INTO purchase_orders (id, orderNumber, supplierId, status, orderDate, expectedDate, receivedDate, notes, totalAmount, totalQuantity, createdAt, updatedAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        poId,
+        orderNumber,
+        poData.supplierId,
+        poData.status || 'PENDING',
+        orderDate,
+        poData.expectedDate ? new Date(poData.expectedDate).toISOString() : null,
+        poData.receivedDate ? new Date(poData.receivedDate).toISOString() : null,
+        poData.notes || null,
+        totalAmount,
+        totalQuantity,
+        now,
+        now
+      );
+      console.log('[PurchaseOrderRepository.create] Inserted purchase order successfully');
+    } catch (error) {
+      console.error('[PurchaseOrderRepository.create] Error inserting purchase order:', error);
+      throw error;
+    }
 
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       const itemId = generateId();
-      await execute(
-        env,
-        `INSERT INTO purchase_order_items (id, purchaseOrderId, productId, variantId, quantity, unitCost, totalCost, receivedQty)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        itemId,
-        poId,
-        item.productId,
-        item.variantId || null,
-        item.quantity,
-        item.unitCost,
-        item.unitCost * item.quantity,
-        0
-      );
+      console.log(`[PurchaseOrderRepository.create] Inserting item ${i + 1}/${items.length}:`, item);
+
+      try {
+        await execute(
+          env,
+          `INSERT INTO purchase_order_items (id, purchaseOrderId, productId, variantId, quantity, unitCost, totalCost, receivedQty)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          itemId,
+          poId,
+          item.productId,
+          item.variantId || null,
+          item.quantity,
+          item.unitCost,
+          item.unitCost * item.quantity,
+          0
+        );
+        console.log(`[PurchaseOrderRepository.create] Inserted item ${i + 1}/${items.length} successfully`);
+      } catch (error) {
+        console.error(`[PurchaseOrderRepository.create] Error inserting item ${i + 1}:`, error);
+        throw error;
+      }
     }
 
-    return this.findById(env, poId) as Promise<PurchaseOrderWithItems>;
+    console.log('[PurchaseOrderRepository.create] All items inserted, calling findById...');
+    const result = await this.findById(env, poId);
+    console.log('[PurchaseOrderRepository.create] findById returned:', result);
+
+    if (!result) {
+      throw new Error('Failed to retrieve created purchase order');
+    }
+
+    return result;
   }
 
   async update(env: Env | null, id: string, data: Partial<{

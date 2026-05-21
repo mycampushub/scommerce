@@ -123,14 +123,22 @@ export async function POST(request: NextRequest) {
     }
 
     // Convert empty strings to null for optional string fields
+    // Handle date fields - empty strings should be null, otherwise validate date format
+    // Convert numeric fields from strings to numbers if needed
     const sanitizedBody = {
       ...body,
-      promoCode: body.promoCode && body.promoCode.trim().length > 0 ? body.promoCode.trim().toUpperCase() : undefined,
-      startDate: body.startDate || null,
-      endDate: body.endDate || null,
-      ctaText: body.ctaText || null,
-      ctaLink: body.ctaLink || null,
-      conditions: body.conditions || null,
+      promoCode: body.promoCode && body.promoCode.trim().length > 0 ? body.promoCode.trim().toUpperCase() : null,
+      startDate: (body.startDate && body.startDate.trim().length > 0) ? body.startDate.trim() : null,
+      endDate: (body.endDate && body.endDate.trim().length > 0) ? body.endDate.trim() : null,
+      ctaText: (body.ctaText && body.ctaText.trim().length > 0) ? body.ctaText.trim() : null,
+      ctaLink: (body.ctaLink && body.ctaLink.trim().length > 0) ? body.ctaLink.trim() : null,
+      conditions: (body.conditions && body.conditions.trim().length > 0) ? body.conditions.trim() : null,
+      // Ensure numeric fields are numbers (not strings)
+      discountValue: body.discountValue !== undefined ? parseFloat(String(body.discountValue)) : undefined,
+      minOrderAmount: body.minOrderAmount !== undefined ? parseFloat(String(body.minOrderAmount)) : undefined,
+      maxDiscountAmount: body.maxDiscountAmount !== undefined ? parseFloat(String(body.maxDiscountAmount)) : undefined,
+      usageLimit: body.usageLimit !== undefined ? parseInt(String(body.usageLimit), 10) : undefined,
+      userLimit: body.userLimit !== undefined ? parseInt(String(body.userLimit), 10) : undefined,
     }
 
     console.log('[Promotions POST] Sanitized body:', sanitizedBody)
@@ -164,6 +172,23 @@ export async function POST(request: NextRequest) {
 
     const id = generateId()
     const currentTime = now()
+
+    console.log('[Promotions POST] Inserting promotion with params:', {
+      id,
+      title: validatedData.title,
+      type: validatedData.type,
+      promoCode: validatedData.promoCode,
+      discountValue: validatedData.discountValue,
+      minOrderAmount: validatedData.minOrderAmount,
+      maxDiscountAmount: validatedData.maxDiscountAmount,
+      usageLimit: validatedData.usageLimit,
+      userLimit: validatedData.userLimit,
+      startDate: validatedData.startDate,
+      endDate: validatedData.endDate,
+      applicableCategories: validatedData.applicableCategories,
+      applicableProducts: validatedData.applicableProducts,
+      order: promotionOrder,
+    })
 
     await execute(
       env,
@@ -227,8 +252,13 @@ export async function POST(request: NextRequest) {
     }, { status: 201 })
   } catch (error) {
     console.error('[Promotions POST] Error creating promotion:', error)
+    console.error('[Promotions POST] Error stack:', error instanceof Error ? error.stack : 'No stack available')
+
     const errorMessage = error instanceof Error ? error.message : String(error)
     const errorStack = error instanceof Error ? error.stack : undefined
+
+    console.error('[Promotions POST] Error message:', errorMessage)
+    console.error('[Promotions POST] Error name:', error instanceof Error ? error.name : 'Unknown')
 
     // Check if it's a database constraint error
     if (errorMessage.includes('UNIQUE constraint failed') || errorMessage.includes('unique')) {
@@ -239,6 +269,19 @@ export async function POST(request: NextRequest) {
           details: 'Please use a different promo code'
         },
         { status: 409 }
+      )
+    }
+
+    // Check if it's a database column/type error
+    if (errorMessage.includes('has no column') || errorMessage.includes('datatype mismatch') || errorMessage.includes('wrong number of parameters')) {
+      console.error('[Promotions POST] Database structure error:', errorMessage)
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Database structure error',
+          details: process.env.NODE_ENV === 'development' ? errorMessage : 'Contact administrator'
+        },
+        { status: 500 }
       )
     }
 
