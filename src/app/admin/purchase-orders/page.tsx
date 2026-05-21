@@ -50,6 +50,7 @@ interface POItem {
   quantity: number
   unitCost: number
   variantId?: string
+  variants?: ProductVariant[]
 }
 
 interface PurchaseOrder {
@@ -57,7 +58,7 @@ interface PurchaseOrder {
   orderNumber: string
   supplierId: string
   supplierName: string
-  status: 'PENDING' | 'RECEIVED' | 'CANCELLED'
+  status: 'PENDING' | 'ORDERED' | 'RECEIVED' | 'CANCELLED'
   totalAmount: number
   totalQuantity: number
   expectedDate: string | null
@@ -93,7 +94,6 @@ export default function PurchaseOrdersPage() {
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([])
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [products, setProducts] = useState<Product[]>([])
-  const [variants, setVariants] = useState<ProductVariant[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [viewModalOpen, setViewModalOpen] = useState(false)
@@ -155,14 +155,14 @@ export default function PurchaseOrdersPage() {
     }
   }
 
-  const fetchVariants = async (productId: string) => {
+  const fetchVariants = async (productId: string): Promise<ProductVariant[]> => {
     try {
       const response = await fetch(`/api/admin/products/${productId}/variants`)
       const result = await response.json()
-      setVariants(result.variants || [])
+      return result.variants || []
     } catch (err) {
       console.error('Error fetching variants:', err)
-      setVariants([])
+      return []
     }
   }
 
@@ -179,7 +179,6 @@ export default function PurchaseOrdersPage() {
       notes: '',
       items: [],
     })
-    setVariants([])
     setIsModalOpen(true)
   }
 
@@ -198,18 +197,21 @@ export default function PurchaseOrdersPage() {
     })
   }
 
-  const updateItem = (index: number, field: keyof POItem | 'variantId', value: any) => {
+  const updateItem = async (index: number, field: keyof POItem | 'variantId', value: any) => {
     const updatedItems = [...formData.items]
     updatedItems[index] = { ...updatedItems[index], [field]: value }
 
-    // Update product name when product is selected
+    // Update product name and fetch variants when product is selected
     if (field === 'productId') {
       const product = products.find(p => p.id === value)
       if (product) {
         updatedItems[index].productName = product.name
-        // Fetch variants if product has variants
+        // Fetch and store variants for this specific item
         if (product.hasVariants) {
-          fetchVariants(value)
+          const itemVariants = await fetchVariants(value)
+          updatedItems[index].variants = itemVariants
+        } else {
+          updatedItems[index].variants = []
         }
       }
     }
@@ -398,6 +400,7 @@ export default function PurchaseOrdersPage() {
   const getStatusConfig = (status: string) => {
     const configs = {
       PENDING: { label: 'Pending', color: 'bg-yellow-100 text-yellow-700', icon: Clock },
+      ORDERED: { label: 'Ordered', color: 'bg-blue-100 text-blue-700', icon: FileText },
       RECEIVED: { label: 'Received', color: 'bg-green-100 text-green-700', icon: CheckCircle },
       CANCELLED: { label: 'Cancelled', color: 'bg-red-100 text-red-700', icon: XCircle },
     }
@@ -607,7 +610,7 @@ export default function PurchaseOrdersPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="supplier">Supplier *</Label>
-                <Select value={formData.supplierId} onValueChange={(val) => { setFormData({ ...formData, supplierId: val }); setVariants([]); }}>
+                <Select value={formData.supplierId} onValueChange={(val) => { setFormData({ ...formData, supplierId: val }); }}>
                   <SelectTrigger id="supplier">
                     <SelectValue placeholder="Select supplier" />
                   </SelectTrigger>
@@ -653,7 +656,7 @@ export default function PurchaseOrdersPage() {
                           </SelectContent>
                         </Select>
 
-                        {hasVariants && variants.length > 0 && (
+                        {hasVariants && item.variants && item.variants.length > 0 && (
                           <Select
                             value={(item as any).variantId || 'none'}
                             onValueChange={(val) => updateItem(index, 'variantId', val)}
@@ -663,7 +666,7 @@ export default function PurchaseOrdersPage() {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="none">No variant</SelectItem>
-                              {variants.map(variant => (
+                              {item.variants.map(variant => (
                                 <SelectItem key={variant.id} value={variant.id}>
                                   {variant.name}
                                 </SelectItem>

@@ -322,6 +322,34 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
   const handleUpdateProduct = async () => {
     if (!product) return
 
+    // Validation: Check required fields
+    if (!formData.name || formData.name.trim() === '') {
+      toast({
+        title: 'Error',
+        description: 'Product name is required',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (!formData.categoryId || formData.categoryId.trim() === '') {
+      toast({
+        title: 'Error',
+        description: 'Please select a category',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (!formData.price || parseFloat(formData.price) <= 0) {
+      toast({
+        title: 'Error',
+        description: 'Please enter a valid price',
+        variant: 'destructive',
+      })
+      return
+    }
+
     try {
       const response = await apiFetch(`/api/admin/products/${product.id}`, {
         method: 'PUT',
@@ -377,6 +405,7 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
 
   const createVariantsForProduct = async (productId: string) => {
     const basePrice = parseFloat(formData.price)
+    const failedVariants: string[] = []
 
     for (let i = 0; i < newVariants.length; i++) {
       const variant = newVariants[i]
@@ -390,7 +419,7 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
       const variantName = [sizeLabel, variant.color, variant.material].filter(Boolean).join(' / ') || 'Default'
 
       try {
-        await apiFetch(`/api/admin/products/${productId}/variants`, {
+        const response = await apiFetch(`/api/admin/products/${productId}/variants`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -410,9 +439,25 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
             reorderQty: 20,
           }),
         })
+
+        const result = await response.json()
+        if (!result.success) {
+          failedVariants.push(variantName)
+          console.error('Error creating variant:', result.error || variantName)
+        }
       } catch (err) {
+        failedVariants.push(variantName)
         console.error('Error creating variant:', err)
       }
+    }
+
+    // Notify user if any variants failed
+    if (failedVariants.length > 0) {
+      toast({
+        title: 'Warning',
+        description: `Failed to create ${failedVariants.length} variant${failedVariants.length > 1 ? 's' : ''}: ${failedVariants.join(', ')}`,
+        variant: 'destructive',
+      })
     }
   }
 

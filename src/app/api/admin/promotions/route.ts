@@ -123,13 +123,27 @@ export async function POST(request: NextRequest) {
     }
 
     // Convert empty strings to null for optional string fields
-    // Handle date fields - empty strings should be null, otherwise validate date format
+    // Handle date fields - empty strings should be null, otherwise convert to ISO format
     // Convert numeric fields from strings to numbers if needed
+    const formatDateToISO = (dateStr: string | null | undefined): string | null => {
+      if (!dateStr || dateStr.trim().length === 0) return null
+      // If it's already in ISO format (has 'T'), return as-is
+      if (dateStr.includes('T')) return dateStr.trim()
+      // Otherwise, convert 'YYYY-MM-DD' to ISO format
+      try {
+        const date = new Date(dateStr)
+        if (isNaN(date.getTime())) return null
+        return date.toISOString()
+      } catch {
+        return null
+      }
+    }
+
     const sanitizedBody = {
       ...body,
       promoCode: body.promoCode && body.promoCode.trim().length > 0 ? body.promoCode.trim().toUpperCase() : null,
-      startDate: (body.startDate && body.startDate.trim().length > 0) ? body.startDate.trim() : null,
-      endDate: (body.endDate && body.endDate.trim().length > 0) ? body.endDate.trim() : null,
+      startDate: formatDateToISO(body.startDate),
+      endDate: formatDateToISO(body.endDate),
       ctaText: (body.ctaText && body.ctaText.trim().length > 0) ? body.ctaText.trim() : null,
       ctaLink: (body.ctaLink && body.ctaLink.trim().length > 0) ? body.ctaLink.trim() : null,
       conditions: (body.conditions && body.conditions.trim().length > 0) ? body.conditions.trim() : null,

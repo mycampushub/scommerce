@@ -325,6 +325,7 @@ export async function POST(request: NextRequest) {
         success: true,
         data: {
           ...product,
+          hasVariants: numberToBool(product.hasVariants),
           category,
         },
       }, { status: 201 })
@@ -427,6 +428,7 @@ export async function POST(request: NextRequest) {
         success: true,
         data: {
           ...product,
+          hasVariants: numberToBool(product.hasVariants),
           category,
         },
       }, { status: 201 })

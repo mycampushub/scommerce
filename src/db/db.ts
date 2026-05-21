@@ -219,3 +219,78 @@ export function buildPaginationClause(options: { limit?: number; offset?: number
   const { limit = 20, offset = 0 } = options;
   return `LIMIT ${limit} OFFSET ${offset}`;
 }
+
+/**
+ * Execute SQL within a transaction
+ * Supports both D1 and Prisma (SQLite)
+ */
+export async function transaction<T>(
+  env: Env | null,
+  callback: (db: any) => Promise<T>
+): Promise<T> {
+  const db = getDatabase(env);
+  if (!db) {
+    throw new Error('Database not available');
+  }
+
+  try {
+    // Begin transaction
+    await execute(env, 'BEGIN TRANSACTION');
+    
+    // Execute callback
+    const result = await callback(db);
+    
+    // Commit transaction
+    await execute(env, 'COMMIT');
+    
+    return result;
+  } catch (error) {
+    // Rollback on error
+    try {
+      await execute(env, 'ROLLBACK');
+    } catch (rollbackError) {
+      console.error('[db.ts] Error during rollback:', rollbackError);
+    }
+    throw error;
+  }
+}
+
+/**
+ * Retry a function with exponential backoff
+ * Useful for handling race conditions
+ */
+export async function retry<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelay: number = 100
+): Promise<T> {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      
+      // Check if error is a unique constraint violation (race condition)
+      const isUniqueConstraintError = lastError.message.includes('UNIQUE') ||
+                                       lastError.message.includes('constraint');
+      
+      // If it's not a unique constraint error, don't retry
+      if (!isUniqueConstraintError) {
+        throw lastError;
+      }
+      
+      // If this was the last attempt, throw the error
+      if (attempt === maxRetries - 1) {
+        throw lastError;
+      }
+      
+      // Calculate exponential backoff delay
+      const delay = baseDelay * Math.pow(2, attempt);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  throw lastError || new Error('Retry failed');
+}

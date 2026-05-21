@@ -1,5 +1,5 @@
 import { Env } from './types';
-import { queryFirst, queryAll, execute, count as dbCount, generateId } from './db';
+import { queryFirst, queryAll, execute, count as dbCount, generateId, transaction, retry } from './db';
 
 export type PurchaseOrderWithItems = {
   id: string;
@@ -256,18 +256,30 @@ class PurchaseOrderRepository {
 
     const { items, ...poData } = data;
 
-    const totalAmount = items.reduce((sum, item) => sum + (item.unitCost * item.quantity), 0);
+    const totalAmount = parseFloat(
+      items.reduce((sum, item) => sum + (item.unitCost * item.quantity), 0)
+        .toFixed(2)
+    );
     const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
 
     console.log('[PurchaseOrderRepository.create] Calculated totals:', { totalAmount, totalQuantity });
 
-    const orderNumber = await this.generateOrderNumber(env);
     const poId = generateId();
     const now = new Date().toISOString();
     const orderDate = poData.orderDate ? new Date(poData.orderDate).toISOString() : now;
 
-    console.log('[PurchaseOrderRepository.create] Generated orderNumber:', orderNumber);
     console.log('[PurchaseOrderRepository.create] Generated poId:', poId);
+
+    // Use retry mechanism for order number generation to prevent race conditions
+    const orderNumber = await retry(
+      async () => {
+        const num = await this.generateOrderNumber(env);
+        console.log('[PurchaseOrderRepository.create] Generated orderNumber:', num);
+        return num;
+      },
+      3, // max 3 retries
+      100 // 100ms base delay
+    );
 
     try {
       await execute(
@@ -433,38 +445,46 @@ class PurchaseOrderRepository {
   }
 
   async receiveOrder(env: Env | null, id: string, receivedItems: Array<{ itemId: string; quantity: number }>): Promise<PurchaseOrderWithItems | null> {
-    const po = await this.findById(env, id);
-    if (!po) {
-      throw new Error('Purchase order not found');
-    }
+    // Wrap the entire receive operation in a transaction to ensure data integrity
+    return transaction(env, async () => {
+      const po = await this.findById(env, id);
+      if (!po) {
+        throw new Error('Purchase order not found');
+      }
 
-    if (po.status === 'RECEIVED') {
-      throw new Error('Order has already been received');
-    }
+      if (po.status === 'RECEIVED') {
+        throw new Error('Order has already been received');
+      }
 
-    for (const item of receivedItems) {
-      await execute(
-        env,
-        `UPDATE purchase_order_items SET receivedQty = ? WHERE id = ?`,
-        item.quantity,
-        item.itemId
-      );
-    }
-
-    for (const item of po.items) {
-      const receivedItem = receivedItems.find((ri) => ri.itemId === item.id);
-      if (!receivedItem) continue;
-
-      const quantity = receivedItem.quantity;
-
-      if (item.variantId) {
-        const variant = await queryFirst<any>(
+      // Update purchase order items with received quantities
+      for (const item of receivedItems) {
+        await execute(
           env,
-          `SELECT * FROM product_variants WHERE id = ?`,
-          item.variantId
+          `UPDATE purchase_order_items SET receivedQty = ? WHERE id = ?`,
+          item.quantity,
+          item.itemId
         );
+      }
 
-        if (variant) {
+      // Update inventory for each item and create inventory movements
+      for (const item of po.items) {
+        const receivedItem = receivedItems.find((ri) => ri.itemId === item.id);
+        if (!receivedItem) continue;
+
+        const quantity = receivedItem.quantity;
+
+        if (item.variantId) {
+          const variant = await queryFirst<any>(
+            env,
+            `SELECT * FROM product_variants WHERE id = ?`,
+            item.variantId
+          );
+
+          if (!variant) {
+            console.error(`[receiveOrder] Variant not found: ${item.variantId}. Skipping stock update for item: ${item.productName || item.productId}`);
+            continue;
+          }
+
           const newTotalPurchased = variant.totalPurchased + quantity;
           const oldTotalCost = variant.totalCost || 0;
           const newCost = item.unitCost * quantity;
@@ -481,15 +501,18 @@ class PurchaseOrderRepository {
             newAverageCost,
             item.variantId
           );
-        }
-      } else {
-        const product = await queryFirst<any>(
-          env,
-          `SELECT * FROM products WHERE id = ?`,
-          item.productId
-        );
+        } else {
+          const product = await queryFirst<any>(
+            env,
+            `SELECT * FROM products WHERE id = ?`,
+            item.productId
+          );
 
-        if (product) {
+          if (!product) {
+            console.error(`[receiveOrder] Product not found: ${item.productId}. Skipping stock update for item: ${item.productName || item.productId}`);
+            continue;
+          }
+
           const newTotalPurchased = product.totalPurchased + quantity;
           const oldTotalCost = product.totalCost || 0;
           const newCost = item.unitCost * quantity;
@@ -509,31 +532,35 @@ class PurchaseOrderRepository {
             item.productId
           );
         }
+
+        // Create inventory movement record for audit trail
+        const movementId = generateId();
+        await execute(
+          env,
+          `INSERT INTO inventory_movements (id, productId, variantId, movementType, quantity, unitCost, totalCost, referenceId, referenceType, supplierId, approved, approvedAt)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          movementId,
+          item.productId,
+          item.variantId,
+          'PURCHASE',
+          quantity,
+          item.unitCost,
+          item.unitCost * quantity,
+          id,
+          'PURCHASE_ORDER',
+          po.supplierId,
+          1,
+          new Date().toISOString()
+        );
       }
 
-      const movementId = generateId();
-      await execute(
-        env,
-        `INSERT INTO inventory_movements (id, productId, variantId, movementType, quantity, unitCost, totalCost, referenceId, referenceType, supplierId, approved, approvedAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        movementId,
-        item.productId,
-        item.variantId,
-        'PURCHASE',
-        quantity,
-        item.unitCost,
-        item.unitCost * quantity,
-        id,
-        'PURCHASE_ORDER',
-        po.supplierId,
-        1,
-        new Date().toISOString()
-      );
-    }
+      // Update PO status to RECEIVED
+      await this.updateStatus(env, id, 'RECEIVED', new Date());
 
-    await this.updateStatus(env, id, 'RECEIVED', new Date());
-
-    return this.findById(env, id);
+      // Return the updated PO
+      const result = await this.findById(env, id);
+      return result;
+    });
   }
 
   async count(env: Env | null, options?: { supplierId?: string; status?: string }): Promise<number> {

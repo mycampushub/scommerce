@@ -27,7 +27,7 @@ export async function validatePromoCode(
   const promotion = await env.DB.prepare(
     `SELECT * FROM promotions
      WHERE promoCode = ?
-       AND type = 'discount_code'
+       AND (type = 'coupon' OR type = 'discount_code')
        AND isActive = 1
      LIMIT 1`
   )
@@ -75,7 +75,7 @@ export async function validatePromoCode(
        FROM orders
        WHERE promoCode = ?
          AND userId = ?
-         AND status IN ('CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED')`
+         AND status IN ('PENDING', 'CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED')`
     )
       .bind(promoCode, userId)
       .first();
@@ -134,7 +134,7 @@ export async function validatePromoCode(
     if (promotion.maxDiscountAmount && discountAmount > promotion.maxDiscountAmount) {
       discountAmount = promotion.maxDiscountAmount;
     }
-  } else if (promotion.discountType === 'fixed_amount') {
+  } else if (promotion.discountType === 'fixed' || promotion.discountType === 'fixed_amount') {
     discountAmount = promotion.discountValue || 0;
   } else if (promotion.discountType === 'buy_x_get_y') {
     // Complex discount type - handle in separate logic
@@ -170,16 +170,34 @@ async function checkCartApplicability(
   for (const item of cartItems) {
     // Check if product is directly applicable
     if (applicableProductIds.includes(item.productId)) {
+      // Verify product has a valid price
+      const product = await env.DB.prepare(
+        'SELECT id, price, basePrice, isActive FROM products WHERE id = ? LIMIT 1'
+      )
+        .bind(item.productId)
+        .first();
+
+      // Skip if product not found, inactive, or has no valid price
+      if (!product || !product.isActive) continue;
+      const productPrice = product.basePrice || product.price;
+      if (!productPrice || productPrice <= 0) continue;
+
       return true;
     }
 
     // Check if product category is applicable
     if (applicableCategoryIds.length > 0) {
       const product = await env.DB.prepare(
-        'SELECT categoryId FROM products WHERE id = ? LIMIT 1'
+        'SELECT categoryId, price, basePrice, isActive FROM products WHERE id = ? LIMIT 1'
       )
         .bind(item.productId)
         .first();
+
+      if (!product || !product.isActive) continue;
+
+      // Verify product has a valid price
+      const productPrice = product.basePrice || product.price;
+      if (!productPrice || productPrice <= 0) continue;
 
       if (product && applicableCategoryIds.includes(product.categoryId)) {
         return true;
@@ -217,7 +235,7 @@ export async function getUserPromoCodes(
          (SELECT COUNT(*) FROM orders WHERE promoCode = p.promoCode AND userId = ?)
        ELSE 0 END) as userUsageCount
      FROM promotions p
-     WHERE p.type = 'discount_code'
+     WHERE (p.type = 'coupon' OR p.type = 'discount_code')
        AND p.isActive = 1
        AND (p.startDate IS NULL OR p.startDate <= datetime('now'))
        AND (p.endDate IS NULL OR p.endDate >= datetime('now'))
