@@ -38,9 +38,11 @@ class PurchaseOrderRepository {
   async findById(env: Env | null, id: string): Promise<PurchaseOrderWithItems | null> {
     const po = await queryFirst<any>(
       env,
-      `SELECT po.*, s.name as supplierName, 
-              s.id as supplier_id, s.name as supplier_name, s.contact as supplier_contact, 
+      `SELECT po.*, s.name as supplierName,
+              s.id as supplier_id, s.name as supplier_name,
               s.email as supplier_email, s.phone as supplier_phone, s.address as supplier_address,
+              s.city as supplier_city, s.country as supplier_country,
+              s.notes as supplier_notes, s.isActive as supplier_isActive,
               s.createdAt as supplier_createdAt, s.updatedAt as supplier_updatedAt
        FROM purchase_orders po
        LEFT JOIN suppliers s ON po.supplierId = s.id
@@ -62,10 +64,13 @@ class PurchaseOrderRepository {
     const supplier = {
       id: po.supplier_id,
       name: po.supplier_name,
-      contact: po.supplier_contact,
       email: po.supplier_email,
       phone: po.supplier_phone,
       address: po.supplier_address,
+      city: po.supplier_city,
+      country: po.supplier_country,
+      notes: po.supplier_notes,
+      isActive: po.supplier_isActive,
       createdAt: po.supplier_createdAt,
       updatedAt: po.supplier_updatedAt,
     };
@@ -98,8 +103,10 @@ class PurchaseOrderRepository {
     const po = await queryFirst<any>(
       env,
       `SELECT po.*, s.name as supplierName,
-              s.id as supplier_id, s.name as supplier_name, s.contact as supplier_contact,
+              s.id as supplier_id, s.name as supplier_name,
               s.email as supplier_email, s.phone as supplier_phone, s.address as supplier_address,
+              s.city as supplier_city, s.country as supplier_country,
+              s.notes as supplier_notes, s.isActive as supplier_isActive,
               s.createdAt as supplier_createdAt, s.updatedAt as supplier_updatedAt
        FROM purchase_orders po
        LEFT JOIN suppliers s ON po.supplierId = s.id
@@ -121,10 +128,13 @@ class PurchaseOrderRepository {
     const supplier = {
       id: po.supplier_id,
       name: po.supplier_name,
-      contact: po.supplier_contact,
       email: po.supplier_email,
       phone: po.supplier_phone,
       address: po.supplier_address,
+      city: po.supplier_city,
+      country: po.supplier_country,
+      notes: po.supplier_notes,
+      isActive: po.supplier_isActive,
       createdAt: po.supplier_createdAt,
       updatedAt: po.supplier_updatedAt,
     };
@@ -186,8 +196,10 @@ class PurchaseOrderRepository {
     const pos = await queryAll<any>(
       env,
       `SELECT po.*, s.name as supplierName,
-              s.id as supplier_id, s.name as supplier_name, s.contact as supplier_contact,
+              s.id as supplier_id, s.name as supplier_name,
               s.email as supplier_email, s.phone as supplier_phone, s.address as supplier_address,
+              s.city as supplier_city, s.country as supplier_country,
+              s.notes as supplier_notes, s.isActive as supplier_isActive,
               s.createdAt as supplier_createdAt, s.updatedAt as supplier_updatedAt
        FROM purchase_orders po
        LEFT JOIN suppliers s ON po.supplierId = s.id
@@ -222,10 +234,13 @@ class PurchaseOrderRepository {
       const supplier = {
         id: po.supplier_id,
         name: po.supplier_name,
-        contact: po.supplier_contact,
         email: po.supplier_email,
         phone: po.supplier_phone,
         address: po.supplier_address,
+        city: po.supplier_city,
+        country: po.supplier_country,
+        notes: po.supplier_notes,
+        isActive: po.supplier_isActive,
         createdAt: po.supplier_createdAt,
         updatedAt: po.supplier_updatedAt,
       };

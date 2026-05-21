@@ -324,12 +324,26 @@ export interface Promotion {
   id: string;
   title: string;
   description: string | null;
-  image: string;
+  image: string | null;
   ctaText: string | null;
   ctaLink: string | null;
   type: string | null;
+  promoCode: string | null;
+  discountType: string | null;
+  discountValue: number | null;
+  minOrderAmount: number | null;
+  maxDiscountAmount: number | null;
+  startDate: string | null;
+  endDate: string | null;
+  usageLimit: number | null;
+  usedCount: number | null;
+  userLimit: number | null;
+  applicableCategories: string[] | null;
+  applicableProducts: string[] | null;
+  conditions: string | null;
+  discountRules: Record<string, unknown> | null;
   isActive: number;
-  order: number;
+  order: number | null;
   createdAt: string;
   updatedAt: string;
 }

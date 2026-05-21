@@ -547,6 +547,7 @@ CREATE TABLE "promotions" (
     "applicableCategories" TEXT,
     "applicableProducts" TEXT,
     "conditions" TEXT,
+    "discountRules" TEXT,
     "isActive" INTEGER NOT NULL DEFAULT 1,
     "order" INTEGER NOT NULL DEFAULT 0,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
