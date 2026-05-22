@@ -563,7 +563,7 @@ export class ProductRepository {
       `INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, images, size, color, material,
        isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, createdAt, updatedAt, costPrice,
        sizeType, sizeValue, sizeUnit, sizeLabel, countryOfOrigin, totalPurchased, totalSold, totalCost, averageCost)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       id,
       data.productId,
       data.sku,
