@@ -220,13 +220,7 @@ export async function POST(request: NextRequest) {
       order: promotionOrder,
     })
 
-    await execute(
-      env,
-      `INSERT INTO promotions (id, title, description, image, ctaText, ctaLink, type,
-       promoCode, discountType, discountValue, minOrderAmount, maxDiscountAmount,
-       startDate, endDate, usageLimit, usedCount, userLimit, applicableCategories,
-       applicableProducts, conditions, discountRules, isActive, \`order\`, createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    const values = [
       id,
       validatedData.title,
       validatedData.description || null,
@@ -252,6 +246,19 @@ export async function POST(request: NextRequest) {
       promotionOrder,
       currentTime,
       currentTime
+    ]
+
+    console.log('[Promotions POST] Values count:', values.length)
+    console.log('[Promotions POST] Values:', values)
+
+    await execute(
+      env,
+      `INSERT INTO promotions (id, title, description, image, ctaText, ctaLink, type,
+       promoCode, discountType, discountValue, minOrderAmount, maxDiscountAmount,
+       startDate, endDate, usageLimit, usedCount, userLimit, applicableCategories,
+       applicableProducts, conditions, discountRules, isActive, \`order\`, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ...values
     )
 
     console.log('[Promotions POST] Inserted promotion with ID:', id)

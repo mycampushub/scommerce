@@ -72,6 +72,12 @@ export async function GET(
       isFeatured: numberToBool(product.isFeatured),
       isActive: numberToBool(product.isActive),
       hasVariants: numberToBool(product.hasVariants),
+      brandName: product.brandName || null,
+      countryOfOrigin: product.countryOfOrigin || null,
+      sizeType: product.sizeType || null,
+      sizeValue: product.sizeValue || null,
+      sizeUnit: product.sizeUnit || null,
+      sizeLabel: product.sizeLabel || null,
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,
     };

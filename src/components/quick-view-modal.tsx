@@ -48,6 +48,12 @@ export interface Product {
   hasVariants?: boolean
   stock?: number
   variants?: ProductVariant[]
+  brandName?: string | null
+  countryOfOrigin?: string | null
+  sizeType?: string | null
+  sizeValue?: number | null
+  sizeUnit?: string | null
+  sizeLabel?: string | null
 }
 
 interface QuickViewModalProps {
@@ -354,6 +360,30 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
                   <span className="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
                   <span className="text-xs text-red-600 font-medium">Out of Stock</span>
                 </>
+              )}
+            </div>
+
+            {/* Product Metadata: Brand and Country of Origin */}
+            <div className="space-y-2 mb-4 py-2 border-t border-b border-gray-200">
+              {product.brandName && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-600">Brand:</span>
+                  <span className="text-xs font-medium text-gray-900">{product.brandName}</span>
+                </div>
+              )}
+              {product.countryOfOrigin && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-600">Origin:</span>
+                  <span className="text-xs font-medium text-gray-900">{product.countryOfOrigin}</span>
+                </div>
+              )}
+              {!hasVariants && (product.sizeLabel || (product.sizeValue && product.sizeUnit)) && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-600">Size:</span>
+                  <span className="text-xs font-medium text-gray-900">
+                    {product.sizeLabel || `${product.sizeValue}${product.sizeUnit}`}
+                  </span>
+                </div>
               )}
             </div>
 

@@ -223,3 +223,49 @@ The frontend components do NOT include authentication credentials when making AP
 All three have the SAME root cause: Missing authentication in API requests.
 
 ---
+
+Task ID: 5-a
+Agent: Z.ai Code
+Task: Investigate variant display issue and analyze proposed size/color system
+
+Work Log:
+- Examined product-modal.tsx variant creation and loading logic
+- Examined variants API routes (admin and public)
+- Examined quick-view-modal.tsx and product detail page
+- Checked database schema for product_variants table
+- Analyzed the flow from variant creation to display
+
+Key Findings:
+1. **Variant Creation Flow:**
+   - ProductModal creates product with hasVariants flag
+   - Then calls createVariantsForProduct() to create each variant
+   - Each variant is created via POST to /api/admin/products/{id}/variants
+   - The API calls ProductRepository.createVariant()
+   - After creation, it calls ProductRepository.syncHasVariants() to update the hasVariants flag
+
+2. **Variant Loading Flow (Edit Mode):**
+   - ProductModal calls fetchProductVariants(productId) at line 173
+   - Fetches from /api/admin/products/{id}/variants
+   - Sets variants state with results
+   - Shows variants in the UI (lines 774-935)
+
+3. **Variant Display Flow (User Frontend):**
+   - Product detail page fetches product with hasVariants flag
+   - If hasVariants is true, fetches variants from /api/products/{id}/variants
+   - Shows variant selectors for size, color, material
+
+4. **Current System:**
+   - Single size selection per variant (one size, one color, one material per variant)
+   - Variants are created individually with specific combinations
+   - Images can be variant-specific or fall back to product images
+
+Stage Summary:
+- Code flow appears correct for variant creation and display
+- The issue might be:
+  1. Variants not being created successfully in database
+  2. hasVariants flag not being synced properly
+  3. API returning errors silently
+  4. Browser caching stale product data
+
+---
+

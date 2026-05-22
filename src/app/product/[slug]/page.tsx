@@ -44,6 +44,12 @@ interface Product {
   lowStockAlert: number
   hasVariants: boolean
   isActive: boolean
+  brandName?: string | null
+  countryOfOrigin?: string | null
+  sizeType?: string | null
+  sizeValue?: number | null
+  sizeUnit?: string | null
+  sizeLabel?: string | null
   createdAt: string
   updatedAt: string
 }
@@ -623,6 +629,30 @@ export default function ProductPage() {
                     <span className="w-2 h-2 bg-red-500 rounded-full"></span>
                     <span className="text-red-600 font-medium">Out of Stock</span>
                   </>
+                )}
+              </div>
+
+              {/* Product Metadata: Brand and Country of Origin */}
+              <div className="space-y-3 py-3 border-t border-b border-gray-200">
+                {product.brandName && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">Brand:</span>
+                    <span className="text-sm font-medium text-gray-900">{product.brandName}</span>
+                  </div>
+                )}
+                {product.countryOfOrigin && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">Origin:</span>
+                    <span className="text-sm font-medium text-gray-900">{product.countryOfOrigin}</span>
+                  </div>
+                )}
+                {!hasVariants && (product.sizeLabel || (product.sizeValue && product.sizeUnit)) && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">Size:</span>
+                    <span className="text-sm font-medium text-gray-900">
+                      {product.sizeLabel || `${product.sizeValue}${product.sizeUnit}`}
+                    </span>
+                  </div>
                 )}
               </div>
 

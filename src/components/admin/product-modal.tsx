@@ -262,6 +262,12 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
     try {
       const hasVariants = newVariants.length > 0
 
+      console.log('[ProductModal] Creating product:', {
+        hasVariants,
+        newVariantsCount: newVariants.length,
+        newVariantsData: newVariants,
+      })
+
       const response = await apiFetch('/api/admin/products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -404,6 +410,12 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
   }
 
   const createVariantsForProduct = async (productId: string) => {
+    console.log('[ProductModal] createVariantsForProduct called:', {
+      productId,
+      newVariantsCount: newVariants.length,
+      newVariants: newVariants,
+    })
+
     const basePrice = parseFloat(formData.price)
     const failedVariants: string[] = []
 
@@ -419,6 +431,17 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
       const variantName = [sizeLabel, variant.color, variant.material].filter(Boolean).join(' / ') || 'Default'
 
       try {
+        console.log(`[ProductModal] Creating variant ${i + 1}/${newVariants.length}:`, {
+          variantName,
+          variantData: {
+            name: variantName,
+            price: variant.price ? parseFloat(variant.price) : basePrice,
+            size: sizeLabel || null,
+            color: variant.color || null,
+            material: variant.material || null,
+          },
+        })
+
         const response = await apiFetch(`/api/admin/products/${productId}/variants`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -441,15 +464,26 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
         })
 
         const result = await response.json()
+        console.log(`[ProductModal] Variant ${i + 1} creation response:`, result)
+
         if (!result.success) {
           failedVariants.push(variantName)
           console.error('Error creating variant:', result.error || variantName)
+        } else {
+          console.log(`[ProductModal] Variant ${i + 1} created successfully:`, result.data)
         }
       } catch (err) {
         failedVariants.push(variantName)
-        console.error('Error creating variant:', err)
+        console.error('[ProductModal] Error creating variant:', err)
       }
     }
+
+    console.log('[ProductModal] createVariantsForProduct completed:', {
+      totalAttempted: newVariants.length,
+      failed: failedVariants.length,
+      succeeded: newVariants.length - failedVariants.length,
+      failedVariants,
+    })
 
     // Notify user if any variants failed
     if (failedVariants.length > 0) {
