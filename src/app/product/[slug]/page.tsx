@@ -51,6 +51,9 @@ interface Product {
   sizeValue?: number | null
   sizeUnit?: string | null
   sizeLabel?: string | null
+  // Material and color for single products
+  material?: string | null
+  color?: string | null
   // Multi-size/color system
   availableSizes?: string[]
   availableColors?: string[]
@@ -688,6 +691,18 @@ export default function ProductPage() {
                     <span className="text-sm font-medium text-gray-900">
                       {product.sizeLabel || `${product.sizeValue}${product.sizeUnit}`}
                     </span>
+                  </div>
+                )}
+                {!hasVariants && product.material && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">Material:</span>
+                    <span className="text-sm font-medium text-gray-900">{product.material}</span>
+                  </div>
+                )}
+                {!hasVariants && product.color && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">Color:</span>
+                    <span className="text-sm font-medium text-gray-900">{product.color}</span>
                   </div>
                 )}
               </div>

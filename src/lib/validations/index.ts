@@ -45,6 +45,9 @@ export const productSchema = z.object({
   sizeValue: z.union([z.literal(null), z.number()]).optional(),
   sizeUnit: z.union([z.literal(null), z.string()]).optional(),
   sizeLabel: z.union([z.literal(null), z.string()]).optional(),
+  // Material and color for single products
+  material: z.union([z.literal(null), z.string()]).optional(),
+  color: z.union([z.literal(null), z.string()]).optional(),
   // Country of origin
   countryOfOrigin: z.union([z.literal(null), z.string()]).optional(),
 });

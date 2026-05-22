@@ -110,7 +110,9 @@ export default function InventoryReportsPage() {
       if (categoryFilter !== 'all') params.append('category', categoryFilter);
       if (brandFilter !== 'all') params.append('brand', brandFilter);
 
-      const response = await fetch(`/api/admin/inventory/reports/valuation?${params.toString()}`);
+      const response = await fetch(`/api/admin/inventory/reports/valuation?${params.toString()}`, {
+        credentials: 'include',
+      });
       if (!response.ok) throw new Error('Failed to fetch valuation report');
       const data = await response.json();
 
@@ -131,7 +133,9 @@ export default function InventoryReportsPage() {
       const params = new URLSearchParams();
       if (dateRange) params.append('days', dateRange);
 
-      const response = await fetch(`/api/admin/inventory/reports/movement?${params.toString()}`);
+      const response = await fetch(`/api/admin/inventory/reports/movement?${params.toString()}`, {
+        credentials: 'include',
+      });
       if (!response.ok) throw new Error('Failed to fetch movement report');
       const data = await response.json();
 
@@ -149,7 +153,9 @@ export default function InventoryReportsPage() {
       const params = new URLSearchParams();
       if (dateRange) params.append('days', dateRange);
 
-      const response = await fetch(`/api/admin/inventory/reports/purchase?${params.toString()}`);
+      const response = await fetch(`/api/admin/inventory/reports/purchase?${params.toString()}`, {
+        credentials: 'include',
+      });
       if (!response.ok) throw new Error('Failed to fetch purchase report');
       const data = await response.json();
 
@@ -165,7 +171,9 @@ export default function InventoryReportsPage() {
   // Fetch stock report
   const fetchStockReport = async () => {
     try {
-      const response = await fetch('/api/admin/inventory/reports/stock');
+      const response = await fetch('/api/admin/inventory/reports/stock', {
+        credentials: 'include',
+      });
       if (!response.ok) throw new Error('Failed to fetch stock report');
       const data = await response.json();
 
@@ -186,7 +194,9 @@ export default function InventoryReportsPage() {
       const params = new URLSearchParams();
       if (categoryFilter !== 'all') params.append('category', categoryFilter);
 
-      const response = await fetch(`/api/admin/inventory/reports/cost-analysis?${params.toString()}`);
+      const response = await fetch(`/api/admin/inventory/reports/cost-analysis?${params.toString()}`, {
+        credentials: 'include',
+      });
       if (!response.ok) throw new Error('Failed to fetch cost analysis report');
       const data = await response.json();
 

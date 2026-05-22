@@ -55,6 +55,9 @@ export interface Product {
   sizeValue?: number | null
   sizeUnit?: string | null
   sizeLabel?: string | null
+  // Material and color for single products
+  material?: string | null
+  color?: string | null
   // Multi-size/color system
   availableSizes?: string[]
   availableColors?: string[]
@@ -78,6 +81,8 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
   const [variants, setVariants] = useState<ProductVariant[]>([])
   const [colorImages, setColorImages] = useState<ColorImage[]>([])
   const [loadingVariants, setLoadingVariants] = useState(false)
+  const [addingToCart, setAddingToCart] = useState(false)
+  const [isTogglingWishlist, setIsTogglingWishlist] = useState(false)
   const { addItem } = useCartStore()
 
   // Process variants and selections
@@ -229,42 +234,59 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
     return null
   }
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (hasVariants && !selectedVariant) {
       toast.error('Please select a variant')
       return
     }
 
-    // Use variant data if available
-    if (hasVariants && selectedVariant) {
-      addItem({
-        id: product.id,
-        slug: product.slug,
-        name: product.name,
-        price: selectedVariant.price,
-        originalPrice: selectedVariant.comparePrice || product.comparePrice || product.originalPrice,
-        image: (selectedVariant.images && selectedVariant.images[0]) || product.images?.[0] || product.image,
-        variantId: selectedVariant.id,
-        variantSku: selectedVariant.sku,
-        size: selectedVariant.size,
-        color: selectedVariant.color,
-        material: selectedVariant.material,
-        quantity,
-      })
-    } else {
-      addItem({
-        id: product.id,
-        slug: product.slug,
-        name: product.name,
-        price: product.basePrice || product.price,
-        originalPrice: product.comparePrice || product.originalPrice,
-        image: product.images?.[0] || product.image,
-        quantity,
-      })
-    }
+    setAddingToCart(true)
 
-    toast.success('Added to cart successfully!')
-    onOpenChange(false)
+    // Small delay for visual feedback
+    await new Promise(resolve => setTimeout(resolve, 300))
+
+    try {
+      // Use variant data if available
+      if (hasVariants && selectedVariant) {
+        addItem({
+          id: product.id,
+          slug: product.slug,
+          name: product.name,
+          price: selectedVariant.price,
+          originalPrice: selectedVariant.comparePrice || product.comparePrice || product.originalPrice,
+          image: (selectedVariant.images && selectedVariant.images[0]) || product.images?.[0] || product.image,
+          variantId: selectedVariant.id,
+          variantSku: selectedVariant.sku,
+          size: selectedVariant.size,
+          color: selectedVariant.color,
+          material: selectedVariant.material,
+          quantity,
+        })
+      } else {
+        addItem({
+          id: product.id,
+          slug: product.slug,
+          name: product.name,
+          price: product.basePrice || product.price,
+          originalPrice: product.comparePrice || product.originalPrice,
+          image: product.images?.[0] || product.image,
+          quantity,
+        })
+      }
+
+      toast.success('Added to cart successfully!')
+      onOpenChange(false)
+    } finally {
+      setAddingToCart(false)
+    }
+  }
+
+  const handleToggleWishlist = async () => {
+    setIsTogglingWishlist(true)
+    // Simulate async operation with small delay for visual feedback
+    await new Promise(resolve => setTimeout(resolve, 200))
+    setIsWishlisted(!isWishlisted)
+    setIsTogglingWishlist(false)
   }
 
   return (
@@ -301,11 +323,14 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
                   className="w-full h-full object-cover"
                 />
                 <button
-                  onClick={() => setIsWishlisted(!isWishlisted)}
+                  onClick={handleToggleWishlist}
                   aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
-                  className="absolute top-3 right-3 h-9 w-9 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md hover:bg-pink-600 hover:text-white transition-all focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2"
+                  disabled={isTogglingWishlist}
+                  className={`absolute top-3 right-3 h-9 w-9 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-md hover:bg-pink-600 hover:text-white transition-all focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2 ${
+                    isTogglingWishlist ? 'opacity-50' : ''
+                  }`}
                 >
-                  <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-pink-600 text-pink-600' : ''}`} />
+                  {isTogglingWishlist ? <Loader2 className="w-4 h-4 animate-spin" /> : <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-pink-600 text-pink-600' : ''}`} />}
                 </button>
               </div>
               {/* Thumbnail Gallery */}
@@ -419,6 +444,18 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
                   </span>
                 </div>
               )}
+              {!hasVariants && product.material && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-600">Material:</span>
+                  <span className="text-xs font-medium text-gray-900">{product.material}</span>
+                </div>
+              )}
+              {!hasVariants && product.color && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-600">Color:</span>
+                  <span className="text-xs font-medium text-gray-900">{product.color}</span>
+                </div>
+              )}
             </div>
 
             {/* Variant Selectors */}
@@ -527,27 +564,30 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={handleAddToCart}
-                  disabled={currentStock <= 0 || (hasVariants && !selectedVariant)}
+                  disabled={currentStock <= 0 || (hasVariants && !selectedVariant) || addingToCart}
                   className={`h-12 flex-1 rounded-lg font-semibold text-sm transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2 ${
-                    currentStock <= 0 || (hasVariants && !selectedVariant)
+                    currentStock <= 0 || (hasVariants && !selectedVariant) || addingToCart
                       ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       : 'bg-pink-600 text-white hover:bg-pink-700'
                   }`}
                 >
-                  <ShoppingCart className="w-4 h-4" />
-                  {currentStock <= 0 ? 'Out of Stock' : hasVariants && !selectedVariant ? 'Select a Variant' : 'Add to Cart'}
+                  {addingToCart ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShoppingCart className="w-4 h-4" />}
+                  {addingToCart ? 'Adding...' : currentStock <= 0 ? 'Out of Stock' : hasVariants && !selectedVariant ? 'Select a Variant' : 'Add to Cart'}
                 </button>
                 <button
-                  onClick={() => setIsWishlisted(!isWishlisted)}
+                  onClick={handleToggleWishlist}
                   aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+                  disabled={isTogglingWishlist}
                   className={`h-12 w-full sm:w-auto px-6 rounded-lg font-semibold text-sm border-2 transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2 ${
                     isWishlisted
                       ? 'border-pink-600 text-pink-600'
                       : 'border-gray-300 text-gray-700 hover:border-gray-400'
+                  } ${
+                    isTogglingWishlist ? 'opacity-50' : ''
                   }`}
                 >
-                  <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-pink-600' : ''}`} />
-                  <span className="hidden sm:inline">{isWishlisted ? 'Wishlisted' : 'Wishlist'}</span>
+                  {isTogglingWishlist ? <Loader2 className="w-4 h-4 animate-spin" /> : <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-pink-600' : ''}`} />}
+                  <span className="hidden sm:inline">{isTogglingWishlist ? '...' : (isWishlisted ? 'Wishlisted' : 'Wishlist')}</span>
                 </button>
               </div>
             </div>

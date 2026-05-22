@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
-import { Plus, Edit, Trash2, Calendar, Tag, ShoppingCart, Users, Package, AlertCircle } from 'lucide-react'
+import { Plus, Edit, Trash2, Calendar, Tag, ShoppingCart, Users, Package, AlertCircle, Loader2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { PriceDisplay } from '@/components/price-display'
 
@@ -79,6 +79,7 @@ export default function CouponsPage() {
     conditions: '',
     isActive: true,
   })
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Fetch promotions (only coupons)
   const fetchPromotions = async () => {
@@ -248,6 +249,7 @@ export default function CouponsPage() {
     e.preventDefault()
 
     try {
+      setIsSubmitting(true)
       // Validate form data before sending
       if (!formData.title.trim()) {
         toast({
@@ -314,6 +316,8 @@ export default function CouponsPage() {
         title: 'Error',
         description: error.message || 'Failed to save promotion',
       })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -720,11 +724,13 @@ export default function CouponsPage() {
                     setDialogOpen(false)
                     resetForm()
                   }}
+                  disabled={isSubmitting}
                 >
                   Cancel
                 </Button>
-                <Button type="submit">
-                  {editingPromotion ? 'Update Coupon' : 'Create Coupon'}
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                  {isSubmitting ? 'Saving...' : (editingPromotion ? 'Update Coupon' : 'Create Coupon')}
                 </Button>
               </div>
             </form>

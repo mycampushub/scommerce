@@ -101,6 +101,7 @@ export default function PurchaseOrdersPage() {
 
   // Create PO modal state
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     supplierId: '',
     expectedDate: '',
@@ -256,6 +257,7 @@ export default function PurchaseOrdersPage() {
     }
 
     try {
+      setIsSubmitting(true)
       const response = await fetch('/api/admin/purchase-orders', {
         method: 'POST',
         credentials: 'include',
@@ -294,6 +296,8 @@ export default function PurchaseOrdersPage() {
         description: err.message || 'Failed to create purchase order',
         variant: 'destructive',
       })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -402,6 +406,42 @@ export default function PurchaseOrdersPage() {
     }
   }
 
+  const handleApprove = async (po: PurchaseOrder) => {
+    if (!confirm(`Are you sure you want to approve and order PO ${po.orderNumber}?`)) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/admin/purchase-orders/${po.id}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: 'ORDERED' }),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        toast({
+          title: 'Success',
+          description: 'Purchase order approved and placed successfully',
+        })
+        fetchPurchaseOrders()
+      } else {
+        throw new Error(result.error || 'Failed to approve PO')
+      }
+    } catch (err: any) {
+      console.error('Error approving PO:', err)
+      toast({
+        title: 'Error',
+        description: err.message || 'Failed to approve purchase order',
+        variant: 'destructive',
+      })
+    }
+  }
+
   const filteredPOs = purchaseOrders.filter(po => {
     const matchesSearch =
       po.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -440,7 +480,7 @@ export default function PurchaseOrdersPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 sm:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-5">
         <Card className="border-0 shadow-sm bg-gradient-to-br from-violet-500 to-indigo-600 text-white">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -462,6 +502,20 @@ export default function PurchaseOrdersPage() {
               </div>
               <div className="h-8 w-8 rounded-full bg-yellow-100 flex items-center justify-center">
                 <Clock className="h-4 w-4 text-yellow-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-sm bg-white">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-gray-500">Ordered</p>
+                <p className="text-2xl font-bold text-blue-600 mt-1">{purchaseOrders.filter(p => p.status === 'ORDERED').length}</p>
+              </div>
+              <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                <FileText className="h-4 w-4 text-blue-600" />
               </div>
             </div>
           </CardContent>
@@ -516,6 +570,7 @@ export default function PurchaseOrdersPage() {
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="PENDING">Pending</SelectItem>
+                <SelectItem value="ORDERED">Ordered</SelectItem>
                 <SelectItem value="RECEIVED">Received</SelectItem>
                 <SelectItem value="CANCELLED">Cancelled</SelectItem>
               </SelectContent>
@@ -587,8 +642,18 @@ export default function PurchaseOrdersPage() {
                               <Button
                                 variant="ghost"
                                 size="sm"
+                                onClick={() => handleApprove(po)}
+                                className="text-blue-600 hover:text-blue-700"
+                                title="Approve & Order"
+                              >
+                                <CheckCircle className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
                                 onClick={() => handleReceive(po)}
                                 className="text-green-600 hover:text-green-700"
+                                title="Receive"
                               >
                                 <Truck className="h-4 w-4" />
                               </Button>
@@ -597,6 +662,29 @@ export default function PurchaseOrdersPage() {
                                 size="sm"
                                 onClick={() => handleCancel(po)}
                                 className="text-red-600 hover:text-red-700"
+                                title="Cancel"
+                              >
+                                <XCircle className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
+                          {po.status === 'ORDERED' && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleReceive(po)}
+                                className="text-green-600 hover:text-green-700"
+                                title="Receive"
+                              >
+                                <Truck className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleCancel(po)}
+                                className="text-red-600 hover:text-red-700"
+                                title="Cancel"
                               >
                                 <XCircle className="h-4 w-4" />
                               </Button>
@@ -757,16 +845,16 @@ export default function PurchaseOrdersPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>
+            <Button variant="outline" onClick={() => setIsModalOpen(false)} disabled={isSubmitting}>
               Cancel
             </Button>
             <Button
               onClick={handleCreate}
-              disabled={!formData.supplierId || formData.items.length === 0}
+              disabled={!formData.supplierId || formData.items.length === 0 || isSubmitting}
               className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
             >
-              <FileText className="h-4 w-4 mr-2" />
-              Create Purchase Order
+              {isSubmitting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileText className="h-4 w-4 mr-2" />}
+              {isSubmitting ? 'Creating...' : 'Create Purchase Order'}
             </Button>
           </DialogFooter>
         </DialogContent>

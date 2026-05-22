@@ -77,6 +77,7 @@ export default function SuppliersPage() {
     notes: '',
     isActive: true,
   })
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const fetchSuppliers = async () => {
     try {
@@ -137,6 +138,7 @@ export default function SuppliersPage() {
 
   const handleSave = async () => {
     try {
+      setIsSubmitting(true)
       const url = editingSupplier
         ? `/api/admin/suppliers/${editingSupplier.id}`
         : '/api/admin/suppliers'
@@ -167,6 +169,8 @@ export default function SuppliersPage() {
         description: err.message || 'Failed to save supplier',
         variant: 'destructive',
       })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -497,15 +501,16 @@ export default function SuppliersPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>
+            <Button variant="outline" onClick={() => setIsModalOpen(false)} disabled={isSubmitting}>
               Cancel
             </Button>
             <Button
               onClick={handleSave}
-              disabled={!formData.name}
+              disabled={!formData.name || isSubmitting}
               className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
             >
-              {editingSupplier ? 'Update' : 'Create'} Supplier
+              {isSubmitting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              {isSubmitting ? 'Saving...' : (editingSupplier ? 'Update' : 'Create') + ' Supplier'}
             </Button>
           </DialogFooter>
         </DialogContent>

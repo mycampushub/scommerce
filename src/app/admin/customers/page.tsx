@@ -90,6 +90,7 @@ export default function CustomersPage() {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [customerOrders, setCustomerOrders] = useState<any[]>([])
   const [loadingOrders, setLoadingOrders] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Form state
   const [addFormData, setAddFormData] = useState({
@@ -181,6 +182,7 @@ export default function CustomersPage() {
   const handleAddCustomer = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
+      setIsSubmitting(true)
       const response = await fetch('/api/admin/customers', {
         method: 'POST',
         headers: {
@@ -214,6 +216,8 @@ export default function CustomersPage() {
         description: err.message || 'Failed to add customer',
         variant: 'destructive',
       })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -222,6 +226,7 @@ export default function CustomersPage() {
     if (!selectedCustomer) return
 
     try {
+      setIsSubmitting(true)
       const response = await fetch(`/api/admin/customers/${selectedCustomer.id}`, {
         method: 'PUT',
         headers: {
@@ -249,6 +254,8 @@ export default function CustomersPage() {
         description: err.message || 'Failed to update customer',
         variant: 'destructive',
       })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -803,8 +810,19 @@ export default function CustomersPage() {
               />
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
-              <Button type="submit">Add Customer</Button>
+              <Button type="button" variant="outline" onClick={() => setIsAddModalOpen(false)} disabled={isSubmitting}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Adding...
+                  </>
+                ) : (
+                  'Add Customer'
+                )}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -885,8 +903,19 @@ export default function CustomersPage() {
               </label>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
-              <Button type="submit">Update Customer</Button>
+              <Button type="button" variant="outline" onClick={() => setIsEditModalOpen(false)} disabled={isSubmitting}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  'Update Customer'
+                )}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>

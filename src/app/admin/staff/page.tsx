@@ -52,6 +52,7 @@ import {
   Unlock,
   RefreshCw,
   User,
+  Loader2,
 } from 'lucide-react'
 
 interface Staff {
@@ -96,6 +97,7 @@ export default function StaffPage() {
     phone: '',
     address: '',
   })
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const fetchStaff = async () => {
     try {
@@ -156,6 +158,7 @@ export default function StaffPage() {
   const handleAddStaff = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
+      setIsSubmitting(true)
       const response = await fetch('/api/admin/staff', {
         method: 'POST',
         headers: {
@@ -191,6 +194,8 @@ export default function StaffPage() {
         description: err.message || 'Failed to add staff member',
         variant: 'destructive',
       })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -199,6 +204,7 @@ export default function StaffPage() {
     if (!selectedStaff) return
 
     try {
+      setIsSubmitting(true)
       const response = await fetch(`/api/admin/staff/${selectedStaff.id}`, {
         method: 'PUT',
         headers: {
@@ -226,6 +232,8 @@ export default function StaffPage() {
         description: err.message || 'Failed to update staff member',
         variant: 'destructive',
       })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -599,11 +607,12 @@ export default function StaffPage() {
               />
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsAddModalOpen(false)}>
+              <Button type="button" variant="outline" onClick={() => setIsAddModalOpen(false)} disabled={isSubmitting}>
                 Cancel
               </Button>
-              <Button type="submit" className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700">
-                Add Staff
+              <Button type="submit" className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700" disabled={isSubmitting}>
+                {isSubmitting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                {isSubmitting ? 'Adding...' : 'Add Staff'}
               </Button>
             </DialogFooter>
           </form>
@@ -705,11 +714,12 @@ export default function StaffPage() {
               />
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsEditModalOpen(false)}>
+              <Button type="button" variant="outline" onClick={() => setIsEditModalOpen(false)} disabled={isSubmitting}>
                 Cancel
               </Button>
-              <Button type="submit" className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700">
-                Update Staff
+              <Button type="submit" className="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700" disabled={isSubmitting}>
+                {isSubmitting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                {isSubmitting ? 'Updating...' : 'Update Staff'}
               </Button>
             </DialogFooter>
           </form>

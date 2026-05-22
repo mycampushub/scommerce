@@ -8,10 +8,14 @@ import { Badge } from '@/components/ui/badge'
 
 // Common size options for different product types
 export const COMMON_SIZES = {
-  clothing: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'],
-  shoes: ['36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46'],
-  universal: ['S', 'M', 'L', 'XL', 'XXL']
+  clothing: ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'],
+  shoes: ['38', '39', '40', '41', '42', '43', '44', '45', '46'],
+  volume: ['50ml', '100ml', '200ml', '250ml', '500ml'],
+  universal: ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', '38', '39', '40', '41', '42', '50ml', '100ml', '200ml', '250ml', '500ml']
 }
+
+// All sizes combined for quick select
+export const ALL_QUICK_SIZES = ['50ml', '100ml', '200ml', '250ml', '500ml', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', '38', '39', '40', '41', '42']
 
 interface SizeMultiSelectorProps {
   availableSizes: string[]
@@ -50,50 +54,15 @@ export function SizeMultiSelector({
           Select the sizes available for this product
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="flex flex-wrap gap-3">
-          {allSizes.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No sizes available. Add custom sizes below.</p>
-          ) : (
-            allSizes.map((size) => (
-              <div key={size} className="flex items-center space-x-2">
-                <Checkbox
-                  id={`size-${size}`}
-                  checked={selectedSizes.includes(size)}
-                  onCheckedChange={() => handleSizeToggle(size)}
-                  disabled={disabled}
-                />
-                <Label
-                  htmlFor={`size-${size}`}
-                  className="cursor-pointer"
-                >
-                  {size}
-                </Label>
-              </div>
-            ))
-          )}
-        </div>
-
-        {selectedSizes.length > 0 && (
-          <div className="mt-4">
-            <p className="text-sm font-medium mb-2">Selected Sizes:</p>
-            <div className="flex flex-wrap gap-2">
-              {selectedSizes.map((size) => (
-                <Badge key={size} variant="secondary">
-                  {size}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        )}
-
+      <CardContent className="space-y-6">
+        {/* Manual Input - Move to top */}
         {onAddCustomSize && (
-          <div className="mt-4 pt-4 border-t">
+          <div className="space-y-2">
             <Label className="text-sm font-medium">Add Custom Size:</Label>
-            <div className="flex gap-2 mt-2">
+            <div className="flex gap-2">
               <input
                 type="text"
-                placeholder="e.g., 5XL"
+                placeholder="e.g., 5XL, 750ml, 46"
                 className="flex-1 px-3 py-2 text-sm border rounded-md"
                 onKeyPress={(e) => {
                   if (e.key === 'Enter') {
@@ -107,6 +76,46 @@ export function SizeMultiSelector({
                 }}
                 disabled={disabled}
               />
+            </div>
+          </div>
+        )}
+
+        {/* Quick Select Sizes */}
+        <div>
+          <Label className="text-sm font-medium mb-3 block">Quick Select:</Label>
+          <div className="flex flex-wrap gap-3">
+            {allSizes.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No sizes available. Add custom sizes above.</p>
+            ) : (
+              allSizes.map((size) => (
+                <div key={size} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`size-${size}`}
+                    checked={selectedSizes.includes(size)}
+                    onCheckedChange={() => handleSizeToggle(size)}
+                    disabled={disabled}
+                  />
+                  <Label
+                    htmlFor={`size-${size}`}
+                    className="cursor-pointer"
+                  >
+                    {size}
+                  </Label>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {selectedSizes.length > 0 && (
+          <div className="pt-4 border-t">
+            <p className="text-sm font-medium mb-2">Selected Sizes:</p>
+            <div className="flex flex-wrap gap-2">
+              {selectedSizes.map((size) => (
+                <Badge key={size} variant="secondary">
+                  {size}
+                </Badge>
+              ))}
             </div>
           </div>
         )}

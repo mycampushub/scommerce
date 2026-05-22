@@ -401,6 +401,8 @@ export async function POST(request: NextRequest) {
         sizeValue: validatedData.sizeValue ?? undefined,
         sizeUnit: validatedData.sizeUnit ?? undefined,
         sizeLabel: validatedData.sizeLabel ?? undefined,
+        material: validatedData.material ?? undefined,
+        color: validatedData.color ?? undefined,
         countryOfOrigin: validatedData.countryOfOrigin ?? undefined,
       }
 

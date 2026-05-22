@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get Cloudflare env for D1 database
-    const env = await getEnv(request);
+    const env = await getEnv();
 
     const searchParams = request.nextUrl.searchParams;
     const categoryId = searchParams.get('categoryId') || undefined;

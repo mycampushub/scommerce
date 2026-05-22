@@ -408,6 +408,9 @@ model products {
   sizeValue              Float?                   // For unit sizes (e.g., 500)
   sizeUnit               String?                  // For unit sizes (e.g., 'ml', 'g')
   sizeLabel              String?                  // For label sizes (e.g., 'S', 'M', 'L')
+  // Material and color for single products (without variants)
+  material               String?                  // Material for single products
+  color                  String?                  // Color for single products
   // Country of origin
   countryOfOrigin        String?                  // ISO country code
   // Multi-size/color system

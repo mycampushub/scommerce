@@ -92,6 +92,9 @@ export class ProductRepository {
     sizeValue?: number;
     sizeUnit?: string;
     sizeLabel?: string;
+    // Material and color for single products
+    material?: string;
+    color?: string;
     // Country of origin
     countryOfOrigin?: string;
     // Inventory tracking fields
@@ -120,8 +123,8 @@ export class ProductRepository {
         `INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, discount, discountType,
        images, stock, lowStockAlert, reorderLevel, reorderQty, isActive, isFeatured, hasVariants, weight, dimensions, tags,
        createdAt, updatedAt, costPrice, brandId, brandName, brandLogo, sizeType, sizeValue, sizeUnit, sizeLabel,
-       countryOfOrigin, totalPurchased, totalSold, totalCost, averageCost, lastPurchaseAt, lastPurchaseCost)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       material, color, countryOfOrigin, totalPurchased, totalSold, totalCost, averageCost, lastPurchaseAt, lastPurchaseCost)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       id,
       data.name,
       data.slug,
@@ -153,6 +156,8 @@ export class ProductRepository {
       data.sizeValue || null,
       data.sizeUnit || null,
       data.sizeLabel || null,
+      data.material || null,
+      data.color || null,
       data.countryOfOrigin || null,
       data.totalPurchased || 0,
       data.totalSold || 0,
@@ -283,6 +288,16 @@ export class ProductRepository {
       updates.push('sizeLabel = ?');
       values.push(data.sizeLabel);
     }
+    // Material and color for single products
+    if (data.material !== undefined) {
+      updates.push('material = ?');
+      values.push(data.material);
+    }
+    if (data.color !== undefined) {
+      updates.push('color = ?');
+      values.push(data.color);
+    }
+
     // Country of origin
     if (data.countryOfOrigin !== undefined) {
       updates.push('countryOfOrigin = ?');

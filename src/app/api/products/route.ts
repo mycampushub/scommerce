@@ -251,6 +251,17 @@ export async function GET(request: Request) {
         isFeatured: numberToBool(product.isFeatured),
         isActive: numberToBool(product.isActive),
         lowStockAlert: product.lowStockAlert,
+        // Material and color for single products
+        material: product.material || null,
+        color: product.color || null,
+        // Size information
+        sizeType: product.sizeType || null,
+        sizeValue: product.sizeValue || null,
+        sizeUnit: product.sizeUnit || null,
+        sizeLabel: product.sizeLabel || null,
+        // Multi-size/color system
+        availableSizes: product.availableSizes ? parseJSON<string[]>(product.availableSizes) : [],
+        availableColors: product.availableColors ? parseJSON<string[]>(product.availableColors) : [],
       };
     });
 

@@ -100,9 +100,38 @@ export function ColorMultiSelector({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Color selection */}
+        {/* Manual Input - Move to top */}
+        <div className="space-y-2">
+          <Label className="text-sm font-medium">Add Custom Color:</Label>
+          <div className="flex gap-2">
+            <Input
+              type="text"
+              placeholder="e.g., Rose Gold, Midnight Blue"
+              value={newColorName}
+              onChange={(e) => setNewColorName(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  handleAddCustomColor()
+                }
+              }}
+              disabled={disabled}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={handleAddCustomColor}
+              disabled={disabled || !newColorName.trim()}
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Quick Select Colors */}
         <div>
-          <Label className="text-sm font-medium mb-3 block">Select Colors:</Label>
+          <Label className="text-sm font-medium mb-3 block">Quick Select:</Label>
           <div className="flex flex-wrap gap-2">
             {COMMON_COLORS.map((color) => (
               <div key={color} className="flex items-center space-x-2">
@@ -124,32 +153,6 @@ export function ColorMultiSelector({
                 </Label>
               </div>
             ))}
-          </div>
-
-          {/* Add custom color */}
-          <div className="flex gap-2 mt-3">
-            <Input
-              type="text"
-              placeholder="Add custom color..."
-              value={newColorName}
-              onChange={(e) => setNewColorName(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  handleAddCustomColor()
-                }
-              }}
-              disabled={disabled}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={handleAddCustomColor}
-              disabled={disabled || !newColorName.trim()}
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
           </div>
         </div>
 

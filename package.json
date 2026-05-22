@@ -27,7 +27,7 @@
     "db:seed:d1": "wrangler d1 execute scommerce-db --file=db/seed.sql",
     "db:seed:d1:remote": "wrangler d1 execute scommerce-db --remote --file=db/seed.sql",
     "db:migrate:color-images": "wrangler d1 execute scommerce-db --file=db/migrations/add-product-color-images.sql",
-    "db:migrate:color-images:remote": "wrangler d1 execute scommerce-db --remote --file=db/migrations/add-product-color-images.sql",
+    "db:migrate:color-images:remote": "wrangler d1 execute scommerce-db --remote --file=db/migrations/add-product-material-color.sql",
     "deploy:workers": "npm run build:cloudflare && npm run copy:public && wrangler deploy",
     "deploy:pages": "npm run build:cloudflare && npm run copy:public && wrangler pages deploy .open-next/assets",
     "test:api": "node scripts/test-apis.js",

@@ -369,3 +369,37 @@ Stage Summary:
 - Both product detail page and quick view modal support the new system
 - Full backward compatibility maintained for products without the new fields
 
+---
+
+Task ID: 6
+Agent: Z.ai Code
+Task: Fix PO status management and inventory reports
+
+Work Log:
+- Investigated PO creation and status management functionality
+- Identified missing "Approve/Order" button for PENDING POs
+- Found inventory reports missing `credentials: 'include'` in fetch calls
+- Added `handleApprove` function to update PO status from PENDING to ORDERED
+- Added Approve button (blue CheckCircle icon) for PENDING POs in the UI
+- Added Receive and Cancel buttons for ORDERED status POs
+- Added "ORDERED" status to status filter dropdown
+- Added stats card for ORDERED status in PO page (5 cards total now)
+- Updated inventory reports page to include `credentials: 'include'` in all fetch calls:
+  - fetchValuationReport
+  - fetchMovementReport
+  - fetchPurchaseReport
+  - fetchStockReport
+  - fetchCostAnalysisReport
+- Fixed inconsistent getEnv calls in stock and cost-analysis report routes
+
+Stage Summary:
+- PO status management is now complete with full workflow:
+  - PENDING → ORDERED (via Approve button)
+  - PENDING → RECEIVED (via Receive button, skips ORDERED)
+  - PENDING → CANCELLED (via Cancel button)
+  - ORDERED → RECEIVED (via Receive button)
+  - ORDERED → CANCELLED (via Cancel button)
+- Inventory reports now include authentication credentials to work properly
+- All status types have corresponding stats cards and filter options
+
+

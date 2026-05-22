@@ -14,11 +14,14 @@ import { ImageUpload } from '@/components/admin/image-upload'
 import { BrandSelector } from '@/components/admin/brand-selector'
 import { CountrySelector } from '@/components/admin/country-selector'
 import { SizeInput } from '@/components/admin/size-input'
-import { SizeMultiSelector, COMMON_SIZES } from '@/components/admin/size-multi-selector'
+import { SizeQuickSelect } from '@/components/admin/size-quick-select'
+import { SizeMultiSelector, ALL_QUICK_SIZES } from '@/components/admin/size-multi-selector'
 import { ColorMultiSelector } from '@/components/admin/color-multi-selector'
+import { MaterialQuickSelect } from '@/components/admin/material-quick-select'
+import { ColorQuickSelect } from '@/components/admin/color-quick-select'
 import { VariantMatrixPreview } from '@/components/admin/variant-matrix-preview'
 import { apiFetch } from '@/lib/api-client'
-import { Plus, Minus, Edit2, Trash2, Package, Layers, Loader2, Image as ImageIcon, ToggleLeft, ToggleRight } from 'lucide-react'
+import { Plus, Edit2, Trash2, Package, Layers, Loader2, ToggleLeft, ToggleRight } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Select,
@@ -56,6 +59,8 @@ interface Product {
   sizeValue?: number | null
   sizeUnit?: string | null
   sizeLabel?: string | null
+  material?: string | null
+  color?: string | null
 }
 
 interface ProductVariant {
@@ -86,30 +91,15 @@ interface ProductModalProps {
   onSuccess?: () => void
 }
 
-interface NewVariant {
-  id: string
-  sizeType: 'unit' | 'label'
-  sizeValue: string
-  sizeUnit: string
-  sizeLabel: string
-  color: string
-  material: string
-  price: string
-  stock: string
-  images: string[]
-  showImages: boolean
-}
-
 export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: ProductModalProps) {
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [categories, setCategories] = useState<Category[]>([])
   const [variants, setVariants] = useState<ProductVariant[]>([])
   const [variantsLoading, setVariantsLoading] = useState(false)
-  const [showAddVariantsForm, setShowAddVariantsForm] = useState(false)
-  const [newVariants, setNewVariants] = useState<NewVariant[]>([])
   const [editingVariant, setEditingVariant] = useState<ProductVariant | null>(null)
   const [editVariantData, setEditVariantData] = useState<Partial<ProductVariant>>({})
+  const [isUpdatingVariant, setIsUpdatingVariant] = useState(false)
 
   // Multi-select system state
   const [useMultiSelectSystem, setUseMultiSelectSystem] = useState(false)
@@ -117,7 +107,13 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
   const [selectedColors, setSelectedColors] = useState<Array<{ color: string; images: string[] }>>([])
   const [customSizes, setCustomSizes] = useState<string[]>([])
   const [material, setMaterial] = useState('')
-  const [availableSizes] = useState<string[]>([...COMMON_SIZES.clothing, ...COMMON_SIZES.shoes])
+  const [availableSizes] = useState<string[]>(ALL_QUICK_SIZES)
+  
+  // Single product size (merged unit/label)
+  const [singleSize, setSingleSize] = useState('')
+  // Single product material and color
+  const [singleMaterial, setSingleMaterial] = useState('')
+  const [singleColor, setSingleColor] = useState('')
 
   const [formData, setFormData] = useState({
     name: '',
@@ -181,6 +177,20 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
         sizeUnit: product.sizeUnit || '',
         sizeLabel: product.sizeLabel || '',
       })
+      
+      // Load size for single product (backward compatible)
+      if (product.sizeLabel) {
+        setSingleSize(product.sizeLabel)
+      } else if (product.sizeValue && product.sizeUnit) {
+        setSingleSize(`${product.sizeValue}${product.sizeUnit}`)
+      } else {
+        setSingleSize('')
+      }
+      
+      // Load material and color for single product
+      setSingleMaterial(product.material || '')
+      setSingleColor(product.color || '')
+      
       // Fetch variants
       fetchProductVariants(product.id)
     } else if (mode === 'add') {
@@ -207,14 +217,16 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
         sizeLabel: '',
       })
       setVariants([])
-      setNewVariants([])
-      setShowAddVariantsForm(false)
       // Reset multi-select state
       setSelectedSizes([])
       setSelectedColors([])
       setCustomSizes([])
       setMaterial('')
       setUseMultiSelectSystem(false)
+      // Reset single product attributes
+      setSingleSize('')
+      setSingleMaterial('')
+      setSingleColor('')
     }
   }, [mode, product, open])
 
@@ -278,16 +290,14 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
     }
 
     try {
-      // Check if we have variants (either old system or new multi-select system)
-      const hasVariants = newVariants.length > 0 || (useMultiSelectSystem && selectedSizes.length > 0 && selectedColors.length > 0)
+      // Check if we have variants from multi-select system
+      const hasVariants = useMultiSelectSystem && selectedSizes.length > 0 && selectedColors.length > 0
 
       console.log('[ProductModal] Creating product:', {
         hasVariants,
         useMultiSelectSystem,
         selectedSizes,
         selectedColors: selectedColors.map(c => c.color),
-        newVariantsCount: newVariants.length,
-        newVariantsData: newVariants,
       })
 
       const response = await apiFetch('/api/admin/products', {
@@ -310,10 +320,11 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
           brandName: formData.brandName || null,
           brandLogo: formData.brandLogo || null,
           countryOfOrigin: formData.countryOfOrigin || null,
-          sizeType: hasVariants ? null : formData.sizeType,
-          sizeValue: hasVariants ? null : (formData.sizeValue ? parseFloat(formData.sizeValue) : null),
-          sizeUnit: hasVariants ? null : formData.sizeUnit || null,
-          sizeLabel: hasVariants ? null : formData.sizeLabel || null,
+          // Use merged size for single products, null for variants
+          sizeLabel: hasVariants ? null : (singleSize || null),
+          // Single product material and color (only for products without variants)
+          material: hasVariants ? null : (singleMaterial || null),
+          color: hasVariants ? null : (singleColor || null),
           // Include available sizes and colors for multi-select system
           availableSizes: useMultiSelectSystem ? selectedSizes : null,
           availableColors: useMultiSelectSystem ? selectedColors.map(c => c.color) : null,
@@ -327,11 +338,6 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
       }
 
       const productId = result.data?.id || result.products?.id
-
-      // Create variants if any (old system)
-      if (newVariants.length > 0 && productId) {
-        await createVariantsForProduct(productId)
-      }
 
       // Generate variants for multi-select system
       if (useMultiSelectSystem && selectedSizes.length > 0 && selectedColors.length > 0 && productId) {
@@ -351,7 +357,7 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
 
       toast({
         title: 'Success',
-        description: `Product created${hasVariants ? ` successfully` : ''}${useMultiSelectSystem ? '. Use the multi-select system to generate variants.' : ''}`,
+        description: `Product created${hasVariants ? ` with variants` : ''}`,
       })
 
       onOpenChange(false)
@@ -420,10 +426,11 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
           brandName: formData.brandName || null,
           brandLogo: formData.brandLogo || null,
           countryOfOrigin: formData.countryOfOrigin || null,
-          sizeType: variants.length > 0 ? null : formData.sizeType,
-          sizeValue: variants.length > 0 ? null : (formData.sizeValue ? parseFloat(formData.sizeValue) : null),
-          sizeUnit: variants.length > 0 ? null : formData.sizeUnit || null,
-          sizeLabel: variants.length > 0 ? null : formData.sizeLabel || null,
+          // Use merged size for single products, null for variants
+          sizeLabel: variants.length > 0 ? null : (singleSize || null),
+          // Single product material and color (only for products without variants)
+          material: variants.length > 0 ? null : (singleMaterial || null),
+          color: variants.length > 0 ? null : (singleColor || null),
           // Include available sizes and colors for multi-select system
           availableSizes: useMultiSelectSystem ? selectedSizes : null,
           availableColors: useMultiSelectSystem ? selectedColors.map(c => c.color) : null,
@@ -453,127 +460,20 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
     }
   }
 
-  const createVariantsForProduct = async (productId: string) => {
-    console.log('[ProductModal] createVariantsForProduct called:', {
-      productId,
-      newVariantsCount: newVariants.length,
-      newVariants: newVariants,
-    })
-
-    const basePrice = parseFloat(formData.price)
-    const failedVariants: string[] = []
-
-    for (let i = 0; i < newVariants.length; i++) {
-      const variant = newVariants[i]
-      // Generate variant name based on size type
-      let sizeLabel = ''
-      if (variant.sizeType === 'label' && variant.sizeLabel) {
-        sizeLabel = variant.sizeLabel
-      } else if (variant.sizeType === 'unit' && variant.sizeValue && variant.sizeUnit) {
-        sizeLabel = `${variant.sizeValue}${variant.sizeUnit}`
-      }
-      const variantName = [sizeLabel, variant.color, variant.material].filter(Boolean).join(' / ') || 'Default'
-
-      try {
-        console.log(`[ProductModal] Creating variant ${i + 1}/${newVariants.length}:`, {
-          variantName,
-          variantData: {
-            name: variantName,
-            price: variant.price ? parseFloat(variant.price) : basePrice,
-            size: sizeLabel || null,
-            color: variant.color || null,
-            material: variant.material || null,
-          },
-        })
-
-        const response = await apiFetch(`/api/admin/products/${productId}/variants`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: variantName,
-            price: variant.price ? parseFloat(variant.price) : basePrice,
-            comparePrice: formData.comparePrice ? parseFloat(formData.comparePrice) : null,
-            costPrice: formData.costPrice ? parseFloat(formData.costPrice) : null,
-            stock: parseInt(variant.stock) || 0,
-            size: sizeLabel || null,
-            color: variant.color || null,
-            material: variant.material || null,
-            images: variant.images.length > 0 ? variant.images : formData.images,
-            isDefault: i === 0,
-            isActive: true,
-            lowStockAlert: 10,
-            reorderLevel: 5,
-            reorderQty: 20,
-          }),
-        })
-
-        const result = await response.json()
-        console.log(`[ProductModal] Variant ${i + 1} creation response:`, result)
-
-        if (!result.success) {
-          failedVariants.push(variantName)
-          console.error('Error creating variant:', result.error || variantName, result.details || '')
-        } else {
-          console.log(`[ProductModal] Variant ${i + 1} created successfully:`, result.data)
-        }
-      } catch (err) {
-        failedVariants.push(variantName)
-        console.error('[ProductModal] Error creating variant:', err)
-      }
+  const getVariantImage = (variant: ProductVariant) => {
+    if (variant.images && variant.images.length > 0) {
+      return variant.images[0]
     }
-
-    console.log('[ProductModal] createVariantsForProduct completed:', {
-      totalAttempted: newVariants.length,
-      failed: failedVariants.length,
-      succeeded: newVariants.length - failedVariants.length,
-      failedVariants,
-    })
-
-    // Notify user if any variants failed
-    if (failedVariants.length > 0) {
-      toast({
-        title: 'Warning',
-        description: `Failed to create ${failedVariants.length} variant${failedVariants.length > 1 ? 's' : ''}: ${failedVariants.join(', ')}`,
-        variant: 'destructive',
-      })
-    }
+    return formData.images[0] || '/placeholder-product.png'
   }
 
-  const addNewVariantRow = () => {
-    setNewVariants([
-      ...newVariants,
-      {
-        id: Date.now().toString(),
-        sizeType: 'label',
-        sizeValue: '',
-        sizeUnit: '',
-        sizeLabel: '',
-        color: '',
-        material: '',
-        price: formData.price,
-        stock: '0',
-        images: [],
-        showImages: false,
-      },
-    ])
-  }
-
-  const updateNewVariant = (id: string, field: keyof NewVariant, value: any) => {
-    setNewVariants(
-      newVariants.map((v) =>
-        v.id === id ? { ...v, [field]: value } : v
-      )
-    )
-  }
-
-  const removeNewVariant = (id: string) => {
-    setNewVariants(newVariants.filter((v) => v.id !== id))
-  }
+  const hasVariants = variants.length > 0
 
   const handleUpdateVariant = async () => {
     if (!editingVariant || !product) return
 
     try {
+      setIsUpdatingVariant(true)
       const response = await apiFetch(
         `/api/admin/products/${product.id}/variants/${editingVariant.id}`,
         {
@@ -610,6 +510,8 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
         description: err.message || 'Failed to update variant',
         variant: 'destructive',
       })
+    } finally {
+      setIsUpdatingVariant(false)
     }
   }
 
@@ -660,15 +562,6 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
     })
   }
 
-  const getVariantImage = (variant: ProductVariant) => {
-    if (variant.images && variant.images.length > 0) {
-      return variant.images[0]
-    }
-    return formData.images[0] || '/placeholder-product.png'
-  }
-
-  const hasVariants = variants.length > 0 || newVariants.length > 0
-
   // Handle variant generation using the API
   const handleGenerateVariants = async (data: {
     sizes: string[]
@@ -677,19 +570,17 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
     baseStock: number
     material?: string
   }) => {
-    if (!product && mode === 'add') {
+    if (!product) {
       toast({
         title: 'Error',
-        description: 'Please create the product first before generating variants',
+        description: 'Product ID is required for generating variants',
         variant: 'destructive',
       })
       return
     }
 
     try {
-      const productId = product?.id || ''
-      
-      const response = await apiFetch(`/api/admin/products/${productId}/generate-variants`, {
+      const response = await apiFetch(`/api/admin/products/${product.id}/generate-variants`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -707,9 +598,7 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
       })
 
       // Refresh variants
-      if (productId) {
-        fetchProductVariants(productId)
-      }
+      fetchProductVariants(product.id)
     } catch (error: any) {
       console.error('Error generating variants:', error)
       toast({
@@ -879,25 +768,10 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
                   </h3>
                   <p className="text-sm text-muted-foreground mt-1">
                     {hasVariants
-                      ? `${variants.length + newVariants.length} variant${(variants.length + newVariants.length) > 1 ? 's' : ''} defined`
+                      ? `${variants.length} variant${variants.length > 1 ? 's' : ''} defined`
                       : 'No variants yet'}
                   </p>
                 </div>
-                {!showAddVariantsForm && !useMultiSelectSystem && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setShowAddVariantsForm(true)
-                      if (newVariants.length === 0) {
-                        addNewVariantRow()
-                      }
-                    }}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Variants
-                  </Button>
-                )}
               </div>
 
               {/* Variants List - Show when editing and variants exist */}
@@ -1052,8 +926,9 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
                               >
                                 Cancel
                               </Button>
-                              <Button type="button" size="sm" onClick={handleUpdateVariant}>
-                                Save Changes
+                              <Button type="button" size="sm" onClick={handleUpdateVariant} disabled={isUpdatingVariant}>
+                                {isUpdatingVariant ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                                {isUpdatingVariant ? 'Saving...' : 'Save Changes'}
                               </Button>
                             </div>
                           </div>
@@ -1064,147 +939,7 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
                 </div>
               )}
 
-              {/* Add Variants Form - Show when adding variants */}
-              {showAddVariantsForm && (
-                <div className="mt-4 border rounded-lg p-4 space-y-4 bg-gray-50">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-medium">Add New Variants</h4>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setShowAddVariantsForm(false)
-                        setNewVariants([])
-                      }}
-                    >
-                      <Minus className="h-4 w-4 mr-1" />
-                      Cancel
-                    </Button>
-                  </div>
-
-                  {newVariants.map((variant, index) => (
-                    <div key={variant.id} className="border-b pb-4 last:border-0 last:pb-0">
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-sm font-medium">Variant {index + 1}</span>
-                        {newVariants.length > 1 && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeNewVariant(variant.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                          </Button>
-                        )}
-                      </div>
-
-                      <div className="space-y-4">
-                        {/* Size, Color, Material */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                          <div className="md:col-span-3">
-                            <Label>Size</Label>
-                            <SizeInput
-                              value={{
-                                type: variant.sizeType,
-                                value: variant.sizeValue ? parseFloat(variant.sizeValue) : undefined,
-                                unit: variant.sizeUnit || undefined,
-                                label: variant.sizeLabel || undefined,
-                              }}
-                              onChange={(value) => {
-                                updateNewVariant(variant.id, 'sizeType', value.type)
-                                updateNewVariant(variant.id, 'sizeValue', value.value?.toString() || '')
-                                updateNewVariant(variant.id, 'sizeUnit', value.unit || '')
-                                updateNewVariant(variant.id, 'sizeLabel', value.label || '')
-                              }}
-                            />
-                          </div>
-                          <div>
-                            <Label>Color</Label>
-                            <Input
-                              placeholder="Red, Blue, etc."
-                              value={variant.color}
-                              onChange={(e) => updateNewVariant(variant.id, 'color', e.target.value)}
-                            />
-                          </div>
-                          <div>
-                            <Label>Material</Label>
-                            <Input
-                              placeholder="Cotton, Silk, etc."
-                              value={variant.material}
-                              onChange={(e) => updateNewVariant(variant.id, 'material', e.target.value)}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Price and Stock */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <div>
-                            <Label>Price</Label>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              placeholder={formData.price || 'Use product price'}
-                              value={variant.price}
-                              onChange={(e) => updateNewVariant(variant.id, 'price', e.target.value)}
-                            />
-                          </div>
-                          <div>
-                            <Label>Stock</Label>
-                            <Input
-                              type="number"
-                              placeholder="0"
-                              value={variant.stock}
-                              onChange={(e) => updateNewVariant(variant.id, 'stock', e.target.value)}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Variant Images */}
-                        <div>
-                          <div className="flex items-center justify-between mb-2">
-                            <Label>Variant Images</Label>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => updateNewVariant(variant.id, 'showImages', !variant.showImages)}
-                            >
-                              <ImageIcon className="h-4 w-4 mr-1" />
-                              {variant.showImages ? 'Hide' : 'Show'} Images
-                            </Button>
-                          </div>
-                          {variant.showImages && (
-                            <ImageUpload
-                              images={variant.images}
-                              onImagesChange={(images) => updateNewVariant(variant.id, 'images', images)}
-                              maxImages={5}
-                            />
-                          )}
-                          {!variant.showImages && (
-                            <p className="text-xs text-muted-foreground">
-                              {variant.images.length} image{variant.images.length !== 1 ? 's' : ''} attached. Click "Show Images" to manage.
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={addNewVariantRow}
-                    className="w-full"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Another Variant
-                  </Button>
-                </div>
-              )}
-
-              {/* Multi-Select Variant System */}
+                            {/* Multi-Select Variant System */}
               <div className="mt-6 pt-6 border-t">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
@@ -1277,6 +1012,33 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
                             />
                           </div>
                           
+                          <div className="space-y-3">
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <Label>Base Price per Variant</Label>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={formData.price}
+                                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                                placeholder="0.00"
+                                className="mt-1"
+                              />
+                            </div>
+                            <div>
+                              <Label>Base Stock per Variant</Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={formData.stock}
+                                onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+                                placeholder="0"
+                                className="mt-1"
+                              />
+                            </div>
+                          </div>
+                          
                           <VariantMatrixPreview
                             sizes={selectedSizes}
                             colors={selectedColors.map(c => c.color)}
@@ -1286,6 +1048,7 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
                             onGenerate={handleGenerateVariants}
                             disabled={mode === 'add'}
                           />
+                        </div>
                         </div>
                       </TabsContent>
                     </Tabs>
@@ -1303,10 +1066,10 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
               />
             </div>
 
-            {/* Stock & Size - Only visible if no variants */}
-            {!hasVariants && (
+            {/* Stock & Size - Only visible if no variants and not using multi-select system */}
+            {!hasVariants && !useMultiSelectSystem && (
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Inventory & Size</h3>
+                <h3 className="text-lg font-semibold">Inventory & Attributes</h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -1320,23 +1083,20 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
                       placeholder="0"
                     />
                   </div>
+                </div>
 
-                  <SizeInput
-                    value={{
-                      type: formData.sizeType,
-                      value: formData.sizeValue ? parseFloat(formData.sizeValue) : undefined,
-                      unit: formData.sizeUnit || undefined,
-                      label: formData.sizeLabel || undefined,
-                    }}
-                    onChange={(data) =>
-                      setFormData({
-                        ...formData,
-                        sizeType: data.type,
-                        sizeValue: data.value?.toString() || '',
-                        sizeUnit: data.unit || '',
-                        sizeLabel: data.label || '',
-                      })
-                    }
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <SizeQuickSelect
+                    value={singleSize}
+                    onChange={setSingleSize}
+                  />
+                  <MaterialQuickSelect
+                    value={singleMaterial}
+                    onChange={setSingleMaterial}
+                  />
+                  <ColorQuickSelect
+                    value={singleColor}
+                    onChange={setSingleColor}
                   />
                 </div>
               </div>

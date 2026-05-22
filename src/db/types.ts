@@ -118,6 +118,9 @@ export interface Product {
   sizeValue: number | null;
   sizeUnit: string | null;
   sizeLabel: string | null;
+  // Material and color for single products
+  material: string | null;
+  color: string | null;
   // Country of origin
   countryOfOrigin: string | null;
   // Multi-size/color system

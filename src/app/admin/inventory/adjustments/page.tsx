@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Search, Filter, ArrowUpDown, FileText, AlertTriangle, CheckCircle, XCircle, Package, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Plus, Pencil, Search, Filter, ArrowUpDown, FileText, AlertTriangle, CheckCircle, XCircle, Package, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -111,6 +111,7 @@ export default function StockAdjustmentsPage() {
     reason: '',
   });
   const [currentStock, setCurrentStock] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch adjustments
   const fetchAdjustments = async () => {
@@ -243,6 +244,7 @@ export default function StockAdjustmentsPage() {
     e.preventDefault();
 
     try {
+      setIsSubmitting(true);
       console.log('[Stock Adjustments] Creating adjustment with data:', {
         ...formData,
         quantityBefore: currentStock,
@@ -284,6 +286,8 @@ export default function StockAdjustmentsPage() {
     } catch (error: any) {
       console.error('[Stock Adjustments] Create error:', error);
       toast.error(error.message || 'Failed to create stock adjustment');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -781,10 +785,19 @@ export default function StockAdjustmentsPage() {
             </div>
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsAddModalOpen(false)}>
+              <Button type="button" variant="outline" onClick={() => setIsAddModalOpen(false)} disabled={isSubmitting}>
                 Cancel
               </Button>
-              <Button type="submit">Create Adjustment</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  'Create Adjustment'
+                )}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
