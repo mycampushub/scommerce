@@ -126,15 +126,20 @@ export async function POST(
   try {
     const { id } = await params
 
+    console.log('[Variants API] Creating variant for product:', id)
+
     // Fetch product to check if it exists
     const product = await ProductRepository.findById(env, id)
 
     if (!product) {
+      console.error('[Variants API] Product not found:', id)
       return NextResponse.json(
         { success: false, error: 'Product not found' },
         { status: 404 }
       )
     }
+
+    console.log('[Variants API] Product found:', product.name)
 
     // Fetch category for SKU generation
     let category: any = null
@@ -144,6 +149,8 @@ export async function POST(
 
     // Parse request body
     const body = await request.json() as any
+
+    console.log('[Variants API] Request body:', body)
 
     // Normalize images (handle both array and string)
     let images: string[] = []
@@ -267,7 +274,12 @@ export async function POST(
       message: 'Variant created successfully',
     })
   } catch (error) {
-    console.error('Error creating variant:', error)
+    console.error('[Variants API] Error creating variant:', error)
+    console.error('[Variants API] Error details:', {
+      message: error instanceof Error ? error.message : String(error),
+      name: error instanceof Error ? error.name : 'Unknown',
+      stack: error instanceof Error ? error.stack : undefined,
+    })
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -284,6 +296,7 @@ export async function POST(
       {
         success: false,
         error: 'Failed to create variant',
+        details: error instanceof Error ? error.message : String(error),
       },
       { status: 500 }
     )

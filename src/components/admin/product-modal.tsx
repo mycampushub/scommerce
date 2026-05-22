@@ -468,7 +468,7 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
 
         if (!result.success) {
           failedVariants.push(variantName)
-          console.error('Error creating variant:', result.error || variantName)
+          console.error('Error creating variant:', result.error || variantName, result.details || '')
         } else {
           console.log(`[ProductModal] Variant ${i + 1} created successfully:`, result.data)
         }
