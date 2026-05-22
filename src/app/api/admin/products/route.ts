@@ -460,6 +460,13 @@ export async function POST(request: NextRequest) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     const errorStack = error instanceof Error ? error.stack : undefined;
 
+    // Log additional details for debugging
+    console.error('[Products API] Error details:', {
+      message: errorMessage,
+      name: error instanceof Error ? error.name : 'Unknown',
+      stack: errorStack?.substring(0, 500) // First 500 chars of stack
+    });
+
     // Check if it's a database constraint error
     if (errorMessage.includes('UNIQUE constraint failed') || errorMessage.includes('unique')) {
       return NextResponse.json(
@@ -472,12 +479,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Return more detailed error even in production for now to debug
     return NextResponse.json(
       {
         success: false,
         error: 'Failed to create product',
-        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
-        stack: process.env.NODE_ENV === 'development' ? errorStack : undefined
+        details: errorMessage,
       },
       { status: 500 }
     );

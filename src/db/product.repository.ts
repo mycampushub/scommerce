@@ -101,9 +101,19 @@ export class ProductRepository {
     const id = generateId();
     const currentTime = now();
 
-    await execute(
-      env,
-      `INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, discount, discountType,
+    console.log('[ProductRepository.create] Creating product with data:', {
+      id,
+      name: data.name,
+      slug: data.slug,
+      categoryId: data.categoryId,
+      basePrice: data.basePrice,
+      stock: data.stock,
+    });
+
+    try {
+      await execute(
+        env,
+        `INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, discount, discountType,
        images, stock, lowStockAlert, reorderLevel, reorderQty, isActive, isFeatured, hasVariants, weight, dimensions, tags,
        createdAt, updatedAt, costPrice, brandId, brandName, brandLogo, sizeType, sizeValue, sizeUnit, sizeLabel,
        countryOfOrigin, totalPurchased, totalSold, totalCost, averageCost, lastPurchaseAt, lastPurchaseCost)
@@ -146,9 +156,15 @@ export class ProductRepository {
       data.averageCost || 0,
       data.lastPurchaseAt || null,
       data.lastPurchaseCost || null
-    );
+      );
 
-    return (await this.findById(env, id))!;
+      console.log('[ProductRepository.create] Product inserted successfully, fetching by id:', id);
+
+      return (await this.findById(env, id))!;
+    } catch (error) {
+      console.error('[ProductRepository.create] Error during product creation:', error);
+      throw error;
+    }
   }
 
   /**

@@ -86,16 +86,32 @@ export async function execute(
     throw new Error('Database not available');
   }
   const stmt = db.prepare(sql);
+
+  console.log('[db.ts] execute() - About to execute SQL:', {
+    sql: sql.substring(0, 200) + (sql.length > 200 ? '...' : ''),
+    paramCount: params.length,
+    params: params.map((p, i) => ({
+      index: i,
+      type: typeof p,
+      value: p === null ? 'NULL' : (typeof p === 'string' && p.length > 100 ? p.substring(0, 100) + '...' : p)
+    }))
+  });
+
   const result = await stmt.bind(...params).run();
 
   // Check if there was an error (for D1)
   if ('error' in result && result.error) {
     console.error('[db.ts] Execute error:', {
       sql: sql.substring(0, 100),
-      error: result.error.message
+      error: result.error.message,
+      errorDetails: result.error
     });
     throw result.error;
   }
+
+  console.log('[db.ts] execute() - Success:', {
+    rowsAffected: 'meta' in result ? result.meta?.changes : 'unknown'
+  });
 }
 
 /**

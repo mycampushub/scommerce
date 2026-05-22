@@ -315,12 +315,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Return more detailed error even in production for now to debug
     return NextResponse.json(
       {
         success: false,
         error: 'Failed to create promotion',
-        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
-        stack: process.env.NODE_ENV === 'development' ? errorStack : undefined
+        details: errorMessage,
       },
       { status: 500 }
     )
