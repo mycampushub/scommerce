@@ -410,6 +410,9 @@ model products {
   sizeLabel              String?                  // For label sizes (e.g., 'S', 'M', 'L')
   // Country of origin
   countryOfOrigin        String?                  // ISO country code
+  // Multi-size/color system
+  availableSizes         String?                  // JSON: ["S", "M", "L", "XL"]
+  availableColors        String?                  // JSON: ["Red", "Blue", "Green"]
   // Inventory tracking
   totalPurchased         Int                      @default(0)
   totalSold              Int                      @default(0)
@@ -423,6 +426,7 @@ model products {
   order_items            order_items[]
   product_reviews        product_reviews[]
   product_variants       product_variants[]
+  product_color_images   product_color_images[]
   categories             categories               @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   wishlist_items         wishlist_items[]
 
@@ -434,6 +438,21 @@ model products {
   @@index([brandId])
   @@index([countryOfOrigin])
   @@index([sizeType, sizeUnit])
+}
+
+model product_color_images {
+  id        String   @id
+  productId String
+  color     String
+  images    String?  // JSON array of image URLs
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products  products @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, color])
+  @@index([productId])
+  @@index([color])
 }
 
 model promotions {

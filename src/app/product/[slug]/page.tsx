@@ -21,6 +21,7 @@ import { ProductStructuredData } from '@/components/product-structured-data'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PriceDisplay } from '@/components/price-display'
 import { parseImages } from '@/lib/images'
+import { resolveProductImages, fetchColorImages, ColorImage } from '@/lib/product-images'
 
 // Types
 interface Product {
@@ -50,6 +51,9 @@ interface Product {
   sizeValue?: number | null
   sizeUnit?: string | null
   sizeLabel?: string | null
+  // Multi-size/color system
+  availableSizes?: string[]
+  availableColors?: string[]
   createdAt: string
   updatedAt: string
 }
@@ -102,6 +106,7 @@ export default function ProductPage() {
   const [selectedSize, setSelectedSize] = useState<string>('')
   const [selectedColor, setSelectedColor] = useState<string>('')
   const [selectedMaterial, setSelectedMaterial] = useState<string>('')
+  const [colorImages, setColorImages] = useState<ColorImage[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [currentImage, setCurrentImage] = useState(0)
@@ -249,6 +254,22 @@ export default function ProductPage() {
     setCurrentImage(0)
   }, [selectedVariant?.id, product?.id])
 
+  // Fetch color images when product is loaded
+  useEffect(() => {
+    const fetchColorImagesForProduct = async () => {
+      if (!product) return
+
+      try {
+        const images = await fetchColorImages(product.id)
+        setColorImages(images)
+      } catch (error) {
+        console.error('Error fetching color images:', error)
+      }
+    }
+
+    fetchColorImagesForProduct()
+  }, [product?.id])
+
   // Handle variant selection
   const handleVariantSelection = (size: string | undefined, color?: string, material?: string) => {
     setSelectedSize(size || '')
@@ -275,9 +296,16 @@ export default function ProductPage() {
   // The hasVariants flag is used as a hint, but actual variants are the source of truth
   const hasVariants = variants.length > 0
 
-  // Get available sizes, colors, materials from variants
-  const availableSizes = [...new Set(variants.map(v => v.size).filter(Boolean))]
-  const availableColors = [...new Set(variants.map(v => v.color).filter(Boolean))]
+  // Get available sizes, colors, materials from variants OR product-level fields
+  // Priority: product.availableSizes/availableColors > derived from variants
+  const availableSizes = (product?.availableSizes && product.availableSizes.length > 0)
+    ? product.availableSizes
+    : [...new Set(variants.map(v => v.size).filter(Boolean))]
+
+  const availableColors = (product?.availableColors && product.availableColors.length > 0)
+    ? product.availableColors
+    : [...new Set(variants.map(v => v.color).filter(Boolean))]
+
   const availableMaterials = [...new Set(variants.map(v => v.material).filter(Boolean))]
 
   // Debug logging for variant attributes
@@ -285,6 +313,8 @@ export default function ProductPage() {
     console.log('[Product Page] Variant attributes:', {
       hasVariants,
       variantsCount: variants.length,
+      productAvailableSizes: product?.availableSizes,
+      productAvailableColors: product?.availableColors,
       availableSizes,
       availableColors,
       availableMaterials,
@@ -296,6 +326,8 @@ export default function ProductPage() {
     console.log('[Product Page] Variant selectors will NOT show:', {
       hasVariants,
       productHasVariants: product?.hasVariants,
+      productAvailableSizes: product?.availableSizes,
+      productAvailableColors: product?.availableColors,
       variantsLength: variants.length,
       reason: !product?.hasVariants ? 'Product hasVariants is false' : variants.length === 0 ? 'No variants loaded' : 'Unknown',
     })
@@ -306,17 +338,21 @@ export default function ProductPage() {
   const currentComparePrice = selectedVariant ? selectedVariant.comparePrice : product?.comparePrice || null
   const currentStock = selectedVariant ? selectedVariant.stock : product?.stock || 0
 
-  // SIMPLIFIED IMAGE LOGIC:
+  // ENHANCED IMAGE LOGIC:
   // 1. If a variant is selected and has images, use those images
-  // 2. Otherwise, use the default product images (product.images or product.image)
-  const variantImages = selectedVariant?.images ? parseImages(selectedVariant.images) : [];
-  const productImages = product?.images ? parseImages(product.images) : [];
-
-  // Use variant images if available, otherwise use product images
-  const currentImages = variantImages.length > 0 ? variantImages : (productImages.length > 0 ? productImages : (product?.image ? [product.image] : []));
+  // 2. If color is selected and color images exist for that color, use those
+  // 3. Otherwise, use the default product images (product.images or product.image)
+  const currentImages = resolveProductImages({
+    productId: product?.id || '',
+    selectedColor,
+    selectedSize,
+    variantImages: selectedVariant?.images,
+    productImages: product?.images || null,
+    colorImages,
+  })
 
   // Get the display image (fallback to placeholder if empty)
-  const displayImage = currentImages[currentImage] || (currentImages.length > 0 ? currentImages[0] : '/placeholder-image.jpg');
+  const displayImage = currentImages[currentImage] || (currentImages.length > 0 ? currentImages[0] : (product?.image || '/placeholder-image.jpg'))
 
   // Check if user has purchased this product
   async function checkUserPurchase() {

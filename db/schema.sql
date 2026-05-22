@@ -172,6 +172,8 @@ CREATE TABLE "products" (
     "sizeUnit" TEXT,
     "sizeLabel" TEXT,
     "countryOfOrigin" TEXT,
+    "availableSizes" TEXT,
+    "availableColors" TEXT,
     "totalPurchased" INTEGER NOT NULL DEFAULT 0,
     "totalSold" INTEGER NOT NULL DEFAULT 0,
     "totalCost" REAL DEFAULT 0,
@@ -846,3 +848,23 @@ CREATE TABLE "inventory_adjustments" (
 CREATE INDEX "inventory_adjustments_productId_createdAt_idx" ON "inventory_adjustments"("productId", "createdAt");
 CREATE INDEX "inventory_adjustments_adjustmentType_createdAt_idx" ON "inventory_adjustments"("adjustmentType", "createdAt");
 CREATE INDEX "inventory_adjustments_createdAt_idx" ON "inventory_adjustments"("createdAt" DESC);
+
+-- ============================================
+-- PRODUCT COLOR IMAGES
+-- ============================================
+
+-- CreateTable
+CREATE TABLE "product_color_images" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "productId" TEXT NOT NULL,
+    "color" TEXT NOT NULL,
+    "images" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "product_color_images_productId_fkey" FOREIGN KEY ("productId") REFERENCES "products" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "product_color_images_productId_color_key" UNIQUE ("productId", "color")
+);
+
+-- CreateIndex
+CREATE INDEX "product_color_images_productId_idx" ON "product_color_images"("productId");
+CREATE INDEX "product_color_images_color_idx" ON "product_color_images"("color");

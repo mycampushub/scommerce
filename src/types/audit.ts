@@ -36,6 +36,7 @@ export type AuditAction =
 export type AuditEntity =
   | 'Product'
   | 'ProductVariant'
+  | 'ProductColorImage'
   | 'Category'
   | 'User'
   | 'Order'

@@ -27,6 +27,8 @@ export class ProductRepository {
     return {
       ...product,
       images: parseJSON<string[]>(product.images) || [],
+      availableSizes: parseJSON<string[]>(product.availableSizes) || null,
+      availableColors: parseJSON<string[]>(product.availableColors) || null,
       isActive: typeof product.isActive === 'boolean' ? product.isActive : Boolean(product.isActive),
       isFeatured: typeof product.isFeatured === 'boolean' ? product.isFeatured : Boolean(product.isFeatured),
       hasVariants: typeof product.hasVariants === 'boolean' ? product.hasVariants : Boolean(product.hasVariants)
@@ -48,6 +50,8 @@ export class ProductRepository {
     return {
       ...product,
       images: parseJSON<string[]>(product.images) || [],
+      availableSizes: parseJSON<string[]>(product.availableSizes) || null,
+      availableColors: parseJSON<string[]>(product.availableColors) || null,
       isActive: typeof product.isActive === 'boolean' ? product.isActive : Boolean(product.isActive),
       isFeatured: typeof product.isFeatured === 'boolean' ? product.isFeatured : Boolean(product.isFeatured),
       hasVariants: typeof product.hasVariants === 'boolean' ? product.hasVariants : Boolean(product.hasVariants)
@@ -528,6 +532,17 @@ export class ProductRepository {
     const id = generateId();
     const currentTime = now();
 
+    console.log('[ProductRepository.createVariant] About to create variant with data:', {
+      id,
+      productId: data.productId,
+      sku: data.sku,
+      name: data.name,
+      price: data.price,
+      size: data.size,
+      color: data.color,
+      material: data.material
+    });
+
     await execute(
       env,
       `INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, images, size, color, material,
@@ -797,5 +812,231 @@ export class ProductRepository {
     }
 
     return { updated };
+  }
+
+  // Product Color Images (Multi-Size/Color System)
+  /**
+   * Get all color images for a product
+   */
+  static async getColorImages(env: Env | null, productId: string): Promise<Array<{ id: string; color: string; images: string[] }>> {
+    const colorImages = await queryAll<any>(
+      env,
+      'SELECT * FROM product_color_images WHERE productId = ? ORDER BY color ASC',
+      productId
+    );
+
+    return colorImages.map(ci => ({
+      id: ci.id,
+      color: ci.color,
+      images: parseJSON<string[]>(ci.images) || []
+    }));
+  }
+
+  /**
+   * Get color images for a specific color
+   */
+  static async getColorImageForColor(env: Env | null, productId: string, color: string): Promise<{ id: string; color: string; images: string[] } | null> {
+    const colorImage = await queryFirst<any>(
+      env,
+      'SELECT * FROM product_color_images WHERE productId = ? AND color = ? LIMIT 1',
+      productId,
+      color
+    );
+
+    if (!colorImage) return null;
+
+    return {
+      id: colorImage.id,
+      color: colorImage.color,
+      images: parseJSON<string[]>(colorImage.images) || []
+    };
+  }
+
+  /**
+   * Upsert (add or update) a color image for a product
+   */
+  static async upsertColorImage(env: Env | null, data: {
+    productId: string;
+    color: string;
+    images: string[];
+  }): Promise<{ id: string; color: string; images: string[] }> {
+    const currentTime = now();
+
+    // Check if color image already exists
+    const existing = await this.getColorImageForColor(env, data.productId, data.color);
+
+    if (existing) {
+      // Update existing
+      await execute(
+        env,
+        'UPDATE product_color_images SET images = ?, updatedAt = ? WHERE id = ?',
+        data.images.length > 0 ? stringifyJSON(data.images) : null,
+        currentTime,
+        existing.id
+      );
+
+      return {
+        id: existing.id,
+        color: data.color,
+        images: data.images
+      };
+    } else {
+      // Insert new
+      const id = generateId();
+      await execute(
+        env,
+        'INSERT INTO product_color_images (id, productId, color, images, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)',
+        id,
+        data.productId,
+        data.color,
+        data.images.length > 0 ? stringifyJSON(data.images) : null,
+        currentTime,
+        currentTime
+      );
+
+      return {
+        id,
+        color: data.color,
+        images: data.images
+      };
+    }
+  }
+
+  /**
+   * Delete a color image
+   */
+  static async deleteColorImage(env: Env | null, colorImageId: string): Promise<void> {
+    await execute(env, 'DELETE FROM product_color_images WHERE id = ?', colorImageId);
+  }
+
+  /**
+   * Delete all color images for a product
+   */
+  static async deleteAllColorImages(env: Env | null, productId: string): Promise<void> {
+    await execute(env, 'DELETE FROM product_color_images WHERE productId = ?', productId);
+  }
+
+  /**
+   * Update availableSizes and availableColors fields in products table
+   */
+  static async updateAvailableSizesAndColors(env: Env | null, productId: string, data: {
+    availableSizes?: string[];
+    availableColors?: string[];
+  }): Promise<Product | null> {
+    const updates: string[] = [];
+    const values: unknown[] = [];
+
+    if (data.availableSizes !== undefined) {
+      updates.push('availableSizes = ?');
+      values.push(data.availableSizes.length > 0 ? stringifyJSON(data.availableSizes) : null);
+    }
+
+    if (data.availableColors !== undefined) {
+      updates.push('availableColors = ?');
+      values.push(data.availableColors.length > 0 ? stringifyJSON(data.availableColors) : null);
+    }
+
+    if (updates.length === 0) return this.findById(env, productId);
+
+    updates.push('updatedAt = ?');
+    values.push(now());
+    values.push(productId);
+
+    await execute(
+      env,
+      `UPDATE products SET ${updates.join(', ')} WHERE id = ?`,
+      ...values
+    );
+
+    return this.findById(env, productId);
+  }
+
+  /**
+   * Generate variant combinations from size × color matrix
+   */
+  static async generateVariantCombinations(env: Env | null, data: {
+    productId: string;
+    sizes: string[];
+    colors: string[];
+    basePrice: number;
+    baseStock: number;
+    material?: string;
+  }): Promise<{ generated: number; variants: ProductVariant[] }> {
+    const { productId, sizes, colors, basePrice, baseStock, material } = data;
+    const variants: ProductVariant[] = [];
+    let counter = 0;
+
+    console.log('[ProductRepository.generateVariantCombinations] Generating variants:', {
+      productId,
+      sizes,
+      colors,
+      basePrice,
+      baseStock,
+      material
+    });
+
+    for (const color of colors) {
+      for (const size of sizes) {
+        counter++;
+
+        // Generate variant name
+        const variantName = `${size} / ${color}${material ? ` / ${material}` : ''}`;
+
+        // Generate SKU (will be checked for conflicts later)
+        // For now, use a simple pattern
+        const sku = `${productId.substring(0, 8).toUpperCase()}-${color.substring(0, 3).toUpperCase()}-${size.toUpperCase()}`;
+
+        // Check if variant already exists
+        const existing = await queryFirst<any>(
+          env,
+          'SELECT * FROM product_variants WHERE productId = ? AND size = ? AND color = ? LIMIT 1',
+          productId,
+          size,
+          color
+        );
+
+        if (!existing) {
+          const variant = await this.createVariant(env, {
+            productId,
+            sku,
+            name: variantName,
+            price: basePrice,
+            stock: baseStock,
+            size,
+            color,
+            material,
+            isDefault: counter === 1,
+            isActive: true
+          });
+          variants.push(variant);
+        } else {
+          console.log('[ProductRepository.generateVariantCombinations] Variant already exists:', {
+            size,
+            color,
+            sku: existing.sku
+          });
+          variants.push({
+            ...existing,
+            images: parseJSON<string[]>(existing.images) || [],
+            isActive: typeof existing.isActive === 'boolean' ? existing.isActive : Boolean(existing.isActive),
+            isDefault: typeof existing.isDefault === 'boolean' ? existing.isDefault : Boolean(existing.isDefault)
+          });
+        }
+      }
+    }
+
+    // Update product's hasVariants flag and available sizes/colors
+    await this.syncHasVariants(env, productId);
+    await this.updateAvailableSizesAndColors(env, productId, {
+      availableSizes: sizes,
+      availableColors: colors
+    });
+
+    console.log('[ProductRepository.generateVariantCombinations] Generated:', {
+      total: variants.length,
+      new: counter
+    });
+
+    return { generated: variants.length, variants };
   }
 }

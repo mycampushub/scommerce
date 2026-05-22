@@ -78,6 +78,9 @@ export async function GET(
       sizeValue: product.sizeValue || null,
       sizeUnit: product.sizeUnit || null,
       sizeLabel: product.sizeLabel || null,
+      // Multi-size/color system
+      availableSizes: product.availableSizes || [],
+      availableColors: product.availableColors || [],
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,
     };

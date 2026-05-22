@@ -120,6 +120,9 @@ export interface Product {
   sizeLabel: string | null;
   // Country of origin
   countryOfOrigin: string | null;
+  // Multi-size/color system
+  availableSizes: string[] | null;
+  availableColors: string[] | null;
   // Inventory tracking
   totalPurchased: number;
   totalSold: number;
@@ -127,6 +130,15 @@ export interface Product {
   averageCost: number | null;
   lastPurchaseAt: string | null;
   lastPurchaseCost: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProductColorImage {
+  id: string;
+  productId: string;
+  color: string;
+  images: string[] | null;
   createdAt: string;
   updatedAt: string;
 }

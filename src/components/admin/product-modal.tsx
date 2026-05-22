@@ -14,8 +14,12 @@ import { ImageUpload } from '@/components/admin/image-upload'
 import { BrandSelector } from '@/components/admin/brand-selector'
 import { CountrySelector } from '@/components/admin/country-selector'
 import { SizeInput } from '@/components/admin/size-input'
+import { SizeMultiSelector, COMMON_SIZES } from '@/components/admin/size-multi-selector'
+import { ColorMultiSelector } from '@/components/admin/color-multi-selector'
+import { VariantMatrixPreview } from '@/components/admin/variant-matrix-preview'
 import { apiFetch } from '@/lib/api-client'
-import { Plus, Minus, Edit2, Trash2, Package, Layers, Loader2, Image as ImageIcon } from 'lucide-react'
+import { Plus, Minus, Edit2, Trash2, Package, Layers, Loader2, Image as ImageIcon, ToggleLeft, ToggleRight } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Select,
   SelectContent,
@@ -107,6 +111,14 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
   const [editingVariant, setEditingVariant] = useState<ProductVariant | null>(null)
   const [editVariantData, setEditVariantData] = useState<Partial<ProductVariant>>({})
 
+  // Multi-select system state
+  const [useMultiSelectSystem, setUseMultiSelectSystem] = useState(false)
+  const [selectedSizes, setSelectedSizes] = useState<string[]>([])
+  const [selectedColors, setSelectedColors] = useState<Array<{ color: string; images: string[] }>>([])
+  const [customSizes, setCustomSizes] = useState<string[]>([])
+  const [material, setMaterial] = useState('')
+  const [availableSizes] = useState<string[]>([...COMMON_SIZES.clothing, ...COMMON_SIZES.shoes])
+
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
@@ -197,6 +209,12 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
       setVariants([])
       setNewVariants([])
       setShowAddVariantsForm(false)
+      // Reset multi-select state
+      setSelectedSizes([])
+      setSelectedColors([])
+      setCustomSizes([])
+      setMaterial('')
+      setUseMultiSelectSystem(false)
     }
   }, [mode, product, open])
 
@@ -260,10 +278,14 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
     }
 
     try {
-      const hasVariants = newVariants.length > 0
+      // Check if we have variants (either old system or new multi-select system)
+      const hasVariants = newVariants.length > 0 || (useMultiSelectSystem && selectedSizes.length > 0 && selectedColors.length > 0)
 
       console.log('[ProductModal] Creating product:', {
         hasVariants,
+        useMultiSelectSystem,
+        selectedSizes,
+        selectedColors: selectedColors.map(c => c.color),
         newVariantsCount: newVariants.length,
         newVariantsData: newVariants,
       })
@@ -292,6 +314,9 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
           sizeValue: hasVariants ? null : (formData.sizeValue ? parseFloat(formData.sizeValue) : null),
           sizeUnit: hasVariants ? null : formData.sizeUnit || null,
           sizeLabel: hasVariants ? null : formData.sizeLabel || null,
+          // Include available sizes and colors for multi-select system
+          availableSizes: useMultiSelectSystem ? selectedSizes : null,
+          availableColors: useMultiSelectSystem ? selectedColors.map(c => c.color) : null,
         }),
       })
 
@@ -303,14 +328,30 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
 
       const productId = result.data?.id || result.products?.id
 
-      // Create variants if any
-      if (hasVariants && productId) {
+      // Create variants if any (old system)
+      if (newVariants.length > 0 && productId) {
         await createVariantsForProduct(productId)
+      }
+
+      // Generate variants for multi-select system
+      if (useMultiSelectSystem && selectedSizes.length > 0 && selectedColors.length > 0 && productId) {
+        try {
+          await handleGenerateVariants({
+            sizes: selectedSizes,
+            colors: selectedColors.map(c => c.color),
+            basePrice: parseFloat(formData.price) || 0,
+            baseStock: parseInt(formData.stock) || 0,
+            material: material || undefined,
+          })
+        } catch (error) {
+          // Don't fail the entire product creation if variant generation fails
+          console.error('Error generating variants:', error)
+        }
       }
 
       toast({
         title: 'Success',
-        description: `Product created${hasVariants ? ` with ${newVariants.length} variant${newVariants.length > 1 ? 's' : ''}` : ''} successfully`,
+        description: `Product created${hasVariants ? ` successfully` : ''}${useMultiSelectSystem ? '. Use the multi-select system to generate variants.' : ''}`,
       })
 
       onOpenChange(false)
@@ -383,6 +424,9 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
           sizeValue: variants.length > 0 ? null : (formData.sizeValue ? parseFloat(formData.sizeValue) : null),
           sizeUnit: variants.length > 0 ? null : formData.sizeUnit || null,
           sizeLabel: variants.length > 0 ? null : formData.sizeLabel || null,
+          // Include available sizes and colors for multi-select system
+          availableSizes: useMultiSelectSystem ? selectedSizes : null,
+          availableColors: useMultiSelectSystem ? selectedColors.map(c => c.color) : null,
         }),
       })
 
@@ -625,6 +669,58 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
 
   const hasVariants = variants.length > 0 || newVariants.length > 0
 
+  // Handle variant generation using the API
+  const handleGenerateVariants = async (data: {
+    sizes: string[]
+    colors: string[]
+    basePrice: number
+    baseStock: number
+    material?: string
+  }) => {
+    if (!product && mode === 'add') {
+      toast({
+        title: 'Error',
+        description: 'Please create the product first before generating variants',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    try {
+      const productId = product?.id || ''
+      
+      const response = await apiFetch(`/api/admin/products/${productId}/generate-variants`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+
+      const result = await response.json()
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to generate variants')
+      }
+
+      toast({
+        title: 'Success',
+        description: `Generated ${data.sizes.length * data.colors.length} variants successfully`,
+      })
+
+      // Refresh variants
+      if (productId) {
+        fetchProductVariants(productId)
+      }
+    } catch (error: any) {
+      console.error('Error generating variants:', error)
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to generate variants',
+        variant: 'destructive',
+      })
+      throw error
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
@@ -787,7 +883,7 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
                       : 'No variants yet'}
                   </p>
                 </div>
-                {!showAddVariantsForm && (
+                {!showAddVariantsForm && !useMultiSelectSystem && (
                   <Button
                     type="button"
                     variant="outline"
@@ -1107,6 +1203,95 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
                   </Button>
                 </div>
               )}
+
+              {/* Multi-Select Variant System */}
+              <div className="mt-6 pt-6 border-t">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    {useMultiSelectSystem ? (
+                      <ToggleRight className="h-6 w-6 text-blue-600" />
+                    ) : (
+                      <ToggleLeft className="h-6 w-6 text-gray-400" />
+                    )}
+                    <div>
+                      <h4 className="font-semibold">Multi-Select Variant System</h4>
+                      <p className="text-xs text-muted-foreground">
+                        Generate all size/color combinations at once
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant={useMultiSelectSystem ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setUseMultiSelectSystem(!useMultiSelectSystem)}
+                  >
+                    {useMultiSelectSystem ? 'Disable' : 'Enable'}
+                  </Button>
+                </div>
+
+                {useMultiSelectSystem && (
+                  <div className="space-y-4">
+                    <Tabs defaultValue="sizes" className="w-full">
+                      <TabsList className="grid w-full grid-cols-3">
+                        <TabsTrigger value="sizes">Sizes</TabsTrigger>
+                        <TabsTrigger value="colors">Colors</TabsTrigger>
+                        <TabsTrigger value="preview">Preview & Generate</TabsTrigger>
+                      </TabsList>
+                      
+                      <TabsContent value="sizes" className="space-y-4">
+                        <SizeMultiSelector
+                          availableSizes={availableSizes}
+                          selectedSizes={selectedSizes}
+                          onChange={setSelectedSizes}
+                          customSizes={customSizes}
+                          onAddCustomSize={(size) => {
+                            if (!customSizes.includes(size) && !availableSizes.includes(size)) {
+                              setCustomSizes([...customSizes, size])
+                            }
+                          }}
+                          onRemoveCustomSize={(size) => {
+                            setCustomSizes(customSizes.filter(s => s !== size))
+                            setSelectedSizes(selectedSizes.filter(s => s !== size))
+                          }}
+                        />
+                      </TabsContent>
+                      
+                      <TabsContent value="colors" className="space-y-4">
+                        <ColorMultiSelector
+                          selectedColors={selectedColors}
+                          onChange={setSelectedColors}
+                        />
+                      </TabsContent>
+                      
+                      <TabsContent value="preview" className="space-y-4">
+                        <div className="space-y-3">
+                          <div>
+                            <Label>Material (Optional)</Label>
+                            <Input
+                              type="text"
+                              placeholder="e.g., Cotton, Silk, Polyester"
+                              value={material}
+                              onChange={(e) => setMaterial(e.target.value)}
+                              className="mt-1"
+                            />
+                          </div>
+                          
+                          <VariantMatrixPreview
+                            sizes={selectedSizes}
+                            colors={selectedColors.map(c => c.color)}
+                            basePrice={parseFloat(formData.price) || 0}
+                            baseStock={parseInt(formData.stock) || 0}
+                            material={material || undefined}
+                            onGenerate={handleGenerateVariants}
+                            disabled={mode === 'add'}
+                          />
+                        </div>
+                      </TabsContent>
+                    </Tabs>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Images */}

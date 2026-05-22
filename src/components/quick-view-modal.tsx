@@ -13,6 +13,7 @@ import { useCartStore } from '@/lib/store/cart-store'
 import { toast } from 'sonner'
 import { PriceDisplay } from '@/components/price-display'
 import { parseImages } from '@/lib/images'
+import { resolveProductImages, fetchColorImages, ColorImage } from '@/lib/product-images'
 
 export interface ProductVariant {
   id: string
@@ -54,6 +55,9 @@ export interface Product {
   sizeValue?: number | null
   sizeUnit?: string | null
   sizeLabel?: string | null
+  // Multi-size/color system
+  availableSizes?: string[]
+  availableColors?: string[]
 }
 
 interface QuickViewModalProps {
@@ -72,6 +76,7 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null)
   const [freeShippingThreshold, setFreeShippingThreshold] = useState(5000)
   const [variants, setVariants] = useState<ProductVariant[]>([])
+  const [colorImages, setColorImages] = useState<ColorImage[]>([])
   const [loadingVariants, setLoadingVariants] = useState(false)
   const { addItem } = useCartStore()
 
@@ -106,9 +111,34 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
     }
   }, [product, open])
 
-  // Get available sizes, colors, materials from variants
-  const availableSizes = [...new Set(variants.map(v => v.size).filter(Boolean))]
-  const availableColors = [...new Set(variants.map(v => v.color).filter(Boolean))]
+  // Fetch color images when product is loaded
+  useEffect(() => {
+    const fetchColorImagesForProduct = async () => {
+      if (!product) return
+
+      try {
+        const images = await fetchColorImages(product.id)
+        setColorImages(images)
+      } catch (error) {
+        console.error('Error fetching color images:', error)
+      }
+    }
+
+    if (product && open) {
+      fetchColorImagesForProduct()
+    }
+  }, [product?.id, open])
+
+  // Get available sizes, colors, materials from variants OR product-level fields
+  // Priority: product.availableSizes/availableColors > derived from variants
+  const availableSizes = (product?.availableSizes && product.availableSizes.length > 0)
+    ? product.availableSizes
+    : [...new Set(variants.map(v => v.size).filter(Boolean))]
+
+  const availableColors = (product?.availableColors && product.availableColors.length > 0)
+    ? product.availableColors
+    : [...new Set(variants.map(v => v.color).filter(Boolean))]
+
   const availableMaterials = [...new Set(variants.map(v => v.material).filter(Boolean))]
 
   // Get current price and stock based on selected variant
@@ -116,17 +146,21 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
   const currentComparePrice = selectedVariant ? selectedVariant.comparePrice : (product?.comparePrice || product?.originalPrice || undefined)
   const currentStock = selectedVariant ? selectedVariant.stock : (product?.stock || 0)
 
-  // SIMPLIFIED IMAGE LOGIC:
+  // ENHANCED IMAGE LOGIC:
   // 1. If a variant is selected and has images, use those images
-  // 2. Otherwise, use the default product images (product.images or product.image)
-  const variantImages = selectedVariant?.images ? parseImages(selectedVariant.images) : [];
-  const productImages = product?.images ? parseImages(product.images) : [];
-
-  // Use variant images if available, otherwise use product images
-  const currentImages = variantImages.length > 0 ? variantImages : (productImages.length > 0 ? productImages : (product?.image ? [product.image] : []));
+  // 2. If color is selected and color images exist for that color, use those
+  // 3. Otherwise, use the default product images (product.images or product.image)
+  const currentImages = resolveProductImages({
+    productId: product?.id || '',
+    selectedColor,
+    selectedSize,
+    variantImages: selectedVariant?.images,
+    productImages: product?.images || null,
+    colorImages,
+  })
 
   // Get the display image (fallback to placeholder if empty)
-  const displayImage = currentImages[selectedImageIndex] || (currentImages.length > 0 ? currentImages[0] : '/placeholder-image.jpg');
+  const displayImage = currentImages[selectedImageIndex] || (currentImages.length > 0 ? currentImages[0] : (product?.image || '/placeholder-image.jpg'))
 
   // Calculate discount percentage
   const discountPercentage = currentComparePrice
