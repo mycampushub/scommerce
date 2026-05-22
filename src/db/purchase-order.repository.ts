@@ -300,7 +300,7 @@ class PurchaseOrderRepository {
       await execute(
         env,
         `INSERT INTO purchase_orders (id, orderNumber, supplierId, status, totalAmount, totalQuantity, orderDate, expectedDate, receivedDate, notes, createdAt, updatedAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         poId,
         orderNumber,
         poData.supplierId,
@@ -586,7 +586,7 @@ class PurchaseOrderRepository {
       const movementId = generateId();
       operations.push({
         sql: `INSERT INTO inventory_movements (id, productId, variantId, movementType, quantity, unitCost, totalCost, referenceId, referenceType, approved, approvedAt, supplierId)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         params: [
           movementId,
           item.productId,
