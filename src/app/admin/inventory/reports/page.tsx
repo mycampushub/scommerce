@@ -116,11 +116,11 @@ export default function InventoryReportsPage() {
       if (!response.ok) throw new Error('Failed to fetch valuation report');
       const data = await response.json();
 
-      setValuationData(data.items || []);
-      setTotalValue(data.summary?.totalValue || 0);
-      setTotalCost(data.summary?.totalCost || 0);
-      setTotalProfit(data.summary?.totalProfit || 0);
-      setAverageMargin(data.summary?.averageMargin || 0);
+      setValuationData(data.data?.items || []);
+      setTotalValue(data.data?.summary?.totalValue || 0);
+      setTotalCost(data.data?.summary?.totalCost || 0);
+      setTotalProfit(data.data?.summary?.totalProfit || 0);
+      setAverageMargin(data.data?.summary?.averageMargin || 0);
     } catch (error) {
       console.error('Error fetching valuation report:', error);
       toast.error('Failed to load valuation report');
@@ -139,8 +139,8 @@ export default function InventoryReportsPage() {
       if (!response.ok) throw new Error('Failed to fetch movement report');
       const data = await response.json();
 
-      setMovementData(data.movements || []);
-      setTotalMovements(data.summary?.total || 0);
+      setMovementData(data.data?.movements || []);
+      setTotalMovements(data.data?.summary?.total || 0);
     } catch (error) {
       console.error('Error fetching movement report:', error);
       toast.error('Failed to load movement report');
@@ -159,9 +159,9 @@ export default function InventoryReportsPage() {
       if (!response.ok) throw new Error('Failed to fetch purchase report');
       const data = await response.json();
 
-      setPurchaseData(data.suppliers || []);
-      setTotalPurchaseAmount(data.summary?.totalAmount || 0);
-      setTotalPurchaseQuantity(data.summary?.totalQuantity || 0);
+      setPurchaseData(data.data?.suppliers || []);
+      setTotalPurchaseAmount(data.data?.summary?.totalAmount || 0);
+      setTotalPurchaseQuantity(data.data?.summary?.totalQuantity || 0);
     } catch (error) {
       console.error('Error fetching purchase report:', error);
       toast.error('Failed to load purchase report');
@@ -177,11 +177,11 @@ export default function InventoryReportsPage() {
       if (!response.ok) throw new Error('Failed to fetch stock report');
       const data = await response.json();
 
-      setStockData(data.items || []);
-      setOutOfStockCount(data.summary?.outOfStock || 0);
-      setLowStockCount(data.summary?.lowStock || 0);
-      setHealthyStockCount(data.summary?.healthy || 0);
-      setOverstockCount(data.summary?.overstock || 0);
+      setStockData(data.data?.items || []);
+      setOutOfStockCount(data.data?.summary?.outOfStock || 0);
+      setLowStockCount(data.data?.summary?.lowStock || 0);
+      setHealthyStockCount(data.data?.summary?.healthy || 0);
+      setOverstockCount(data.data?.summary?.overstock || 0);
     } catch (error) {
       console.error('Error fetching stock report:', error);
       toast.error('Failed to load stock report');
@@ -200,11 +200,11 @@ export default function InventoryReportsPage() {
       if (!response.ok) throw new Error('Failed to fetch cost analysis report');
       const data = await response.json();
 
-      setCostData(data.items || []);
-      setCostTotalStock(data.summary?.totalStock || 0);
-      setCostTotalCost(data.summary?.totalCost || 0);
-      setCostTotalRevenue(data.summary?.totalRevenue || 0);
-      setCostTotalProfit(data.summary?.totalProfit || 0);
+      setCostData(data.data?.items || []);
+      setCostTotalStock(data.data?.summary?.totalStock || 0);
+      setCostTotalCost(data.data?.summary?.totalCost || 0);
+      setCostTotalRevenue(data.data?.summary?.totalRevenue || 0);
+      setCostTotalProfit(data.data?.summary?.totalProfit || 0);
     } catch (error) {
       console.error('Error fetching cost analysis report:', error);
       toast.error('Failed to load cost analysis report');
