@@ -35,14 +35,21 @@ export default function InventoryReportsDebug() {
 
     // Test 1: Check authentication status
     try {
-      const authRes = await fetch('/api/admin/auth/me', {
+      const authRes = await fetch('/api/auth/session', {
         credentials: 'include',
       });
       const authData = await authRes.json();
+
+      // Check if user is authenticated and has admin role
+      const isAdmin = authData.success && authData.data?.user?.role === 'admin';
+
       results.tests.push({
         name: 'Admin Authentication',
-        status: authRes.ok ? 'PASS' : 'FAIL',
+        status: authRes.ok && isAdmin ? 'PASS' : 'FAIL',
+        httpStatus: authRes.status,
         data: authData,
+        isAuthenticated: authData.success && authData.data?.user !== null,
+        isAdmin: isAdmin,
       });
     } catch (error: any) {
       results.tests.push({
@@ -204,6 +211,16 @@ export default function InventoryReportsDebug() {
                   {test.httpStatus && (
                     <div>
                       <strong>HTTP Status:</strong> {test.httpStatus}
+                    </div>
+                  )}
+                  {(test.isAuthenticated !== undefined) && (
+                    <div>
+                      <strong>Authenticated:</strong> {test.isAuthenticated ? '✅ Yes' : '❌ No'}
+                    </div>
+                  )}
+                  {(test.isAdmin !== undefined) && (
+                    <div>
+                      <strong>Admin Role:</strong> {test.isAdmin ? '✅ Yes' : '❌ No'}
                     </div>
                   )}
                   {test.error && (
