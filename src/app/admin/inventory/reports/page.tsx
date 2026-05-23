@@ -420,7 +420,7 @@ export default function InventoryReportsPage() {
                           <td className="p-4 text-right">{formatCurrency(item.value)}</td>
                           <td className="p-4 text-right">
                             <Badge variant={item.marginPercent >= 20 ? 'default' : 'secondary'}>
-                              {item.marginPercent.toFixed(1)}%
+                              {item.marginPercent != null ? item.marginPercent.toFixed(1) : '0.0'}%
                             </Badge>
                           </td>
                         </tr>
@@ -700,7 +700,7 @@ export default function InventoryReportsPage() {
                           </td>
                           <td className="p-4 text-right">
                             <Badge variant={item.margin >= 20 ? 'default' : 'secondary'}>
-                              {item.margin.toFixed(1)}%
+                              {item.margin != null ? item.margin.toFixed(1) : '0.0'}%
                             </Badge>
                           </td>
                         </tr>

@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic'
+
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { ChevronLeft, ChevronRight, X, Heart, MessageCircle, Share2, ShoppingCart, Star, Play, Search, User, Menu, Phone, Mail, Instagram, Facebook, Twitter, Youtube, Linkedin, ShoppingBag, Home as HomeIcon, Loader2, LogOut, ChevronDown } from 'lucide-react'
 import { useScrollDirection } from '@/hooks/use-scroll-direction'
