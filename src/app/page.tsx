@@ -1267,7 +1267,7 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
         </div>
 
         {/* Modern Infinite Carousel */}
-        <div className="relative overflow-visible" ref={containerRef} style={{ minHeight: '480px' }}>
+        <div className="relative overflow-hidden" ref={containerRef} style={{ minHeight: '360px' }}>
           {/* Navigation Buttons */}
           <button
             onClick={handlePrev}
@@ -1286,7 +1286,7 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
 
           {/* Carousel Container */}
           <div
-            className="relative w-full flex items-center justify-center overflow-visible"
+            className="relative w-full flex items-center justify-center overflow-hidden"
             onTouchStart={handleDragStart}
             onTouchMove={handleDragMove}
             onTouchEnd={handleDragEnd}
@@ -1298,7 +1298,7 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
             }}
             style={{
               cursor: isDragging ? 'grabbing' : 'grab',
-              minHeight: '480px'
+              minHeight: '360px'
             }}
           >
             <div

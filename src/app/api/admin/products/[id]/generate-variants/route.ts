@@ -7,14 +7,18 @@ import { z } from 'zod'
 
 /**
  * Schema for variant generation
+ * Allows either sizes only, colors only, or both
  */
 const generateVariantsSchema = z.object({
-  sizes: z.array(z.string().min(1)).min(1, 'At least one size is required'),
-  colors: z.array(z.string().min(1)).min(1, 'At least one color is required'),
+  sizes: z.array(z.string().min(1)).optional().default([]),
+  colors: z.array(z.string().min(1)).optional().default([]),
   basePrice: z.number().min(0, 'Price must be positive'),
   baseStock: z.number().int().min(0, 'Stock must be a non-negative integer').default(0),
   material: z.string().optional()
-})
+}).refine(
+  (data) => (data.sizes && data.sizes.length > 0) || (data.colors && data.colors.length > 0),
+  { message: 'At least one size or color is required' }
+)
 
 /**
  * POST /api/admin/products/[id]/generate-variants
@@ -50,7 +54,9 @@ export async function POST(
     const validatedData = generateVariantsSchema.parse(body)
 
     // Check if too many variants would be generated
-    const totalVariants = validatedData.sizes.length * validatedData.colors.length
+    const sizes = validatedData.sizes || []
+    const colors = validatedData.colors || []
+    const totalVariants = Math.max(sizes.length, 1) * Math.max(colors.length, 1)
     if (totalVariants > 100) {
       return NextResponse.json(
         {
@@ -62,8 +68,8 @@ export async function POST(
     }
 
     console.log('[Generate Variants API] Generating variants for product:', id, {
-      sizes: validatedData.sizes,
-      colors: validatedData.colors,
+      sizes: sizes,
+      colors: colors,
       basePrice: validatedData.basePrice,
       baseStock: validatedData.baseStock,
       totalVariants
@@ -72,8 +78,8 @@ export async function POST(
     // Generate variant combinations
     const result = await ProductRepository.generateVariantCombinations(env, {
       productId: id,
-      sizes: validatedData.sizes,
-      colors: validatedData.colors,
+      sizes: sizes,
+      colors: colors,
       basePrice: validatedData.basePrice,
       baseStock: validatedData.baseStock,
       material: validatedData.material
@@ -87,7 +93,7 @@ export async function POST(
       'CREATE',
       'ProductVariant',
       id,
-      `Generated ${result.generated} variant combinations for product "${product.name}" (${validatedData.sizes.length} sizes × ${validatedData.colors.length} colors)`
+      `Generated ${result.generated} variant combinations for product "${product.name}" (${sizes.length} sizes × ${colors.length} colors)`
     )
 
     return NextResponse.json({

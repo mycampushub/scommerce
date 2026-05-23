@@ -87,6 +87,7 @@ interface Product {
   id: string
   name: string
   slug: string
+  sku?: string | null
   price: number
   images: string | null
   stock: number
@@ -996,7 +997,13 @@ export default function InventoryPage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <span className="text-sm text-gray-400">-</span>
+                          {!hasVariants ? (
+                            <Badge variant="outline" className="text-xs font-mono">
+                              {product.sku || product.slug || '-'}
+                            </Badge>
+                          ) : (
+                            <span className="text-sm text-gray-400">-</span>
+                          )}
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline" className="bg-gray-100 whitespace-nowrap">

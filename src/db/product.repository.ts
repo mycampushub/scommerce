@@ -968,6 +968,10 @@ export class ProductRepository {
 
   /**
    * Generate variant combinations from size × color matrix
+   * Supports three modes:
+   * 1. Both sizes and colors: creates size × color combinations
+   * 2. Only sizes: creates one variant per size
+   * 3. Only colors: creates one variant per color
    */
   static async generateVariantCombinations(env: Env | null, data: {
     productId: string;
@@ -990,24 +994,84 @@ export class ProductRepository {
       material
     });
 
-    for (const color of colors) {
+    // Determine mode: both, sizes-only, or colors-only
+    const hasSizes = sizes && sizes.length > 0;
+    const hasColors = colors && colors.length > 0;
+    const mode = hasSizes && hasColors ? 'both' : (hasSizes ? 'sizes' : (hasColors ? 'colors' : 'none'));
+
+    if (mode === 'none') {
+      console.log('[ProductRepository.generateVariantCombinations] No sizes or colors provided, skipping');
+      return { generated: 0, variants: [] };
+    }
+
+    if (mode === 'both') {
+      // Original behavior: create size × color combinations
+      for (const color of colors) {
+        for (const size of sizes) {
+          counter++;
+
+          // Generate variant name
+          const variantName = `${size} / ${color}${material ? ` / ${material}` : ''}`;
+
+          // Generate SKU (will be checked for conflicts later)
+          const sku = `${productId.substring(0, 8).toUpperCase()}-${color.substring(0, 3).toUpperCase()}-${size.toUpperCase()}`;
+
+          // Check if variant already exists
+          const existing = await queryFirst<any>(
+            env,
+            'SELECT * FROM product_variants WHERE productId = ? AND size = ? AND color = ? LIMIT 1',
+            productId,
+            size,
+            color
+          );
+
+          if (!existing) {
+            const variant = await this.createVariant(env, {
+              productId,
+              sku,
+              name: variantName,
+              price: basePrice,
+              stock: baseStock,
+              size,
+              color,
+              material,
+              isDefault: counter === 1,
+              isActive: true
+            });
+            variants.push(variant);
+          } else {
+            console.log('[ProductRepository.generateVariantCombinations] Variant already exists:', {
+              size,
+              color,
+              sku: existing.sku
+            });
+            variants.push({
+              ...existing,
+              images: parseJSON<string[]>(existing.images) || [],
+              isActive: typeof existing.isActive === 'boolean' ? existing.isActive : Boolean(existing.isActive),
+              isDefault: typeof existing.isDefault === 'boolean' ? existing.isDefault : Boolean(existing.isDefault)
+            });
+          }
+        }
+      }
+    } else if (mode === 'sizes') {
+      // Create one variant per size
       for (const size of sizes) {
         counter++;
 
         // Generate variant name
-        const variantName = `${size} / ${color}${material ? ` / ${material}` : ''}`;
+        const variantName = `${size}${material ? ` / ${material}` : ''}`;
 
-        // Generate SKU (will be checked for conflicts later)
-        // For now, use a simple pattern
-        const sku = `${productId.substring(0, 8).toUpperCase()}-${color.substring(0, 3).toUpperCase()}-${size.toUpperCase()}`;
+        // Generate SKU
+        const sku = `${productId.substring(0, 8).toUpperCase()}-${size.toUpperCase()}`;
 
         // Check if variant already exists
         const existing = await queryFirst<any>(
           env,
-          'SELECT * FROM product_variants WHERE productId = ? AND size = ? AND color = ? LIMIT 1',
+          'SELECT * FROM product_variants WHERE productId = ? AND size = ? AND (color IS NULL OR color = ?) LIMIT 1',
           productId,
           size,
-          color
+          ''
         );
 
         if (!existing) {
@@ -1018,7 +1082,7 @@ export class ProductRepository {
             price: basePrice,
             stock: baseStock,
             size,
-            color,
+            color: undefined,
             material,
             isDefault: counter === 1,
             isActive: true
@@ -1027,6 +1091,52 @@ export class ProductRepository {
         } else {
           console.log('[ProductRepository.generateVariantCombinations] Variant already exists:', {
             size,
+            sku: existing.sku
+          });
+          variants.push({
+            ...existing,
+            images: parseJSON<string[]>(existing.images) || [],
+            isActive: typeof existing.isActive === 'boolean' ? existing.isActive : Boolean(existing.isActive),
+            isDefault: typeof existing.isDefault === 'boolean' ? existing.isDefault : Boolean(existing.isDefault)
+          });
+        }
+      }
+    } else if (mode === 'colors') {
+      // Create one variant per color
+      for (const color of colors) {
+        counter++;
+
+        // Generate variant name
+        const variantName = `${color}${material ? ` / ${material}` : ''}`;
+
+        // Generate SKU
+        const sku = `${productId.substring(0, 8).toUpperCase()}-${color.substring(0, 3).toUpperCase()}`;
+
+        // Check if variant already exists
+        const existing = await queryFirst<any>(
+          env,
+          'SELECT * FROM product_variants WHERE productId = ? AND color = ? AND (size IS NULL OR size = ?) LIMIT 1',
+          productId,
+          color,
+          ''
+        );
+
+        if (!existing) {
+          const variant = await this.createVariant(env, {
+            productId,
+            sku,
+            name: variantName,
+            price: basePrice,
+            stock: baseStock,
+            size: undefined,
+            color,
+            material,
+            isDefault: counter === 1,
+            isActive: true
+          });
+          variants.push(variant);
+        } else {
+          console.log('[ProductRepository.generateVariantCombinations] Variant already exists:', {
             color,
             sku: existing.sku
           });
