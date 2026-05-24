@@ -121,6 +121,7 @@ export default function CategoriesPage() {
 
   // Delete modal state
   const [deleteCategoryId, setDeleteCategoryId] = useState<string | null>(null)
+  const [deletingCategory, setDeletingCategory] = useState<string | null>(null)
 
   // Image upload state
   const [uploading, setUploading] = useState(false)
@@ -389,6 +390,7 @@ export default function CategoriesPage() {
   const handleDeleteCategory = async () => {
     if (!deleteCategoryId) return
 
+    setDeletingCategory(deleteCategoryId)
     try {
       const response = await fetch(`/api/admin/categories/${deleteCategoryId}`, {
         method: 'DELETE',
@@ -414,6 +416,8 @@ export default function CategoriesPage() {
         description: err.message || 'Failed to delete category',
         variant: 'destructive',
       })
+    } finally {
+      setDeletingCategory(null)
     }
   }
 
@@ -755,8 +759,16 @@ export default function CategoriesPage() {
                                   <AlertDialogAction
                                     onClick={handleDeleteCategory}
                                     className="bg-red-600 hover:bg-red-700"
+                                    disabled={deletingCategory !== null}
                                   >
-                                    Delete
+                                    {deletingCategory ? (
+                                      <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Deleting...
+                                      </>
+                                    ) : (
+                                      'Delete'
+                                    )}
                                   </AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>

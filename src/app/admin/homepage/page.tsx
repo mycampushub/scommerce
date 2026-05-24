@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { 
   Plus, Pencil, Trash2, GripVertical, Eye, EyeOff, 
   Save, RefreshCw, Image as ImageIcon, Video, ExternalLink,
-  ChevronUp, ChevronDown, Settings
+  ChevronUp, ChevronDown, Settings, Loader2
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -147,6 +147,10 @@ export default function HomepageManagementPage() {
   const [banners, setBanners] = useState<Banner[]>([])
   const [bannerDialogOpen, setBannerDialogOpen] = useState(false)
   const [editingBanner, setEditingBanner] = useState<Banner | null>(null)
+  const [savingBanner, setSavingBanner] = useState(false)
+  const [deletingBanner, setDeletingBanner] = useState<string | null>(null)
+  const [reorderingBanner, setReorderingBanner] = useState<string | null>(null)
+  const [togglingBannerActive, setTogglingBannerActive] = useState<string | null>(null)
   const [bannerForm, setBannerForm] = useState({
     title: '',
     description: '',
@@ -160,6 +164,10 @@ export default function HomepageManagementPage() {
   const [stories, setStories] = useState<Story[]>([])
   const [storyDialogOpen, setStoryDialogOpen] = useState(false)
   const [editingStory, setEditingStory] = useState<Story | null>(null)
+  const [savingStory, setSavingStory] = useState(false)
+  const [deletingStory, setDeletingStory] = useState<string | null>(null)
+  const [reorderingStory, setReorderingStory] = useState<string | null>(null)
+  const [togglingStoryActive, setTogglingStoryActive] = useState<string | null>(null)
   const [storyForm, setStoryForm] = useState({
     title: '',
     thumbnail: '',
@@ -170,6 +178,10 @@ export default function HomepageManagementPage() {
   const [reels, setReels] = useState<Reel[]>([])
   const [reelDialogOpen, setReelDialogOpen] = useState(false)
   const [editingReel, setEditingReel] = useState<Reel | null>(null)
+  const [savingReel, setSavingReel] = useState(false)
+  const [deletingReel, setDeletingReel] = useState<string | null>(null)
+  const [togglingReelActive, setTogglingReelActive] = useState<string | null>(null)
+  const [reorderingReel, setReorderingReel] = useState<string | null>(null)
   const [reelForm, setReelForm] = useState({
     title: '',
     thumbnail: '',
@@ -187,6 +199,10 @@ export default function HomepageManagementPage() {
   const [promotions, setPromotions] = useState<Promotion[]>([])
   const [promotionDialogOpen, setPromotionDialogOpen] = useState(false)
   const [editingPromotion, setEditingPromotion] = useState<Promotion | null>(null)
+  const [savingPromotion, setSavingPromotion] = useState(false)
+  const [deletingPromotion, setDeletingPromotion] = useState<string | null>(null)
+  const [reorderingPromotion, setReorderingPromotion] = useState<string | null>(null)
+  const [togglingPromotionActive, setTogglingPromotionActive] = useState<string | null>(null)
   const [promotionForm, setPromotionForm] = useState({
     title: '',
     description: '',
@@ -536,6 +552,7 @@ export default function HomepageManagementPage() {
 
   // Banner handlers
   const handleSaveBanner = async () => {
+    setSavingBanner(true)
     try {
       const url = editingBanner ? `/api/admin/banners/${editingBanner.id}` : '/api/admin/banners'
       const method = editingBanner ? 'PUT' : 'POST'
@@ -559,12 +576,15 @@ export default function HomepageManagementPage() {
     } catch (error) {
       console.error('Error saving banner:', error)
       toast.error('Failed to save banner')
+    } finally {
+      setSavingBanner(false)
     }
   }
 
   const handleDeleteBanner = async (id: string) => {
     if (!confirm('Are you sure you want to delete this banner?')) return
 
+    setDeletingBanner(id)
     try {
       const res = await fetch(`/api/admin/banners/${id}`, { method: 'DELETE' })
       const data = await res.json() as any
@@ -577,10 +597,13 @@ export default function HomepageManagementPage() {
     } catch (error) {
       console.error('Error deleting banner:', error)
       toast.error('Failed to delete banner')
+    } finally {
+      setDeletingBanner(null)
     }
   }
 
   const handleToggleBannerActive = async (banner: Banner) => {
+    setTogglingBannerActive(banner.id)
     try {
       const res = await fetch(`/api/admin/banners/${banner.id}`, {
         method: 'PUT',
@@ -595,11 +618,14 @@ export default function HomepageManagementPage() {
     } catch (error) {
       console.error('Error toggling banner:', error)
       toast.error('Failed to toggle banner')
+    } finally {
+      setTogglingBannerActive(null)
     }
   }
 
   // Story handlers
   const handleSaveStory = async () => {
+    setSavingStory(true)
     try {
       const url = editingStory ? `/api/admin/stories/${editingStory.id}` : '/api/admin/stories'
       const method = editingStory ? 'PUT' : 'POST'
@@ -623,12 +649,15 @@ export default function HomepageManagementPage() {
     } catch (error) {
       console.error('Error saving story:', error)
       toast.error('Failed to save story')
+    } finally {
+      setSavingStory(false)
     }
   }
 
   const handleDeleteStory = async (id: string) => {
     if (!confirm('Are you sure you want to delete this story?')) return
 
+    setDeletingStory(id)
     try {
       const res = await fetch(`/api/admin/stories/${id}`, { method: 'DELETE' })
       const data = await res.json() as any
@@ -641,10 +670,13 @@ export default function HomepageManagementPage() {
     } catch (error) {
       console.error('Error deleting story:', error)
       toast.error('Failed to delete story')
+    } finally {
+      setDeletingStory(null)
     }
   }
 
   const handleToggleStoryActive = async (story: Story) => {
+    setTogglingStoryActive(story.id)
     try {
       const res = await fetch(`/api/admin/stories/${story.id}`, {
         method: 'PUT',
@@ -659,11 +691,14 @@ export default function HomepageManagementPage() {
     } catch (error) {
       console.error('Error toggling story:', error)
       toast.error('Failed to toggle story')
+    } finally {
+      setTogglingStoryActive(null)
     }
   }
 
   // Reel handlers
   const handleSaveReel = async () => {
+    setSavingReel(true)
     try {
       const url = editingReel ? `/api/admin/reels/${editingReel.id}` : '/api/admin/reels'
       const method = editingReel ? 'PUT' : 'POST'
@@ -687,12 +722,15 @@ export default function HomepageManagementPage() {
     } catch (error) {
       console.error('Error saving reel:', error)
       toast.error('Failed to save reel')
+    } finally {
+      setSavingReel(false)
     }
   }
 
   const handleDeleteReel = async (id: string) => {
     if (!confirm('Are you sure you want to delete this reel?')) return
 
+    setDeletingReel(id)
     try {
       const res = await fetch(`/api/admin/reels/${id}`, { method: 'DELETE' })
       const data = await res.json() as any
@@ -705,10 +743,13 @@ export default function HomepageManagementPage() {
     } catch (error) {
       console.error('Error deleting reel:', error)
       toast.error('Failed to delete reel')
+    } finally {
+      setDeletingReel(null)
     }
   }
 
   const handleToggleReelActive = async (reel: Reel) => {
+    setTogglingReelActive(reel.id)
     try {
       const res = await fetch(`/api/admin/reels/${reel.id}`, {
         method: 'PUT',
@@ -723,11 +764,14 @@ export default function HomepageManagementPage() {
     } catch (error) {
       console.error('Error toggling reel:', error)
       toast.error('Failed to toggle reel')
+    } finally {
+      setTogglingReelActive(null)
     }
   }
 
   // Promotion handlers
   const handleSavePromotion = async () => {
+    setSavingPromotion(true)
     try {
       console.log('[Promotions] Form data:', promotionForm)
 
@@ -758,12 +802,15 @@ export default function HomepageManagementPage() {
     } catch (error) {
       console.error('Error saving promotion:', error)
       toast.error('Failed to save promotion')
+    } finally {
+      setSavingPromotion(false)
     }
   }
 
   const handleDeletePromotion = async (id: string) => {
     if (!confirm('Are you sure you want to delete this promotion?')) return
 
+    setDeletingPromotion(id)
     try {
       const res = await fetch(`/api/admin/promotions/${id}`, { method: 'DELETE' })
       const data = await res.json() as any
@@ -776,10 +823,13 @@ export default function HomepageManagementPage() {
     } catch (error) {
       console.error('Error deleting promotion:', error)
       toast.error('Failed to delete promotion')
+    } finally {
+      setDeletingPromotion(null)
     }
   }
 
   const handleTogglePromotionActive = async (promotion: Promotion) => {
+    setTogglingPromotionActive(promotion.id)
     try {
       const res = await fetch(`/api/admin/promotions/${promotion.id}`, {
         method: 'PUT',
@@ -794,6 +844,8 @@ export default function HomepageManagementPage() {
     } catch (error) {
       console.error('Error toggling promotion:', error)
       toast.error('Failed to toggle promotion')
+    } finally {
+      setTogglingPromotionActive(null)
     }
   }
 
@@ -824,6 +876,7 @@ export default function HomepageManagementPage() {
   const handleMoveItem = async (type: 'banner' | 'story' | 'reel' | 'promotion', id: string, direction: 'up' | 'down') => {
     const items = type === 'banner' ? banners : type === 'story' ? stories : type === 'reel' ? reels : promotions
     const setItems = type === 'banner' ? setBanners : type === 'story' ? setStories : type === 'reel' ? setReels : setPromotions
+    const setReordering = type === 'banner' ? setReorderingBanner : type === 'story' ? setReorderingStory : type === 'reel' ? setReorderingReel : setReorderingPromotion
     const apiPath = `/api/admin/${type}s/${id}/reorder`
 
     const index = items.findIndex(item => item.id === id)
@@ -831,6 +884,8 @@ export default function HomepageManagementPage() {
 
     const newIndex = direction === 'up' ? index - 1 : index + 1
     if (newIndex < 0 || newIndex >= items.length) return
+
+    setReordering(id)
 
     const newItems = [...items]
     const temp = newItems[index].order
@@ -853,6 +908,8 @@ export default function HomepageManagementPage() {
       fetchStories()
       fetchReels()
       fetchPromotions()
+    } finally {
+      setReordering(null)
     }
   }
 
@@ -1388,8 +1445,15 @@ export default function HomepageManagementPage() {
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button onClick={handleSaveBanner} disabled={!bannerForm.title || !bannerForm.image}>
-                    {editingBanner ? 'Update' : 'Create'} Banner
+                  <Button onClick={handleSaveBanner} disabled={!bannerForm.title || !bannerForm.image || savingBanner}>
+                    {savingBanner ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        {editingBanner ? 'Updating...' : 'Creating...'}
+                      </>
+                    ) : (
+                      <>{editingBanner ? 'Update' : 'Create'} Banner</>
+                    )}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -1406,17 +1470,25 @@ export default function HomepageManagementPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleMoveItem('banner', banner.id, 'up')}
-                        disabled={index === 0}
+                        disabled={index === 0 || reorderingBanner === banner.id}
                       >
-                        <ChevronUp className="w-4 h-4" />
+                        {reorderingBanner === banner.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <ChevronUp className="w-4 h-4" />
+                        )}
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => handleMoveItem('banner', banner.id, 'down')}
-                        disabled={index === banners.length - 1}
+                        disabled={index === banners.length - 1 || reorderingBanner === banner.id}
                       >
-                        <ChevronDown className="w-4 h-4" />
+                        {reorderingBanner === banner.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4" />
+                        )}
                       </Button>
                     </div>
                     <div className="w-24 h-16 rounded bg-gray-200 overflow-hidden flex-shrink-0">
@@ -1437,6 +1509,7 @@ export default function HomepageManagementPage() {
                       <Switch
                         checked={banner.isActive}
                         onCheckedChange={() => handleToggleBannerActive(banner)}
+                        disabled={togglingBannerActive === banner.id}
                       />
                       <Button
                         variant="ghost"
@@ -1460,8 +1533,13 @@ export default function HomepageManagementPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleDeleteBanner(banner.id)}
+                        disabled={deletingBanner === banner.id}
                       >
-                        <Trash2 className="w-4 h-4 text-red-500" />
+                        {deletingBanner === banner.id ? (
+                          <Loader2 className="w-4 h-4 text-red-500 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4 text-red-500" />
+                        )}
                       </Button>
                     </div>
                   </div>
@@ -1542,8 +1620,15 @@ export default function HomepageManagementPage() {
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button onClick={handleSaveStory} disabled={!storyForm.title || !storyForm.thumbnail || storyForm.images.length === 0}>
-                    {editingStory ? 'Update' : 'Create'} Story
+                  <Button onClick={handleSaveStory} disabled={!storyForm.title || !storyForm.thumbnail || storyForm.images.length === 0 || savingStory}>
+                    {savingStory ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        {editingStory ? 'Updating...' : 'Creating...'}
+                      </>
+                    ) : (
+                      <>{editingStory ? 'Update' : 'Create'} Story</>
+                    )}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -1560,17 +1645,25 @@ export default function HomepageManagementPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleMoveItem('story', story.id, 'up')}
-                        disabled={index === 0}
+                        disabled={index === 0 || reorderingStory === story.id}
                       >
-                        <ChevronUp className="w-4 h-4" />
+                        {reorderingStory === story.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <ChevronUp className="w-4 h-4" />
+                        )}
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => handleMoveItem('story', story.id, 'down')}
-                        disabled={index === stories.length - 1}
+                        disabled={index === stories.length - 1 || reorderingStory === story.id}
                       >
-                        <ChevronDown className="w-4 h-4" />
+                        {reorderingStory === story.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4" />
+                        )}
                       </Button>
                     </div>
                     <div className="aspect-square rounded-full overflow-hidden bg-gray-200 border-2 border-pink-500">
@@ -1583,6 +1676,7 @@ export default function HomepageManagementPage() {
                       <Switch
                         checked={story.isActive}
                         onCheckedChange={() => handleToggleStoryActive(story)}
+                        disabled={togglingStoryActive === story.id}
                       />
                       <Button
                         variant="ghost"
@@ -1603,8 +1697,13 @@ export default function HomepageManagementPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleDeleteStory(story.id)}
+                        disabled={deletingStory === story.id}
                       >
-                        <Trash2 className="w-4 h-4 text-red-500" />
+                        {deletingStory === story.id ? (
+                          <Loader2 className="w-4 h-4 text-red-500 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4 text-red-500" />
+                        )}
                       </Button>
                     </div>
                   </div>
@@ -1650,19 +1749,25 @@ export default function HomepageManagementPage() {
                     />
                   </div>
                   <div>
-                    <Label>Thumbnail</Label>
+                    <Label>Thumbnail (Optional)</Label>
                     <ImageUpload
                       images={reelForm.thumbnail ? [reelForm.thumbnail] : []}
                       onImagesChange={(urls) => setReelForm({ ...reelForm, thumbnail: urls[0] || '' })}
                     />
+                    <p className="text-sm text-gray-500 mt-1">
+                      If not provided, we'll automatically use the YouTube video thumbnail.
+                    </p>
                   </div>
                   <div>
-                    <Label>Video URL (YouTube or Vimeo)</Label>
+                    <Label>Video URL</Label>
                     <Input
                       value={reelForm.videoUrl}
                       onChange={(e) => setReelForm({ ...reelForm, videoUrl: e.target.value })}
-                      placeholder="https://www.youtube.com/embed/VIDEO_ID"
+                      placeholder="https://www.youtube.com/watch?v=VIDEO_ID or https://www.youtube.com/shorts/VIDEO_ID"
                     />
+                    <p className="text-sm text-gray-500 mt-1">
+                      Paste any YouTube URL (watch, shorts, or embed). We'll automatically convert it to the correct format.
+                    </p>
                   </div>
                   <div>
                     <Label>Associated Products</Label>
@@ -1686,8 +1791,15 @@ export default function HomepageManagementPage() {
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button onClick={handleSaveReel} disabled={!reelForm.title || !reelForm.thumbnail || !reelForm.videoUrl}>
-                    {editingReel ? 'Update' : 'Create'} Reel
+                  <Button onClick={handleSaveReel} disabled={!reelForm.title || !reelForm.videoUrl || savingReel}>
+                    {savingReel ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        {editingReel ? 'Updating...' : 'Creating...'}
+                      </>
+                    ) : (
+                      <>{editingReel ? 'Update' : 'Create'} Reel</>
+                    )}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -1762,17 +1874,25 @@ export default function HomepageManagementPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleMoveItem('reel', reel.id, 'up')}
-                        disabled={index === 0}
+                        disabled={index === 0 || reorderingReel === reel.id}
                       >
-                        <ChevronUp className="w-4 h-4" />
+                        {reorderingReel === reel.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <ChevronUp className="w-4 h-4" />
+                        )}
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => handleMoveItem('reel', reel.id, 'down')}
-                        disabled={index === reels.length - 1}
+                        disabled={index === reels.length - 1 || reorderingReel === reel.id}
                       >
-                        <ChevronDown className="w-4 h-4" />
+                        {reorderingReel === reel.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4" />
+                        )}
                       </Button>
                     </div>
                     <div className="aspect-[9/16] rounded-lg overflow-hidden bg-gray-200 relative">
@@ -1790,6 +1910,7 @@ export default function HomepageManagementPage() {
                       <Switch
                         checked={reel.isActive}
                         onCheckedChange={() => handleToggleReelActive(reel)}
+                        disabled={togglingReelActive === reel.id}
                       />
                       <Button
                         variant="ghost"
@@ -1811,8 +1932,13 @@ export default function HomepageManagementPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleDeleteReel(reel.id)}
+                        disabled={deletingReel === reel.id}
                       >
-                        <Trash2 className="w-4 h-4 text-red-500" />
+                        {deletingReel === reel.id ? (
+                          <Loader2 className="w-4 h-4 text-red-500 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4 text-red-500" />
+                        )}
                       </Button>
                     </div>
                   </div>
@@ -1893,8 +2019,15 @@ export default function HomepageManagementPage() {
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button onClick={handleSavePromotion} disabled={!promotionForm.title || !promotionForm.image}>
-                    {editingPromotion ? 'Update' : 'Create'} Promotion
+                  <Button onClick={handleSavePromotion} disabled={!promotionForm.title || !promotionForm.image || savingPromotion}>
+                    {savingPromotion ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        {editingPromotion ? 'Updating...' : 'Creating...'}
+                      </>
+                    ) : (
+                      <>{editingPromotion ? 'Update' : 'Create'} Promotion</>
+                    )}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -1912,22 +2045,31 @@ export default function HomepageManagementPage() {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleMoveItem('promotion', promotion.id, 'up')}
-                          disabled={index === 0}
+                          disabled={index === 0 || reorderingPromotion === promotion.id}
                         >
-                          <ChevronUp className="w-4 h-4" />
+                          {reorderingPromotion === promotion.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <ChevronUp className="w-4 h-4" />
+                          )}
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleMoveItem('promotion', promotion.id, 'down')}
-                          disabled={index === promotions.length - 1}
+                          disabled={index === promotions.length - 1 || reorderingPromotion === promotion.id}
                         >
-                          <ChevronDown className="w-4 h-4" />
+                          {reorderingPromotion === promotion.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4" />
+                          )}
                         </Button>
                       </div>
                       <Switch
                         checked={promotion.isActive}
                         onCheckedChange={() => handleTogglePromotionActive(promotion)}
+                        disabled={togglingPromotionActive === promotion.id}
                       />
                     </div>
                     <div className="aspect-video rounded-lg overflow-hidden bg-gray-200">
@@ -1966,8 +2108,13 @@ export default function HomepageManagementPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleDeletePromotion(promotion.id)}
+                        disabled={deletingPromotion === promotion.id}
                       >
-                        <Trash2 className="w-4 h-4 text-red-500" />
+                        {deletingPromotion === promotion.id ? (
+                          <Loader2 className="w-4 h-4 text-red-500 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4 text-red-500" />
+                        )}
                       </Button>
                     </div>
                   </div>

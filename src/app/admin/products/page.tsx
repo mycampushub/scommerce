@@ -106,6 +106,7 @@ export default function ProductsPage() {
   // Delete modal state
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null)
   const [productToDelete, setProductToDelete] = useState<Product | null>(null)
+  const [deletingProduct, setDeletingProduct] = useState<string | null>(null)
 
   const fetchProducts = async () => {
     try {
@@ -183,6 +184,7 @@ export default function ProductsPage() {
   const handleDeleteProduct = async () => {
     if (!deleteProductId) return
 
+    setDeletingProduct(deleteProductId)
     try {
       const response = await fetch(`/api/admin/products/${deleteProductId}`, {
         method: 'DELETE',
@@ -209,6 +211,8 @@ export default function ProductsPage() {
         description: err.message || 'Failed to delete product',
         variant: 'destructive',
       })
+    } finally {
+      setDeletingProduct(null)
     }
   }
 
@@ -494,8 +498,16 @@ export default function ProductsPage() {
                                   <AlertDialogAction
                                     onClick={handleDeleteProduct}
                                     className="bg-red-600 hover:bg-red-700"
+                                    disabled={deletingProduct !== null}
                                   >
-                                    Delete
+                                    {deletingProduct ? (
+                                      <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Deleting...
+                                      </>
+                                    ) : (
+                                      'Delete'
+                                    )}
                                   </AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>

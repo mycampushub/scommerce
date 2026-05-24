@@ -56,6 +56,8 @@ export default function CouponsPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
+  const [deletingPromotion, setDeletingPromotion] = useState<string | null>(null)
+  const [togglingActive, setTogglingActive] = useState<string | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingPromotion, setEditingPromotion] = useState<Promotion | null>(null)
   const { toast } = useToast()
@@ -217,6 +219,7 @@ export default function CouponsPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this promotion?')) return
 
+    setDeletingPromotion(id)
     try {
       const response = await fetch(`/api/admin/promotions/${id}`, {
         method: 'DELETE',
@@ -242,6 +245,8 @@ export default function CouponsPage() {
         title: 'Error',
         description: 'Failed to delete promotion',
       })
+    } finally {
+      setDeletingPromotion(null)
     }
   }
 
@@ -322,6 +327,7 @@ export default function CouponsPage() {
   }
 
   const toggleActive = async (id: string, currentStatus: boolean) => {
+    setTogglingActive(id)
     try {
       const response = await fetch(`/api/admin/promotions/${id}`, {
         method: 'PUT',
@@ -346,6 +352,8 @@ export default function CouponsPage() {
         title: 'Error',
         description: 'Failed to update promotion status',
       })
+    } finally {
+      setTogglingActive(null)
     }
   }
 
@@ -855,6 +863,7 @@ export default function CouponsPage() {
                               checked={promotion.isActive}
                               onCheckedChange={() => toggleActive(promotion.id, promotion.isActive)}
                               className="h-4 w-8"
+                              disabled={togglingActive === promotion.id}
                             />
                             <span className="text-xs text-gray-500">
                               {promotion.isActive ? 'Active' : 'Inactive'}
@@ -874,8 +883,13 @@ export default function CouponsPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => handleDelete(promotion.id)}
+                              disabled={deletingPromotion === promotion.id}
                             >
-                              <Trash2 className="h-4 w-4" />
+                              {deletingPromotion === promotion.id ? (
+                                <Loader2 className="h-4 w-4 text-red-500 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
                             </Button>
                           </div>
                         </TableCell>

@@ -13,6 +13,71 @@ import { Header } from '@/components/header'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { PriceDisplay } from '@/components/price-display'
+import { shareContent } from '@/lib/share'
+
+// Utility function to convert YouTube URL to embed format
+const getYouTubeEmbedUrl = (url: string): string => {
+  if (!url) return ''
+
+  // Handle YouTube Shorts URLs
+  // https://www.youtube.com/shorts/VIDEO_ID
+  const shortsMatch = url.match(/(?:https?:\/\/)?(?:www\.)?youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/)
+  if (shortsMatch && shortsMatch[1]) {
+    return `https://www.youtube-nocookie.com/embed/${shortsMatch[1]}`
+  }
+
+  // Handle regular YouTube watch URLs
+  // https://www.youtube.com/watch?v=VIDEO_ID
+  const watchMatch = url.match(/(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/)
+  if (watchMatch && watchMatch[1]) {
+    return `https://www.youtube-nocookie.com/embed/${watchMatch[1]}`
+  }
+
+  // Handle YouTube embed URLs
+  // https://www.youtube.com/embed/VIDEO_ID or https://www.youtube-nocookie.com/embed/VIDEO_ID
+  const embedMatch = url.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube-nocookie\.com|youtube\.com)\/embed\/([a-zA-Z0-9_-]+)/)
+  if (embedMatch && embedMatch[1]) {
+    return `https://www.youtube-nocookie.com/embed/${embedMatch[1]}`
+  }
+
+  // Handle shortened YouTube URLs
+  // https://youtu.be/VIDEO_ID
+  const shortMatch = url.match(/(?:https?:\/\/)?youtu\.be\/([a-zA-Z0-9_-]+)/)
+  if (shortMatch && shortMatch[1]) {
+    return `https://www.youtube-nocookie.com/embed/${shortMatch[1]}`
+  }
+
+  // If it's already in the correct format, return as is
+  if (url.includes('youtube-nocookie.com/embed/') || url.includes('youtube.com/embed/')) {
+    return url
+  }
+
+  // Return original URL if we can't parse it
+  return url
+}
+
+// Utility function to extract YouTube video ID and generate thumbnail URL
+const getYouTubeThumbnailUrl = (videoUrl: string): string => {
+  if (!videoUrl) return ''
+
+  // Try to extract video ID from various YouTube URL formats
+  const patterns = [
+    /(?:https?:\/\/)?(?:www\.)?youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/,
+    /(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/,
+    /(?:https?:\/\/)?(?:www\.)?(?:youtube-nocookie\.com|youtube\.com)\/embed\/([a-zA-Z0-9_-]+)/,
+    /(?:https?:\/\/)?youtu\.be\/([a-zA-Z0-9_-]+)/,
+  ]
+
+  for (const pattern of patterns) {
+    const match = videoUrl.match(pattern)
+    if (match && match[1]) {
+      // Use high quality (hqdefault) thumbnail
+      return `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg`
+    }
+  }
+
+  return ''
+}
 
 
 
@@ -1061,6 +1126,23 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
     }
   }
 
+  const handleShareReel = async (reel: VideoReel) => {
+    try {
+      const result = await shareContent({
+        title: reel.title,
+        text: `Check out ${reel.product.name} - $${reel.product.price.toFixed(2)}`,
+        url: reel.product.slug ? `${typeof window !== 'undefined' ? window.location.origin : ''}/product/${reel.product.slug}` : undefined
+      })
+
+      if (result === 'clipboard') {
+        toast.success('Product link copied to clipboard!')
+      }
+    } catch (error) {
+      console.error('Error sharing reel:', error)
+      toast.error('Failed to share')
+    }
+  }
+
   const handlePrev = useCallback(() => {
     if (isTransitioning || !reels || reels.length === 0) return
     setIsTransitioning(true)
@@ -1099,7 +1181,7 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
 
   // Calculate visible cards and positions
   const getVisibleCards = () => {
-    const visibleCount = isMobile ? 3 : 10
+    const visibleCount = isMobile ? 3 : 8
     const result: Array<{ reel: VideoReel; actualIndex: number; visibleIndex: number }> = []
 
     // Show cards around the current index with wrap-around
@@ -1122,33 +1204,25 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
     const distanceFromCenter = Math.abs(visibleIndex - centerIndex)
     const maxDistance = Math.floor(visibleCardsList.length / 2)
 
-    // Calculate scale - center is 1.0, sides gradually smaller
-    let scale: number
-    if (distanceFromCenter === 0) {
-      scale = 1.0
-    } else if (distanceFromCenter === 1) {
-      scale = isMobile ? 0.85 : 0.90
-    } else if (distanceFromCenter === 2) {
-      scale = isMobile ? 0.75 : 0.80
-    } else {
-      scale = isMobile ? 0.65 : 0.70
-    }
+    // Calculate scale - smooth gradual decrease for ALL cards
+    // Center: 1.0, then gradually smaller based on distance
+    const scale = 1 - (distanceFromCenter / maxDistance) * 0.35
 
-    // Calculate opacity
-    const opacity = 1 - (distanceFromCenter / maxDistance) * 0.5
+    // Calculate opacity - also gradual for ALL cards
+    const opacity = 1 - (distanceFromCenter / maxDistance) * 0.4
 
-    // Calculate translate X
-    const spacing = isMobile ? 85 : 130
+    // Calculate translate X - adjusted spacing to prevent overlap
+    const spacing = isMobile ? 90 : 140
     const translateX = (visibleIndex - centerIndex) * spacing
 
-    // Calculate card size - BIGGER for desktop
-    const baseWidth = isMobile ? 160 : 280
-    const baseHeight = isMobile ? 240 : 420
+    // Calculate card size - increased height
+    const baseWidth = isMobile ? 170 : 280
+    const baseHeight = isMobile ? 255 : 480
     const width = baseWidth * scale
     const height = baseHeight * scale
 
-    // Z-index for proper layering
-    const zIndex = 20 - distanceFromCenter
+    // Z-index for proper layering - higher for center
+    const zIndex = 30 - distanceFromCenter * 2
 
     return {
       transform: `translateX(${translateX}px) scale(${scale})`,
@@ -1184,29 +1258,33 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
 
           {/* 3D Carousel Container */}
           <div
-            className="relative w-full h-[400px] md:h-[550px] flex items-center justify-center"
+            className="relative w-full h-[450px] md:h-[600px] flex items-center justify-center"
             onMouseEnter={() => setIsPaused(true)}
             onMouseLeave={() => setIsPaused(false)}
           >
-            {/* Left Navigation Button */}
-            <button
-              onClick={handlePrev}
-              disabled={isTransitioning}
-              className="absolute left-2 md:left-6 z-30 w-10 h-10 md:w-12 md:h-12 bg-white/95 hover:bg-white shadow-xl rounded-full flex items-center justify-center transition-all border border-gray-200 hover:border-pink-300 disabled:opacity-30 disabled:cursor-not-allowed group"
-              aria-label="Previous video"
-            >
-              <ChevronLeft className="w-5 h-5 md:w-6 md:h-6 text-[#5F6368] group-hover:text-pink-600 transition-colors" strokeWidth={2.5} />
-            </button>
+            {/* Left Navigation Button - Hidden on mobile */}
+            {!isMobile && (
+              <button
+                onClick={handlePrev}
+                disabled={isTransitioning}
+                className="absolute left-2 md:left-6 z-30 w-10 h-10 md:w-12 md:h-12 bg-white/95 hover:bg-white shadow-xl rounded-full flex items-center justify-center transition-all border border-gray-200 hover:border-pink-300 disabled:opacity-30 disabled:cursor-not-allowed group"
+                aria-label="Previous video"
+              >
+                <ChevronLeft className="w-5 h-5 md:w-6 md:h-6 text-[#5F6368] group-hover:text-pink-600 transition-colors" strokeWidth={2.5} />
+              </button>
+            )}
 
-            {/* Right Navigation Button */}
-            <button
-              onClick={handleNext}
-              disabled={isTransitioning}
-              className="absolute right-2 md:right-6 z-30 w-10 h-10 md:w-12 md:h-12 bg-white/95 hover:bg-white shadow-xl rounded-full flex items-center justify-center transition-all border border-gray-200 hover:border-pink-300 disabled:opacity-30 disabled:cursor-not-allowed group"
-              aria-label="Next video"
-            >
-              <ChevronRight className="w-5 h-5 md:w-6 md:h-6 text-[#5F6368] group-hover:text-pink-600 transition-colors" strokeWidth={2.5} />
-            </button>
+            {/* Right Navigation Button - Hidden on mobile */}
+            {!isMobile && (
+              <button
+                onClick={handleNext}
+                disabled={isTransitioning}
+                className="absolute right-2 md:right-6 z-30 w-10 h-10 md:w-12 md:h-12 bg-white/95 hover:bg-white shadow-xl rounded-full flex items-center justify-center transition-all border border-gray-200 hover:border-pink-300 disabled:opacity-30 disabled:cursor-not-allowed group"
+                aria-label="Next video"
+              >
+                <ChevronRight className="w-5 h-5 md:w-6 md:h-6 text-[#5F6368] group-hover:text-pink-600 transition-colors" strokeWidth={2.5} />
+              </button>
+            )}
 
             {/* Cards Container */}
             <div
@@ -1226,17 +1304,17 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
                     className="absolute bg-white rounded-2xl shadow-xl overflow-hidden cursor-pointer transition-all duration-400 ease-out hover:shadow-2xl"
                     style={style}
                   >
-                    {/* Image/Video Area */}
+                    {/* Image/Video Area - Full height, no footer */}
                     <div
                       className="relative overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200"
                       style={{
                         width: '100%',
-                        height: '85%',
+                        height: '100%',
                       }}
                     >
-                      {/* Thumbnail */}
+                      {/* Thumbnail - Use automatic YouTube thumbnail if not provided */}
                       <img
-                        src={reel.thumbnail}
+                        src={reel.thumbnail || getYouTubeThumbnailUrl(reel.videoUrl)}
                         alt={reel.title}
                         className="w-full h-full object-cover"
                         loading="lazy"
@@ -1295,15 +1373,6 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
                         </div>
                       )}
                     </div>
-
-                    {/* Footer - Only for center card */}
-                    {isCenter && (
-                      <div className="h-[15%] flex items-center justify-center bg-white border-t border-gray-100">
-                        <span className="text-[#5F6368] text-[10px] md:text-xs font-medium">
-                          Click to play
-                        </span>
-                      </div>
-                    )}
                   </div>
                 )
               })}
@@ -1343,127 +1412,140 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
 
       {/* Fullscreen Video Modal */}
       {selectedReel && (
-        <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center backdrop-blur-sm p-2 sm:p-4 md:p-6">
           <button
             onClick={() => setSelectedReel(null)}
-            className="absolute top-4 right-4 z-20 text-white hover:bg-white/20 rounded-full p-3 transition-all hover:scale-110"
+            className="absolute top-2 right-2 sm:top-4 sm:right-4 z-20 text-white hover:bg-white/20 rounded-full p-2 sm:p-3 transition-all hover:scale-110"
             aria-label="Close video"
           >
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
 
-          <div className="relative w-full max-w-5xl h-full md:h-[90vh] flex flex-col md:flex-row items-center justify-center p-4">
+          <div className="relative w-full max-w-7xl h-full max-h-[95vh] md:max-h-[90vh] flex flex-col md:flex-row items-center justify-center gap-4 md:gap-6">
             {/* Video Player Area */}
-            <div className="w-full md:w-2/3 h-full md:h-full flex items-center justify-center">
-              <div className="relative w-full max-w-md aspect-[9/16] bg-black rounded-2xl overflow-hidden shadow-2xl">
+            <div className="w-full md:w-2/3 h-[60vh] md:h-full flex items-center justify-center">
+              <div className="relative w-full h-full max-w-md md:max-w-none aspect-[9/16] md:aspect-auto bg-black rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl">
                 {selectedReel.videoUrl ? (
                   <iframe
-                    src={`${selectedReel.videoUrl}?autoplay=1&mute=0&rel=0&modestbranding=1&playsinline=1`}
+                    src={`${getYouTubeEmbedUrl(selectedReel.videoUrl)}?autoplay=1&mute=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`}
                     title={selectedReel.title}
                     className="w-full h-full object-cover"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     allowFullScreen
+                    loading="lazy"
                   />
                 ) : (
                   <div className="relative w-full h-full bg-gradient-to-br from-pink-500/20 to-purple-500/20 flex items-center justify-center">
                     <img
-                      src={selectedReel.thumbnail}
-                      alt={selectedReel.title}
-                      className="absolute inset-0 w-full h-full object-cover opacity-50"
+                      src={selectedReel.product.image}
+                      alt={selectedReel.product.name}
+                      className="absolute inset-0 w-full h-full object-cover"
                     />
                     <div className="relative z-10 text-center">
-                      <Play className="w-20 h-20 text-white/90 mx-auto mb-4" fill="currentColor" />
-                      <p className="text-white text-lg font-medium">{selectedReel.title}</p>
+                      <Play className="w-16 h-16 sm:w-20 sm:h-20 text-white/90 mx-auto mb-3 sm:mb-4" fill="currentColor" />
+                      <p className="text-white text-base sm:text-lg font-medium px-2">{selectedReel.product.name}</p>
                     </div>
                   </div>
                 )}
 
-                {/* Video Overlay Info */}
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-4 md:p-6">
-                  <h3 className="text-white font-bold text-lg md:text-xl mb-2">{selectedReel.title}</h3>
-                  {selectedReel.category && (
-                    <p className="text-white/70 text-sm mb-3">{selectedReel.category}</p>
-                  )}
+                {/* Video Overlay Info - Mobile Only */}
+                <div className="md:hidden absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-3 sm:p-4">
+                  <h3 className="text-white font-bold text-base sm:text-lg mb-1">{selectedReel.title}</h3>
+                  <p className="text-white/90 text-sm font-semibold mb-2">{selectedReel.product.name}</p>
 
                   {/* Price Display */}
-                  <div className="flex items-baseline gap-2 mb-4">
-                    <PriceDisplay value={selectedReel.product.price} className="text-2xl md:text-3xl font-bold text-pink-400" />
+                  <div className="flex items-baseline gap-2 mb-3">
+                    <PriceDisplay value={selectedReel.product.price} className="text-xl font-bold text-pink-400" />
                     {selectedReel.product.originalPrice && selectedReel.product.originalPrice > selectedReel.product.price && (
                       <PriceDisplay
                         value={selectedReel.product.originalPrice}
-                        className="text-sm text-gray-400 line-through"
+                        className="text-xs text-gray-400 line-through"
                       />
                     )}
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex gap-3">
+                  <div className="flex gap-2">
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
                         handleAddToCart(selectedReel)
                       }}
-                      className="flex-1 bg-pink-600 hover:bg-pink-700 text-white px-4 py-3 rounded-full font-medium transition-all flex items-center justify-center gap-2 hover:scale-105 active:scale-95"
+                      className="flex-1 bg-pink-600 hover:bg-pink-700 text-white px-3 py-2 rounded-full font-medium text-sm transition-all flex items-center justify-center gap-1.5"
                     >
-                      <ShoppingCart className="w-5 h-5" />
-                      Add to Cart
+                      <ShoppingCart className="w-4 h-4" />
+                      <span>Add to Cart</span>
                     </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
                         handleViewDetails(selectedReel)
                       }}
-                      className="flex-1 bg-white/10 hover:bg-white/20 text-white px-4 py-3 rounded-full font-medium transition-all flex items-center justify-center gap-2 hover:scale-105 active:scale-95 backdrop-blur-sm border border-white/20"
+                      className="flex-1 bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-full font-medium text-sm transition-all flex items-center justify-center gap-1.5 backdrop-blur-sm border border-white/20"
                     >
-                      <Eye className="w-5 h-5" />
-                      View Details
+                      <Eye className="w-4 h-4" />
+                      <span>Details</span>
                     </button>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Product Info Sidebar (Desktop) */}
-            <div className="hidden md:flex w-1/3 h-full flex-col justify-center pl-8">
-              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20">
-                <div className="relative aspect-square mb-6 rounded-xl overflow-hidden shadow-lg">
+            {/* Product Info Sidebar (Desktop Only) */}
+            <div className="hidden md:flex w-1/3 h-full flex-col justify-center pl-0 md:pl-4">
+              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 sm:p-6 border border-white/20 w-full max-w-sm mx-auto overflow-hidden flex flex-col">
+                <div className="relative aspect-square mb-4 sm:mb-6 rounded-xl overflow-hidden shadow-lg flex-shrink-0">
                   <img
                     src={selectedReel.product.image}
                     alt={selectedReel.product.name}
                     className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                   />
                 </div>
-                <h4 className="text-white font-bold text-xl mb-3">{selectedReel.product.name}</h4>
-                <p className="text-white/60 text-sm mb-6 line-clamp-3">
+                <h4 className="text-white font-bold text-lg sm:text-xl mb-2 sm:mb-3 line-clamp-2">{selectedReel.product.name}</h4>
+                <p className="text-white/60 text-sm mb-4 sm:mb-6 line-clamp-3 flex-shrink-0">
                   Beautiful and elegant design perfect for any occasion. Quality craftsmanship with attention to detail.
                 </p>
 
-                <div className="space-y-3">
+                {/* Price Display */}
+                <div className="flex items-baseline gap-2 mb-4 flex-shrink-0">
+                  <PriceDisplay value={selectedReel.product.price} className="text-2xl sm:text-3xl font-bold text-pink-400" />
+                  {selectedReel.product.originalPrice && selectedReel.product.originalPrice > selectedReel.product.price && (
+                    <PriceDisplay
+                      value={selectedReel.product.originalPrice}
+                      className="text-sm text-gray-400 line-through"
+                    />
+                  )}
+                </div>
+
+                <div className="space-y-3 flex-shrink-0">
                   <button
                     onClick={() => handleAddToCart(selectedReel)}
-                    className="w-full bg-pink-600 hover:bg-pink-700 text-white px-6 py-3 rounded-full font-semibold transition-all hover:shadow-lg hover:shadow-pink-600/30 flex items-center justify-center gap-2"
+                    className="w-full bg-pink-600 hover:bg-pink-700 text-white px-4 sm:px-6 py-3 rounded-full font-semibold transition-all hover:shadow-lg hover:shadow-pink-600/30 flex items-center justify-center gap-2 text-sm sm:text-base"
                   >
-                    <ShoppingCart className="w-5 h-5" />
-                    Add to Cart
+                    <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span>Add to Cart</span>
                   </button>
                   <button
                     onClick={() => handleViewDetails(selectedReel)}
-                    className="w-full bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-full font-semibold transition-all flex items-center justify-center gap-2 border border-white/20"
+                    className="w-full bg-white/10 hover:bg-white/20 text-white px-4 sm:px-6 py-3 rounded-full font-semibold transition-all flex items-center justify-center gap-2 border border-white/20 text-sm sm:text-base"
                   >
-                    <Eye className="w-5 h-5" />
-                    View Full Details
+                    <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span>View Full Details</span>
                   </button>
                 </div>
 
-                <div className="flex justify-center gap-4 mt-6 pt-6 border-t border-white/20">
-                  <button className="w-12 h-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-all hover:scale-110">
-                    <Heart className="w-5 h-5" />
+                <div className="flex justify-center gap-3 sm:gap-4 mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-white/20 flex-shrink-0">
+                  <button className="w-10 h-10 sm:w-12 sm:h-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-all hover:scale-110">
+                    <Heart className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
-                  <button className="w-12 h-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-all hover:scale-110">
-                    <Share2 className="w-5 h-5" />
+                  <button
+                    onClick={() => handleShareReel(selectedReel)}
+                    className="w-10 h-10 sm:w-12 sm:h-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-all hover:scale-110"
+                  >
+                    <Share2 className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
-                  <button className="w-12 h-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-all hover:scale-110">
-                    <MessageCircle className="w-5 h-5" />
+                  <button className="w-10 h-10 sm:w-12 sm:h-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-all hover:scale-110">
+                    <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
                 </div>
               </div>

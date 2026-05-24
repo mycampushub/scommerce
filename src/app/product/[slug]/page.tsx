@@ -22,6 +22,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { PriceDisplay } from '@/components/price-display'
 import { parseImages } from '@/lib/images'
 import { resolveProductImages, fetchColorImages, ColorImage } from '@/lib/product-images'
+import { shareContent, getProductShareData } from '@/lib/share'
 
 // Types
 interface Product {
@@ -417,6 +418,27 @@ export default function ProductPage() {
       })
     }
     toast.success('Added to cart successfully!')
+  }
+
+  const handleShare = async () => {
+    if (!product) return
+
+    try {
+      const result = await shareContent(getProductShareData({
+        name: product.name,
+        slug: product.slug,
+        description: product.description || undefined,
+        price: product.basePrice || product.price,
+        image: product.image
+      }))
+
+      if (result === 'clipboard') {
+        toast.success('Product link copied to clipboard!')
+      }
+    } catch (error) {
+      console.error('Error sharing product:', error)
+      toast.error('Failed to share product')
+    }
   }
 
   const addRelatedProductToCart = (relatedProduct: RelatedProduct) => {
@@ -870,7 +892,10 @@ export default function ProductPage() {
 
               {/* Share */}
               <div className="flex items-center gap-4 pt-4 border-t border-gray-200">
-                <button className="min-h-[44px] px-4 py-3 rounded-lg flex items-center gap-2 text-gray-600 hover:text-pink-600 hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2">
+                <button
+                  onClick={handleShare}
+                  className="min-h-[44px] px-4 py-3 rounded-lg flex items-center gap-2 text-gray-600 hover:text-pink-600 hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2"
+                >
                   <Share2 className="w-5 h-5" />
                   <span className="hidden sm:inline">Share this product</span>
                   <span className="sm:hidden">Share</span>
