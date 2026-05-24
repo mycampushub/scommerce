@@ -300,7 +300,7 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
         selectedColors: selectedColors.map(c => c.color),
       })
 
-      const response = await apiFetch('/api/admin/products', {
+      const result = await apiFetch<{success: boolean; data?: any; products?: any; error?: string}>('/api/admin/products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -330,8 +330,6 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
           availableColors: useMultiSelectSystem ? selectedColors.map(c => c.color) : null,
         }),
       })
-
-      const result = await response.json()
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to create product')
@@ -404,7 +402,7 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
     }
 
     try {
-      const response = await apiFetch(`/api/admin/products/${product.id}`, {
+      const result = await apiFetch<{success: boolean; error?: string}>(`/api/admin/products/${product.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -436,8 +434,6 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
           availableColors: useMultiSelectSystem ? selectedColors.map(c => c.color) : null,
         }),
       })
-
-      const result = await response.json()
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to update product')
@@ -474,7 +470,7 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
 
     try {
       setIsUpdatingVariant(true)
-      const response = await apiFetch(
+      const result = await apiFetch<{success: boolean; error?: string}>(
         `/api/admin/products/${product.id}/variants/${editingVariant.id}`,
         {
           method: 'PUT',
@@ -488,8 +484,6 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
           }),
         }
       )
-
-      const result = await response.json()
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to update variant')
@@ -521,14 +515,12 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
     if (!confirm('Are you sure you want to delete this variant?')) return
 
     try {
-      const response = await apiFetch(
+      const result = await apiFetch<{success: boolean; error?: string}>(
         `/api/admin/products/${product.id}/variants/${variantId}`,
         {
           method: 'DELETE',
         }
       )
-
-      const result = await response.json()
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to delete variant')
@@ -580,13 +572,11 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
     }
 
     try {
-      const response = await apiFetch(`/api/admin/products/${product.id}/generate-variants`, {
+      const result = await apiFetch<{success: boolean; error?: string}>(`/api/admin/products/${product.id}/generate-variants`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       })
-
-      const result = await response.json()
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to generate variants')

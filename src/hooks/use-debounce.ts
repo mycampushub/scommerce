@@ -1,37 +1,20 @@
+/**
+ * Custom Hook: useDebounce
+ * Debounce a value to avoid excessive recalculations
+ */
+
 import { useState, useEffect } from 'react'
 
-/**
- * Custom hook to debounce a value.
- * Delays updating the returned value until after the specified delay has passed
- * since the last time the input value changed.
- *
- * @param value - The value to debounce
- * @param delay - The delay in milliseconds (default: 500ms)
- * @returns The debounced value
- *
- * @example
- * const [searchTerm, setSearchTerm] = useState('')
- * const debouncedSearch = useDebounce(searchTerm, 500)
- *
- * useEffect(() => {
- *   // Only triggers 500ms after searchTerm stops changing
- *   if (debouncedSearch) {
- *     fetchProducts(debouncedSearch)
- *   }
- * }, [debouncedSearch])
- */
-export function useDebounce<T>(value: T, delay: number = 500): T {
+export function useDebounce<T>(value: T, delay: number = 300): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value)
 
   useEffect(() => {
-    // Set up a timer to update the debounced value after the delay
-    const handler = setTimeout(() => {
+    const timer = setTimeout(() => {
       setDebouncedValue(value)
     }, delay)
 
-    // Clean up the timer if value changes before the delay has passed
     return () => {
-      clearTimeout(handler)
+      clearTimeout(timer)
     }
   }, [value, delay])
 

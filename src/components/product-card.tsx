@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, memo } from 'react'
 import { Heart, Star, ShoppingCart } from 'lucide-react'
 import Link from 'next/link'
 import { QuickViewModal, Product } from '@/components/quick-view-modal'
@@ -12,7 +12,8 @@ interface ProductCardProps {
   product: Product
 }
 
-export function ProductCard({ product }: ProductCardProps) {
+// Memoized ProductCard to prevent unnecessary re-renders
+export const ProductCard = memo(function ProductCard({ product }: ProductCardProps) {
   const [isWishlisted, setIsWishlisted] = useState(false)
   const [isWishlistLoading, setIsWishlistLoading] = useState(false)
   const [showQuickView, setShowQuickView] = useState(false)
@@ -20,10 +21,12 @@ export function ProductCard({ product }: ProductCardProps) {
 
   const checkWishlistStatus = useCallback(async () => {
     try {
-      const response = await fetch('/api/wishlist')
+      const response = await fetch('/api/wishlist', {
+        credentials: 'include'
+      })
       if (response.ok) {
         const data = await response.json()
-        const isProductWishlisted = data.data?.some((item: any) => item.productId === product.id)
+        const isProductWishlisted = data.data?.some((item: { productId: string }) => item.productId === product.id)
         setIsWishlisted(isProductWishlisted)
       }
     } catch (error) {
@@ -36,7 +39,7 @@ export function ProductCard({ product }: ProductCardProps) {
     checkWishlistStatus()
   }, [checkWishlistStatus])
 
-  const toggleWishlist = async (e: React.MouseEvent) => {
+  const toggleWishlist = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation()
 
     if (isWishlistLoading) return
@@ -55,6 +58,7 @@ export function ProductCard({ product }: ProductCardProps) {
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: method === 'POST' ? JSON.stringify({ productId: product.id }) : undefined,
       })
 
@@ -93,9 +97,9 @@ export function ProductCard({ product }: ProductCardProps) {
     } finally {
       setIsWishlistLoading(false)
     }
-  }
+  }, [isWishlistLoading, isWishlisted, product.id])
 
-  const handleAddToCart = (e: React.MouseEvent) => {
+  const handleAddToCart = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
 
     // For products with variants, show quick view instead of adding directly
@@ -115,7 +119,7 @@ export function ProductCard({ product }: ProductCardProps) {
       quantity: 1,
     })
     toast.success('Added to cart!')
-  }
+  }, [product, addItem])
 
   return (
     <div className="group">
@@ -184,4 +188,4 @@ export function ProductCard({ product }: ProductCardProps) {
       </div>
     </div>
   )
-}
+})

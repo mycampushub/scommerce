@@ -188,12 +188,10 @@ export function ImageUpload({
         const formData = new FormData()
         formData.append('file', file)
 
-        const response = await apiFetch('/api/admin/upload', {
+        const result = await apiFetch<{success: boolean; data: any; error?: string}>('/api/admin/upload', {
           method: 'POST',
           body: formData
         })
-
-        const result = await response.json() as any
 
         if (result.success) {
           newImages.push({
