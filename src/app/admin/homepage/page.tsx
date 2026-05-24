@@ -204,8 +204,8 @@ export default function HomepageManagementPage() {
     try {
       const res = await fetch('/api/admin/products?limit=100')
       const data = await res.json() as any
-      if (data.success && Array.isArray(data.data)) {
-        setProducts(data.data)
+      if (data.success && Array.isArray(data.products)) {
+        setProducts(data.products)
       }
     } catch (error) {
       console.error('Error fetching products:', error)

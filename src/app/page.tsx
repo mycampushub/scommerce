@@ -994,19 +994,19 @@ function BrandCarousel() {
   )
 }
 
-// 5. Modern 3D Shorts Carousel Component with Scrollability
+// 5. Modern 3D Shorts Carousel Component with Auto-scroll
 function VideoReels({ reels }: { reels: VideoReel[] }) {
   const [selectedReel, setSelectedReel] = useState<VideoReel | null>(null)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isTransitioning, setIsTransitioning] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const [isPaused, setIsPaused] = useState(false)
 
   // Detect mobile/desktop
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768)
     }
-    
     handleResize()
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
@@ -1014,7 +1014,9 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
 
   // Carousel settings state
   const [carouselSettings, setCarouselSettings] = useState({
-    isEnabled: true
+    isEnabled: true,
+    autoScroll: true,
+    autoPlay: 3000
   })
 
   // Fetch carousel settings
@@ -1024,7 +1026,11 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
         const res = await fetch('/api/admin/homepage/reels-carousel')
         const data = await res.json() as any
         if (data.success) {
-          setCarouselSettings(data.data)
+          setCarouselSettings({
+            isEnabled: data.data.isEnabled !== undefined ? data.data.isEnabled : true,
+            autoScroll: data.data.autoScroll !== undefined ? data.data.autoScroll : true,
+            autoPlay: data.data.autoPlay || 3000
+          })
         }
       } catch (error) {
         console.error('Error fetching reels carousel settings:', error)
@@ -1055,93 +1061,112 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
     }
   }
 
-  const handlePrev = () => {
+  const handlePrev = useCallback(() => {
     if (isTransitioning || !reels || reels.length === 0) return
     setIsTransitioning(true)
-    setCurrentIndex((prev) => Math.max(0, prev - 1))
+    setCurrentIndex((prev) => (prev - 1 + reels.length) % reels.length)
     setTimeout(() => setIsTransitioning(false), 400)
-  }
+  }, [isTransitioning, reels?.length])
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (isTransitioning || !reels || reels.length === 0) return
     setIsTransitioning(true)
-    setCurrentIndex((prev) => Math.min(reels.length - 1, prev + 1))
+    setCurrentIndex((prev) => (prev + 1) % reels.length)
+    setTimeout(() => setIsTransitioning(false), 400)
+  }, [isTransitioning, reels?.length])
+
+  // Auto-scroll effect
+  useEffect(() => {
+    if (!carouselSettings.autoScroll || isPaused || isTransitioning || !reels || reels.length === 0) return
+
+    const interval = setInterval(() => {
+      handleNext()
+    }, carouselSettings.autoPlay)
+
+    return () => clearInterval(interval)
+  }, [isPaused, isTransitioning, carouselSettings.autoScroll, carouselSettings.autoPlay, reels?.length, handleNext])
+
+  const handleCardClick = (index: number) => {
+    if (isTransitioning || index === currentIndex) return
+    setIsTransitioning(true)
+    setCurrentIndex(index)
     setTimeout(() => setIsTransitioning(false), 400)
   }
 
   if (!reels || reels.length === 0 || !carouselSettings.isEnabled) return null
 
-  // Calculate visible cards based on screen size
-  const visibleCards = isMobile ? 3 : 10
   const totalCards = reels.length
 
-  // Get cards to display (centered around currentIndex)
+  // Calculate visible cards and positions
   const getVisibleCards = () => {
-    const halfVisible = Math.floor(visibleCards / 2)
-    const start = Math.max(0, currentIndex - halfVisible)
-    const end = Math.min(totalCards, currentIndex + halfVisible + 1)
-    
-    // If we're near the beginning, show more cards to the right
-    if (currentIndex < halfVisible) {
-      const adjustedEnd = Math.min(totalCards, visibleCards)
-      return reels.slice(0, adjustedEnd)
-    }
-    
-    // If we're near the end, show more cards to the left
-    if (currentIndex > totalCards - halfVisible - 1) {
-      const adjustedStart = Math.max(0, totalCards - visibleCards)
-      return reels.slice(adjustedStart)
-    }
-    
-    return reels.slice(start, end)
-  }
+    const visibleCount = isMobile ? 3 : 10
+    const result: Array<{ reel: VideoReel; actualIndex: number; visibleIndex: number }> = []
 
-  const getCardStyle = (index: number, visibleIndex: number) => {
-    const centerIndex = Math.floor(visibleCards / 2)
-    const distanceFromCenter = Math.abs(visibleIndex - centerIndex)
-    const maxDistance = Math.floor(visibleCards / 2)
+    // Show cards around the current index with wrap-around
+    const halfVisible = Math.floor(visibleCount / 2)
 
-    // Base styles
-    const baseStyle = {
-      transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+    for (let i = -halfVisible; i <= halfVisible; i++) {
+      const actualIndex = (currentIndex + i + totalCards) % totalCards
+      const visibleIndex = i + halfVisible
+      result.push({ reel: reels[actualIndex], actualIndex, visibleIndex })
     }
 
-    // Calculate scale and opacity based on distance from center
-    const scale = 1 - (distanceFromCenter / maxDistance) * 0.4 // 1.0 → 0.6
-    const opacity = 1 - (distanceFromCenter / maxDistance) * 0.6 // 1.0 → 0.4
-    const zIndex = 10 - distanceFromCenter
-
-    // Calculate translate X based on position
-    const spacing = isMobile ? 90 : 110 // Spacing between cards
-    const translateX = (visibleIndex - centerIndex) * spacing
-
-    // Calculate card size based on distance
-    const baseWidth = isMobile ? 180 : 200
-    const baseHeight = isMobile ? 270 : 300
-    const width = baseWidth * scale
-    const height = baseHeight * scale
-
-    return {
-      ...baseStyle,
-      transform: `translateX(${translateX}px) scale(${scale})`,
-      opacity: opacity,
-      zIndex: zIndex,
-      width: `${width}px`,
-      height: `${height}px`,
-    }
+    return result
   }
 
   const visibleCardsList = getVisibleCards()
   const centerIndexInView = Math.floor(visibleCardsList.length / 2)
 
+  const getCardStyle = (visibleIndex: number) => {
+    const centerIndex = Math.floor(visibleCardsList.length / 2)
+    const distanceFromCenter = Math.abs(visibleIndex - centerIndex)
+    const maxDistance = Math.floor(visibleCardsList.length / 2)
+
+    // Calculate scale - center is 1.0, sides gradually smaller
+    let scale: number
+    if (distanceFromCenter === 0) {
+      scale = 1.0
+    } else if (distanceFromCenter === 1) {
+      scale = isMobile ? 0.85 : 0.90
+    } else if (distanceFromCenter === 2) {
+      scale = isMobile ? 0.75 : 0.80
+    } else {
+      scale = isMobile ? 0.65 : 0.70
+    }
+
+    // Calculate opacity
+    const opacity = 1 - (distanceFromCenter / maxDistance) * 0.5
+
+    // Calculate translate X
+    const spacing = isMobile ? 85 : 130
+    const translateX = (visibleIndex - centerIndex) * spacing
+
+    // Calculate card size - BIGGER for desktop
+    const baseWidth = isMobile ? 160 : 280
+    const baseHeight = isMobile ? 240 : 420
+    const width = baseWidth * scale
+    const height = baseHeight * scale
+
+    // Z-index for proper layering
+    const zIndex = 20 - distanceFromCenter
+
+    return {
+      transform: `translateX(${translateX}px) scale(${scale})`,
+      opacity,
+      zIndex,
+      width: `${width}px`,
+      height: `${height}px`,
+    }
+  }
+
   return (
     <>
-      <section className="w-full py-20 md:py-24 bg-gradient-to-b from-[#F8F9FA] via-white to-[#F8F9FA] relative overflow-visible">
+      <section className="w-full py-16 md:py-20 bg-gradient-to-b from-[#F8F9FA] via-white to-[#F8F9FA] relative overflow-visible">
         <div className="container mx-auto px-4 relative z-10">
           {/* Section Header */}
-          <div className="flex items-center justify-between mb-12">
+          <div className="flex items-center justify-between mb-10">
             <div>
-              <h2 className="text-3xl md:text-4xl font-bold text-[#1C1E21] mb-2">
+              <h2 className="text-2xl md:text-4xl font-bold text-[#1C1E21] mb-2">
                 Video Shorts
               </h2>
               <p className="text-[#5F6368] text-sm md:text-base">
@@ -1152,20 +1177,23 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
               href="/shorts"
               className="hidden md:flex items-center gap-2 bg-white hover:bg-pink-50 text-[#1C1E21] hover:text-pink-600 px-5 py-2.5 rounded-full font-medium text-sm transition-all shadow-sm hover:shadow-md border border-gray-200"
             >
-              View All ({totalCards})
+              View All
               <ChevronRight className="w-4 h-4" />
             </a>
           </div>
 
-          {/* 3D Carousel Container with Scroll */}
-          <div className="relative w-full h-[450px] md:h-[500px] flex items-center justify-center">
+          {/* 3D Carousel Container */}
+          <div
+            className="relative w-full h-[400px] md:h-[550px] flex items-center justify-center"
+            onMouseEnter={() => setIsPaused(true)}
+            onMouseLeave={() => setIsPaused(false)}
+          >
             {/* Left Navigation Button */}
             <button
               onClick={handlePrev}
-              disabled={isTransitioning || currentIndex === 0}
-              className="absolute left-4 md:left-8 z-20 w-12 h-12 md:w-14 md:h-14 bg-white/90 hover:bg-white shadow-xl rounded-full flex items-center justify-center transition-all border border-gray-200 hover:border-pink-300 disabled:opacity-30 disabled:cursor-not-allowed group"
+              disabled={isTransitioning}
+              className="absolute left-2 md:left-6 z-30 w-10 h-10 md:w-12 md:h-12 bg-white/95 hover:bg-white shadow-xl rounded-full flex items-center justify-center transition-all border border-gray-200 hover:border-pink-300 disabled:opacity-30 disabled:cursor-not-allowed group"
               aria-label="Previous video"
-              style={{ backdropFilter: 'blur(8px)' }}
             >
               <ChevronLeft className="w-5 h-5 md:w-6 md:h-6 text-[#5F6368] group-hover:text-pink-600 transition-colors" strokeWidth={2.5} />
             </button>
@@ -1173,35 +1201,29 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
             {/* Right Navigation Button */}
             <button
               onClick={handleNext}
-              disabled={isTransitioning || currentIndex === totalCards - 1}
-              className="absolute right-4 md:right-8 z-20 w-12 h-12 md:w-14 md:h-14 bg-white/90 hover:bg-white shadow-xl rounded-full flex items-center justify-center transition-all border border-gray-200 hover:border-pink-300 disabled:opacity-30 disabled:cursor-not-allowed group"
+              disabled={isTransitioning}
+              className="absolute right-2 md:right-6 z-30 w-10 h-10 md:w-12 md:h-12 bg-white/95 hover:bg-white shadow-xl rounded-full flex items-center justify-center transition-all border border-gray-200 hover:border-pink-300 disabled:opacity-30 disabled:cursor-not-allowed group"
               aria-label="Next video"
-              style={{ backdropFilter: 'blur(8px)' }}
             >
               <ChevronRight className="w-5 h-5 md:w-6 md:h-6 text-[#5F6368] group-hover:text-pink-600 transition-colors" strokeWidth={2.5} />
             </button>
 
-            {/* Cards Container with Perspective */}
+            {/* Cards Container */}
             <div
-              className="relative flex items-center justify-center"
+              className="relative flex items-center justify-center w-full h-full"
               style={{
-                perspective: '1500px',
-                width: '100%',
-                height: '100%',
+                perspective: '2000px',
               }}
             >
-              {visibleCardsList.map((reel, index) => {
-                const style = getCardStyle(index, index)
-                const isCenter = index === centerIndexInView
-
-                // Find the actual index in the full reels array
-                const actualIndex = reels.findIndex(r => r.id === reel.id)
+              {visibleCardsList.map(({ reel, actualIndex, visibleIndex }) => {
+                const style = getCardStyle(visibleIndex)
+                const isCenter = visibleIndex === centerIndexInView
 
                 return (
                   <div
-                    key={reel.id}
-                    onClick={() => !isCenter && !isTransitioning && setCurrentIndex(actualIndex)}
-                    className="absolute bg-white rounded-2xl shadow-2xl overflow-hidden cursor-pointer group hover:shadow-pink-200/50"
+                    key={`${reel.id}-${visibleIndex}`}
+                    onClick={() => handleCardClick(actualIndex)}
+                    className="absolute bg-white rounded-2xl shadow-xl overflow-hidden cursor-pointer transition-all duration-400 ease-out hover:shadow-2xl"
                     style={style}
                   >
                     {/* Image/Video Area */}
@@ -1216,7 +1238,7 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
                       <img
                         src={reel.thumbnail}
                         alt={reel.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        className="w-full h-full object-cover"
                         loading="lazy"
                       />
 
@@ -1230,17 +1252,17 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
                       {/* Center Card - Enhanced Play Button */}
                       {isCenter && (
                         <>
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
                           <div className="absolute inset-0 flex items-center justify-center">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
                                 setSelectedReel(reel)
                               }}
-                              className="w-14 h-14 md:w-16 md:h-16 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-2xl transition-all hover:scale-110 group-hover:bg-pink-600"
+                              className="w-12 h-12 md:w-16 md:h-16 bg-white/95 hover:bg-white rounded-full flex items-center justify-center shadow-2xl transition-all hover:scale-110"
                             >
                               <Play
-                                className="w-6 h-6 md:w-8 md:h-8 text-[#1C1E21] group-hover:text-white ml-1 transition-colors"
+                                className="w-5 h-5 md:w-8 md:h-8 text-[#1C1E21] ml-1"
                                 fill="currentColor"
                                 strokeWidth={2}
                               />
@@ -1261,12 +1283,12 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
                         </>
                       )}
 
-                      {/* Non-center Cards - Play Icon */}
+                      {/* Non-center Cards - Play Icon on hover */}
                       {!isCenter && (
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                          <div className="w-10 h-10 md:w-12 md:h-12 bg-black/60 rounded-full flex items-center justify-center backdrop-blur-sm">
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity bg-black/20">
+                          <div className="w-10 h-10 bg-black/50 rounded-full flex items-center justify-center backdrop-blur-sm">
                             <Play
-                              className="w-4 h-4 md:w-6 md:h-6 text-white ml-1"
+                              className="w-4 h-4 text-white ml-1"
                               fill="currentColor"
                             />
                           </div>
@@ -1274,7 +1296,7 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
                       )}
                     </div>
 
-                    {/* Simplified Footer - No Price */}
+                    {/* Footer - Only for center card */}
                     {isCenter && (
                       <div className="h-[15%] flex items-center justify-center bg-white border-t border-gray-100">
                         <span className="text-[#5F6368] text-[10px] md:text-xs font-medium">
@@ -1287,16 +1309,16 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
               })}
             </div>
 
-            {/* Dots Indicator */}
-            <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 flex gap-1.5 max-w-full overflow-x-auto px-4 scrollbar-hide">
+            {/* Dots Indicator - Simplified */}
+            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 flex gap-2 max-w-full overflow-x-auto px-4 scrollbar-hide">
               {reels.map((_, index) => {
                 const isActive = index === currentIndex
                 return (
                   <button
                     key={index}
-                    onClick={() => !isTransitioning && setCurrentIndex(index)}
-                    className={`h-1.5 rounded-full transition-all duration-300 flex-shrink-0 ${
-                      isActive ? 'w-6 bg-pink-600' : 'w-1.5 bg-gray-300 hover:bg-gray-400'
+                    onClick={() => !isTransitioning && handleCardClick(index)}
+                    className={`h-2 rounded-full transition-all duration-300 flex-shrink-0 ${
+                      isActive ? 'w-8 bg-pink-600' : 'w-2 bg-gray-300 hover:bg-gray-400'
                     }`}
                     aria-label={`Go to slide ${index + 1}`}
                     aria-current={isActive ? 'step' : undefined}
@@ -1306,20 +1328,13 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
             </div>
           </div>
 
-          {/* Counter */}
-          <div className="text-center mt-8">
-            <p className="text-[#5F6368] text-sm">
-              {currentIndex + 1} of {totalCards} videos
-            </p>
-          </div>
-
           {/* Mobile View All Button */}
           <div className="md:hidden mt-8 text-center">
             <a
               href="/shorts"
               className="inline-flex items-center gap-2 bg-white text-[#1C1E21] px-5 py-2.5 rounded-full font-medium text-sm transition-all shadow-sm hover:shadow-md border border-gray-200"
             >
-              View All ({totalCards})
+              View All
               <ChevronRight className="w-4 h-4" />
             </a>
           </div>
