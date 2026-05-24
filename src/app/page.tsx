@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { ChevronLeft, ChevronRight, X, Heart, MessageCircle, Share2, ShoppingCart, Star, Play, Search, User, Menu, Phone, Mail, Instagram, Facebook, Twitter, Youtube, Linkedin, ShoppingBag, Home as HomeIcon, Loader2, LogOut, ChevronDown } from 'lucide-react'
+import { ChevronLeft, ChevronRight, X, Heart, MessageCircle, Share2, ShoppingCart, Star, Play, Search, User, Menu, Phone, Mail, Instagram, Facebook, Twitter, Youtube, Linkedin, ShoppingBag, Home as HomeIcon, Loader2, LogOut, ChevronDown, Eye } from 'lucide-react'
 import { useScrollDirection } from '@/hooks/use-scroll-direction'
 import { useCartStore } from '@/lib/store/cart-store'
 import { useAuth } from '@/hooks/use-auth'
@@ -48,6 +48,8 @@ interface VideoReel {
   title: string
   category?: string
   product: {
+    id?: string
+    slug?: string
     name: string
     price: number
     originalPrice?: number
@@ -992,10 +994,23 @@ function BrandCarousel() {
   )
 }
 
-// 5. Modern Infinite Shorts Carousel Component
+// 5. Modern 3D Shorts Carousel Component with Scrollability
 function VideoReels({ reels }: { reels: VideoReel[] }) {
   const [selectedReel, setSelectedReel] = useState<VideoReel | null>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [isTransitioning, setIsTransitioning] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Detect mobile/desktop
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   // Carousel settings state
   const [carouselSettings, setCarouselSettings] = useState({
@@ -1018,305 +1033,424 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
     fetchSettings()
   }, [])
 
+  const { addItem } = useCartStore()
+  const router = useRouter()
+
+  const handleAddToCart = (reel: VideoReel) => {
+    addItem({
+      id: reel.product.id || reel.id,
+      slug: reel.product.slug || '',
+      name: reel.product.name,
+      price: reel.product.price,
+      originalPrice: reel.product.originalPrice,
+      image: reel.product.image,
+      quantity: 1
+    })
+    toast.success('Added to cart!')
+  }
+
+  const handleViewDetails = (reel: VideoReel) => {
+    if (reel.product.slug) {
+      router.push(`/product/${reel.product.slug}`)
+    }
+  }
+
+  const handlePrev = () => {
+    if (isTransitioning || !reels || reels.length === 0) return
+    setIsTransitioning(true)
+    setCurrentIndex((prev) => Math.max(0, prev - 1))
+    setTimeout(() => setIsTransitioning(false), 400)
+  }
+
+  const handleNext = () => {
+    if (isTransitioning || !reels || reels.length === 0) return
+    setIsTransitioning(true)
+    setCurrentIndex((prev) => Math.min(reels.length - 1, prev + 1))
+    setTimeout(() => setIsTransitioning(false), 400)
+  }
+
   if (!reels || reels.length === 0 || !carouselSettings.isEnabled) return null
 
-  const scrollLeft = () => {
-    if (containerRef.current) {
-      containerRef.current.scrollBy({ left: -296, behavior: 'smooth' })
+  // Calculate visible cards based on screen size
+  const visibleCards = isMobile ? 3 : 10
+  const totalCards = reels.length
+
+  // Get cards to display (centered around currentIndex)
+  const getVisibleCards = () => {
+    const halfVisible = Math.floor(visibleCards / 2)
+    const start = Math.max(0, currentIndex - halfVisible)
+    const end = Math.min(totalCards, currentIndex + halfVisible + 1)
+    
+    // If we're near the beginning, show more cards to the right
+    if (currentIndex < halfVisible) {
+      const adjustedEnd = Math.min(totalCards, visibleCards)
+      return reels.slice(0, adjustedEnd)
+    }
+    
+    // If we're near the end, show more cards to the left
+    if (currentIndex > totalCards - halfVisible - 1) {
+      const adjustedStart = Math.max(0, totalCards - visibleCards)
+      return reels.slice(adjustedStart)
+    }
+    
+    return reels.slice(start, end)
+  }
+
+  const getCardStyle = (index: number, visibleIndex: number) => {
+    const centerIndex = Math.floor(visibleCards / 2)
+    const distanceFromCenter = Math.abs(visibleIndex - centerIndex)
+    const maxDistance = Math.floor(visibleCards / 2)
+
+    // Base styles
+    const baseStyle = {
+      transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+    }
+
+    // Calculate scale and opacity based on distance from center
+    const scale = 1 - (distanceFromCenter / maxDistance) * 0.4 // 1.0 → 0.6
+    const opacity = 1 - (distanceFromCenter / maxDistance) * 0.6 // 1.0 → 0.4
+    const zIndex = 10 - distanceFromCenter
+
+    // Calculate translate X based on position
+    const spacing = isMobile ? 90 : 110 // Spacing between cards
+    const translateX = (visibleIndex - centerIndex) * spacing
+
+    // Calculate card size based on distance
+    const baseWidth = isMobile ? 180 : 200
+    const baseHeight = isMobile ? 270 : 300
+    const width = baseWidth * scale
+    const height = baseHeight * scale
+
+    return {
+      ...baseStyle,
+      transform: `translateX(${translateX}px) scale(${scale})`,
+      opacity: opacity,
+      zIndex: zIndex,
+      width: `${width}px`,
+      height: `${height}px`,
     }
   }
 
-  const scrollRight = () => {
-    if (containerRef.current) {
-      containerRef.current.scrollBy({ left: 296, behavior: 'smooth' })
-    }
-  }
+  const visibleCardsList = getVisibleCards()
+  const centerIndexInView = Math.floor(visibleCardsList.length / 2)
 
   return (
     <>
-      <section className="w-full py-12 bg-[#F8F9FA]">
-        <div className="container mx-auto px-4">
+      <section className="w-full py-20 md:py-24 bg-gradient-to-b from-[#F8F9FA] via-white to-[#F8F9FA] relative overflow-visible">
+        <div className="container mx-auto px-4 relative z-10">
           {/* Section Header */}
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl md:text-3xl font-bold text-[#1C1E21]">
-              Video Shorts
-            </h2>
+          <div className="flex items-center justify-between mb-12">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold text-[#1C1E21] mb-2">
+                Video Shorts
+              </h2>
+              <p className="text-[#5F6368] text-sm md:text-base">
+                Discover trending products in short videos
+              </p>
+            </div>
             <a
               href="/shorts"
-              className="text-[#1C1E21] hover:text-pink-600 font-medium text-sm flex items-center gap-1 transition-colors"
+              className="hidden md:flex items-center gap-2 bg-white hover:bg-pink-50 text-[#1C1E21] hover:text-pink-600 px-5 py-2.5 rounded-full font-medium text-sm transition-all shadow-sm hover:shadow-md border border-gray-200"
             >
-              View All
+              View All ({totalCards})
               <ChevronRight className="w-4 h-4" />
             </a>
           </div>
 
-          {/* Horizontal Scroll Container */}
-          <div className="relative">
+          {/* 3D Carousel Container with Scroll */}
+          <div className="relative w-full h-[450px] md:h-[500px] flex items-center justify-center">
             {/* Left Navigation Button */}
             <button
-              onClick={scrollLeft}
-              className="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-12 h-12 bg-white shadow-lg rounded-full flex items-center justify-center hover:bg-gray-50 transition-all border border-gray-200"
+              onClick={handlePrev}
+              disabled={isTransitioning || currentIndex === 0}
+              className="absolute left-4 md:left-8 z-20 w-12 h-12 md:w-14 md:h-14 bg-white/90 hover:bg-white shadow-xl rounded-full flex items-center justify-center transition-all border border-gray-200 hover:border-pink-300 disabled:opacity-30 disabled:cursor-not-allowed group"
               aria-label="Previous video"
-              style={{ transform: 'translate(-50%, -50%)', left: '24px' }}
+              style={{ backdropFilter: 'blur(8px)' }}
             >
-              <ChevronLeft className="w-6 h-6 text-[#5F6368]" strokeWidth={2.5} />
+              <ChevronLeft className="w-5 h-5 md:w-6 md:h-6 text-[#5F6368] group-hover:text-pink-600 transition-colors" strokeWidth={2.5} />
             </button>
 
             {/* Right Navigation Button */}
             <button
-              onClick={scrollRight}
-              className="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-12 h-12 bg-white shadow-lg rounded-full flex items-center justify-center hover:bg-gray-50 transition-all border border-gray-200"
+              onClick={handleNext}
+              disabled={isTransitioning || currentIndex === totalCards - 1}
+              className="absolute right-4 md:right-8 z-20 w-12 h-12 md:w-14 md:h-14 bg-white/90 hover:bg-white shadow-xl rounded-full flex items-center justify-center transition-all border border-gray-200 hover:border-pink-300 disabled:opacity-30 disabled:cursor-not-allowed group"
               aria-label="Next video"
-              style={{ transform: 'translate(50%, -50%)', right: '0' }}
+              style={{ backdropFilter: 'blur(8px)' }}
             >
-              <ChevronRight className="w-6 h-6 text-[#5F6368]" strokeWidth={2.5} />
+              <ChevronRight className="w-5 h-5 md:w-6 md:h-6 text-[#5F6368] group-hover:text-pink-600 transition-colors" strokeWidth={2.5} />
             </button>
 
-            {/* Cards Container */}
+            {/* Cards Container with Perspective */}
             <div
-              ref={containerRef}
-              className="flex gap-4 overflow-x-auto pb-4 scroll-smooth scrollbar-hide"
+              className="relative flex items-center justify-center"
               style={{
-                padding: '0 56px'
+                perspective: '1500px',
+                width: '100%',
+                height: '100%',
               }}
             >
-              {reels.map((reel) => (
-                <div
-                  key={reel.id}
-                  onClick={() => setSelectedReel(reel)}
-                  className="flex-shrink-0 bg-white rounded-[12px] shadow-[0_2px_8px_rgba(0,0,0,0.1)] cursor-pointer group hover:scale-[1.02] hover:shadow-[0_2px_12px_rgba(0,0,0,0.15)] transition-all duration-300"
-                  style={{
-                    width: '280px',
-                    height: '420px'
-                  }}
-                >
-                  {/* Image Area - 356px height */}
+              {visibleCardsList.map((reel, index) => {
+                const style = getCardStyle(index, index)
+                const isCenter = index === centerIndexInView
+
+                // Find the actual index in the full reels array
+                const actualIndex = reels.findIndex(r => r.id === reel.id)
+
+                return (
                   <div
-                    className="relative overflow-hidden bg-gray-100 rounded-t-[12px]"
-                    style={{
-                      width: '280px',
-                      height: '356px'
-                    }}
+                    key={reel.id}
+                    onClick={() => !isCenter && !isTransitioning && setCurrentIndex(actualIndex)}
+                    className="absolute bg-white rounded-2xl shadow-2xl overflow-hidden cursor-pointer group hover:shadow-pink-200/50"
+                    style={style}
                   >
-                    {/* Thumbnail */}
-                    <img
-                      src={reel.thumbnail}
-                      alt={reel.title}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                      style={{ aspectRatio: '16/9', objectFit: 'cover' }}
-                    />
+                    {/* Image/Video Area */}
+                    <div
+                      className="relative overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200"
+                      style={{
+                        width: '100%',
+                        height: '85%',
+                      }}
+                    >
+                      {/* Thumbnail */}
+                      <img
+                        src={reel.thumbnail}
+                        alt={reel.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        loading="lazy"
+                      />
 
-                    {/* Duration Badge */}
-                    {reel.duration && (
-                      <div
-                        className="absolute top-3 right-3 text-white text-xs font-medium px-1.5 py-0.5 rounded"
-                        style={{
-                          background: 'rgba(0, 0, 0, 0.7)',
-                          padding: '2px 6px',
-                          borderRadius: '4px',
-                          fontSize: '12px'
-                        }}
-                      >
-                        {reel.duration}
-                      </div>
-                    )}
-
-                    {/* Play Button - 56px × 56px centered */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div
-                        className="rounded-full flex items-center justify-center shadow-[0_2px_4px_rgba(0,0,0,0.2)] group-hover:bg-black/70 transition-colors"
-                        style={{
-                          width: '56px',
-                          height: '56px',
-                          background: 'rgba(0, 0, 0, 0.6)'
-                        }}
-                      >
-                        <Play
-                          className="text-white ml-1"
-                          style={{ width: '24px', height: '24px' }}
-                          fill="currentColor"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Metadata Area - 64px height */}
-                  <div
-                    className="flex items-center justify-between px-4 py-3 bg-white rounded-b-[12px]"
-                    style={{
-                      height: '64px',
-                      paddingTop: '12px',
-                      paddingBottom: '12px',
-                      paddingLeft: '16px',
-                      paddingRight: '16px'
-                    }}
-                  >
-                    {/* Left: Title and Category */}
-                    <div className="flex-1 min-w-0 mr-3">
-                      <h3
-                        className="text-[#1C1E21] font-medium truncate leading-tight mb-0.5"
-                        style={{
-                          fontSize: '14px',
-                          fontWeight: '500',
-                          lineHeight: '1.4',
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden'
-                        }}
-                      >
-                        {reel.title}
-                      </h3>
-                      {reel.category && (
-                        <p
-                          className="text-[#5F6368] text-xs truncate"
-                          style={{
-                            fontSize: '12px',
-                            fontWeight: '400',
-                            color: '#5F6368'
-                          }}
-                        >
-                          {reel.category}
-                        </p>
+                      {/* Duration Badge */}
+                      {reel.duration && (
+                        <div className="absolute top-2 right-2 bg-black/70 text-white text-[10px] md:text-xs font-medium px-1.5 md:px-2 py-0.5 rounded-lg backdrop-blur-sm">
+                          {reel.duration}
+                        </div>
                       )}
-                    </div>
 
-                    {/* Right: Price */}
-                    <div className="text-right flex-shrink-0">
-                      <div
-                        className="text-[#1C1E21] font-semibold"
-                        style={{
-                          fontSize: '14px',
-                          fontWeight: '600',
-                          color: '#1C1E21'
-                        }}
-                      >
-                        ৳{reel.product.price.toLocaleString()}
-                      </div>
-                      {reel.product.originalPrice && reel.product.originalPrice > reel.product.price && (
-                        <div
-                          className="text-[#70757A] line-through"
-                          style={{
-                            fontSize: '12px',
-                            fontWeight: '400',
-                            color: '#70757A',
-                            textDecoration: 'line-through'
-                          }}
-                        >
-                          ৳{reel.product.originalPrice.toLocaleString()}
+                      {/* Center Card - Enhanced Play Button */}
+                      {isCenter && (
+                        <>
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setSelectedReel(reel)
+                              }}
+                              className="w-14 h-14 md:w-16 md:h-16 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-2xl transition-all hover:scale-110 group-hover:bg-pink-600"
+                            >
+                              <Play
+                                className="w-6 h-6 md:w-8 md:h-8 text-[#1C1E21] group-hover:text-white ml-1 transition-colors"
+                                fill="currentColor"
+                                strokeWidth={2}
+                              />
+                            </button>
+                          </div>
+
+                          {/* Title Overlay */}
+                          <div className="absolute bottom-0 left-0 right-0 p-2 md:p-3">
+                            <h3 className="text-white font-semibold text-[11px] md:text-sm line-clamp-2 drop-shadow-lg">
+                              {reel.title}
+                            </h3>
+                            {reel.category && (
+                              <p className="text-white/80 text-[10px] md:text-xs mt-0.5 drop-shadow-md">
+                                {reel.category}
+                              </p>
+                            )}
+                          </div>
+                        </>
+                      )}
+
+                      {/* Non-center Cards - Play Icon */}
+                      {!isCenter && (
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="w-10 h-10 md:w-12 md:h-12 bg-black/60 rounded-full flex items-center justify-center backdrop-blur-sm">
+                            <Play
+                              className="w-4 h-4 md:w-6 md:h-6 text-white ml-1"
+                              fill="currentColor"
+                            />
+                          </div>
                         </div>
                       )}
                     </div>
+
+                    {/* Simplified Footer - No Price */}
+                    {isCenter && (
+                      <div className="h-[15%] flex items-center justify-center bg-white border-t border-gray-100">
+                        <span className="text-[#5F6368] text-[10px] md:text-xs font-medium">
+                          Click to play
+                        </span>
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
+
+            {/* Dots Indicator */}
+            <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 flex gap-1.5 max-w-full overflow-x-auto px-4 scrollbar-hide">
+              {reels.map((_, index) => {
+                const isActive = index === currentIndex
+                return (
+                  <button
+                    key={index}
+                    onClick={() => !isTransitioning && setCurrentIndex(index)}
+                    className={`h-1.5 rounded-full transition-all duration-300 flex-shrink-0 ${
+                      isActive ? 'w-6 bg-pink-600' : 'w-1.5 bg-gray-300 hover:bg-gray-400'
+                    }`}
+                    aria-label={`Go to slide ${index + 1}`}
+                    aria-current={isActive ? 'step' : undefined}
+                  />
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Counter */}
+          <div className="text-center mt-8">
+            <p className="text-[#5F6368] text-sm">
+              {currentIndex + 1} of {totalCards} videos
+            </p>
+          </div>
+
+          {/* Mobile View All Button */}
+          <div className="md:hidden mt-8 text-center">
+            <a
+              href="/shorts"
+              className="inline-flex items-center gap-2 bg-white text-[#1C1E21] px-5 py-2.5 rounded-full font-medium text-sm transition-all shadow-sm hover:shadow-md border border-gray-200"
+            >
+              View All ({totalCards})
+              <ChevronRight className="w-4 h-4" />
+            </a>
           </div>
         </div>
       </section>
 
       {/* Fullscreen Video Modal */}
       {selectedReel && (
-        <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center">
+        <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center backdrop-blur-sm">
           <button
             onClick={() => setSelectedReel(null)}
-            className="absolute top-4 right-4 z-10 text-white hover:bg-white/20 rounded-full p-2 transition-colors"
+            className="absolute top-4 right-4 z-20 text-white hover:bg-white/20 rounded-full p-3 transition-all hover:scale-110"
             aria-label="Close video"
           >
             <X className="w-6 h-6" />
           </button>
-          <div className="relative w-full max-w-md h-full md:h-[85vh] flex flex-col">
-            <div className="flex-1 flex items-center justify-center bg-black">
-              <div className="relative aspect-[9/16] h-full w-full">
+
+          <div className="relative w-full max-w-5xl h-full md:h-[90vh] flex flex-col md:flex-row items-center justify-center p-4">
+            {/* Video Player Area */}
+            <div className="w-full md:w-2/3 h-full md:h-full flex items-center justify-center">
+              <div className="relative w-full max-w-md aspect-[9/16] bg-black rounded-2xl overflow-hidden shadow-2xl">
                 {selectedReel.videoUrl ? (
                   <iframe
-                    src={`${selectedReel.videoUrl}?autoplay=1&mute=0&rel=0&modestbranding=1`}
+                    src={`${selectedReel.videoUrl}?autoplay=1&mute=0&rel=0&modestbranding=1&playsinline=1`}
                     title={selectedReel.title}
                     className="w-full h-full object-cover"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
                   />
                 ) : (
-                  <>
-                    <img src={selectedReel.thumbnail} alt={selectedReel.title} className="w-full h-full object-cover" />
-                    <div className="absolute top-4 left-4 right-4 flex gap-1 z-20">
-                      {[1, 2, 3, 4, 5].map((i) => (
-                        <div key={i} className="flex-1 h-1 bg-white/30 rounded-full overflow-hidden">
-                          <div className={`h-full bg-white ${i === 1 ? 'w-1/2' : ''}`} />
-                        </div>
-                      ))}
+                  <div className="relative w-full h-full bg-gradient-to-br from-pink-500/20 to-purple-500/20 flex items-center justify-center">
+                    <img
+                      src={selectedReel.thumbnail}
+                      alt={selectedReel.title}
+                      className="absolute inset-0 w-full h-full object-cover opacity-50"
+                    />
+                    <div className="relative z-10 text-center">
+                      <Play className="w-20 h-20 text-white/90 mx-auto mb-4" fill="currentColor" />
+                      <p className="text-white text-lg font-medium">{selectedReel.title}</p>
                     </div>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Play className="w-20 h-20 text-white/80" />
-                    </div>
-                  </>
+                  </div>
                 )}
+
+                {/* Video Overlay Info */}
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-4 md:p-6">
+                  <h3 className="text-white font-bold text-lg md:text-xl mb-2">{selectedReel.title}</h3>
+                  {selectedReel.category && (
+                    <p className="text-white/70 text-sm mb-3">{selectedReel.category}</p>
+                  )}
+
+                  {/* Price Display */}
+                  <div className="flex items-baseline gap-2 mb-4">
+                    <PriceDisplay value={selectedReel.product.price} className="text-2xl md:text-3xl font-bold text-pink-400" />
+                    {selectedReel.product.originalPrice && selectedReel.product.originalPrice > selectedReel.product.price && (
+                      <PriceDisplay
+                        value={selectedReel.product.originalPrice}
+                        className="text-sm text-gray-400 line-through"
+                      />
+                    )}
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleAddToCart(selectedReel)
+                      }}
+                      className="flex-1 bg-pink-600 hover:bg-pink-700 text-white px-4 py-3 rounded-full font-medium transition-all flex items-center justify-center gap-2 hover:scale-105 active:scale-95"
+                    >
+                      <ShoppingCart className="w-5 h-5" />
+                      Add to Cart
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleViewDetails(selectedReel)
+                      }}
+                      className="flex-1 bg-white/10 hover:bg-white/20 text-white px-4 py-3 rounded-full font-medium transition-all flex items-center justify-center gap-2 hover:scale-105 active:scale-95 backdrop-blur-sm border border-white/20"
+                    >
+                      <Eye className="w-5 h-5" />
+                      View Details
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="hidden md:flex w-64 bg-white flex-col">
-              <div className="p-4 border-b">
-                <div className="relative aspect-square mb-4 rounded-lg overflow-hidden">
-                  <img src={selectedReel.product.image} alt={selectedReel.product.name} className="w-full h-full object-cover" />
+
+            {/* Product Info Sidebar (Desktop) */}
+            <div className="hidden md:flex w-1/3 h-full flex-col justify-center pl-8">
+              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20">
+                <div className="relative aspect-square mb-6 rounded-xl overflow-hidden shadow-lg">
+                  <img
+                    src={selectedReel.product.image}
+                    alt={selectedReel.product.name}
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                  />
                 </div>
-                <h4 className="font-bold text-lg">{selectedReel.product.name}</h4>
-                <div className="flex items-center gap-2 mt-2">
-                  <PriceDisplay value={selectedReel.product.price} className="text-xl font-bold text-pink-600" />
-                  {selectedReel.product.originalPrice && selectedReel.product.originalPrice > selectedReel.product.price && (
-                    <PriceDisplay
-                      value={selectedReel.product.originalPrice}
-                      className="text-sm text-gray-400 line-through"
-                    />
-                  )}
-                  <button className="w-full mt-2 bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-full transition-colors">
+                <h4 className="text-white font-bold text-xl mb-3">{selectedReel.product.name}</h4>
+                <p className="text-white/60 text-sm mb-6 line-clamp-3">
+                  Beautiful and elegant design perfect for any occasion. Quality craftsmanship with attention to detail.
+                </p>
+
+                <div className="space-y-3">
+                  <button
+                    onClick={() => handleAddToCart(selectedReel)}
+                    className="w-full bg-pink-600 hover:bg-pink-700 text-white px-6 py-3 rounded-full font-semibold transition-all hover:shadow-lg hover:shadow-pink-600/30 flex items-center justify-center gap-2"
+                  >
+                    <ShoppingCart className="w-5 h-5" />
                     Add to Cart
                   </button>
-                </div>
-              </div>
-              <div className="flex-1 p-4">
-                <div className="flex flex-col gap-4">
-                  <button className="w-full justify-start gap-2 flex items-center px-4 py-2 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors">
-                    <Heart className="w-4 h-4" /> Wishlist
-                  </button>
-                  <button className="w-full justify-start gap-2 flex items-center px-4 py-2 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors">
-                    <Share2 className="w-4 h-4" /> Share
-                  </button>
-                  <button className="w-full justify-start gap-2 flex items-center px-4 py-2 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors">
-                    <MessageCircle className="w-4 h-4" /> Comment
+                  <button
+                    onClick={() => handleViewDetails(selectedReel)}
+                    className="w-full bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-full font-semibold transition-all flex items-center justify-center gap-2 border border-white/20"
+                  >
+                    <Eye className="w-5 h-5" />
+                    View Full Details
                   </button>
                 </div>
-              </div>
-            </div>
-            <div className="md:hidden absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl p-4">
-              <div className="flex items-center gap-3 mb-3">
-                <img src={selectedReel.product.image} alt={selectedReel.product.name} className="w-16 h-16 rounded-lg object-cover" />
-                <div className="flex-1">
-                  <p className="font-semibold text-sm">{selectedReel.product.name}</p>
-                  <PriceDisplay value={selectedReel.product.price} className="text-pink-600 font-bold" />
-                  {selectedReel.product.originalPrice && selectedReel.product.originalPrice > selectedReel.product.price && (
-                    <PriceDisplay
-                      value={selectedReel.product.originalPrice}
-                      className="text-xs text-gray-400 line-through"
-                    />
-                  )}
+
+                <div className="flex justify-center gap-4 mt-6 pt-6 border-t border-white/20">
+                  <button className="w-12 h-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-all hover:scale-110">
+                    <Heart className="w-5 h-5" />
+                  </button>
+                  <button className="w-12 h-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-all hover:scale-110">
+                    <Share2 className="w-5 h-5" />
+                  </button>
+                  <button className="w-12 h-12 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-all hover:scale-110">
+                    <MessageCircle className="w-5 h-5" />
+                  </button>
                 </div>
-                <button className="bg-pink-600 hover:bg-pink-700 text-white p-2 rounded-full transition-colors">
-                  <ShoppingCart className="w-4 h-4" />
-                </button>
-              </div>
-              <div className="flex justify-around border-t pt-3">
-                <button className="flex flex-col gap-1 items-center text-gray-600">
-                  <Heart className="w-5 h-5" />
-                  <span className="text-xs">Like</span>
-                </button>
-                <button className="flex flex-col gap-1 items-center text-gray-600">
-                  <MessageCircle className="w-5 h-5" />
-                  <span className="text-xs">Comment</span>
-                </button>
-                <button className="flex flex-col gap-1 items-center text-gray-600">
-                  <Share2 className="w-5 h-5" />
-                  <span className="text-xs">Share</span>
-                </button>
               </div>
             </div>
           </div>
@@ -1910,13 +2044,53 @@ export default function Home() {
         }))
 
         const reelList = Array.isArray(reelsData.data) ? reelsData.data : []
-        setReels(reelList.map((r: any) => ({
-          id: r.id,
-          thumbnail: r.thumbnail,
-          videoUrl: r.videoUrl,
-          title: r.title,
-          product: { name: 'Featured Product', price: 99.99, image: r.thumbnail }
-        })))
+
+        // Fetch all products for reels that have productIds
+        const allProductIds = reelList
+          .map((r: any) => r.productIds)
+          .filter(Boolean)
+          .flat()
+
+        let productsMap: Record<string, any> = {}
+        if (allProductIds.length > 0) {
+          try {
+            const productsRes = await fetch(`/api/products?ids=${allProductIds.join(',')}`)
+            const productsData = await productsRes.json() as any
+            if (productsData.success && Array.isArray(productsData.data?.products)) {
+              productsData.data.products.forEach((p: any) => {
+                productsMap[p.id] = p
+              })
+            }
+          } catch (error) {
+            console.error('Error fetching reel products:', error)
+          }
+        }
+
+        // Map reels with actual product data
+        setReels(reelList.map((r: any) => {
+          const productId = Array.isArray(r.productIds) && r.productIds.length > 0 ? r.productIds[0] : null
+          const product = productId ? productsMap[productId] : null
+
+          return {
+            id: r.id,
+            thumbnail: r.thumbnail,
+            videoUrl: r.videoUrl,
+            title: r.title,
+            category: product?.category?.name || undefined,
+            product: product ? {
+              id: product.id,
+              slug: product.slug,
+              name: product.name,
+              price: product.price,
+              originalPrice: product.originalPrice,
+              image: product.images?.[0] || product.image || r.thumbnail
+            } : {
+              name: 'Featured Product',
+              price: 99.99,
+              image: r.thumbnail
+            }
+          }
+        }))
 
         const promotionList = Array.isArray(promotionsData.data) ? promotionsData.data : []
         setPromotions(promotionList.map((p: any) => ({
