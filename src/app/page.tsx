@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { ChevronLeft, ChevronRight, X, Heart, MessageCircle, Share2, ShoppingCart, Star, Play, Search, User, Menu, Phone, Mail, Instagram, Facebook, Twitter, Youtube, Linkedin, ShoppingBag, Home as HomeIcon, Loader2, LogOut, ChevronDown, Eye } from 'lucide-react'
+import { ChevronLeft, ChevronRight, X, Heart, MessageCircle, Share2, ShoppingCart, Star, Play, Search, User, Menu, Phone, Mail, Instagram, Facebook, Twitter, Youtube, Linkedin, ShoppingBag, Home as HomeIcon, LogOut, ChevronDown, Eye } from 'lucide-react'
 import { useScrollDirection } from '@/hooks/use-scroll-direction'
 import { useCartStore } from '@/lib/store/cart-store'
 import { useAuth } from '@/hooks/use-auth'
@@ -1247,15 +1247,17 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
     const distanceFromCenter = Math.abs(visibleIndex - centerIndex)
     const maxDistance = Math.floor(visibleCardsList.length / 2)
 
-    // Calculate scale - smooth gradual decrease for ALL cards
-    // Center: 1.0, then gradually smaller based on distance
-    const scale = 1 - (distanceFromCenter / maxDistance) * 0.35
+    // Calculate scale - reduced scaling for mobile to keep all cards more visible
+    // Mobile: Center 1.0, sides 0.85 (less reduction)
+    // Desktop: Center 1.0, gradual decrease
+    const scaleReduction = isMobile ? 0.15 : 0.35
+    const scale = 1 - (distanceFromCenter / maxDistance) * scaleReduction
 
     // Calculate opacity - also gradual for ALL cards
     const opacity = 1 - (distanceFromCenter / maxDistance) * 0.4
 
     // Calculate translate X - adjusted spacing for mobile to fit 3 cards properly
-    const spacing = isMobile ? 85 : 140
+    const spacing = isMobile ? 120 : 140
     const translateX = (visibleIndex - centerIndex) * spacing
 
     // Calculate card size - optimized for mobile
@@ -1416,24 +1418,24 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
                 )
               })}
             </div>
+          </div>
 
-            {/* Dots Indicator - Simplified */}
-            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 flex gap-2 max-w-full overflow-x-auto px-4 scrollbar-hide">
-              {reels.map((_, index) => {
-                const isActive = index === currentIndex
-                return (
-                  <button
-                    key={index}
-                    onClick={() => !isTransitioning && handleCardClick(index)}
-                    className={`h-2 rounded-full transition-all duration-300 flex-shrink-0 ${
-                      isActive ? 'w-8 bg-pink-600' : 'w-2 bg-gray-300 hover:bg-gray-400'
-                    }`}
-                    aria-label={`Go to slide ${index + 1}`}
-                    aria-current={isActive ? 'step' : undefined}
-                  />
-                )
-              })}
-            </div>
+          {/* Dots Indicator - Moved outside carousel container to be visible */}
+          <div className="relative mt-8 flex justify-center gap-2 max-w-full overflow-x-auto px-4 scrollbar-hide" style={{ zIndex: 40 }}>
+            {reels.map((_, index) => {
+              const isActive = index === currentIndex
+              return (
+                <button
+                  key={index}
+                  onClick={() => !isTransitioning && handleCardClick(index)}
+                  className={`h-2 rounded-full transition-all duration-300 flex-shrink-0 ${
+                    isActive ? 'w-8 bg-pink-600' : 'w-2 bg-gray-300 hover:bg-gray-400'
+                  }`}
+                  aria-label={`Go to slide ${index + 1}`}
+                  aria-current={isActive ? 'step' : undefined}
+                />
+              )
+            })}
           </div>
         </div>
       </section>
@@ -2086,7 +2088,6 @@ export default function Home() {
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null)
   const [quickViewOpen, setQuickViewOpen] = useState(false)
   const [cartCount, setCartCount] = useState(3)
-  const [isPageLoading, setIsPageLoading] = useState(true)
 
   // Dynamic data states
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([])
@@ -2282,8 +2283,6 @@ export default function Home() {
         setReels([])
         setPromotions([])
         setHomepageSettings({})
-      } finally {
-        setIsPageLoading(false)
       }
     }
 
@@ -2311,15 +2310,7 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Header />
-      {isPageLoading ? (
-        <div className="flex-grow flex items-center justify-center">
-          <div className="flex flex-col items-center gap-4">
-            <Loader2 className="w-12 h-12 animate-spin text-pink-600" />
-            <p className="text-gray-600 text-lg">Loading...</p>
-          </div>
-        </div>
-      ) : (
-        <main className="w-full flex-grow pb-24 md:pb-0">
+      <main className="w-full flex-grow pb-24 md:pb-0">
         {/* Banners - only show if enabled and has data */}
         {homepageSettings.banners?.isEnabled !== false && banners.length > 0 && (
           <HeroCarousel banners={banners} autoPlay={homepageSettings.banners?.autoPlay} />
@@ -2349,7 +2340,6 @@ export default function Home() {
         )}
         <StickyImageCards />
       </main>
-      )}
       <Footer />
       <MobileBottomNav />
       <PWAInstallPrompt />
