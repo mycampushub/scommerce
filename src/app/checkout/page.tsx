@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { ShoppingBag, ArrowRight, Check, Trash2, Home as HomeIcon, Lock, CreditCard, Wallet } from 'lucide-react'
+import { ShoppingBag, ArrowRight, Check, Trash2, Home as HomeIcon, Lock, CreditCard, Wallet, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCartStore } from '@/lib/store/cart-store'
@@ -83,6 +83,8 @@ export default function CheckoutPage() {
   const [showLoginDialog, setShowLoginDialog] = useState(false)
   const [loginTab, setLoginTab] = useState<'login' | 'signup'>('login')
   const [authenticatedUser, setAuthenticatedUser] = useState<any | null>(null)
+  const [isLoggingIn, setIsLoggingIn] = useState(false)
+  const [isRegistering, setIsRegistering] = useState(false)
 
   const [shippingInfo, setShippingInfo] = useState({
     firstName: '',
@@ -925,6 +927,7 @@ export default function CheckoutPage() {
                       return
                     }
 
+                    setIsLoggingIn(true)
                     try {
                       const response = await fetch('/api/auth/login', {
                         method: 'POST',
@@ -981,6 +984,8 @@ export default function CheckoutPage() {
                     } catch (error) {
                       console.error('Login error:', error)
                       toast.error('Failed to login. Please try again.')
+                    } finally {
+                      setIsLoggingIn(false)
                     }
                   }}
                   className="space-y-4"
@@ -1005,8 +1010,15 @@ export default function CheckoutPage() {
                       placeholder="•••••••••••"
                     />
                   </div>
-                  <Button type="submit" className="w-full">
-                    Login & Order
+                  <Button type="submit" className="w-full" disabled={isLoggingIn}>
+                    {isLoggingIn ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Logging in...
+                      </>
+                    ) : (
+                      'Login & Order'
+                    )}
                   </Button>
                   <p className="text-xs text-center text-gray-500 mt-2">
                     Don't have an account?{' '}
@@ -1070,6 +1082,7 @@ export default function CheckoutPage() {
                       country: shippingInfo.country
                     }
 
+                    setIsRegistering(true)
                     try {
                       const response = await fetch('/api/auth/register', {
                         method: 'POST',
@@ -1126,6 +1139,8 @@ export default function CheckoutPage() {
                     } catch (error) {
                       console.error('Register error:', error)
                       toast.error('Failed to create account. Please try again.')
+                    } finally {
+                      setIsRegistering(false)
                     }
                   }}
                   className="space-y-3"
@@ -1192,8 +1207,15 @@ export default function CheckoutPage() {
                       placeholder="•••••••••••"
                     />
                   </div>
-                  <Button type="submit" className="w-full">
-                    Create Account & Order
+                  <Button type="submit" className="w-full" disabled={isRegistering}>
+                    {isRegistering ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Creating Account...
+                      </>
+                    ) : (
+                      'Create Account & Order'
+                    )}
                   </Button>
                   <p className="text-xs text-center text-gray-500 mt-2">
                     Already have an account?{' '}

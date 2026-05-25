@@ -121,6 +121,8 @@ export default function ProductPage() {
   const [reviewFormOpen, setReviewFormOpen] = useState(false)
   const [hasPurchased, setHasPurchased] = useState(false)
   const [loadingVariants, setLoadingVariants] = useState(false)
+  const [addingToCart, setAddingToCart] = useState(false)
+  const [togglingWishlist, setTogglingWishlist] = useState(false)
   const reviewsSectionRef = useRef<ReviewsSectionHandle>(null)
 
   // Fetch related products
@@ -382,7 +384,7 @@ export default function ProductPage() {
     }
   }, [product, user])
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!product) return
 
     // Use variant data if available
@@ -391,33 +393,40 @@ export default function ProductPage() {
         toast.error('Please select a variant')
         return
       }
-
-      addItem({
-        id: product.id,
-        slug: product.slug,
-        name: product.name,
-        price: selectedVariant.price,
-        originalPrice: selectedVariant.comparePrice || product.comparePrice,
-        image: (Array.isArray(selectedVariant.images) && selectedVariant.images.length > 0 ? selectedVariant.images[0] : null) || (Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : product.image),
-        variantId: selectedVariant.id,
-        variantSku: selectedVariant.sku,
-        size: selectedVariant.size,
-        color: selectedVariant.color,
-        material: selectedVariant.material,
-        quantity,
-      })
-    } else {
-      addItem({
-        id: product.id,
-        slug: product.slug,
-        name: product.name,
-        price: product.basePrice || product.price,
-        originalPrice: product.comparePrice,
-        image: Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : product.image,
-        quantity,
-      })
     }
-    toast.success('Added to cart successfully!')
+
+    setAddingToCart(true)
+    try {
+      if (hasVariants) {
+        addItem({
+          id: product.id,
+          slug: product.slug,
+          name: product.name,
+          price: selectedVariant!.price,
+          originalPrice: selectedVariant!.comparePrice || product.comparePrice,
+          image: (Array.isArray(selectedVariant!.images) && selectedVariant!.images.length > 0 ? selectedVariant!.images[0] : null) || (Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : product.image),
+          variantId: selectedVariant!.id,
+          variantSku: selectedVariant!.sku,
+          size: selectedVariant!.size,
+          color: selectedVariant!.color,
+          material: selectedVariant!.material,
+          quantity,
+        })
+      } else {
+        addItem({
+          id: product.id,
+          slug: product.slug,
+          name: product.name,
+          price: product.basePrice || product.price,
+          originalPrice: product.comparePrice,
+          image: Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : product.image,
+          quantity,
+        })
+      }
+      toast.success('Added to cart successfully!')
+    } finally {
+      setAddingToCart(false)
+    }
   }
 
   const handleShare = async () => {
@@ -858,27 +867,31 @@ export default function ProductPage() {
                 <div className="flex flex-col sm:flex-row gap-4">
                   <button
                     onClick={handleAddToCart}
-                    disabled={currentStock <= 0 || (hasVariants && !selectedVariant)}
+                    disabled={currentStock <= 0 || (hasVariants && !selectedVariant) || addingToCart}
                     className={`min-h-[48px] flex-1 py-4 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2 ${
-                      currentStock <= 0 || (hasVariants && !selectedVariant)
+                      currentStock <= 0 || (hasVariants && !selectedVariant) || addingToCart
                         ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                         : 'bg-pink-600 text-white hover:bg-pink-700'
                     }`}
                   >
-                    <ShoppingCart className="w-5 h-5" />
-                    {currentStock <= 0 ? 'Out of Stock' : hasVariants && !selectedVariant ? 'Select a Variant' : 'Add to Cart'}
+                    {addingToCart ? <Loader2 className="w-5 h-5 animate-spin" /> : <ShoppingCart className="w-5 h-5" />}
+                    {addingToCart ? 'Adding...' : (currentStock <= 0 ? 'Out of Stock' : hasVariants && !selectedVariant ? 'Select a Variant' : 'Add to Cart')}
                   </button>
                   <button
-                    onClick={() => setIsWishlisted(!isWishlisted)}
+                    onClick={() => {
+                      setIsWishlisted(!isWishlisted)
+                      // Toggle wishlist animation
+                    }}
                     aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+                    disabled={togglingWishlist}
                     className={`min-h-[48px] w-full sm:w-auto px-8 py-4 rounded-xl font-semibold border-2 transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2 ${
                       isWishlisted
                         ? 'border-pink-600 text-pink-600'
                         : 'border-gray-300 text-gray-700 hover:border-gray-400'
-                    }`}
+                    } ${togglingWishlist ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
-                    <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-pink-600' : ''}`} />
-                    <span className="hidden sm:inline">{isWishlisted ? 'Wishlisted' : 'Wishlist'}</span>
+                    {togglingWishlist ? <Loader2 className="w-5 h-5 animate-spin" /> : <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-pink-600' : ''}`} />}
+                    <span className="hidden sm:inline">{togglingWishlist ? '...' : (isWishlisted ? 'Wishlisted' : 'Wishlist')}</span>
                   </button>
                 </div>
                 <Button

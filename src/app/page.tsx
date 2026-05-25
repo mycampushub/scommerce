@@ -683,18 +683,22 @@ function CategoryCarousel({ allCategories, products }: { allCategories: Category
   if (loading || !categories || categories.length === 0) return null
 
   const currentCategory = categories && categories[currentIndex]
-  const categoryProducts = (products || []).filter(p =>
-    currentCategory && p.categoryId === currentCategory.id
-  ).slice(0, 4)
+  const categoryProducts = (products || [])
+    .filter(p => currentCategory && p.categoryId === currentCategory.id)
+    .filter((p, index, self) =>
+      // Remove duplicates based on product ID
+      index === self.findIndex((t) => t.id === p.id)
+    )
+    .slice(0, 4)
 
   const href = currentCategory?.href || `/collections/${currentCategory?.slug}`
 
   return (
     <section className="w-full py-6 md:py-8 bg-gradient-to-b from-pink-50 to-white">
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-4 max-w-7xl">
         {/* Category Name Carousel with Left/Right Controls */}
         <div
-          className="relative bg-white rounded-2xl shadow-sm p-4 md:p-6"
+          className="relative bg-white rounded-2xl shadow-sm p-3 md:p-6"
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
         >
@@ -791,16 +795,16 @@ function CategoryCarousel({ allCategories, products }: { allCategories: Category
 function Categories({ categories }: { categories: Category[] }) {
   return (
     <section className="w-full py-8 md:py-12 bg-white">
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-4 max-w-7xl">
         <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6 text-center">
           Shop by Category
         </h2>
-        <div className="px-3 py-3 md:px-12 md:py-6" data-testid="category-menu">
+        <div className="py-3 md:py-6" data-testid="category-menu">
           {/* Mobile View - Horizontal Scroll */}
           <div
             role="list"
             data-testid="category-menu-scroll"
-            className="flex gap-2 overflow-x-auto pb-2 md:hidden"
+            className="flex gap-3 overflow-x-auto pb-2 md:hidden -mx-4 px-4"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
           >
             {categories.map((category, index) => (
@@ -810,21 +814,21 @@ function Categories({ categories }: { categories: Category[] }) {
                 href={category.href}
                 className="flex-shrink-0"
               >
-                <div className="w-[78px] flex flex-col items-center group">
+                <div className="w-[90px] flex flex-col items-center group">
                   <div className="relative rounded-lg overflow-hidden">
                     <img
                       src={category.image}
                       alt={category.name}
                       className="rounded-lg object-cover group-hover:scale-105 transition-transform duration-300"
-                      style={{ width: '78px', height: '104px' }}
+                      style={{ width: '90px', height: '120px' }}
                       data-testid={`category-menu-item-${index}-image`}
-                      width="78"
-                      height="104"
+                      width="90"
+                      height="120"
                       loading="lazy"
                     />
                   </div>
                   <span
-                    className="text-center font-medium text-[10px] mt-2 leading-tight block w-[78px] transition-colors group-hover:text-pink-600"
+                    className="text-center font-medium text-[11px] mt-2 leading-tight block w-[90px] transition-colors group-hover:text-pink-600"
                     data-testid={`category-menu-item-${index}-text`}
                     style={{
                       color: '#8c8b8b',
@@ -1066,6 +1070,9 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
   const [isTransitioning, setIsTransitioning] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
+  const [scrollPosition, setScrollPosition] = useState(0)
+  const [touchStartX, setTouchStartX] = useState(0)
+  const carouselRef = useRef<HTMLDivElement>(null)
 
   // Detect mobile/desktop
   useEffect(() => {
@@ -1076,6 +1083,40 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
   }, [])
+
+  // Save and restore scroll position when modal opens/closes
+  useEffect(() => {
+    if (selectedReel) {
+      // Save scroll position when modal opens
+      setScrollPosition(window.pageYOffset)
+      // Prevent body scroll
+      document.body.style.overflow = 'hidden'
+    } else {
+      // Restore scroll position when modal closes
+      document.body.style.overflow = ''
+      window.scrollTo(0, scrollPosition)
+    }
+  }, [selectedReel, scrollPosition])
+
+  // Touch handlers for mobile swipe
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartX(e.touches[0].clientX)
+  }
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!isMobile) return
+    const touchEndX = e.changedTouches[0].clientX
+    const diff = touchStartX - touchEndX
+    
+    // Swipe threshold
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) {
+        handleNext() // Swipe left - next
+      } else {
+        handlePrev() // Swipe right - previous
+      }
+    }
+  }
 
   // Carousel settings state
   const [carouselSettings, setCarouselSettings] = useState({
@@ -1196,7 +1237,9 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
     return result
   }
 
-  const visibleCardsList = getVisibleCards()
+  // Limit visible cards for mobile - ensure only 3 are shown
+  const visibleCardsList = getVisibleCards().slice(0, isMobile ? 3 : undefined)
+
   const centerIndexInView = Math.floor(visibleCardsList.length / 2)
 
   const getCardStyle = (visibleIndex: number) => {
@@ -1211,11 +1254,11 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
     // Calculate opacity - also gradual for ALL cards
     const opacity = 1 - (distanceFromCenter / maxDistance) * 0.4
 
-    // Calculate translate X - adjusted spacing to prevent overlap
-    const spacing = isMobile ? 90 : 140
+    // Calculate translate X - adjusted spacing for mobile to fit 3 cards properly
+    const spacing = isMobile ? 85 : 140
     const translateX = (visibleIndex - centerIndex) * spacing
 
-    // Calculate card size - increased height
+    // Calculate card size - optimized for mobile
     const baseWidth = isMobile ? 170 : 280
     const baseHeight = isMobile ? 255 : 480
     const width = baseWidth * scale
@@ -1235,8 +1278,8 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
 
   return (
     <>
-      <section className="w-full py-16 md:py-20 bg-gradient-to-b from-[#F8F9FA] via-white to-[#F8F9FA] relative overflow-visible">
-        <div className="container mx-auto px-4 relative z-10">
+      <section className="w-full py-12 md:py-20 bg-gradient-to-b from-[#F8F9FA] via-white to-[#F8F9FA] relative overflow-visible">
+        <div className="container mx-auto px-4 relative z-10 max-w-7xl">
           {/* Section Header */}
           <div className="flex items-center justify-between mb-10">
             <div>
@@ -1247,22 +1290,18 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
                 Discover trending products in short videos
               </p>
             </div>
-            <a
-              href="/shorts"
-              className="hidden md:flex items-center gap-2 bg-white hover:bg-pink-50 text-[#1C1E21] hover:text-pink-600 px-5 py-2.5 rounded-full font-medium text-sm transition-all shadow-sm hover:shadow-md border border-gray-200"
-            >
-              View All
-              <ChevronRight className="w-4 h-4" />
-            </a>
           </div>
 
           {/* 3D Carousel Container */}
           <div
-            className="relative w-full h-[450px] md:h-[600px] flex items-center justify-center"
+            ref={carouselRef}
+            className="relative w-full h-[300px] md:h-[600px] flex items-center justify-center overflow-hidden"
             onMouseEnter={() => setIsPaused(true)}
             onMouseLeave={() => setIsPaused(false)}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
           >
-            {/* Left Navigation Button - Hidden on mobile */}
+            {/* Left Navigation Button - Desktop only */}
             {!isMobile && (
               <button
                 onClick={handlePrev}
@@ -1274,7 +1313,7 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
               </button>
             )}
 
-            {/* Right Navigation Button - Hidden on mobile */}
+            {/* Right Navigation Button - Desktop only */}
             {!isMobile && (
               <button
                 onClick={handleNext}
@@ -1396,23 +1435,12 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
               })}
             </div>
           </div>
-
-          {/* Mobile View All Button */}
-          <div className="md:hidden mt-8 text-center">
-            <a
-              href="/shorts"
-              className="inline-flex items-center gap-2 bg-white text-[#1C1E21] px-5 py-2.5 rounded-full font-medium text-sm transition-all shadow-sm hover:shadow-md border border-gray-200"
-            >
-              View All
-              <ChevronRight className="w-4 h-4" />
-            </a>
-          </div>
         </div>
       </section>
 
       {/* Fullscreen Video Modal */}
       {selectedReel && (
-        <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center backdrop-blur-sm p-2 sm:p-4 md:p-6">
+        <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center p-2 sm:p-4 md:p-6">
           <button
             onClick={() => setSelectedReel(null)}
             className="absolute top-2 right-2 sm:top-4 sm:right-4 z-20 text-white hover:bg-white/20 rounded-full p-2 sm:p-3 transition-all hover:scale-110"
@@ -1581,11 +1609,24 @@ function FullscreenVideo() {
 // 7. Featured Collection Carousel Component
 function FeaturedCollection({ products, onQuickView, onAddToCart }: { products: Product[]; onQuickView: (product: Product) => void; onAddToCart: (product: Product) => void }) {
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [isMobile, setIsMobile] = useState(false)
+  const [touchStartX, setTouchStartX] = useState(0)
+  const containerRef = useRef<HTMLDivElement>(null)
   const itemsPerPage = 4
   const { addItem, getItemCount } = useCartStore()
   const cartCount = getItemCount()
 
   const productsArray = Array.isArray(products) ? products : []
+
+  // Detect mobile/desktop
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   if (productsArray.length === 0) {
     return null
@@ -1599,20 +1640,47 @@ function FeaturedCollection({ products, onQuickView, onAddToCart }: { products: 
     setCurrentIndex((prev) => Math.min(Math.ceil(productsArray.length / itemsPerPage) - 1, prev + 1))
   }
 
+  // Touch handlers for mobile swipe
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartX(e.touches[0].clientX)
+  }
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!isMobile) return
+    const touchEndX = e.changedTouches[0].clientX
+    const diff = touchStartX - touchEndX
+    
+    // Swipe threshold
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) {
+        handleNext() // Swipe left - next
+      } else {
+        handlePrev() // Swipe right - previous
+      }
+    }
+  }
+
   return (
     <section className="featured-collection container mx-auto px-4 py-12">
       <div className="flex items-center justify-between mb-8">
-        <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Featured Collection</h2>
-        <div className="flex gap-2">
-          <button onClick={handlePrev} className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-50" disabled={currentIndex === 0}>
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <button onClick={handleNext} className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-50" disabled={currentIndex >= Math.ceil(productsArray.length / itemsPerPage) - 1}>
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Featured Products</h2>
+        {!isMobile && (
+          <div className="flex gap-2">
+            <button onClick={handlePrev} className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-50" disabled={currentIndex === 0}>
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button onClick={handleNext} className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-50" disabled={currentIndex >= Math.ceil(productsArray.length / itemsPerPage) - 1}>
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+        )}
       </div>
-      <div className="overflow-hidden">
+      <div
+        ref={containerRef}
+        className="overflow-hidden"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         <div className="flex transition-transform duration-500 ease-in-out" style={{ transform: `translateX(-${currentIndex * 100}%)` }}>
           {Array.from({ length: Math.ceil(productsArray.length / itemsPerPage) }).map((_, pageIndex) => (
             <div key={pageIndex} className="flex-shrink-0 w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 px-1">
@@ -2018,6 +2086,7 @@ export default function Home() {
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null)
   const [quickViewOpen, setQuickViewOpen] = useState(false)
   const [cartCount, setCartCount] = useState(3)
+  const [isPageLoading, setIsPageLoading] = useState(true)
 
   // Dynamic data states
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([])
@@ -2213,6 +2282,8 @@ export default function Home() {
         setReels([])
         setPromotions([])
         setHomepageSettings({})
+      } finally {
+        setIsPageLoading(false)
       }
     }
 
@@ -2240,7 +2311,15 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <Header />
-      <main className="w-full flex-grow pb-24 md:pb-0">
+      {isPageLoading ? (
+        <div className="flex-grow flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="w-12 h-12 animate-spin text-pink-600" />
+            <p className="text-gray-600 text-lg">Loading...</p>
+          </div>
+        </div>
+      ) : (
+        <main className="w-full flex-grow pb-24 md:pb-0">
         {/* Banners - only show if enabled and has data */}
         {homepageSettings.banners?.isEnabled !== false && banners.length > 0 && (
           <HeroCarousel banners={banners} autoPlay={homepageSettings.banners?.autoPlay} />
@@ -2270,6 +2349,7 @@ export default function Home() {
         )}
         <StickyImageCards />
       </main>
+      )}
       <Footer />
       <MobileBottomNav />
       <PWAInstallPrompt />
