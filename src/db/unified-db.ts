@@ -64,8 +64,11 @@ class PrismaPreparedStatement implements PreparedStatement {
 
   async first<T = Record<string, unknown>>(): Promise<T | null> {
     try {
-      const result = await (this.prisma.$queryRawUnsafe as any)(this.sql, ...this.params) as any[];
-      return result.length > 0 ? (result[0] as T) : null;
+      // Use typed $queryRaw instead of $queryRawUnsafe for better type safety
+      // Create a template string for type-safe query execution
+      const sqlTemplate = [this.sql] as unknown as TemplateStringsArray;
+      const result = await this.prisma.$queryRaw<T>(sqlTemplate, ...this.params);
+      return Array.isArray(result) && result.length > 0 ? result[0] : null;
     } catch (error) {
       console.error('[PrismaPreparedStatement] first() error:', error);
       return null;
@@ -74,8 +77,10 @@ class PrismaPreparedStatement implements PreparedStatement {
 
   async all<T = Record<string, unknown>>(): Promise<{ results: T[] }> {
     try {
-      const result = await (this.prisma.$queryRawUnsafe as any)(this.sql, ...this.params) as any[];
-      return { results: result as T[] };
+      // Use typed $queryRaw instead of $queryRawUnsafe for better type safety
+      const sqlTemplate = [this.sql] as unknown as TemplateStringsArray;
+      const result = await this.prisma.$queryRaw<T>(sqlTemplate, ...this.params);
+      return { results: Array.isArray(result) ? result : [] };
     } catch (error) {
       console.error('[PrismaPreparedStatement] all() error:', error);
       return { results: [] };
@@ -84,7 +89,9 @@ class PrismaPreparedStatement implements PreparedStatement {
 
   async run(): Promise<{ meta: { changes: number }, error?: Error }> {
     try {
-      const result = await this.prisma.$executeRawUnsafe(this.sql, ...this.params);
+      // Use typed $executeRaw instead of $executeRawUnsafe for better type safety
+      const sqlTemplate = [this.sql] as unknown as TemplateStringsArray;
+      const result = await this.prisma.$executeRaw(sqlTemplate, ...this.params);
       return { meta: { changes: result as number }, error: undefined };
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));

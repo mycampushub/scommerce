@@ -5,6 +5,7 @@ import { successResponse, errorResponse, validationErrorResponse } from '@/lib/a
 import { rateLimit, createRateLimitResponse } from '@/lib/rate-limit';
 import { getClientIp } from '@/lib/rate-limit';
 import { getEnv } from '@/lib/cloudflare';
+import { logAdminAction } from '@/lib/audit-logger';
 
 /**
  * GET /api/admin/integrations/email-services
@@ -77,7 +78,26 @@ export async function POST(request: NextRequest) {
       settings: body.settings
     });
 
-    return successResponse(service, 'Email service created successfully', 201);
+    // SECURITY: Mask sensitive credentials in response
+    const safeService = {
+      ...service,
+      apiKey: service.apiKey ? service.apiKey.substring(0, 4) + '****' : undefined,
+      apiSecret: service.apiSecret ? '********' : undefined,
+    };
+
+    // Log audit event
+    const admin = userOrResponse as { id: string };
+    await logAdminAction(
+      env,
+      request,
+      admin.id,
+      'CREATE',
+      'AdminLog',
+      service.id,
+      `Created email service "${service.name}" (provider: ${service.provider})`
+    );
+
+    return successResponse(safeService, 'Email service created successfully', 201);
   } catch (error) {
     console.error('Error creating email service:', error);
     return errorResponse('Failed to create email service');

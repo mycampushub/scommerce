@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -41,6 +41,15 @@ export function VariantMatrixPreview({
   const [currentBasePrice, setCurrentBasePrice] = useState(basePrice)
   const [currentBaseStock, setCurrentBaseStock] = useState(baseStock)
   const [generatedVariants, setGeneratedVariants] = useState<string[]>([])
+
+  // Sync local state with props to prevent state divergence
+  useEffect(() => {
+    setCurrentBasePrice(basePrice)
+  }, [basePrice])
+
+  useEffect(() => {
+    setCurrentBaseStock(baseStock)
+  }, [baseStock])
 
   const totalVariants = sizes.length * colors.length
 

@@ -6,6 +6,12 @@ import { queryAll, count, boolToNumber, numberToBool, parseJSON } from '@/db/db'
 
 // GET /api/admin/reviews - List all reviews with filtering
 export async function GET(request: NextRequest) {
+  // Verify admin authentication (admin or staff)
+  const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
+
   try {
     const env = await getEnv()
     const { searchParams } = new URL(request.url)

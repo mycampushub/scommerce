@@ -862,8 +862,9 @@ export default function CouponsPage() {
                             <Switch
                               checked={promotion.isActive}
                               onCheckedChange={() => toggleActive(promotion.id, promotion.isActive)}
-                              className="h-4 w-8"
+                              className="h-5 w-9"
                               disabled={togglingActive === promotion.id}
+                              aria-label={promotion.isActive ? 'Deactivate promotion' : 'Activate promotion'}
                             />
                             <span className="text-xs text-gray-500">
                               {promotion.isActive ? 'Active' : 'Inactive'}
@@ -876,6 +877,8 @@ export default function CouponsPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => handleEdit(promotion)}
+                              className="min-h-[44px] min-w-[44px] p-2"
+                              aria-label="Edit promotion"
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -884,6 +887,8 @@ export default function CouponsPage() {
                               size="sm"
                               onClick={() => handleDelete(promotion.id)}
                               disabled={deletingPromotion === promotion.id}
+                              className="min-h-[44px] min-w-[44px] p-2"
+                              aria-label="Delete promotion"
                             >
                               {deletingPromotion === promotion.id ? (
                                 <Loader2 className="h-4 w-4 text-red-500 animate-spin" />

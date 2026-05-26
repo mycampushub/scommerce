@@ -1,5 +1,6 @@
 import { Env } from './types';
 import { queryFirst, queryAll, execute, count as dbCount, generateId, retry, batchTransaction } from './db';
+import { runTransaction } from '@/lib/transaction';
 
 export type PurchaseOrderWithItems = {
   id: string;
@@ -296,65 +297,78 @@ class PurchaseOrderRepository {
       100 // 100ms base delay
     );
 
-    try {
-      await execute(
-        env,
-        `INSERT INTO purchase_orders (id, orderNumber, supplierId, status, totalAmount, totalQuantity, orderDate, expectedDate, receivedDate, notes, createdAt, updatedAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        poId,
-        orderNumber,
-        poData.supplierId,
-        poData.status || 'PENDING',
-        totalAmount,
-        totalQuantity,
-        orderDate,
-        poData.expectedDate ? new Date(poData.expectedDate).toISOString() : null,
-        poData.receivedDate ? new Date(poData.receivedDate).toISOString() : null,
-        poData.notes || null,
-        now,
-        now
-      );
-      console.log('[PurchaseOrderRepository.create] Inserted purchase order successfully');
-    } catch (error) {
-      console.error('[PurchaseOrderRepository.create] Error inserting purchase order:', error);
-      throw error;
-    }
-
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      const itemId = generateId();
-      console.log(`[PurchaseOrderRepository.create] Inserting item ${i + 1}/${items.length}:`, item);
-
+    // Use transaction to ensure atomicity - PO header + items must all succeed or all fail
+    const result = await runTransaction(async (db, commit, rollback) => {
       try {
-        await execute(
-          env,
-          `INSERT INTO purchase_order_items (id, purchaseOrderId, productId, variantId, quantity, unitCost, totalCost, receivedQty)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          itemId,
+        // Insert PO header
+        await db.prepare(
+          `INSERT INTO purchase_orders (id, orderNumber, supplierId, status, totalAmount, totalQuantity, orderDate, expectedDate, receivedDate, notes, createdAt, updatedAt)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ).bind(
           poId,
-          item.productId,
-          item.variantId || null,
-          item.quantity,
-          item.unitCost,
-          item.unitCost * item.quantity,
-          0
-        );
-        console.log(`[PurchaseOrderRepository.create] Inserted item ${i + 1}/${items.length} successfully`);
+          orderNumber,
+          poData.supplierId,
+          poData.status || 'PENDING',
+          totalAmount,
+          totalQuantity,
+          orderDate,
+          poData.expectedDate ? new Date(poData.expectedDate).toISOString() : null,
+          poData.receivedDate ? new Date(poData.receivedDate).toISOString() : null,
+          poData.notes || null,
+          now,
+          now
+        ).run();
+
+        console.log('[PurchaseOrderRepository.create] Inserted purchase order header');
+
+        // Insert all items
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i];
+          const itemId = generateId();
+          console.log(`[PurchaseOrderRepository.create] Inserting item ${i + 1}/${items.length}:`, item);
+
+          await db.prepare(
+            `INSERT INTO purchase_order_items (id, purchaseOrderId, productId, variantId, quantity, unitCost, totalCost, receivedQty)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+          ).bind(
+            itemId,
+            poId,
+            item.productId,
+            item.variantId || null,
+            item.quantity,
+            item.unitCost,
+            item.unitCost * item.quantity,
+            0
+          ).run();
+
+          console.log(`[PurchaseOrderRepository.create] Inserted item ${i + 1}/${items.length} successfully`);
+        }
+
+        // Commit the transaction
+        await commit();
+        console.log('[PurchaseOrderRepository.create] Transaction committed');
+
+        return poId;
       } catch (error) {
-        console.error(`[PurchaseOrderRepository.create] Error inserting item ${i + 1}:`, error);
+        console.error('[PurchaseOrderRepository.create] Error in transaction:', error);
+        await rollback();
         throw error;
       }
+    });
+
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to create purchase order');
     }
 
-    console.log('[PurchaseOrderRepository.create] All items inserted, calling findById...');
-    const result = await this.findById(env, poId);
-    console.log('[PurchaseOrderRepository.create] findById returned:', result);
+    console.log('[PurchaseOrderRepository.create] Transaction successful, calling findById...');
+    const finalResult = await this.findById(env, poId);
+    console.log('[PurchaseOrderRepository.create] findById returned:', finalResult);
 
-    if (!result) {
+    if (!finalResult) {
       throw new Error('Failed to retrieve created purchase order');
     }
 
-    return result;
+    return finalResult;
   }
 
   async update(env: Env | null, id: string, data: Partial<{

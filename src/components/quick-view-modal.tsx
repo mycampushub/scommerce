@@ -283,10 +283,41 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
 
   const handleToggleWishlist = async () => {
     setIsTogglingWishlist(true)
-    // Simulate async operation with small delay for visual feedback
-    await new Promise(resolve => setTimeout(resolve, 200))
-    setIsWishlisted(!isWishlisted)
-    setIsTogglingWishlist(false)
+    try {
+      if (isWishlisted) {
+        // Remove from wishlist
+        const response = await fetch('/api/wishlist', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ productId: product.id })
+        })
+        const data = await response.json() as any
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || 'Failed to remove from wishlist')
+        }
+        toast.success('Removed from wishlist')
+      } else {
+        // Add to wishlist
+        const response = await fetch('/api/wishlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ productId: product.id })
+        })
+        const data = await response.json() as any
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || 'Failed to add to wishlist')
+        }
+        toast.success('Added to wishlist')
+      }
+      setIsWishlisted(!isWishlisted)
+    } catch (error: any) {
+      console.error('Wishlist toggle error:', error)
+      toast.error(error.message || 'Failed to update wishlist')
+    } finally {
+      setIsTogglingWishlist(false)
+    }
   }
 
   return (

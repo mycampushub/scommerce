@@ -1,5 +1,6 @@
 import { Env } from './types';
 import { queryFirst, queryAll, execute, count as dbCount, generateId, now, boolToNumber } from './db';
+import { runTransaction } from '@/lib/transaction';
 
 interface InventoryAdjustment {
   id: string;
@@ -208,66 +209,89 @@ class InventoryAdjustmentRepository {
     // Calculate difference
     const quantityDiff = quantityAfter - quantityBefore;
 
-    // Create adjustment record
-    const adjustment = await this.create(env, {
-      productId,
-      variantId: variantId || null,
-      adjustmentType,
-      quantityBefore,
-      quantityAfter,
-      quantityDiff,
-      reason,
-      notes: reason || null,
-      approvedBy: approvedBy || null,
-      approved: 0,
-      approvedAt: null,
+    // Use transaction to ensure atomicity - adjustment + stock update + movement must all succeed or all fail
+    const result = await runTransaction(async (db, commit, rollback) => {
+      const adjustmentId = generateId();
+      const currentTime = now();
+
+      // Create adjustment record
+      await db.prepare(
+        `INSERT INTO inventory_adjustments (
+          id, productId, variantId, adjustmentType, quantityBefore, quantityAfter,
+          quantityDiff, reason, notes, approvedBy, approved, approvedAt, createdAt
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(
+        adjustmentId,
+        productId,
+        variantId || null,
+        adjustmentType,
+        quantityBefore,
+        quantityAfter,
+        quantityDiff,
+        reason,
+        reason || null,
+        approvedBy || null,
+        0,
+        null,
+        currentTime
+      ).run();
+
+      // Update inventory
+      if (variantId) {
+        await db.prepare(
+          `UPDATE product_variants SET stock = ? WHERE id = ?`
+        ).bind(quantityAfter, variantId).run();
+      } else {
+        await db.prepare(
+          `UPDATE products SET stock = ? WHERE id = ?`
+        ).bind(quantityAfter, productId).run();
+      }
+
+      // Create inventory movement
+      const movementId = generateId();
+      await db.prepare(
+        `INSERT INTO inventory_movements (
+          id, productId, variantId, movementType, quantity,
+          unitCost, totalCost, referenceId, referenceType,
+          supplierId, approved, approvedAt, createdAt
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(
+        movementId,
+        productId,
+        variantId || null,
+        'ADJUSTMENT',
+        quantityDiff,
+        null,
+        null,
+        adjustmentId,
+        'ADJUSTMENT',
+        null,
+        1,
+        currentTime,
+        currentTime
+      ).run();
+
+      // Commit the transaction
+      await commit();
+
+      return { adjustmentId, movementId };
     });
 
-    // Update inventory
-    if (variantId) {
-      const updateVariantSql = `
-        UPDATE product_variants
-        SET stock = ?
-        WHERE id = ?
-      `;
-      await execute(env, updateVariantSql, quantityAfter, variantId);
-    } else {
-      const updateProductSql = `
-        UPDATE products
-        SET stock = ?
-        WHERE id = ?
-      `;
-      await execute(env, updateProductSql, quantityAfter, productId);
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to apply adjustment');
     }
 
-    // Create inventory movement
-    const movementId = generateId();
-    const movementSql = `
-      INSERT INTO inventory_movements (
-        id, productId, variantId, movementType, quantity,
-        unitCost, totalCost, referenceId, referenceType,
-        supplierId, approved, approvedAt
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `;
+    if (!result.data) {
+      throw new Error('Transaction result data is missing');
+    }
 
-    await execute(
-      env,
-      movementSql,
-      movementId,
-      productId,
-      variantId || null,
-      'ADJUSTMENT',
-      quantityDiff,
-      null,
-      null,
-      adjustment.id,
-      'ADJUSTMENT',
-      null,
-      1,
-      now()
-    );
+    // Fetch and return the created records
+    const adjustment = await this.findById(env, result.data.adjustmentId);
+    const movement = await queryFirst<any>(env, 'SELECT * FROM inventory_movements WHERE id = ?', result.data.movementId);
 
-    const movement = await queryFirst<any>(env, 'SELECT * FROM inventory_movements WHERE id = ?', movementId);
+    if (!adjustment || !movement) {
+      throw new Error('Failed to retrieve adjustment records');
+    }
 
     return { adjustment, movement };
   }

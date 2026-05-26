@@ -46,8 +46,9 @@ export async function POST(request: NextRequest) {
       email: user.email,
     });
   } catch (error) {
-    logger.logApiError('POST', '/api/auth/password-reset/verify', error as Error, 500, undefined, undefined, {
+    logger.error('Password reset token verification failed', {
       action: 'verify_reset_token',
+      error: error instanceof Error ? error.message : String(error)
     });
 
     return NextResponse.json(

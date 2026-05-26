@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useId } from 'react'
 import { Upload, X, Loader2, Image as ImageIcon, GripVertical, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -128,6 +128,7 @@ export function ImageUpload({
   accept = 'image/jpeg,image/jpg,image/png,image/webp',
   maxSize = 5
 }: ImageUploadProps) {
+  const uploadInputId = useId()
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [error, setError] = useState<string | null>(null)
@@ -324,11 +325,11 @@ export function ImageUpload({
                   accept={accept}
                   onChange={(e) => handleFileSelect(e.target.files)}
                   className="hidden"
-                  id="image-upload-input"
+                  id={uploadInputId}
                   disabled={uploading || images.length >= maxImages}
                 />
                 <Button
-                  onClick={() => document.getElementById('image-upload-input')?.click()}
+                  onClick={() => document.getElementById(uploadInputId)?.click()}
                   disabled={uploading || images.length >= maxImages}
                   className="mt-4 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
                 >

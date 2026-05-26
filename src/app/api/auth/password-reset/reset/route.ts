@@ -50,9 +50,11 @@ export async function POST(request: NextRequest) {
     });
 
     // Log the password reset
-    logger.logSecurityEvent('Password reset successfully completed', 'MEDIUM', {
+    logger.info('Password reset successfully completed', {
       userId: user.id,
       email: user.email,
+      type: 'security_event',
+      severity: 'MEDIUM'
     });
 
     logger.info('User password reset', { userId: user.id, email: user.email });
@@ -62,8 +64,9 @@ export async function POST(request: NextRequest) {
       message: 'Password has been reset successfully. You can now login with your new password.',
     });
   } catch (error) {
-    logger.logApiError('POST', '/api/auth/password-reset/reset', error as Error, 500, undefined, undefined, {
+    logger.error('Password reset failed', {
       action: 'reset_password',
+      error: error instanceof Error ? error.message : String(error)
     });
 
     return NextResponse.json(

@@ -17,6 +17,23 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  // SECURITY: Validate path to prevent directory traversal attacks
+  if (path.includes('..') || path.includes('\\') || path.includes('\0')) {
+    return NextResponse.json(
+      { success: false, error: 'Invalid path' },
+      { status: 400 }
+    );
+  }
+
+  // SECURITY: Only allow specific path pattern (uploads directory with image files)
+  const allowedPathPattern = /^\/?uploads\/[\w-]+\.(jpg|jpeg|png|webp|gif)$/i;
+  if (!allowedPathPattern.test(path)) {
+    return NextResponse.json(
+      { success: false, error: 'Invalid path format' },
+      { status: 400 }
+    );
+  }
+
   // Get R2 public URL from environment
   const r2PublicUrl = await getEnvVar('R2_PUBLIC_URL');
 
@@ -27,7 +44,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Remove /uploads/ prefix from path
+  // Remove /uploads/ prefix from path (already validated above)
   const cleanPath = path.replace(/^\/uploads\//, '').replace(/^uploads\//, '');
 
   // Construct R2 URL

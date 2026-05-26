@@ -1,3 +1,18 @@
+import { Metadata } from 'next'
+
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: 'About Us - SCommerce',
+    description: 'Learn more about our story, mission, and values. Discover what makes us different.',
+    keywords: 'about, our story, company, mission, values',
+    openGraph: {
+      title: 'About Us - SCommerce',
+      description: 'Learn more about our story, mission, and values. Discover what makes us different.',
+      type: 'website',
+    },
+  }
+}
+
 import Link from 'next/link'
 import { Heart, Award, Users, Mail, Phone, MapPin, Instagram, Facebook, Twitter, Youtube, Linkedin, ShoppingBag } from 'lucide-react'
 import { Header } from '@/components/header'
@@ -214,7 +229,7 @@ export default function AboutPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <a
-                href="mailto:info@modern ecommerce.com"
+                href="mailto:info@modernecommerce.com"
                 className="inline-flex items-center justify-center gap-2 bg-white text-pink-600 px-8 py-4 rounded-xl font-semibold hover:bg-gray-100 transition-colors"
               >
                 <Mail className="w-5 h-5" />

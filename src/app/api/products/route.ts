@@ -6,9 +6,16 @@ import { CategoryRepository } from '@/db/category.repository';
 import { numberToBool, parseJSON, count } from '@/db/db';
 import { addCacheHeaders, CachePresets } from '@/lib/http-cache';
 import { errorResponse } from '@/lib/api-response';
+import { rateLimitMiddleware } from '@/lib/rate-limit';
 
 
 export async function GET(request: Request) {
+  // Apply rate limiting for public API
+  const rateLimitResponse = await rateLimitMiddleware(request, 'public');
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
+
   // Get D1 database from request context (Cloudflare Pages/Workers)
   const env = await getEnv();
   

@@ -51,10 +51,10 @@ export function parsePaginationParams(
   const offset = parseInt(searchParams.get('offset') || '0', 10);
   const cursor = searchParams.get('cursor') || undefined;
 
-  // Validate and clamp values
-  const validPage = Math.max(1, page);
-  const validLimit = Math.min(100, Math.max(1, limit)); // Max 100 per page
-  const validOffset = Math.max(0, offset);
+  // Validate and clamp values (handle NaN by defaulting to sensible values)
+  const validPage = Math.max(1, isNaN(page) ? 1 : page);
+  const validLimit = Math.min(100, Math.max(1, isNaN(limit) ? 20 : limit)); // Max 100 per page
+  const validOffset = Math.max(0, isNaN(offset) ? 0 : offset);
 
   return {
     page: validPage,

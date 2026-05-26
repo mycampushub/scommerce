@@ -535,19 +535,32 @@ export default function HomepageManagementPage() {
   }
 
   useEffect(() => {
-    fetchMarquee()
-    fetchCategories()
-    fetchCategoryCarousel()
-    fetchFeaturedProducts()
-    fetchBrands()
-    fetchBrandsSettings()
-    fetchBanners()
-    fetchStories()
-    fetchReels()
-    fetchReelsCarousel()
-    fetchPromotions()
-    fetchSettings()
-    fetchProducts()
+    const loadInitialData = async () => {
+      setLoading(true)
+      try {
+        await Promise.all([
+          fetchMarquee(),
+          fetchCategories(),
+          fetchCategoryCarousel(),
+          fetchFeaturedProducts(),
+          fetchBrands(),
+          fetchBrandsSettings(),
+          fetchBanners(),
+          fetchStories(),
+          fetchReels(),
+          fetchReelsCarousel(),
+          fetchPromotions(),
+          fetchSettings(),
+          fetchProducts()
+        ])
+      } catch (error) {
+        console.error('Error loading initial data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadInitialData()
   }, [])
 
   // Banner handlers
@@ -1096,31 +1109,27 @@ export default function HomepageManagementPage() {
                   ) : (
                     <div className="space-y-3">
                       {categories.map((category) => (
-                        <div
+                        <label
                           key={category.id}
-                          className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                          className={`block p-3 border rounded-lg cursor-pointer transition-colors ${
                             selectedCategoryIds.includes(category.id)
                               ? 'bg-pink-50 border-pink-300'
                               : 'hover:bg-gray-50'
                           }`}
-                          onClick={() => {
-                            if (selectedCategoryIds.includes(category.id)) {
-                              setSelectedCategoryIds(selectedCategoryIds.filter(id => id !== category.id))
-                            } else {
-                              setSelectedCategoryIds([...selectedCategoryIds, category.id])
-                            }
-                          }}
                         >
                           <div className="flex items-center gap-3">
-                            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                              selectedCategoryIds.includes(category.id)
-                                ? 'bg-pink-500 border-pink-500'
-                                : 'border-gray-300'
-                            }`}>
-                              {selectedCategoryIds.includes(category.id) && (
-                                <div className="w-3 h-3 bg-white rounded-sm" />
-                              )}
-                            </div>
+                            <input
+                              type="checkbox"
+                              checked={selectedCategoryIds.includes(category.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedCategoryIds([...selectedCategoryIds, category.id])
+                                } else {
+                                  setSelectedCategoryIds(selectedCategoryIds.filter(id => id !== category.id))
+                                }
+                              }}
+                              className="w-5 h-5 rounded border-2 border-gray-300 text-pink-500 focus:ring-pink-500 focus:ring-offset-0 cursor-pointer"
+                            />
                             {category.image && (
                               <img
                                 src={category.image}
@@ -1133,7 +1142,7 @@ export default function HomepageManagementPage() {
                               <p className="text-sm text-gray-500">{category.slug}</p>
                             </div>
                           </div>
-                        </div>
+                        </label>
                       ))}
                     </div>
                   )}
@@ -1187,31 +1196,27 @@ export default function HomepageManagementPage() {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {products.map((product) => (
-                      <div
+                      <label
                         key={product.id}
-                        className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                        className={`block p-4 border rounded-lg cursor-pointer transition-colors ${
                           selectedFeaturedProductIds.includes(product.id)
                             ? 'bg-pink-50 border-pink-300 ring-2 ring-pink-200'
                             : 'hover:bg-gray-50'
                         }`}
-                        onClick={() => {
-                          if (selectedFeaturedProductIds.includes(product.id)) {
-                            setSelectedFeaturedProductIds(selectedFeaturedProductIds.filter(id => id !== product.id))
-                          } else {
-                            setSelectedFeaturedProductIds([...selectedFeaturedProductIds, product.id])
-                          }
-                        }}
                       >
                         <div className="flex items-start gap-3">
-                          <div className={`mt-1 w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
-                            selectedFeaturedProductIds.includes(product.id)
-                              ? 'bg-pink-500 border-pink-500'
-                              : 'border-gray-300'
-                          }`}>
-                            {selectedFeaturedProductIds.includes(product.id) && (
-                              <div className="w-3 h-3 bg-white rounded-sm" />
-                            )}
-                          </div>
+                          <input
+                            type="checkbox"
+                            checked={selectedFeaturedProductIds.includes(product.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedFeaturedProductIds([...selectedFeaturedProductIds, product.id])
+                              } else {
+                                setSelectedFeaturedProductIds(selectedFeaturedProductIds.filter(id => id !== product.id))
+                              }
+                            }}
+                            className="mt-1 w-5 h-5 rounded border-2 border-gray-300 text-pink-500 focus:ring-pink-500 focus:ring-offset-0 flex-shrink-0 cursor-pointer"
+                          />
                           <div className="flex-1 min-w-0">
                             {getProductImage(product) && (
                               <img
@@ -1225,7 +1230,7 @@ export default function HomepageManagementPage() {
                             <p className="text-xs text-gray-500 truncate">{product.slug}</p>
                           </div>
                         </div>
-                      </div>
+                      </label>
                     ))}
                   </div>
                 )}
@@ -1322,31 +1327,27 @@ export default function HomepageManagementPage() {
                   ) : (
                     <div className="space-y-3">
                       {brands.map((brand) => (
-                        <div
+                        <label
                           key={brand.id}
-                          className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                          className={`block p-3 border rounded-lg cursor-pointer transition-colors ${
                             selectedBrandIds.includes(brand.id)
                               ? 'bg-pink-50 border-pink-300'
                               : 'hover:bg-gray-50'
                           }`}
-                          onClick={() => {
-                            if (selectedBrandIds.includes(brand.id)) {
-                              setSelectedBrandIds(selectedBrandIds.filter(id => id !== brand.id))
-                            } else {
-                              setSelectedBrandIds([...selectedBrandIds, brand.id])
-                            }
-                          }}
                         >
                           <div className="flex items-center gap-3">
-                            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                              selectedBrandIds.includes(brand.id)
-                                ? 'bg-pink-500 border-pink-500'
-                                : 'border-gray-300'
-                            }`}>
-                              {selectedBrandIds.includes(brand.id) && (
-                                <div className="w-3 h-3 bg-white rounded-sm" />
-                              )}
-                            </div>
+                            <input
+                              type="checkbox"
+                              checked={selectedBrandIds.includes(brand.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedBrandIds([...selectedBrandIds, brand.id])
+                                } else {
+                                  setSelectedBrandIds(selectedBrandIds.filter(id => id !== brand.id))
+                                }
+                              }}
+                              className="w-5 h-5 rounded border-2 border-gray-300 text-pink-500 focus:ring-pink-500 focus:ring-offset-0 cursor-pointer"
+                            />
                             {brand.logo && (
                               <img
                                 src={brand.logo}
@@ -1359,7 +1360,7 @@ export default function HomepageManagementPage() {
                               <p className="text-sm text-gray-500">{brand.slug}</p>
                             </div>
                           </div>
-                        </div>
+                        </label>
                       ))}
                     </div>
                   )}
@@ -1770,24 +1771,43 @@ export default function HomepageManagementPage() {
                     </p>
                   </div>
                   <div>
-                    <Label>Associated Products</Label>
-                    <select
-                      multiple
-                      className="w-full border rounded-md p-2 min-h-[100px]"
-                      value={reelForm.productIds}
-                      onChange={(e) => {
-                        const selectedOptions = Array.from(e.target.selectedOptions)
-                        const selectedIds = selectedOptions.map(opt => opt.value)
-                        setReelForm({ ...reelForm, productIds: selectedIds })
-                      }}
+                    <Label htmlFor="reel-products">Associated Products</Label>
+                    <div
+                      id="reel-products"
+                      role="listbox"
+                      aria-multiselectable="true"
+                      aria-label="Associated products for this reel"
+                      className="border rounded-md p-2 min-h-[100px] max-h-[200px] overflow-y-auto space-y-2"
                     >
                       {products.map(product => (
-                        <option key={product.id} value={product.id}>
-                          {product.name} - ৳{product.price}
-                        </option>
+                        <label
+                          key={product.id}
+                          className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer block"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={reelForm.productIds.includes(product.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setReelForm({ ...reelForm, productIds: [...reelForm.productIds, product.id] })
+                              } else {
+                                setReelForm({ ...reelForm, productIds: reelForm.productIds.filter(id => id !== product.id) })
+                              }
+                            }}
+                            className="w-4 h-4 rounded border-gray-300 text-pink-500 focus:ring-pink-500"
+                          />
+                          <span className="text-sm">
+                            {product.name} - ৳{product.price}
+                          </span>
+                        </label>
                       ))}
-                    </select>
-                    <p className="text-sm text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple products</p>
+                      {products.length === 0 && (
+                        <p className="text-sm text-gray-500 text-center py-4">No products available</p>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-500 mt-1" id="reel-products-help">
+                      Select products to associate with this reel ({reelForm.productIds.length} selected)
+                    </p>
                   </div>
                 </div>
                 <DialogFooter>

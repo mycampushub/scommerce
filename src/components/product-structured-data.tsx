@@ -17,7 +17,7 @@ interface ProductStructuredDataProps {
   siteUrl?: string
 }
 
-export function ProductStructuredData({ product, siteUrl = 'https://yourdomain.com' }: ProductStructuredDataProps) {
+export function ProductStructuredData({ product, siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL || 'https://scommerce.com' }: ProductStructuredDataProps) {
   if (!product) return null
 
   const productUrl = `${siteUrl}/product/${product.slug}`
@@ -42,7 +42,7 @@ export function ProductStructuredData({ product, siteUrl = 'https://yourdomain.c
     offers: {
       '@type': 'Offer',
       url: productUrl,
-      priceCurrency: 'BDT',
+      priceCurrency: process.env.NEXT_PUBLIC_CURRENCY || 'INR',
       price: validLowPrice.toFixed(2),
       availability: (product.stock || 0) > 0
         ? 'https://schema.org/InStock'
@@ -67,22 +67,14 @@ export function ProductStructuredData({ product, siteUrl = 'https://yourdomain.c
   if (safeComparePrice && safeComparePrice > safePrice) {
     structuredData.offers = {
       '@type': 'AggregateOffer',
-      lowPrice: {
-        '@type': 'Offer',
-        priceCurrency: 'BDT',
-        price: validLowPrice.toFixed(2),
-        availability: (product.stock || 0) > 0
-          ? 'https://schema.org/InStock'
-          : 'https://schema.org/OutOfStock',
-      },
-      highPrice: {
-        '@type': 'Offer',
-        priceCurrency: 'BDT',
-        price: validHighPrice.toFixed(2),
-        availability: (product.stock || 0) > 0
-          ? 'https://schema.org/InStock'
-          : 'https://schema.org/OutOfStock',
-      },
+      priceCurrency: process.env.NEXT_PUBLIC_CURRENCY || 'INR',
+      lowPrice: parseFloat(validLowPrice.toFixed(2)),
+      highPrice: parseFloat(validHighPrice.toFixed(2)),
+      offerCount: 1,
+      availability: (product.stock || 0) > 0
+        ? 'https://schema.org/InStock'
+        : 'https://schema.org/OutOfStock',
+      url: productUrl,
     } as any
   }
 
@@ -104,8 +96,8 @@ interface OrganizationStructuredDataProps {
 }
 
 export function OrganizationStructuredData({
-  siteName = 'Modern E-commerce',
-  siteUrl = 'https://yourdomain.com',
+  siteName = 'SCommerce',
+  siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL || 'https://scommerce.com',
   logo = '/logo.svg',
   description = 'Modern e-commerce platform for fashion and lifestyle products'
 }: OrganizationStructuredDataProps) {

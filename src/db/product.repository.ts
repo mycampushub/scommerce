@@ -10,6 +10,12 @@ import {
   parseJSON,
   stringifyJSON
 } from '@/db/db';
+import {
+  updateStockWithLock,
+  getVersionConflictErrorMessage,
+  retryOnVersionConflict,
+  OptimisticLockResult
+} from '@/lib/optimistic-lock';
 
 export class ProductRepository {
   /**
@@ -743,29 +749,37 @@ export class ProductRepository {
   }
 
   /**
-   * Update variant stock
+   * Update variant stock with optimistic locking (prevents overselling in high-concurrency scenarios)
+   * Uses version checking and automatic retry on conflicts
    */
   static async updateVariantStock(env: Env | null, id: string, quantity: number): Promise<void> {
-    await execute(
-      env,
-      'UPDATE product_variants SET stock = ?, updatedAt = ? WHERE id = ?',
-      quantity,
-      now(),
-      id
-    );
+    const result = await retryOnVersionConflict(async () => {
+      return await updateStockWithLock(id, quantity, false);
+    });
+
+    if (!result.success) {
+      if (result.conflict) {
+        throw new Error(getVersionConflictErrorMessage('product variant'));
+      }
+      throw new Error(result.error || 'Failed to update variant stock');
+    }
   }
 
   /**
-   * Update product stock
+   * Update product stock with optimistic locking (for products without variants)
+   * Uses version checking and automatic retry on conflicts
    */
   static async updateProductStock(env: Env | null, id: string, quantity: number): Promise<void> {
-    await execute(
-      env,
-      'UPDATE products SET stock = ?, updatedAt = ? WHERE id = ?',
-      quantity,
-      now(),
-      id
-    );
+    const result = await retryOnVersionConflict(async () => {
+      return await updateStockWithLock(id, quantity, true);
+    });
+
+    if (!result.success) {
+      if (result.conflict) {
+        throw new Error(getVersionConflictErrorMessage('product'));
+      }
+      throw new Error(result.error || 'Failed to update product stock');
+    }
   }
 
   /**

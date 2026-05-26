@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
 import { OrderRepository } from '@/db/order.repository'
 import { parseJSON } from '@/db/db'
+import { verifyToken, extractTokenFromHeader } from '@/lib/auth'
 
 interface TrackingEvent {
   status: string
@@ -16,6 +17,35 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const env = await getEnv()
+
+  // ============================================
+  // AUTHENTICATION - REQUIRED FOR ORDER TRACKING
+  // ============================================
+  
+  // Get authentication token
+  const authHeader = request.headers.get('authorization')
+  const cookieToken = request.cookies.get('session')?.value
+  const token = extractTokenFromHeader(authHeader) || cookieToken
+
+  if (!token) {
+    return NextResponse.json(
+      { success: false, error: 'Authentication required to track orders' },
+      { status: 401 }
+    )
+  }
+
+  // Verify token and get user info
+  const payload = await verifyToken(token)
+  if (!payload || !payload.userId) {
+    return NextResponse.json(
+      { success: false, error: 'Invalid or expired authentication token' },
+      { status: 401 }
+    )
+  }
+
+  const authenticatedUserId = payload.userId
+  const authenticatedEmail = payload.email
+  const isAdmin = payload.role === 'admin' || payload.role === 'staff'
 
   try {
     const orderId = (await params).id
@@ -33,6 +63,24 @@ export async function GET(
       )
     }
 
+    // ============================================
+    // AUTHORIZATION - VERIFY ORDER OWNERSHIP
+    // ============================================
+    
+    // Users can only view their own orders; admins can view any order
+    if (!isAdmin) {
+      const isOwner = order.userId === authenticatedUserId || order.customerEmail === authenticatedEmail
+      if (!isOwner) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Order not found or access denied',
+          },
+          { status: 404 } // Return 404 to hide existence of other orders
+        )
+      }
+    }
+
     // Fetch order items
     const orderItems = await OrderRepository.getItems(env, orderId)
 
@@ -41,6 +89,25 @@ export async function GET(
 
     // Generate tracking timeline based on order status and timeline
     const trackingTimeline = generateTrackingTimeline(order)
+
+    // ============================================
+    // DATA EXPOSURE PREVENTION
+    // - Mask email for non-admins
+    // - Remove phone number entirely (not needed for tracking)
+    // ============================================
+    const maskEmail = (email: string | null | undefined): string | null => {
+      if (!email) return null
+      if (isAdmin) return email // Admins see full email
+      
+      const [local, domain] = email.split('@')
+      if (!local || !domain) return email
+      
+      // Mask all but first 2 characters of local part
+      const maskedLocal = local.length > 2 
+        ? local.substring(0, 2) + '*'.repeat(local.length - 2)
+        : '**'
+      return `${maskedLocal}@${domain}`
+    }
 
     return NextResponse.json({
       success: true,
@@ -57,8 +124,8 @@ export async function GET(
         },
         customer: {
           name: order.customerName,
-          email: order.customerEmail,
-          phone: order.customerPhone,
+          email: maskEmail(order.customerEmail),
+          // Phone number removed - not needed for tracking
         },
         shipping: {
           address: shippingAddress,

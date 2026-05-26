@@ -43,6 +43,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
+import { escapeCSVField, downloadCSV } from '@/lib/csv-utils'
 
 interface AuditLog {
   id: string
@@ -133,8 +134,9 @@ export default function AuditLogsPage() {
       return
     }
 
-    const csvContent = [
-      ['Timestamp', 'Admin Name', 'Admin Email', 'Action', 'Entity', 'Entity ID', 'IP Address', 'User Agent', 'Admin ID'].join(','),
+    const headers = ['Timestamp', 'Admin Name', 'Admin Email', 'Action', 'Entity', 'Entity ID', 'IP Address', 'User Agent', 'Admin ID']
+    const csvRows = [
+      headers.map(escapeCSVField).join(','),
       ...logs.map(log => [
         log.createdAt,
         log.adminName,
@@ -145,16 +147,12 @@ export default function AuditLogsPage() {
         log.ipAddress || '-',
         log.userAgent || '-',
         log.adminId,
-      ]).join(',')
-    ].join('\n')
+      ].map(escapeCSVField).join(','))
+    ]
 
-    const blob = new Blob([csvContent], { type: 'text/csv' })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `audit-logs-${new Date().toISOString().split('T')[0]}.csv`
-    a.click()
-    window.URL.revokeObjectURL(url)
+    const csvContent = csvRows.join('\n')
+    const filename = `audit-logs-${new Date().toISOString().split('T')[0]}.csv`
+    downloadCSV(csvContent, filename)
 
     toast.success('Audit logs exported successfully')
   }

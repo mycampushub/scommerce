@@ -3,9 +3,16 @@ import { getEnv } from '@/lib/cloudflare'
 import { verifyAdminAuth } from '@/lib/admin-auth'
 import { queryAll, queryFirst, execute, generateId, now, parseJSON } from '@/db/db'
 import { getClientIp, rateLimit, createRateLimitResponse } from '@/lib/rate-limit'
+import { logAdminAction } from '@/lib/audit-logger'
 
 // GET - List all media with optional filters
 export async function GET(request: NextRequest) {
+  // Verify admin authentication (admin or staff)
+  const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
+
   try {
     const env = await getEnv()
     const { searchParams } = new URL(request.url)
@@ -102,7 +109,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml']
+    // SECURITY: Removed SVG to prevent XSS attacks
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
         { success: false, error: 'Invalid file type. Only images are allowed.' },
@@ -148,6 +156,18 @@ export async function POST(request: NextRequest) {
       (userOrResponse as any).id, // uploadedBy
       currentTime,
       currentTime
+    )
+
+    // Log audit event
+    const admin = userOrResponse as { id: string }
+    await logAdminAction(
+      env,
+      request,
+      admin.id,
+      'CREATE',
+      'AdminLog',
+      id,
+      `Uploaded gallery media "${file.name}" (${(file.size / 1024).toFixed(2)}KB, ${file.type}) to category "${category}"`
     )
 
     return NextResponse.json({
@@ -216,6 +236,18 @@ export async function DELETE(request: NextRequest) {
       env,
       'DELETE FROM media WHERE id = ?',
       id
+    )
+
+    // Log audit event
+    const admin = userOrResponse as { id: string }
+    await logAdminAction(
+      env,
+      request,
+      admin.id,
+      'DELETE',
+      'AdminLog',
+      id,
+      `Deleted gallery media "${media.originalName}" (${media.mimeType})`
     )
 
     return NextResponse.json({ success: true })
@@ -305,9 +337,20 @@ async function uploadFile(file: File, env: any, userId: string): Promise<{ url: 
 
   // Generate unique filename
   const timestamp = Date.now()
-  const random = Math.random().toString(36).substring(2, 9)
-  const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
-  const filename = `${userId}-${timestamp}-${random}.${ext}`
+  // SECURITY: Use crypto.randomUUID() instead of Math.random() for cryptographically secure randomness
+  const uniqueId = crypto.randomUUID().split('-').join('').substring(0, 12)
+  
+  // Sanitize original filename to extract extension safely
+  const safeOriginalName = file.name.replace(/[^a-zA-Z0-9._-]/g, '')
+  const ext = safeOriginalName.split('.').pop()?.toLowerCase() || 'jpg'
+  
+  // Validate extension is in allowed list
+  const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif']
+  if (!allowedExtensions.includes(ext)) {
+    throw new Error(`Invalid file extension: ${ext}`)
+  }
+  
+  const filename = `${userId}-${timestamp}-${uniqueId}.${ext}`
 
   let fileUrl: string
 

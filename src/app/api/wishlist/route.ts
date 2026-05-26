@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyAuth } from '@/lib/auth-utils'
+import { verifyAdminAuth } from '@/lib/admin-auth'
 import { getEnv } from '@/lib/cloudflare'
 import { ProductRepository } from '@/db/product.repository'
 import { CategoryRepository } from '@/db/category.repository'
@@ -15,15 +15,12 @@ export async function GET(request: NextRequest) {
 
   try {
     // Verify authentication
-    const authResult = await verifyAuth(request)
-    if (!authResult.success || !authResult.user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      )
+    const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff', 'user'])
+    if (userOrResponse instanceof NextResponse) {
+      return userOrResponse
     }
 
-    const userId = authResult.user.id
+    const userId = userOrResponse.id
 
     // Get wishlist items with product and category details
     const wishlistItems = await queryAll(
@@ -86,12 +83,9 @@ export async function POST(request: NextRequest) {
 
   try {
     // Verify authentication
-    const authResult = await verifyAuth(request)
-    if (!authResult.success || !authResult.user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      )
+    const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff', 'user'])
+    if (userOrResponse instanceof NextResponse) {
+      return userOrResponse
     }
 
     const body = await request.json() as any
@@ -104,7 +98,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const userId = authResult.user.id
+    const userId = userOrResponse.id
 
     // Check if product exists
     const product = await ProductRepository.findById(env, productId)
@@ -176,12 +170,9 @@ export async function DELETE(request: NextRequest) {
 
   try {
     // Verify authentication
-    const authResult = await verifyAuth(request)
-    if (!authResult.success || !authResult.user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      )
+    const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff', 'user'])
+    if (userOrResponse instanceof NextResponse) {
+      return userOrResponse
     }
 
     const { searchParams } = new URL(request.url)
@@ -194,7 +185,7 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    const userId = authResult.user.id
+    const userId = userOrResponse.id
 
     // Check if item exists
     const wishlistItem = await queryFirst(

@@ -8,6 +8,12 @@ const SECTION_NAME = 'marquee'
 const DEFAULT_MARQUEE_TEXT = 'FREE SHIPPING WORLDWIDE | EASY RETURNS & EXCHANGES | CUSTOM STITCHING AVAILABLE'
 
 export async function GET(request: NextRequest) {
+  // Verify admin authentication (admin or staff)
+  const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
+
   try {
     const env = await getEnv()
 

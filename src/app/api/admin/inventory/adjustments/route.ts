@@ -19,8 +19,9 @@ export async function GET(request: NextRequest) {
     const productId = searchParams.get('productId') || undefined;
     const variantId = searchParams.get('variantId') || undefined;
     const adjustmentType = searchParams.get('adjustmentType') || undefined;
-    const limit = parseInt(searchParams.get('limit') || '100');
-    const offset = parseInt(searchParams.get('offset') || '0');
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
+    const limit = Math.min(100, Math.max(10, parseInt(searchParams.get('limit') || '20')));
+    const offset = (page - 1) * limit;
 
     const adjustments = await inventoryAdjustmentRepository.findAll(env, {
       productId,
@@ -30,9 +31,30 @@ export async function GET(request: NextRequest) {
       offset,
     });
 
+    // Get total count for pagination
+    const countResult = await queryFirst<{ count: number }>(
+      env,
+      `SELECT COUNT(*) as count FROM inventory_adjustments
+       WHERE 1=1
+       ${productId ? 'AND productId = ?' : ''}
+       ${variantId ? 'AND variantId = ?' : ''}
+       ${adjustmentType ? 'AND adjustmentType = ?' : ''}`,
+      ...[productId, variantId, adjustmentType].filter(v => v !== undefined)
+    );
+    const totalCount = countResult?.count || 0;
+    const totalPages = Math.ceil(totalCount / limit);
+
     return NextResponse.json({
       success: true,
       data: adjustments,
+      pagination: {
+        page,
+        limit,
+        totalCount,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
     });
   } catch (error) {
     console.error('Error fetching inventory adjustments:', error);

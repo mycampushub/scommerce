@@ -105,7 +105,7 @@ export default function TermsPage() {
                 If you have any questions about these Terms of Service, please contact us:
               </p>
               <p className="text-gray-600">
-                Email: legal@modern ecommerce.com<br />
+                Email: legal@modernecommerce.com<br />
                 Address: 123 Fashion Street, Mumbai, Maharashtra 400001, India
               </p>
             </div>

@@ -1,6 +1,13 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { verifyAdminAuth } from '@/lib/admin-auth'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // Verify admin authentication (admin only - debug endpoint)
+  const userOrResponse = await verifyAdminAuth(request, ['admin'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
+
   return NextResponse.json({
     success: true,
     message: 'New code deployed!',

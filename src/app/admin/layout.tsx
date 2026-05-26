@@ -26,22 +26,27 @@ import {
   ClipboardList,
   ChevronDown,
   ChevronRight,
-  Warehouse
+  Warehouse,
+  Building2,
+  Layers
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/use-auth'
 
 const navigation = [
-  { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-  { name: 'Products', href: '/admin/products', icon: Package },
   { name: 'Orders', href: '/admin/orders', icon: ShoppingCart },
   { name: 'Customers', href: '/admin/customers', icon: Users },
-  { name: 'Staff', href: '/admin/staff', icon: UserCog },
-  { name: 'Categories', href: '/admin/categories', icon: Tags },
   { name: 'Coupons', href: '/admin/coupons', icon: Ticket },
   { name: 'Homepage', href: '/admin/homepage', icon: Home },
   { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
-  { name: 'Settings', href: '/admin/settings', icon: Settings },
+]
+
+const staffNavItem = { name: 'Staff', href: '/admin/staff', icon: UserCog }
+
+const productManagementNav = [
+  { name: 'Products', href: '/admin/products', icon: Package },
+  { name: 'Categories', href: '/admin/categories', icon: Tags },
+  { name: 'Brands', href: '/admin/brands', icon: Building2 },
 ]
 
 const inventoryNav = [
@@ -59,8 +64,17 @@ export default function AdminLayout({
   const pathname = usePathname()
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [productManagementExpanded, setProductManagementExpanded] = useState(false)
   const [inventoryExpanded, setInventoryExpanded] = useState(false)
   const { user, loading } = useAuth()
+
+  // Auto-expand product management section if on product-related pages
+  useEffect(() => {
+    const isProductPage = productManagementNav.some(item => pathname.startsWith(item.href))
+    if (isProductPage) {
+      setProductManagementExpanded(true)
+    }
+  }, [pathname])
 
   // Auto-expand inventory section if on inventory-related pages
   useEffect(() => {
@@ -110,6 +124,32 @@ export default function AdminLayout({
     return user.name.substring(0, 2).toUpperCase()
   }
 
+  // Get page name from all navigation arrays
+  const getPageName = () => {
+    // Check Dashboard first
+    if (pathname === '/admin') return 'Dashboard'
+
+    // Check Settings
+    if (pathname === '/admin/settings' || pathname.startsWith('/admin/settings/')) return 'Settings'
+
+    // Check Staff
+    if (pathname === '/admin/staff' || pathname.startsWith('/admin/staff/')) return 'Staff'
+
+    // Check product management navigation
+    const productNavItem = productManagementNav.find((item) => pathname === item.href || pathname.startsWith(item.href + '/'))
+    if (productNavItem) return productNavItem.name
+
+    // Check inventory navigation
+    const inventoryNavItem = inventoryNav.find((item) => pathname === item.href || pathname.startsWith(item.href + '/'))
+    if (inventoryNavItem) return inventoryNavItem.name
+
+    // Check main navigation
+    const mainNavItem = navigation.find((item) => pathname === item.href || pathname.startsWith(item.href + '/'))
+    if (mainNavItem) return mainNavItem.name
+
+    return 'Dashboard'
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100">
       {/* Mobile sidebar backdrop */}
@@ -150,26 +190,68 @@ export default function AdminLayout({
           {/* Navigation */}
           <ScrollArea className="flex-1 px-4 py-4 h-[calc(100vh-8rem)]">
             <nav className="space-y-1">
-              {navigation.map((item) => {
-                const isActive = pathname === item.href
-                return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    className={cn(
-                      'flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all',
-                      isActive
-                        ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md'
-                        : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-                    )}
-                    onClick={() => setSidebarOpen(false)}
-                  >
-                    <item.icon className={cn('h-5 w-5', isActive ? 'text-white' : 'text-gray-500')} />
-                    {item.name}
-                  </Link>
-                )
-              })}
+              {/* Dashboard - always first */}
+              <Link
+                href="/admin"
+                className={cn(
+                  'flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all',
+                  pathname === '/admin'
+                    ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md'
+                    : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                )}
+                onClick={() => setSidebarOpen(false)}
+              >
+                <LayoutDashboard className={cn('h-5 w-5', pathname === '/admin' ? 'text-white' : 'text-gray-500')} />
+                Dashboard
+              </Link>
             </nav>
+
+            {/* Product Management Section */}
+            <div className="mt-4">
+              <button
+                onClick={() => setProductManagementExpanded(!productManagementExpanded)}
+                className={cn(
+                  'flex w-full items-center justify-between rounded-lg px-4 py-3 text-sm font-medium transition-all',
+                  productManagementExpanded || productManagementNav.some(item => pathname.startsWith(item.href))
+                    ? 'bg-gray-100 text-gray-900'
+                    : 'text-gray-700 hover:bg-gray-100'
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <Layers className={cn('h-5 w-5', productManagementExpanded || productManagementNav.some(item => pathname.startsWith(item.href)) ? 'text-violet-600' : 'text-gray-500')} />
+                  <span>Product Management</span>
+                </div>
+                {productManagementExpanded ? (
+                  <ChevronDown className="h-4 w-4 text-gray-500" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-gray-500" />
+                )}
+              </button>
+
+              {productManagementExpanded && (
+                <div className="mt-1 ml-4 space-y-1 border-l-2 border-gray-200 pl-3">
+                  {productManagementNav.map((item) => {
+                    const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        className={cn(
+                          'flex items-center gap-3 rounded-lg px-4 py-2 text-sm font-medium transition-all',
+                          isActive
+                            ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md'
+                            : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                        )}
+                        onClick={() => setSidebarOpen(false)}
+                      >
+                        <item.icon className={cn('h-4 w-4', isActive ? 'text-white' : 'text-gray-500')} />
+                        {item.name}
+                      </Link>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
 
             {/* Inventory Management Section */}
             <div className="mt-4">
@@ -218,7 +300,60 @@ export default function AdminLayout({
               )}
             </div>
 
+            {/* Other Navigation Items */}
+            <nav className="mt-4 space-y-1">
+              {navigation.map((item) => {
+                const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    className={cn(
+                      'flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all',
+                      isActive
+                        ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md'
+                        : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                    )}
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    <item.icon className={cn('h-5 w-5', isActive ? 'text-white' : 'text-gray-500')} />
+                    {item.name}
+                  </Link>
+                )
+              })}
+            </nav>
+
             <Separator className="my-6" />
+
+            {/* Staff - just before Settings */}
+            <Link
+              href="/admin/staff"
+              className={cn(
+                'flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all',
+                pathname === '/admin/staff' || pathname.startsWith('/admin/staff/')
+                  ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md'
+                  : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+              )}
+              onClick={() => setSidebarOpen(false)}
+            >
+              <UserCog className={cn('h-5 w-5', pathname === '/admin/staff' || pathname.startsWith('/admin/staff/') ? 'text-white' : 'text-gray-500')} />
+              {staffNavItem.name}
+            </Link>
+
+            {/* Settings - always before logout */}
+            <Link
+              href="/admin/settings"
+              className={cn(
+                'flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all',
+                pathname === '/admin/settings' || pathname.startsWith('/admin/settings/')
+                  ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md'
+                  : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+              )}
+              onClick={() => setSidebarOpen(false)}
+            >
+              <Settings className={cn('h-5 w-5', pathname === '/admin/settings' || pathname.startsWith('/admin/settings/') ? 'text-white' : 'text-gray-500')} />
+              Settings
+            </Link>
 
             <Button
               variant="ghost"
@@ -258,7 +393,7 @@ export default function AdminLayout({
 
           <div className="flex-1">
             <h2 className="text-lg font-semibold text-gray-900">
-              {navigation.find((item) => item.href === pathname)?.name || 'Dashboard'}
+              {getPageName()}
             </h2>
           </div>
 

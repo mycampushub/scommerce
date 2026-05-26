@@ -165,13 +165,15 @@ export async function POST(request: NextRequest) {
       message: 'Registration successful! You have been automatically logged in.',
       data: {
         user: transformedUser,
-        token,
+        // SECURITY: Token is NOT returned in response body
+        // It's only stored in httpOnly cookie for security
         verificationLink, // Only included for demo purposes
       },
       syncedCart: syncedCartCount,
     });
 
     // Set cookie for auto-login
+    // Token is only stored here, in a secure httpOnly cookie
     response.cookies.set('session', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

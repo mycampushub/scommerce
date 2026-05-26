@@ -153,30 +153,52 @@ class BackgroundSyncManager {
 
       let response: Response;
 
+      // Prepare headers with authentication
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      // Add authorization header from session cookie or localStorage
+      const getAuthHeaders = () => {
+        const sessionCookie = document.cookie
+          .split('; ')
+          .find(row => row.startsWith('session='))
+          ?.split('=')[1];
+
+        if (sessionCookie) {
+          return {
+            'Authorization': `Bearer ${sessionCookie}`,
+          };
+        }
+        return {};
+      };
+
+      Object.assign(headers, getAuthHeaders());
+
       switch (mutation.method) {
         case 'POST':
           response = await fetch(mutation.url, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers,
             body: JSON.stringify(mutation.body),
+            credentials: 'include',
           });
           break;
 
         case 'PUT':
           response = await fetch(mutation.url, {
             method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers,
             body: JSON.stringify(mutation.body),
+            credentials: 'include',
           });
           break;
 
         case 'DELETE':
           response = await fetch(`${mutation.url}${mutation.body ? '/' + mutation.body.id : ''}`, {
             method: 'DELETE',
+            headers,
+            credentials: 'include',
           });
           break;
 

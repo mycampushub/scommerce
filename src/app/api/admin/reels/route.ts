@@ -9,6 +9,12 @@ import { logAdminAction } from '@/lib/audit-logger'
 
 
 export async function GET(request: NextRequest) {
+  // Verify admin authentication (admin or staff)
+  const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
+
   try {
     const env = await getEnv()
     const searchParams = request.nextUrl.searchParams
@@ -179,7 +185,7 @@ export async function POST(request: NextRequest) {
       request,
       admin.id,
       'CREATE',
-      'Reel',
+      'AdminLog',
       reel.id,
       `Created reel "${reel.title}"`
     )

@@ -109,7 +109,7 @@ export function ColorMultiSelector({
               placeholder="e.g., Rose Gold, Midnight Blue"
               value={newColorName}
               onChange={(e) => setNewColorName(e.target.value)}
-              onKeyPress={(e) => {
+              onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault()
                   handleAddCustomColor()

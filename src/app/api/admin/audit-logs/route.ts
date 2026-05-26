@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAuth } from '@/lib/auth-utils';
+import { verifyAdminAuth } from '@/lib/admin-auth';
 import { getEnv } from '@/lib/cloudflare';
 import { getAllAuditLogs } from '@/lib/audit-logger';
 import type { AuditEntity, AuditAction } from '@/types/audit';
@@ -11,12 +11,9 @@ import type { AuditEntity, AuditAction } from '@/types/audit';
 export async function GET(request: NextRequest) {
   try {
     // Verify admin authentication
-    const authResult = await verifyAuth(request);
-    if (!authResult.success || authResult.user?.role !== 'admin') {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+    const userOrResponse = await verifyAdminAuth(request, ['admin']);
+    if (userOrResponse instanceof NextResponse) {
+      return userOrResponse;
     }
 
     const { searchParams } = new URL(request.url);

@@ -3,6 +3,7 @@ import { getEnv } from '@/lib/cloudflare';
 import { queryFirst, execute } from '@/db/db';
 import { inventoryMovementRepository } from '@/db/inventory-movement.repository';
 import { verifyAdmin } from '@/lib/auth/admin-auth';
+import { logAdminAction } from '@/lib/audit-logger';
 
 // POST /api/admin/inventory/adjustments/[id]/approve - Approve a stock adjustment
 export async function POST(
@@ -28,9 +29,10 @@ export async function POST(
       quantityDiff: number;
       reason: string | null;
       approved: number;
+      adjustmentType: string;
     }>(
       env,
-      `SELECT id, productId, variantId, quantityAfter, quantityDiff, reason, approved
+      `SELECT id, productId, variantId, quantityAfter, quantityDiff, reason, approved, adjustmentType
        FROM inventory_adjustments
        WHERE id = ?`,
       id
@@ -93,6 +95,18 @@ export async function POST(
       admin.id,
       new Date().toISOString(),
       id
+    );
+
+    // Log audit event
+    const quantityBefore = adjustment.quantityAfter - adjustment.quantityDiff;
+    await logAdminAction(
+      env,
+      request,
+      admin.id,
+      'APPROVE',
+      'AdminLog',
+      id,
+      `Approved inventory adjustment: ${adjustment.quantityDiff > 0 ? '+' : ''}${adjustment.quantityDiff} units (from ${quantityBefore} to ${adjustment.quantityAfter}) for ${adjustment.adjustmentType} - ${adjustment.reason || 'No reason provided'}`
     );
 
     // Fetch the updated adjustment

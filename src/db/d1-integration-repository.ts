@@ -11,6 +11,9 @@ export interface PaymentGateway {
   apiKey: string | null;
   apiSecret: string | null;
   webhookUrl: string | null;
+  webhookSecret: string | null;
+  sandboxMode: number;
+  supportedCurrencies: string | null;
   isActive: boolean;
   isDefault: boolean;
   settings: string | null;
@@ -103,10 +106,11 @@ export class D1IntegrationRepository {
     const now = nowISO();
     await execute(
       env,
-      `INSERT INTO payment_gateways (id, name, provider, apiKey, apiSecret, webhookUrl, isActive, isDefault, settings, createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      id, data.name, data.provider, data.apiKey, data.apiSecret, data.webhookUrl,
-      data.isActive ? 1 : 0, data.isDefault ? 1 : 0, data.settings, now, now
+      `INSERT INTO payment_gateways (id, name, provider, apiKey, apiSecret, webhookUrl, webhookSecret, sandboxMode, supportedCurrencies, isActive, isDefault, settings, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      id, data.name, data.provider, data.apiKey, data.apiSecret, data.webhookUrl, data.webhookSecret,
+      data.sandboxMode, data.supportedCurrencies, data.isActive ? 1 : 0, data.isDefault ? 1 : 0,
+      data.settings, now, now
     );
     return { id, ...data, lastTested: null, testStatus: null, createdAt: now, updatedAt: now };
   }
@@ -118,7 +122,7 @@ export class D1IntegrationRepository {
 
     const sets: string[] = [];
     const params: any[] = [];
-    const fields: (keyof typeof data)[] = ['name', 'provider', 'apiKey', 'apiSecret', 'webhookUrl', 'isActive', 'isDefault', 'settings', 'lastTested', 'testStatus'];
+    const fields: (keyof typeof data)[] = ['name', 'provider', 'apiKey', 'apiSecret', 'webhookUrl', 'webhookSecret', 'sandboxMode', 'supportedCurrencies', 'isActive', 'isDefault', 'settings', 'lastTested', 'testStatus'];
 
     for (const field of fields) {
       if (data[field] !== undefined) {

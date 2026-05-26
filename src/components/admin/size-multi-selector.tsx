@@ -64,7 +64,7 @@ export function SizeMultiSelector({
                 type="text"
                 placeholder="e.g., 5XL, 750ml, 46"
                 className="flex-1 px-3 py-2 text-sm border rounded-md"
-                onKeyPress={(e) => {
+                onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     const target = e.target as HTMLInputElement
                     const value = target.value.trim()

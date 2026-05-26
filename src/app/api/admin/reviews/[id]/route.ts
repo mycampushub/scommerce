@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
 import { verifyAdminAuth } from '@/lib/admin-auth'
 import { queryFirst, queryAll, execute, boolToNumber, numberToBool, parseJSON } from '@/db/db'
+import { logAdminAction } from '@/lib/audit-logger'
 
 
 // PUT /api/admin/reviews/[id] - Approve/Reject review
@@ -51,6 +52,18 @@ export async function PUT(
       'UPDATE product_reviews SET isApproved = ?, updatedAt = datetime("now") WHERE id = ?',
       boolToNumber(action === 'approve'),
       reviewId
+    )
+
+    // Log audit event
+    const admin = userOrResponse as { id: string }
+    await logAdminAction(
+      env,
+      request,
+      admin.id,
+      action === 'approve' ? 'APPROVE' : 'REJECT',
+      'ProductReview',
+      reviewId,
+      `${action === 'approve' ? 'Approved' : 'Rejected'} review by ${review.userName} for product "${review.productName}" (rating: ${review.rating}/5)`
     )
 
     // Fetch updated review
@@ -129,6 +142,18 @@ export async function DELETE(
 
     // Delete review
     await execute(env, 'DELETE FROM product_reviews WHERE id = ?', reviewId)
+
+    // Log audit event
+    const admin = userOrResponse as { id: string }
+    await logAdminAction(
+      env,
+      request,
+      admin.id,
+      'DELETE',
+      'ProductReview',
+      reviewId,
+      `Deleted review by ${review.userName} for product ID ${review.productId}`
+    )
 
     return NextResponse.json({
       success: true,

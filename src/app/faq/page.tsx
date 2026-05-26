@@ -26,7 +26,7 @@ const faqs = [
       },
       {
         q: 'Can I order items for bulk purchases?',
-        a: 'Absolutely! For bulk or corporate orders, please contact us at sales@modern ecommerce.com for special pricing and dedicated support.'
+        a: 'Absolutely! For bulk or corporate orders, please contact us at sales@modernecommerce.com for special pricing and dedicated support.'
       }
     ]
   },

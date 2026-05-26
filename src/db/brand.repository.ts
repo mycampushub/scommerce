@@ -240,10 +240,13 @@ export class BrandRepository {
    * Get featured brands
    */
   static async getFeatured(env: Env | null, limit?: number): Promise<Brand[]> {
-    const limitClause = limit ? `LIMIT ${limit}` : '';
+    // Validate and sanitize limit to prevent SQL injection
+    const safeLimit = limit ? Math.min(Math.max(Math.floor(Number(limit)), 1), 100) : 100;
+    
     return queryAll<Brand>(
       env,
-      `SELECT * FROM brands WHERE isActive = 1 AND featured = 1 ORDER BY sortOrder ASC, name ASC ${limitClause}`
+      'SELECT * FROM brands WHERE isActive = 1 AND featured = 1 ORDER BY sortOrder ASC, name ASC LIMIT ?',
+      safeLimit
     );
   }
 }

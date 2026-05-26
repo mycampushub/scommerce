@@ -27,10 +27,10 @@ function getJWTSecret(): Uint8Array {
 
   // Validate secret length in production
   if (process.env.NODE_ENV === 'production' && secret.length < 32) {
-    console.error(
-      'SECURITY: JWT_SECRET must be at least 32 characters long for production use.'
+    throw new Error(
+      'SECURITY: JWT_SECRET must be at least 32 characters long for production use. ' +
+      `Current length: ${secret.length}. Please set a longer JWT_SECRET.`
     );
-    // Return the secret anyway but log error
   }
 
   console.log('[auth.ts] JWT_SECRET configured, length:', secret.length, 'is production:', process.env.NODE_ENV === 'production');

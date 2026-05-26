@@ -144,8 +144,54 @@ export async function setCache<T>(
     await env.KV.put(cacheKey, serialized, {
       expirationTtl: ttl,
     });
+
+    // Track this key in prefix index for later deletion
+    await trackCacheKey(env, prefix, cacheKey, ttl);
   } catch (error) {
     console.error(`Cache set error for key ${cacheKey}:`, error);
+  }
+}
+
+/**
+ * Track a cache key for prefix-based deletion
+ * @param env - Environment object containing KV binding
+ * @param prefix - Cache key prefix
+ * @param cacheKey - Full cache key to track
+ * @param ttl - Time to live for the tracking entry
+ */
+async function trackCacheKey(
+  env: Env,
+  prefix: string,
+  cacheKey: string,
+  ttl: number
+): Promise<void> {
+  try {
+    const trackingKey = `cache:prefix:${prefix}`;
+    // Get existing tracked keys
+    const tracked = await env.KV.get(trackingKey, 'text');
+    let keys: string[] = [];
+
+    if (tracked) {
+      try {
+        keys = JSON.parse(tracked) as string[];
+      } catch {
+        // If parse fails, start fresh
+        keys = [];
+      }
+    }
+
+    // Add new key if not already tracked
+    if (!keys.includes(cacheKey)) {
+      keys.push(cacheKey);
+    }
+
+    // Update tracking with same TTL as cache entry
+    await env.KV.put(trackingKey, JSON.stringify(keys), {
+      expirationTtl: ttl * 2, // Keep tracking longer than cache entries
+    });
+  } catch (error) {
+    // Don't fail the cache set if tracking fails
+    console.warn(`Cache tracking error for prefix ${prefix}:`, error);
   }
 }
 
@@ -188,11 +234,31 @@ export async function deleteCacheByPrefix(
   }
 
   try {
-    // KV doesn't support prefix deletion directly
-    // This would require listing keys, which is limited
-    // For now, we'll use a separate key pattern to track prefixes
     const trackingKey = `cache:prefix:${prefix}`;
-    await env.KV.delete(trackingKey);
+    const tracked = await env.KV.get(trackingKey, 'text');
+
+    if (!tracked) {
+      return; // No tracked keys for this prefix
+    }
+
+    let keys: string[] = [];
+    try {
+      keys = JSON.parse(tracked) as string[];
+    } catch {
+      return; // Invalid tracking data, nothing to delete
+    }
+
+    // Delete all tracked cache keys
+    await Promise.all(
+      keys.map(key => env.KV.delete(key).catch(err => {
+        console.warn(`Failed to delete cache key ${key}:`, err);
+      }))
+    );
+
+    // Delete the tracking key itself
+    await env.KV.delete(trackingKey).catch(err => {
+      console.warn(`Failed to delete tracking key ${trackingKey}:`, err);
+    });
   } catch (error) {
     console.error(`Cache delete prefix error for ${prefix}:`, error);
   }
@@ -203,11 +269,13 @@ export async function deleteCacheByPrefix(
  * @param env - Environment object containing KV binding
  * @param resourceType - Type of resource (e.g., 'products', 'categories')
  * @param resourceId - Optional specific resource ID
+ * @param cascade - Whether to invalidate related caches (default: false)
  */
 export async function invalidateCache(
   env: Env | null,
   resourceType: string,
-  resourceId?: string
+  resourceId?: string,
+  cascade: boolean = false
 ): Promise<void> {
   if (!env?.KV) {
     return;
@@ -215,6 +283,11 @@ export async function invalidateCache(
 
   const key = resourceId ? `${resourceType}:${resourceId}` : `${resourceType}:list`;
   await deleteCache(env, key);
+
+  // Cascade invalidation: delete all caches with this resource type prefix
+  if (cascade) {
+    await deleteCacheByPrefix(env, resourceType);
+  }
 }
 
 /**

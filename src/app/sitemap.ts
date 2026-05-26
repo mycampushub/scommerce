@@ -68,8 +68,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ]
 
-  // Collection pages (static list)
-  const collectionPages = ['saree', 'salwar', 'kurtas', 'gowns', 'lehengas', 'tops', 'menswear']
+  // Collection pages (static list) - includes all major categories
+  const collectionPages = ['saree', 'salwar', 'kurtas', 'gowns', 'lehengas', 'tops', 'menswear', 'accessories']
   const collectionUrls = collectionPages.map((collection) => ({
     url: `${SITE_URL}/collections/${collection}`,
     lastModified: new Date(),

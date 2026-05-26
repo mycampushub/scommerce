@@ -6,9 +6,11 @@ import {
   queryAll,
   execute,
 } from '@/db/db';
+import { runTransactionWithRetry } from '@/lib/transaction';
 
 /**
- * Reserve stock for a product/variant
+ * Reserve stock for a product/variant with atomic operation
+ * Uses a transaction to ensure stock check and reservation happen atomically
  */
 export async function reserveStock(env: Env | null, data: {
   variantId?: string;
@@ -17,36 +19,57 @@ export async function reserveStock(env: Env | null, data: {
   quantity: number;
   expiresAt: Date;
 }): Promise<any | null> {
-  const id = generateId();
+  const result = await runTransactionWithRetry(async (db, commit, rollback) => {
+    // Check if product/variant has enough stock WITHIN the transaction
+    const stockCheckStmt = db.prepare(
+      data.variantId
+        ? 'SELECT stock FROM product_variants WHERE id = ? LIMIT 1'
+        : 'SELECT stock FROM products WHERE id = ? LIMIT 1'
+    ).bind(data.variantId || data.productId);
+    const stockCheck = await stockCheckStmt.first() as { stock: number } | null;
 
-  // Check if product/variant has enough stock
-  const stockCheck = await queryFirst<{ stock: number }>(
-    env,
-    data.variantId
-      ? 'SELECT stock FROM product_variants WHERE id = ? LIMIT 1'
-      : 'SELECT stock FROM products WHERE id = ? LIMIT 1',
-    data.variantId || data.productId
-  );
+    if (!stockCheck || stockCheck.stock < data.quantity) {
+      // Rollback and return null for insufficient stock
+      return null;
+    }
 
-  if (!stockCheck || stockCheck.stock < data.quantity) {
-    return null;
-  }
+    // Check existing reservations for this product/variant
+    const existingReservationsStmt = db.prepare(
+      data.variantId
+        ? 'SELECT COALESCE(SUM(quantity), 0) as reserved FROM inventory_reservations WHERE variantId = ? AND expiresAt > ?'
+        : 'SELECT COALESCE(SUM(quantity), 0) as reserved FROM inventory_reservations WHERE productId = ? AND variantId IS NULL AND expiresAt > ?'
+    ).bind(data.variantId || data.productId, now());
+    const existingReservations = await existingReservationsStmt.first() as { reserved: number } | null;
+    const reservedQuantity = existingReservations?.reserved || 0;
 
-  // Create reservation
-  await execute(
-    env,
-    `INSERT INTO inventory_reservations (id, userId, productId, variantId, quantity, expiresAt, createdAt)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    id,
-    data.userId,
-    data.productId || null,
-    data.variantId || null,
-    data.quantity,
-    data.expiresAt.toISOString(),
-    now()
-  );
+    // Calculate available stock
+    const availableStock = stockCheck.stock - reservedQuantity;
 
-  return { id };
+    if (availableStock < data.quantity) {
+      // Not enough available stock after considering reservations
+      return null;
+    }
+
+    // Create reservation
+    const id = generateId();
+    const insertStmt = db.prepare(
+      `INSERT INTO inventory_reservations (id, userId, productId, variantId, quantity, expiresAt, createdAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      id,
+      data.userId,
+      data.productId || null,
+      data.variantId || null,
+      data.quantity,
+      data.expiresAt.toISOString(),
+      now()
+    );
+    await insertStmt.run();
+
+    return { id };
+  });
+
+  return result.success ? result.data : null;
 }
 
 /**
@@ -118,6 +141,7 @@ export async function releaseAllUserReservations(env: Env | null, userId: string
 
 /**
  * Release all cart reservations for a user
+ * Correctly uses OR logic to match any of the items
  */
 export async function releaseCartReservations(env: Env | null, userId: string, orderItems: any[]): Promise<void> {
   if (orderItems.length === 0) {
@@ -141,7 +165,7 @@ export async function releaseCartReservations(env: Env | null, userId: string, o
     }
   }
 
-  // Single DELETE query with OR conditions
+  // Single DELETE query with OR conditions (this is correct - releases if ANY condition matches)
   const query = `DELETE FROM inventory_reservations WHERE userId = ? AND (${conditions.join(' OR ')})`;
   await execute(env, query, ...params);
 }

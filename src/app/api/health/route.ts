@@ -36,7 +36,11 @@ export async function GET() {
     } catch (error) {
       health.database = 'error';
       health.dbTest = 'failed';
-      health.dbError = error instanceof Error ? error.message : String(error);
+      // SECURITY: Don't leak actual database errors to public
+      // Return generic message instead of detailed error
+      health.dbError = 'Database connection failed';
+      // Log detailed error for debugging (server-side only)
+      console.error('Health check database error:', error);
     }
   }
 

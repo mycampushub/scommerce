@@ -9,6 +9,12 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Verify admin authentication (admin or staff)
+  const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
+
   try {
     const { id } = await params
     const env = await getEnv()

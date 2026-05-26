@@ -266,8 +266,16 @@ export async function POST(request: NextRequest) {
           const uploadFormData = new FormData()
           uploadFormData.append('file', file)
 
-          const baseUrl = await getEnvVar('NEXT_PUBLIC_BASE_URL') || request.headers.get('host')
-          const uploadUrl = baseUrl ? `https://${baseUrl}/api/admin/upload` : 'http://localhost:3000/api/admin/upload'
+          // Secure: Use only configured base URL, never fall back to Host header (SSRF protection)
+          const baseUrl = await getEnvVar('NEXT_PUBLIC_BASE_URL') || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+
+          // Validate the baseUrl is a legitimate URL to prevent SSRF
+          if (!baseUrl.startsWith('http://localhost:') && !baseUrl.startsWith('http://127.0.0.1:') && !baseUrl.startsWith('https://')) {
+            console.error('[Products API] Invalid base URL configuration, using localhost fallback')
+            throw new Error('Invalid base URL configuration')
+          }
+
+          const uploadUrl = `${baseUrl}/api/admin/upload`
 
           const uploadResponse = await fetch(uploadUrl, {
             method: 'POST',

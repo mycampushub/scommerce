@@ -1,13 +1,26 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { successResponse, errorResponse, validationErrorResponse } from '@/lib/api-response'
 import { getEnv } from '@/lib/cloudflare'
 import { execute } from '@/db/db'
+import { rateLimit, createRateLimitResponse, getClientIp } from '@/lib/rate-limit'
 
 /**
  * POST /api/contact - Handle contact form submissions
  */
 export async function POST(request: NextRequest) {
   const env = await getEnv()
+
+  // SECURITY: Rate limiting to prevent spam/abuse (5 requests per hour per IP)
+  const clientIp = getClientIp(request)
+  const rateLimitKey = `contact-form:${clientIp}`
+  const rateLimitResult = await rateLimit(env, rateLimitKey, {
+    maxRequests: 5,
+    windowMs: 60 * 60 * 1000, // 1 hour window
+  })
+
+  if (!rateLimitResult.success) {
+    return createRateLimitResponse(rateLimitResult)
+  }
 
   try {
     const body = await request.json() as {

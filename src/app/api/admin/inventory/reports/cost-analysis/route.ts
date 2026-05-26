@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { queryAll } from '@/db/db';
+import { queryAll, queryFirst } from '@/db/db';
 import { getEnv } from '@/lib/cloudflare';
 import { verifyAdmin } from '@/lib/auth/admin-auth';
 
-// GET /api/admin/inventory/reports/cost-analysis - Cost analysis report
+// GET /api/admin/inventory/reports/cost-analysis - Cost analysis report with pagination
 export async function GET(request: NextRequest) {
   try {
     // Verify admin access
@@ -20,6 +20,11 @@ export async function GET(request: NextRequest) {
     const brandId = searchParams.get('brandId') || undefined;
     const sortBy = searchParams.get('sortBy') || 'margin'; // margin, profit, cost, revenue
 
+    // Pagination parameters
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
+    const limit = Math.min(100, Math.max(10, parseInt(searchParams.get('limit') || '50')));
+    const offset = (page - 1) * limit;
+
     // Build WHERE conditions
     const whereConditions: string[] = ['p.isActive = 1'];
     const params: unknown[] = [];
@@ -35,10 +40,18 @@ export async function GET(request: NextRequest) {
 
     const whereClause = 'WHERE ' + whereConditions.join(' AND ');
 
-    // Get all products with categories
+    // Get total count for pagination
+    const countResult = await queryFirst<{ count: number }>(
+      env,
+      `SELECT COUNT(*) as count FROM products p ${whereClause}`,
+      ...params
+    );
+    const totalProducts = countResult?.count || 0;
+
+    // Get products with pagination
     const products = await queryAll<any>(
       env,
-      `SELECT 
+      `SELECT
         p.id,
         p.name,
         p.slug,
@@ -54,8 +67,11 @@ export async function GET(request: NextRequest) {
         c.name as categoryName
       FROM products p
       LEFT JOIN categories c ON p.categoryId = c.id
-      ${whereClause}`,
-      ...params
+      ${whereClause}
+      LIMIT ? OFFSET ?`,
+      ...params,
+      limit,
+      offset
     );
 
     // Get variants for all products
@@ -63,7 +79,7 @@ export async function GET(request: NextRequest) {
     const variants = products.length > 0
       ? await queryAll<any>(
           env,
-          `SELECT 
+          `SELECT
             v.id,
             v.productId,
             v.sku,
@@ -90,13 +106,15 @@ export async function GET(request: NextRequest) {
     });
 
     const costAnalysis: any[] = [];
+    let totalVariants = 0;
 
     products.forEach((product) => {
       const productVariants = variantsByProduct[product.id] || [];
-      
+
       if (product.hasVariants === 1 && productVariants.length > 0) {
         // Product with variants
         productVariants.forEach((variant) => {
+          totalVariants++;
           const cost = variant.averageCost || variant.costPrice || 0;
           const revenue = variant.stock * variant.price;
           const totalCost = variant.stock * cost;
@@ -164,7 +182,12 @@ export async function GET(request: NextRequest) {
       costAnalysis.sort((a, b) => b.totalRevenue - a.totalRevenue);
     }
 
-    // Calculate totals
+    // Apply pagination to sorted results
+    const paginatedItems = costAnalysis.slice(offset, offset + limit);
+    const totalCount = costAnalysis.length;
+    const totalPages = Math.ceil(totalCount / limit);
+
+    // Calculate totals from all items (not just paginated)
     const totalStock = costAnalysis.reduce((sum, item) => sum + item.stock, 0);
     const totalCost = costAnalysis.reduce((sum, item) => sum + item.totalCost, 0);
     const totalRevenue = costAnalysis.reduce((sum, item) => sum + item.totalRevenue, 0);
@@ -173,7 +196,7 @@ export async function GET(request: NextRequest) {
     const totalSold = costAnalysis.reduce((sum, item) => sum + item.sold, 0);
     const totalPurchased = costAnalysis.reduce((sum, item) => sum + item.purchased, 0);
 
-    // Get top and bottom performers
+    // Get top and bottom performers from all items
     const topMargin = costAnalysis.slice(0, 10);
     const bottomMargin = costAnalysis.slice(-10).reverse();
     const topProfit = [...costAnalysis].sort((a, b) => b.profit - a.profit).slice(0, 10);
@@ -182,12 +205,17 @@ export async function GET(request: NextRequest) {
       success: true,
       data: {
         summary: {
+          totalProducts,
+          totalVariants,
           totalStock,
           totalCost,
           totalRevenue,
           totalProfit,
+          avgMargin,
+          totalSold,
+          totalPurchased,
         },
-        items: costAnalysis.map(item => ({
+        items: paginatedItems.map(item => ({
           id: item.id,
           name: item.variantName ? `${item.productName} - ${item.variantName}` : item.productName,
           category: item.category,
@@ -199,6 +227,19 @@ export async function GET(request: NextRequest) {
           totalProfit: item.profit,
           margin: item.margin,
         })),
+        topPerformers: {
+          margin: topMargin.map(i => ({ name: i.variantName ? `${i.productName} - ${i.variantName}` : i.productName, margin: i.margin })),
+          profit: topProfit.map(i => ({ name: i.variantName ? `${i.productName} - ${i.variantName}` : i.productName, profit: i.profit })),
+          lowMargin: bottomMargin.map(i => ({ name: i.variantName ? `${i.productName} - ${i.variantName}` : i.productName, margin: i.margin })),
+        },
+      },
+      pagination: {
+        page,
+        limit,
+        totalCount,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
       },
     });
   } catch (error) {

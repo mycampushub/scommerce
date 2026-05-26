@@ -27,12 +27,14 @@ export interface WishlistItem {
 
 // Fetch wishlist items
 export async function fetchWishlist(): Promise<WishlistItem[]> {
-  const response = await fetch('/api/wishlist')
-  
+  const response = await fetch('/api/wishlist', {
+    credentials: 'include'
+  })
+
   if (!response.ok) {
     throw new Error('Failed to fetch wishlist')
   }
-  
+
   const data = await response.json() as any
   return data.data || []
 }
@@ -51,19 +53,20 @@ export function useWishlist() {
 // Add item to wishlist
 export function useAddToWishlist() {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: async (productId: string) => {
       const response = await fetch('/api/wishlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ productId }),
       })
-      
+
       if (!response.ok) {
         throw new Error('Failed to add to wishlist')
       }
-      
+
       return await response.json()
     },
     onSuccess: () => {
@@ -80,17 +83,18 @@ export function useAddToWishlist() {
 // Remove item from wishlist
 export function useRemoveFromWishlist() {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: async (productId: string) => {
       const response = await fetch(`/api/wishlist?productId=${productId}`, {
         method: 'DELETE',
+        credentials: 'include',
       })
-      
+
       if (!response.ok) {
         throw new Error('Failed to remove from wishlist')
       }
-      
+
       return await response.json()
     },
     onSuccess: () => {
@@ -107,22 +111,24 @@ export function useRemoveFromWishlist() {
 // Toggle wishlist item (add if not exists, remove if exists)
 export function useToggleWishlist() {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: async ({ productId, isInWishlist }: { productId: string; isInWishlist: boolean }) => {
       const url = `/api/wishlist?productId=${productId}`
       const method = isInWishlist ? 'DELETE' : 'POST'
-      
+
       const response = await fetch(url, {
         method,
         headers: method === 'POST' ? { 'Content-Type': 'application/json' } : undefined,
+        credentials: 'include',
         body: method === 'POST' ? JSON.stringify({ productId }) : undefined,
       })
-      
+
       if (!response.ok) {
-        throw new Error('Failed to update wishlist')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to update wishlist')
       }
-      
+
       return await response.json()
     },
     onSuccess: (_, variables) => {
@@ -131,7 +137,8 @@ export function useToggleWishlist() {
       toast.success(variables.isInWishlist ? 'Removed from wishlist' : 'Added to wishlist')
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'Failed to update wishlist')
+      // Don't show error here - let the calling component handle it
+      // The error will be caught in the component
     },
   })
 }
@@ -139,17 +146,18 @@ export function useToggleWishlist() {
 // Clear entire wishlist
 export function useClearWishlist() {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: async () => {
       const response = await fetch('/api/wishlist', {
         method: 'DELETE',
+        credentials: 'include',
       })
-      
+
       if (!response.ok) {
         throw new Error('Failed to clear wishlist')
       }
-      
+
       return await response.json()
     },
     onSuccess: () => {

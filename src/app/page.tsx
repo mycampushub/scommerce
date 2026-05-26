@@ -549,6 +549,7 @@ function Stories({ stories, autoPlay = 4000 }: { stories: Story[], autoPlay?: nu
             className={`absolute left-4 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full transition-all ${
               currentStoryIndex === 0 ? 'opacity-30 cursor-not-allowed' : 'bg-black/50 backdrop-blur-sm hover:bg-black/70 text-white'
             }`}
+            aria-label="Previous story"
           >
             <ChevronLeft className="w-8 h-8" />
           </button>
@@ -558,6 +559,7 @@ function Stories({ stories, autoPlay = 4000 }: { stories: Story[], autoPlay?: nu
             className={`absolute right-4 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full transition-all ${
               !stories || currentStoryIndex === stories.length - 1 ? 'opacity-30 cursor-not-allowed' : 'bg-black/50 backdrop-blur-sm hover:bg-black/70 text-white'
             }`}
+            aria-label="Next story"
           >
             <ChevronRight className="w-8 h-8" />
           </button>
@@ -1379,6 +1381,7 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
                                 setSelectedReel(reel)
                               }}
                               className="w-12 h-12 md:w-16 md:h-16 bg-white/95 hover:bg-white rounded-full flex items-center justify-center shadow-2xl transition-all hover:scale-110"
+                              aria-label={`Play ${reel.title}`}
                             >
                               <Play
                                 className="w-5 h-5 md:w-8 md:h-8 text-[#1C1E21] ml-1"

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState } from 'react'
 import Image, { ImageProps } from 'next/image'
 
 interface OptimizedImageProps extends Omit<ImageProps, 'onLoad' | 'onError'> {
@@ -8,12 +8,15 @@ interface OptimizedImageProps extends Omit<ImageProps, 'onLoad' | 'onError'> {
   blurDataURL?: string
   showLoader?: boolean
   loaderColor?: string
+  unoptimized?: boolean
 }
 
 /**
- * Optimized Image Component
+ * Optimized Image Component using Next.js Image
  * Features:
+ * - Next.js Image optimization (WebP/AVIF)
  * - Lazy loading
+ * - Responsive images
  * - Progressive loading with blur
  * - Fallback support
  * - Loading indicator
@@ -27,14 +30,15 @@ export function OptimizedImage({
   showLoader = true,
   loaderColor = 'bg-pink-600',
   className = '',
+  unoptimized = false,
   ...props
 }: OptimizedImageProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [hasError, setHasError] = useState(false)
   const [imageSrc, setImageSrc] = useState(src)
-  const imgRef = useRef<HTMLImageElement>(null)
 
-  useEffect(() => {
+  // Update image source when src prop changes
+  React.useEffect(() => {
     setIsLoading(true)
     setHasError(false)
     setImageSrc(src)
@@ -52,32 +56,37 @@ export function OptimizedImage({
     }
   }
 
+  const imageComponent = (
+    <Image
+      src={typeof imageSrc === 'string' ? imageSrc : ''}
+      alt={alt || 'Image'}
+      className={`transition-opacity duration-300 ${
+        isLoading ? 'opacity-0' : 'opacity-100'
+      } ${className}`}
+      onLoad={handleLoad}
+      onError={handleError}
+      blurDataURL={blurDataURL}
+      placeholder={blurDataURL ? 'blur' : 'empty'}
+      unoptimized={unoptimized}
+      {...props}
+    />
+  )
+
   return (
-    <div className={`relative overflow-hidden ${className}`}>
+    <div className="relative overflow-hidden">
       {isLoading && showLoader && (
         <div
-          className={`absolute inset-0 flex items-center justify-center ${loaderColor} animate-pulse`}
+          className={`absolute inset-0 flex items-center justify-center ${loaderColor} animate-pulse z-10`}
         >
           <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
         </div>
       )}
 
-      <img
-        ref={imgRef}
-        src={typeof imageSrc === 'string' ? imageSrc : undefined}
-        alt={alt || 'Image'}
-        loading="lazy"
-        className={`w-full h-full object-cover transition-opacity duration-300 ${
-          isLoading ? 'opacity-0' : 'opacity-100'
-        }`}
-        onLoad={handleLoad}
-        onError={handleError}
-        {...props}
-      />
+      {imageComponent}
 
       {blurDataURL && isLoading && (
         <div
-          className="absolute inset-0 blur-2xl opacity-50"
+          className="absolute inset-0 blur-2xl opacity-50 z-0"
           style={{ backgroundImage: `url(${blurDataURL})` }}
         />
       )}

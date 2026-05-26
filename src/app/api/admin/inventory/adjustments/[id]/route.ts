@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getEnv } from '@/lib/cloudflare';
 import { queryFirst, execute } from '@/db/db';
 import { verifyAdmin } from '@/lib/auth/admin-auth';
+import { logAdminAction } from '@/lib/audit-logger';
 
 // DELETE /api/admin/inventory/adjustments/[id] - Delete a stock adjustment
 export async function DELETE(
@@ -45,6 +46,17 @@ export async function DELETE(
 
     // Delete the adjustment
     await execute(env, 'DELETE FROM inventory_adjustments WHERE id = ?', id);
+
+    // Log audit event
+    await logAdminAction(
+      env,
+      request,
+      admin.id,
+      'DELETE',
+      'InventoryAdjustment',
+      id,
+      `Deleted inventory adjustment ${id}`
+    );
 
     return NextResponse.json({
       success: true,

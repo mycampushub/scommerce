@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
+import { verifyAdminAuth } from '@/lib/admin-auth'
 import { queryFirst, queryAll } from '@/db/db'
 
 /**
@@ -7,6 +8,11 @@ import { queryFirst, queryAll } from '@/db/db'
  * GET /api/admin/debug/product-variants?productId=xxx
  */
 export async function GET(request: NextRequest) {
+  // Verify admin authentication (admin only - debug endpoint)
+  const userOrResponse = await verifyAdminAuth(request, ['admin'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
   try {
     const env = await getEnv()
     const searchParams = request.nextUrl.searchParams

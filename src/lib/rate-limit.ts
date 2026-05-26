@@ -1,236 +1,275 @@
-/**
- * Distributed rate limiter for Next.js API routes
- * Uses Cloudflare KV for production with in-memory fallback for development
- */
+import { logger } from './logger';
 
-import { Env } from '@/db/types';
+// Simple in-memory rate limiter for development
+// In production, this should be replaced with Redis-based solutions like @upstash/ratelimit
 
-interface RateLimitData {
+interface RateLimitConfig {
+  maxRequests: number;
+  windowMs: number;
+}
+
+interface RateLimitEntry {
   count: number;
   resetTime: number;
+  windowStart: number;
 }
 
-export interface RateLimitOptions {
-  maxRequests?: number;
-  windowMs?: number;
-}
+class InMemoryRateLimiter {
+  private store: Map<string, RateLimitEntry> = new Map();
+  private cleanupInterval: NodeJS.Timeout | null = null;
+  private readonly maxEntries = 10000; // Prevent memory leak
 
-export interface RateLimitResult {
-  success: boolean;
-  remainingRequests?: number;
-  resetTime?: number;
-}
+  constructor() {
+    // Cleanup old entries every minute
+    this.cleanupInterval = setInterval(() => {
+      this.cleanup();
+    }, 60000);
+  }
 
-// In-memory rate limit storage (fallback when KV is not available)
-interface InMemoryEntry {
-  count: number;
-  window: number;
-  resetTime: number;
-}
+  private cleanup() {
+    const now = Date.now();
+    for (const [key, entry] of this.store.entries()) {
+      if (entry.resetTime < now) {
+        this.store.delete(key);
+      }
+    }
 
-const inMemoryStore = new Map<string, InMemoryEntry>();
-const IN_MEMORY_TTL = 5 * 60 * 1000; // 5 minutes
-
-/**
- * Clean up expired in-memory entries
- */
-function cleanupInMemoryStore(): void {
-  const now = Date.now();
-  for (const [key, entry] of inMemoryStore.entries()) {
-    if (now > entry.resetTime) {
-      inMemoryStore.delete(key);
+    // Prevent unbounded growth
+    if (this.store.size > this.maxEntries) {
+      const keys = Array.from(this.store.keys());
+      const keysToDelete = keys.slice(0, keys.length - this.maxEntries);
+      for (const key of keysToDelete) {
+        this.store.delete(key);
+      }
     }
   }
-}
 
-/**
- * Get or create in-memory entry
- */
-function getInMemoryEntry(identifier: string, window: number, maxRequests: number): InMemoryEntry {
-  const now = Date.now();
-  const entry = inMemoryStore.get(identifier);
+  async limit(
+    identifier: string,
+    config: RateLimitConfig
+  ): Promise<{
+    success: boolean;
+    limit: number;
+    remaining: number;
+    reset: number;
+  }> {
+    const now = Date.now();
+    const entry = this.store.get(identifier);
 
-  // If entry exists and is in current window, update it
-  if (entry && entry.window === window && now < entry.resetTime) {
-    return entry;
-  }
-
-  // Create new entry
-  const newEntry: InMemoryEntry = {
-    count: 0,
-    window,
-    resetTime: now + Math.ceil(now / 60000) * 60000, // End of current minute
-  };
-  inMemoryStore.set(identifier, newEntry);
-  return newEntry;
-}
-
-/**
- * Rate limit middleware for API routes
- * Uses Cloudflare KV for distributed rate limiting with in-memory fallback
- * @param env - Environment object containing KV binding (optional)
- * @param identifier - Unique identifier (e.g., IP address, user ID, email)
- * @param options - Rate limiting options
- * @returns Rate limit result
- */
-export async function rateLimit(
-  env: Env | null,
-  identifier: string,
-  options: RateLimitOptions = {}
-): Promise<RateLimitResult> {
-  const {
-    maxRequests = 5, // Default: 5 requests per window
-    windowMs = 60 * 1000, // Default: 1 minute window
-  } = options;
-
-  const now = Date.now();
-  const window = Math.floor(now / windowMs);
-  const rateLimitKey = `ratelimit:${identifier}:${window}`;
-
-  // Use KV if available
-  if (env?.KV) {
-    try {
-      const KV = env.KV;
-
-      // Get current count from KV
-      const currentValue = await KV.get(rateLimitKey, 'text');
-      const count = (currentValue && typeof currentValue === 'string') ? parseInt(currentValue) : 0;
-
-      // Check if limit exceeded
-      if (count >= maxRequests) {
-        const nextWindow = Math.floor((now + windowMs) / windowMs) * windowMs;
-        return {
-          success: false,
-          remainingRequests: 0,
-          resetTime: nextWindow,
-        };
-      }
-
-      // Increment count in KV with TTL
-      const newCount = count + 1;
-      const ttl = Math.ceil(windowMs / 1000); // Convert to seconds
-      await KV.put(rateLimitKey, newCount.toString(), {
-        expirationTtl: ttl,
-      });
+    // Reset window if expired
+    if (!entry || entry.resetTime < now) {
+      const newEntry: RateLimitEntry = {
+        count: 1,
+        resetTime: now + config.windowMs,
+        windowStart: now
+      };
+      this.store.set(identifier, newEntry);
 
       return {
         success: true,
-        remainingRequests: maxRequests - newCount,
-        resetTime: now + windowMs,
+        limit: config.maxRequests,
+        remaining: config.maxRequests - 1,
+        reset: newEntry.resetTime
       };
-    } catch (error) {
-      console.error('KV rate limit error:', error);
-
-      // Fall back to in-memory storage on KV error
-      console.warn('Falling back to in-memory rate limiting due to KV error');
     }
-  }
 
-  // In-memory fallback (development or when KV is not available)
-  cleanupInMemoryStore();
+    // Check if limit exceeded
+    if (entry.count >= config.maxRequests) {
+      logger.warn('Rate limit exceeded', {
+        identifier,
+        limit: config.maxRequests,
+        windowMs: config.windowMs
+      });
 
-  const entry = getInMemoryEntry(identifier, window, maxRequests);
+      return {
+        success: false,
+        limit: config.maxRequests,
+        remaining: 0,
+        reset: entry.resetTime
+      };
+    }
 
-  // Check if limit exceeded
-  if (entry.count >= maxRequests) {
+    // Increment counter
+    entry.count++;
+    this.store.set(identifier, entry);
+
     return {
-      success: false,
-      remainingRequests: 0,
-      resetTime: entry.resetTime,
+      success: true,
+      limit: config.maxRequests,
+      remaining: config.maxRequests - entry.count,
+      reset: entry.resetTime
     };
   }
 
-  // Increment count
-  entry.count += 1;
-  inMemoryStore.set(identifier, entry);
+  async reset(identifier: string): Promise<void> {
+    this.store.delete(identifier);
+  }
+
+  destroy() {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+    this.store.clear();
+  }
+}
+
+// Create singleton instance
+const rateLimiter = new InMemoryRateLimiter();
+
+// Rate limit configurations
+export const rateLimitConfigs = {
+  // Public API: 100 requests per minute
+  public: { maxRequests: 100, windowMs: 60 * 1000 },
+
+  // Auth endpoints: 5 requests per minute
+  auth: { maxRequests: 5, windowMs: 60 * 1000 },
+
+  // Contact form: 5 per hour
+  contact: { maxRequests: 5, windowMs: 60 * 60 * 1000 },
+
+  // Password reset: 3 per hour
+  passwordReset: { maxRequests: 3, windowMs: 60 * 60 * 1000 },
+
+  // Admin APIs: 1000 per minute per user
+  admin: { maxRequests: 1000, windowMs: 60 * 1000 }
+} as const;
+
+export type RateLimitType = keyof typeof rateLimitConfigs;
+
+/**
+ * Check rate limit for an identifier
+ * @param identifier Unique identifier (IP address, user ID, etc.)
+ * @param type Type of rate limit to check
+ * @returns Rate limit status
+ */
+export async function checkRateLimit(
+  identifier: string,
+  type: RateLimitType = 'public'
+): Promise<{ success: boolean; limit?: number; remaining?: number; reset?: number }> {
+  const config = rateLimitConfigs[type];
+  const result = await rateLimiter.limit(identifier, config);
 
   return {
-    success: true,
-    remainingRequests: maxRequests - entry.count,
-    resetTime: entry.resetTime,
+    success: result.success,
+    limit: result.limit,
+    remaining: result.remaining,
+    reset: result.reset
   };
 }
 
 /**
- * Reset rate limit for a specific identifier
- * @param env - Environment object containing KV binding
- * @param identifier - Unique identifier to reset
+ * Get rate limit headers for the response
+ * @param identifier Unique identifier
+ * @param type Type of rate limit
+ * @returns Object with rate limit headers
  */
-export async function resetRateLimit(
-  env: Env | null,
-  identifier: string
-): Promise<void> {
-  if (env?.KV) {
-    const now = Date.now();
-    const window = Math.floor(now / 60000); // 1-minute window
-    const rateLimitKey = `ratelimit:${identifier}:${window}`;
+export async function getRateLimitHeaders(
+  identifier: string,
+  type: RateLimitType = 'public'
+): Promise<Record<string, string>> {
+  const result = await rateLimiter.limit(identifier, rateLimitConfigs[type]);
 
-    try {
-      await env.KV.delete(rateLimitKey);
-    } catch (error) {
-      console.error('KV delete error:', error);
-    }
-  }
-
-  // Also clear from in-memory store
-  inMemoryStore.delete(identifier);
+  return {
+    'X-RateLimit-Limit': result.limit.toString(),
+    'X-RateLimit-Remaining': result.remaining.toString(),
+    'X-RateLimit-Reset': new Date(result.reset).toISOString()
+  };
 }
 
 /**
- * Get IP address from request
+ * Extract IP address from request headers
  */
 export function getClientIp(request: Request): string {
-  // Try various headers for client IP
-  const forwarded = request.headers.get('x-forwarded-for');
-  const realIp = request.headers.get('x-real-ip');
-  const cfConnectingIp = request.headers.get('cf-connecting-ip');
+  // Check Cloudflare headers first
+  const cfIp = request.headers.get('cf-connecting-ip');
+  if (cfIp) return cfIp;
 
+  // Check for forwarded headers
+  const forwarded = request.headers.get('x-forwarded-for');
   if (forwarded) {
     return forwarded.split(',')[0].trim();
   }
 
-  if (realIp) {
-    return realIp;
-  }
+  const realIp = request.headers.get('x-real-ip');
+  if (realIp) return realIp;
 
-  if (cfConnectingIp) {
-    return cfConnectingIp;
-  }
-
-  // Fallback to a hash of request (not ideal but prevents tracking)
-  return 'anonymous-' + Date.now().toString(36);
+  // Fallback (this might not work in all environments)
+  return 'unknown';
 }
 
 /**
- * Rate limiting response helper
+ * Rate limit middleware for API routes
+ * Returns null if rate limit is not exceeded, or a Response object if it is
  */
-export function createRateLimitResponse(result: RateLimitResult): Response {
+export async function rateLimitMiddleware(
+  request: Request,
+  type: RateLimitType = 'public',
+  userId?: string
+): Promise<Response | null> {
+  // Use user ID for rate limiting if available, otherwise use IP
+  const identifier = userId || getClientIp(request);
+
+  const result = await checkRateLimit(identifier, type);
+
+  if (!result.success) {
+    return new Response(
+      JSON.stringify({
+        error: 'Too many requests',
+        message: `Rate limit exceeded. Try again after ${new Date(result.reset!).toLocaleString()}`
+      }),
+      {
+        status: 429,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-RateLimit-Limit': result.limit?.toString() || '0',
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': new Date(result.reset!).toISOString(),
+          'Retry-After': Math.ceil((result.reset! - Date.now()) / 1000).toString()
+        }
+      }
+    );
+  }
+
+  return null;
+}
+
+// Export the limiter instance for testing purposes
+export const _rateLimiter = rateLimiter;
+
+/**
+ * Legacy rate limit function for backward compatibility
+ * @deprecated Use checkRateLimit or rateLimitMiddleware instead
+ */
+export async function rateLimit(
+  env: any,
+  key: string,
+  config: RateLimitConfig
+): Promise<{ success: boolean; limit: number; remaining: number; reset: number }> {
+  return await rateLimiter.limit(key, config);
+}
+
+/**
+ * Create a rate limit response for exceeded limits
+ * @param result Rate limit result from checkRateLimit or rateLimit
+ */
+export function createRateLimitResponse(
+  result: { success: boolean; limit: number; remaining: number; reset: number }
+): Response {
   return new Response(
     JSON.stringify({
       error: 'Too many requests',
-      message: 'Rate limit exceeded. Please try again later.',
-      resetTime: result.resetTime,
+      message: `Rate limit exceeded. Try again after ${new Date(result.reset).toLocaleString()}`
     }),
     {
       status: 429,
       headers: {
         'Content-Type': 'application/json',
-        'X-RateLimit-Limit': '5',
-        'X-RateLimit-Remaining': result.remainingRequests?.toString() || '0',
-        'X-RateLimit-Reset': result.resetTime?.toString() || '0',
-        'Retry-After': Math.ceil(((result.resetTime || 0) - Date.now()) / 1000).toString(),
-      },
+        'X-RateLimit-Limit': result.limit.toString(),
+        'X-RateLimit-Remaining': result.remaining.toString(),
+        'X-RateLimit-Reset': new Date(result.reset).toISOString(),
+        'Retry-After': Math.ceil((result.reset - Date.now()) / 1000).toString()
+      }
     }
   );
-}
-
-/**
- * Get rate limit statistics (for debugging/monitoring)
- */
-export function getRateLimitStats(): { inMemoryEntries: number; keys: string[] } {
-  cleanupInMemoryStore();
-  return {
-    inMemoryEntries: inMemoryStore.size,
-    keys: Array.from(inMemoryStore.keys()),
-  };
 }

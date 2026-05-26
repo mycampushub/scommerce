@@ -17,11 +17,16 @@ export async function apiFetch<T = unknown>(
   options: RequestInit = {}
 ): Promise<T> {
   try {
+    // Only set Content-Type for methods that have a body
+    const hasBody = options.method === 'POST' ||
+                    options.method === 'PUT' ||
+                    options.method === 'PATCH';
+
     const response = await fetch(url, {
       ...options,
       credentials: 'include', // Send cookies with requests for authentication
       headers: {
-        'Content-Type': 'application/json',
+        ...(hasBody && { 'Content-Type': 'application/json' }),
         ...options.headers,
       },
     })

@@ -4,6 +4,7 @@ import { verifyAdminAuth } from '@/lib/admin-auth';
 import { rateLimit, createRateLimitResponse } from '@/lib/rate-limit';
 import { getClientIp } from '@/lib/rate-limit';
 import { getEnv } from '@/lib/cloudflare';
+import { logAdminAction } from '@/lib/audit-logger';
 
 /**
  * GET /api/admin/integrations/payment-gateways
@@ -95,9 +96,29 @@ export async function POST(request: NextRequest) {
       settings: body.settings
     });
 
+    // SECURITY: Mask sensitive credentials in response
+    const safeGateway = {
+      ...gateway,
+      apiKey: gateway.apiKey ? gateway.apiKey.substring(0, 4) + '****' : undefined,
+      apiSecret: gateway.apiSecret ? '********' : undefined,
+      webhookSecret: gateway.webhookSecret ? '********' : undefined,
+    };
+
+    // Log audit event
+    const admin = userOrResponse as { id: string };
+    await logAdminAction(
+      env,
+      request,
+      admin.id,
+      'CREATE',
+      'AdminLog',
+      gateway.id,
+      `Created payment gateway "${gateway.name}" (provider: ${gateway.provider})`
+    );
+
     return NextResponse.json({
       success: true,
-      data: gateway,
+      data: safeGateway,
       message: 'Payment gateway created successfully'
     }, { status: 201 });
   } catch (error) {

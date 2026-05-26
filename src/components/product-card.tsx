@@ -1,103 +1,45 @@
 'use client'
 
-import React, { useState, useEffect, useCallback, memo } from 'react'
+import React, { useState, useCallback, memo } from 'react'
 import { Heart, Star, ShoppingCart } from 'lucide-react'
 import Link from 'next/link'
 import { QuickViewModal, Product } from '@/components/quick-view-modal'
 import { useCartStore } from '@/lib/store/cart-store'
 import { toast } from 'sonner'
 import { PriceDisplay } from '@/components/price-display'
+import { useWishlist, useToggleWishlist } from '@/hooks/use-wishlist'
 
 interface ProductCardProps {
   product: Product
+  wishlistProductIds?: Set<string>
 }
 
 // Memoized ProductCard to prevent unnecessary re-renders
-export const ProductCard = memo(function ProductCard({ product }: ProductCardProps) {
-  const [isWishlisted, setIsWishlisted] = useState(false)
-  const [isWishlistLoading, setIsWishlistLoading] = useState(false)
+export const ProductCard = memo(function ProductCard({ product, wishlistProductIds }: ProductCardProps) {
   const [showQuickView, setShowQuickView] = useState(false)
   const { addItem } = useCartStore()
+  const { data: wishlist } = useWishlist()
+  const toggleWishlistMutation = useToggleWishlist()
 
-  const checkWishlistStatus = useCallback(async () => {
-    try {
-      const response = await fetch('/api/wishlist', {
-        credentials: 'include'
-      })
-      if (response.ok) {
-        const data = await response.json()
-        const isProductWishlisted = data.data?.some((item: { productId: string }) => item.productId === product.id)
-        setIsWishlisted(isProductWishlisted)
-      }
-    } catch (error) {
-      console.error('Error checking wishlist status:', error)
-    }
-  }, [product.id])
-
-  // Check if product is in wishlist on mount
-  useEffect(() => {
-    checkWishlistStatus()
-  }, [checkWishlistStatus])
+  // Check if product is in wishlist from the cached wishlist data
+  // This avoids N+1 queries by using the shared wishlist data from TanStack Query
+  const isWishlisted = wishlistProductIds?.has(product.id) ||
+    wishlist?.some((item: { productId: string }) => item.productId === product.id) ||
+    false
 
   const toggleWishlist = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation()
 
-    if (isWishlistLoading) return
-
-    setIsWishlistLoading(true)
-
-    // Optimistic update - toggle immediately
-    setIsWishlisted(prev => !prev)
-
     try {
-      const method = !isWishlisted ? 'POST' : 'DELETE'
-      const url = method === 'DELETE'
-        ? `/api/wishlist?productId=${product.id}`
-        : '/api/wishlist'
-
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: method === 'POST' ? JSON.stringify({ productId: product.id }) : undefined,
+      await toggleWishlistMutation.mutateAsync({
+        productId: product.id,
+        isInWishlist: isWishlisted
       })
-
-      if (!response.ok) {
-        // Revert optimistic update if failed
-        setIsWishlisted(prev => !prev)
-
-        const errorData = await response.json()
-
-        // Handle specific error cases
-        if (response.status === 401) {
-          toast.error('Please login to manage wishlist')
-        } else if (errorData.error) {
-          toast.error(errorData.error)
-        } else {
-          toast.error('Failed to update wishlist')
-        }
-
-        return
-      }
-
-      const data = await response.json()
-
-      // Show success message
-      if (!isWishlisted) {
-        toast.success('Added to wishlist!')
-      } else {
-        toast.success('Removed from wishlist')
-      }
-
     } catch (error) {
-      // Revert optimistic update on error
-      setIsWishlisted(prev => !prev)
+      // Error is handled by the mutation hook
       console.error('Wishlist error:', error)
-      toast.error('Failed to update wishlist')
-    } finally {
-      setIsWishlistLoading(false)
     }
-  }, [isWishlistLoading, isWishlisted, product.id])
+  }, [toggleWishlistMutation, isWishlisted, product.id])
 
   const handleAddToCart = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
@@ -144,11 +86,15 @@ export const ProductCard = memo(function ProductCard({ product }: ProductCardPro
         </Link>
         <button
           onClick={toggleWishlist}
-          disabled={isWishlistLoading}
-          className={`absolute top-3 right-3 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-pink-600 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed ${isWishlistLoading ? 'opacity-100' : ''}`}
+          disabled={toggleWishlistMutation.isPending}
+          className={`absolute top-3 right-3 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-pink-600 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed ${toggleWishlistMutation.isPending ? 'opacity-100' : ''}`}
           aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
         >
-          <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-pink-600 text-pink-600' : ''}`} />
+          {toggleWishlistMutation.isPending ? (
+            <div className="w-4 h-4 border-2 border-pink-600 border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-pink-600 text-pink-600' : ''}`} />
+          )}
         </button>
         <button
           onClick={() => setShowQuickView(true)}

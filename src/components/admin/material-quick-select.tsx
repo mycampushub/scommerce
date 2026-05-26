@@ -58,7 +58,7 @@ export function MaterialQuickSelect({
           placeholder="Or enter custom material (e.g., Bamboo, Hemp)"
           value={customMaterial}
           onChange={(e) => setCustomMaterial(e.target.value)}
-          onKeyPress={(e) => {
+          onKeyDown={(e) => {
             if (e.key === 'Enter') {
               e.preventDefault()
               handleCustomMaterialAdd()

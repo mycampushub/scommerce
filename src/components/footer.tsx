@@ -2,7 +2,7 @@ import Link from 'next/link'
 
 export function Footer() {
   return (
-    <footer className="bg-gray-900 text-white">
+    <footer className="bg-gray-900 text-white" role="contentinfo" aria-label="Site footer">
       <div className="container mx-auto px-4 py-12 pb-24 md:pb-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
           <div>
@@ -42,10 +42,61 @@ export function Footer() {
           <div>
             <h3 className="text-lg font-bold mb-4 text-pink-500">Connect With Us</h3>
             <ul className="space-y-2">
-              <li><a href="#" className="text-gray-300 hover:text-white transition-colors">Instagram</a></li>
-              <li><a href="#" className="text-gray-300 hover:text-white transition-colors">Facebook</a></li>
-              <li><a href="#" className="text-gray-300 hover:text-white transition-colors">Twitter</a></li>
-              <li><a href="#" className="text-gray-300 hover:text-white transition-colors">YouTube</a></li>
+              <li>
+                <a
+                  href="https://www.instagram.com/scommerce"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-gray-300 hover:text-white transition-colors"
+                  aria-label="Visit our Instagram page"
+                >
+                  Instagram
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://www.facebook.com/scommerce"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-gray-300 hover:text-white transition-colors"
+                  aria-label="Visit our Facebook page"
+                >
+                  Facebook
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://www.twitter.com/scommerce"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-gray-300 hover:text-white transition-colors"
+                  aria-label="Visit our Twitter page"
+                >
+                  Twitter
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://www.youtube.com/@scommerce"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-gray-300 hover:text-white transition-colors"
+                  aria-label="Visit our YouTube channel"
+                >
+                  YouTube
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://www.linkedin.com/company/scommerce"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-gray-300 hover:text-white transition-colors"
+                  aria-label="Visit our LinkedIn page"
+                >
+                  LinkedIn
+                </a>
+              </li>
             </ul>
           </div>
         </div>

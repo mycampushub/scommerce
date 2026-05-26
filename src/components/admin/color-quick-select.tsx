@@ -59,7 +59,7 @@ export function ColorQuickSelect({
           placeholder="Or enter custom color (e.g., Rose Gold, Midnight Blue)"
           value={customColor}
           onChange={(e) => setCustomColor(e.target.value)}
-          onKeyPress={(e) => {
+          onKeyDown={(e) => {
             if (e.key === 'Enter') {
               e.preventDefault()
               handleCustomColorAdd()

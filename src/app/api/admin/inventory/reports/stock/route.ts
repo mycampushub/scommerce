@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { queryAll } from '@/db/db';
+import { queryAll, queryFirst } from '@/db/db';
 import { getEnv } from '@/lib/cloudflare';
 import { verifyAdmin } from '@/lib/auth/admin-auth';
 
-// GET /api/admin/inventory/reports/stock - Stock status report
+// GET /api/admin/inventory/reports/stock - Stock status report with pagination
 export async function GET(request: NextRequest) {
   try {
     // Verify admin access
@@ -20,6 +20,11 @@ export async function GET(request: NextRequest) {
     const brandId = searchParams.get('brandId') || undefined;
     const status = searchParams.get('status') || 'all'; // all, low, out, overstock
 
+    // Pagination parameters
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
+    const limit = Math.min(100, Math.max(10, parseInt(searchParams.get('limit') || '50')));
+    const offset = (page - 1) * limit;
+
     // Build WHERE conditions
     const whereConditions: string[] = [];
     const params: unknown[] = [];
@@ -35,10 +40,18 @@ export async function GET(request: NextRequest) {
 
     const whereClause = whereConditions.length > 0 ? 'WHERE ' + whereConditions.join(' AND ') : '';
 
-    // Get all products with categories and variants
+    // Get total count of products for pagination
+    const countResult = await queryFirst<{ count: number }>(
+      env,
+      `SELECT COUNT(*) as count FROM products p ${whereClause}`,
+      ...params
+    );
+    const totalProducts = countResult?.count || 0;
+
+    // Get products with pagination
     const products = await queryAll<any>(
       env,
-      `SELECT 
+      `SELECT
         p.id,
         p.name,
         p.slug,
@@ -55,8 +68,11 @@ export async function GET(request: NextRequest) {
         c.name as categoryName
       FROM products p
       LEFT JOIN categories c ON p.categoryId = c.id
-      ${whereClause}`,
-      ...params
+      ${whereClause}
+      LIMIT ? OFFSET ?`,
+      ...params,
+      limit,
+      offset
     );
 
     // Get variants for all products
@@ -64,7 +80,7 @@ export async function GET(request: NextRequest) {
     const variants = products.length > 0
       ? await queryAll<any>(
           env,
-          `SELECT 
+          `SELECT
             v.id,
             v.productId,
             v.sku,
@@ -94,7 +110,6 @@ export async function GET(request: NextRequest) {
     });
 
     const stockStatus: any[] = [];
-    let totalProducts = 0;
     let totalVariants = 0;
     let outOfStock = 0;
     let lowStock = 0;
@@ -103,7 +118,7 @@ export async function GET(request: NextRequest) {
 
     products.forEach((product) => {
       const productVariants = variantsByProduct[product.id] || [];
-      
+
       if (product.hasVariants === 1 && productVariants.length > 0) {
         // Product with variants
         productVariants.forEach((variant) => {
@@ -135,7 +150,6 @@ export async function GET(request: NextRequest) {
         });
       } else {
         // Product without variants
-        totalProducts++;
         const statusInfo = getStockStatus(product.stock, product.lowStockAlert, product.reorderLevel);
         stockStatus.push({
           id: product.id,
@@ -173,6 +187,11 @@ export async function GET(request: NextRequest) {
       filteredStatus = stockStatus.filter((item) => item.stock > item.lowStockAlert * 2);
     }
 
+    // Apply pagination to filtered results
+    const paginatedItems = filteredStatus.slice(offset, offset + limit);
+    const totalCount = filteredStatus.length;
+    const totalPages = Math.ceil(totalCount / limit);
+
     return NextResponse.json({
       success: true,
       data: {
@@ -184,7 +203,7 @@ export async function GET(request: NextRequest) {
           healthy: healthyStock,
           overstock,
         },
-        items: filteredStatus.map(s => ({
+        items: paginatedItems.map(s => ({
           id: s.id,
           name: s.type === 'variant' ? `${s.productName} - ${s.variantName}` : s.productName,
           category: s.category,
@@ -192,6 +211,14 @@ export async function GET(request: NextRequest) {
           reorderLevel: s.reorderLevel,
           status: s.statusLabel.toLowerCase().replace(' ', '_'),
         })),
+      },
+      pagination: {
+        page,
+        limit,
+        totalCount,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
       },
     });
   } catch (error) {

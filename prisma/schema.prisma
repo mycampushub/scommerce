@@ -115,6 +115,7 @@ model cart_items {
   productId        String
   variantId        String?
   quantity         Int               @default(1)
+  version          Int               @default(0) // Optimistic locking version
   createdAt        DateTime          @default(now())
   updatedAt        DateTime
   users            users             @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -209,7 +210,7 @@ model order_items {
   productId        String
   variantId        String?
   quantity         Int
-  price            Float
+  price            Decimal
   productName      String
   productImage     String?
   variantSku       String?
@@ -238,11 +239,11 @@ model orders {
   city                  String?
   district              String?
   division              String?
-  subtotal              Float
-  shipping              Float         @default(0)
-  tax                   Float         @default(0)
-  discount              Float         @default(0)
-  total                 Float
+  subtotal              Decimal
+  shipping              Decimal       @default(0)
+  tax                   Decimal       @default(0)
+  discount              Decimal       @default(0)
+  total                 Decimal
   status                String        @default("PENDING")
   paymentStatus         String        @default("PENDING")
   paymentMethod         String?
@@ -253,13 +254,14 @@ model orders {
   cancelledBy           String?
   cancellationReason    String?
   refundedAt            String?
-  refundedAmount        Float?
+  refundedAmount        Decimal?
   refundMethod          String?
   refundReason          String?
   notes                 String?
   deletedAt             DateTime?
   deletedBy             String?
   deletedReason         String?
+  version               Int           @default(0) // Optimistic locking version
   createdAt             DateTime      @default(now())
   updatedAt             DateTime
   promoCode             String?
@@ -333,8 +335,8 @@ model product_variants {
   productId              String
   sku                    String                   @unique
   name                   String
-  price                  Float
-  comparePrice           Float?
+  price                  Decimal
+  comparePrice           Decimal?
   stock                  Int                      @default(0)
   images                 String?
   size                   String?
@@ -345,9 +347,10 @@ model product_variants {
   lowStockAlert          Int                      @default(10)
   reorderLevel           Int                      @default(5)
   reorderQty             Int                      @default(20)
+  version                Int                      @default(0) // Optimistic locking version
   createdAt              DateTime                 @default(now())
   updatedAt              DateTime
-  costPrice              Float?                   @default(0)
+  costPrice              Decimal?                 @default(0) 
   // Size system (two types: unit or label)
   sizeType               String?                  // 'unit' or 'label'
   sizeValue              Float?                   // For unit sizes (e.g., 500)
@@ -358,12 +361,14 @@ model product_variants {
   // Inventory tracking
   totalPurchased         Int                      @default(0)
   totalSold              Int                      @default(0)
-  totalCost              Float?                   @default(0)
-  averageCost            Float?                   @default(0)
+  totalCost              Decimal?                 @default(0) 
+  averageCost            Decimal?                 @default(0) 
   cart_items             cart_items[]
   inventory_alerts       inventory_alerts[]
   inventory_reservations inventory_reservations[]
   order_items            order_items[]
+  inventory_adjustments  inventory_adjustments[]
+  inventory_movements    inventory_movements[]
   products               products                 @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([productId, size, color])
@@ -380,10 +385,10 @@ model products {
   slug                   String                   @unique
   description            String?
   categoryId             String
-  price                  Float                    @default(0)
-  basePrice              Float                    @default(0)
-  comparePrice           Float?
-  discount               Float                    @default(0)
+  price                  Decimal                  @default(0) 
+  basePrice              Decimal                  @default(0) 
+  comparePrice           Decimal?                 
+  discount               Decimal                  @default(0) 
   discountType           String                   @default("percentage")
   images                 String?
   stock                  Int                      @default(0)
@@ -396,9 +401,10 @@ model products {
   weight                 Float?
   dimensions             String?
   tags                   String?
+  version                Int                      @default(0) // Optimistic locking version
   createdAt              DateTime                 @default(now())
   updatedAt              DateTime
-  costPrice              Float?                   @default(0)
+  costPrice              Decimal?                 @default(0) 
   // Brand (inline, no separate page)
   brandId                String?                  // Simple brand reference
   brandName              String?                  // Brand name stored inline
@@ -419,10 +425,10 @@ model products {
   // Inventory tracking
   totalPurchased         Int                      @default(0)
   totalSold              Int                      @default(0)
-  totalCost              Float?                   @default(0)
-  averageCost            Float?                   @default(0)
+  totalCost              Decimal?                 @default(0) 
+  averageCost            Decimal?                 @default(0) 
   lastPurchaseAt         DateTime?
-  lastPurchaseCost       Float?
+  lastPurchaseCost       Decimal?                 
   cart_items             cart_items[]
   inventory_alerts       inventory_alerts[]
   inventory_reservations inventory_reservations[]
@@ -430,6 +436,8 @@ model products {
   product_reviews        product_reviews[]
   product_variants       product_variants[]
   product_color_images   product_color_images[]
+  inventory_adjustments  inventory_adjustments[]
+  inventory_movements    inventory_movements[]
   categories             categories               @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   wishlist_items         wishlist_items[]
 
@@ -468,9 +476,9 @@ model promotions {
   type                 String    @default("banner")
   promoCode            String?   @unique
   discountType         String?
-  discountValue        Float?
-  minOrderAmount       Float?
-  maxDiscountAmount    Float?
+  discountValue        Decimal?  
+  minOrderAmount       Decimal?  
+  maxDiscountAmount    Decimal?  
   startDate            DateTime?
   endDate              DateTime?
   usageLimit           Int?
@@ -530,9 +538,9 @@ model site_settings {
   siteLogo              String?
   currency              String   @default("BDT")
   currencySymbol        String   @default("৳")
-  taxRate               Float    @default(0.18)
-  freeShippingThreshold Float    @default(5000)
-  baseShippingCost      Float    @default(150)
+  taxRate               Decimal  @default(0.18) 
+  freeShippingThreshold Decimal  @default(5000) 
+  baseShippingCost      Decimal  @default(150) 
   contactEmail          String?
   contactPhone          String?
   socialMedia           String?
@@ -644,7 +652,7 @@ model purchase_orders {
   orderNumber     String                @unique
   supplierId      String
   status          String                @default("PENDING") // PENDING, ORDERED, RECEIVED, CANCELLED
-  totalAmount     Float
+  totalAmount     Decimal               
   totalQuantity   Int
   orderDate       DateTime
   expectedDate    DateTime?
@@ -666,8 +674,8 @@ model purchase_order_items {
   productId       String
   variantId       String?
   quantity        Int
-  unitCost        Float
-  totalCost       Float
+  unitCost        Decimal        
+  totalCost       Decimal        
   receivedQty     Int            @default(0)
   createdAt       DateTime       @default(now())
   purchaseOrder   purchase_orders @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
@@ -679,20 +687,22 @@ model purchase_order_items {
 
 model inventory_movements {
   id              String   @id
-  productId       String
+  productId       String?
   variantId       String?
   movementType    String   // PURCHASE, SALE, RETURN, ADJUSTMENT, TRANSFER, DAMAGE
   quantity        Int
-  unitCost        Float?   // Cost per unit at time of movement
-  totalCost       Float?   // Total cost for this movement
+  unitCost        Decimal?  // Cost per unit at time of movement
+  totalCost       Decimal?  // Total cost for this movement
   referenceId     String?  // Related order, PO, or adjustment ID
   referenceType   String?  // ORDER, PURCHASE_ORDER, ADJUSTMENT
   approved        Int      @default(0)
   approvedAt      DateTime?
   supplierId      String?
-  supplier        suppliers?   @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  supplier        suppliers?        @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  product         products?         @relation(fields: [productId], references: [id], onDelete: SetNull)
+  variant         product_variants? @relation(fields: [variantId], references: [id], onDelete: SetNull)
   notes           String?
-  createdAt       DateTime       @default(now())
+  createdAt       DateTime          @default(now())
 
   @@index([productId, createdAt])
   @@index([variantId, createdAt])
@@ -704,7 +714,7 @@ model inventory_movements {
 
 model inventory_adjustments {
   id              String   @id
-  productId       String
+  productId       String?
   variantId       String?
   adjustmentType  String   // STOCK_TAKE, DAMAGE, LOSS, THEFT, CORRECTION
   quantityBefore  Int
@@ -714,8 +724,10 @@ model inventory_adjustments {
   approvedBy      String?
   approved      Int      @default(0)
   approvedAt      DateTime?
+  product         products?         @relation(fields: [productId], references: [id], onDelete: SetNull)
+  variant         product_variants? @relation(fields: [variantId], references: [id], onDelete: SetNull)
   notes           String?
-  createdAt       DateTime       @default(now())
+  createdAt       DateTime          @default(now())
 
   @@index([productId, createdAt])
   @@index([adjustmentType, createdAt])

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { ChevronLeft, ChevronRight, SlidersHorizontal, Heart, ShoppingCart, Star, Filter, X, ChevronDown, Home as HomeIcon } from 'lucide-react'
 import Link from 'next/link'
 import { Header } from '@/components/header'
@@ -12,7 +12,6 @@ import { useProducts } from '@/hooks/use-products'
 import { toast } from 'sonner'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useDebounce } from '@/hooks/use-debounce'
-import { useFocusTrap } from '@/hooks/use-focus-trap'
 import { PriceDisplay } from '@/components/price-display'
 
 // Use Product type from QuickViewModal component
@@ -65,7 +64,7 @@ export default function ShopPage() {
   const { addItem, items: cartItems } = useCartStore()
 
   // Focus trap for mobile filter modal
-  const mobileFilterRef = useFocusTrap<HTMLDivElement>({ isOpen: mobileFiltersOpen })
+  const mobileFilterRef = useRef<HTMLDivElement>(null)
 
   // Close mobile filter modal on Escape key
   useEffect(() => {

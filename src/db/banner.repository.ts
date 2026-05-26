@@ -90,7 +90,7 @@ export class BannerRepository {
     }
     if (data.isActive !== undefined) {
       updates.push('isActive = ?');
-      values.push(boolToNumber(data.isActive !== undefined ? true : data.isActive));
+      values.push(boolToNumber(data.isActive));
     }
     if (data.order !== undefined) {
       updates.push('"order" = ?');

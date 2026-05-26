@@ -2,83 +2,75 @@
 
 import { useEffect, useRef } from 'react'
 
-interface UseFocusTrapOptions {
-  isOpen: boolean
-  autoFocus?: boolean
-}
+export function useFocusTrap() {
+  const previousActiveElement = useRef<HTMLElement | null>(null)
+  const focusableElementsRef = useRef<HTMLElement[]>([])
+  const firstFocusableRef = useRef<HTMLElement | null>(null)
+  const lastFocusableRef = useRef<HTMLElement | null>(null)
 
-/**
- * Custom hook to trap focus within a modal or dialog
- * @param options - Configuration options
- * @returns Ref to attach to the modal container
- */
-export function useFocusTrap<T extends HTMLElement>({
-  isOpen,
-  autoFocus = true,
-}: UseFocusTrapOptions) {
-  const containerRef = useRef<T>(null)
-  const triggerRef = useRef<HTMLElement | null>(null)
-
-  useEffect(() => {
-    if (!isOpen || !containerRef.current) {
-      return
-    }
-
-    // Save the currently focused element (trigger)
-    triggerRef.current = document.activeElement as HTMLElement
-
-    const container = containerRef.current
-
-    // Find all focusable elements within the container
-    const focusableElements = container.querySelectorAll<HTMLElement>(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+  const getFocusableElements = (container: HTMLElement): HTMLElement[] => {
+    const focusableSelectors = [
+      'a[href]',
+      'button:not([disabled])',
+      'textarea:not([disabled])',
+      'input:not([disabled])',
+      'select:not([disabled])',
+      '[tabindex]:not([tabindex="-1"])',
+    ]
+    return Array.from(container.querySelectorAll(focusableSelectors.join(', '))).filter(
+      (el): el is HTMLElement => {
+        const htmlEl = el as HTMLElement
+        return htmlEl.offsetParent !== null || htmlEl.getClientRects().length > 0
+      }
     )
+  }
 
-    const firstElement = focusableElements[0]
-    const lastElement = focusableElements[focusableElements.length - 1]
+  const activate = (container: HTMLElement) => {
+    // Store the previously focused element
+    previousActiveElement.current = document.activeElement as HTMLElement
 
-    // Focus the first focusable element when modal opens
-    if (autoFocus && firstElement) {
-      setTimeout(() => firstElement.focus(), 0)
+    // Get all focusable elements inside the container
+    focusableElementsRef.current = getFocusableElements(container)
+
+    if (focusableElementsRef.current.length > 0) {
+      firstFocusableRef.current = focusableElementsRef.current[0]
+      lastFocusableRef.current = focusableElementsRef.current[focusableElementsRef.current.length - 1]
+
+      // Focus the first element
+      firstFocusableRef.current.focus()
     }
+  }
 
-    // Handle Tab key to cycle through focusable elements
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== 'Tab') {
-        return
-      }
+  const deactivate = () => {
+    // Restore focus to the previously focused element
+    if (previousActiveElement.current) {
+      previousActiveElement.current.focus()
+    }
+  }
 
-      if (focusableElements.length === 0) {
+  const handleTabKey = (e: KeyboardEvent) => {
+    if (e.key !== 'Tab') return
+
+    if (!firstFocusableRef.current || !lastFocusableRef.current) return
+
+    if (e.shiftKey) {
+      // Shift + Tab
+      if (document.activeElement === firstFocusableRef.current) {
         e.preventDefault()
-        return
+        lastFocusableRef.current.focus()
       }
-
-      // Handle Shift+Tab (moving backwards)
-      if (e.shiftKey) {
-        if (document.activeElement === firstElement) {
-          e.preventDefault()
-          lastElement?.focus()
-        }
-      }
-      // Handle Tab (moving forwards)
-      else {
-        if (document.activeElement === lastElement) {
-          e.preventDefault()
-          firstElement?.focus()
-        }
+    } else {
+      // Tab
+      if (document.activeElement === lastFocusableRef.current) {
+        e.preventDefault()
+        firstFocusableRef.current.focus()
       }
     }
+  }
 
-    container.addEventListener('keydown', handleKeyDown)
-
-    // Return focus to trigger element when modal closes
-    return () => {
-      container.removeEventListener('keydown', handleKeyDown)
-      if (triggerRef.current) {
-        triggerRef.current.focus()
-      }
-    }
-  }, [isOpen, autoFocus])
-
-  return containerRef
+  return {
+    activate,
+    deactivate,
+    handleTabKey,
+  }
 }

@@ -5,29 +5,49 @@ import {
   queryFirst,
   queryAll,
   execute,
+  retry,
 } from '@/db/db';
 
 /**
- * Generate a unique supplier code
+ * Generate a unique supplier code with retry logic to prevent race conditions
  * Format: SUP-XXXX where XXXX is a sequential number
+ * Uses retry mechanism to handle unique constraint violations from concurrent requests
  */
 async function generateSupplierCode(env: Env | null): Promise<string> {
-  // Find the last supplier code
-  const lastSupplier = await queryFirst<{ code: string }>(
-    env,
-    'SELECT code FROM suppliers WHERE code LIKE "SUP-%" ORDER BY code DESC LIMIT 1'
-  );
+  // Use retry to handle race conditions from concurrent supplier creation
+  return await retry(async () => {
+    // Find the last supplier code
+    const lastSupplier = await queryFirst<{ code: string }>(
+      env,
+      'SELECT code FROM suppliers WHERE code LIKE "SUP-%" ORDER BY code DESC LIMIT 1'
+    );
 
-  let sequence = 1;
-  if (lastSupplier && lastSupplier.code) {
-    // Extract numeric part from code (e.g., SUP-0001 -> 1)
-    const match = lastSupplier.code.match(/SUP-(\d+)/);
-    if (match) {
-      sequence = parseInt(match[1], 10) + 1;
+    let sequence = 1;
+    if (lastSupplier && lastSupplier.code) {
+      // Extract numeric part from code (e.g., SUP-0001 -> 1)
+      const match = lastSupplier.code.match(/SUP-(\d+)/);
+      if (match) {
+        sequence = parseInt(match[1], 10) + 1;
+      }
     }
-  }
 
-  return `SUP-${sequence.toString().padStart(4, '0')}`;
+    const code = `SUP-${sequence.toString().padStart(4, '0')}`;
+
+    // Check if this code already exists (double-check for race condition)
+    const existing = await queryFirst<{ id: string }>(
+      env,
+      'SELECT id FROM suppliers WHERE code = ? LIMIT 1',
+      code
+    );
+
+    if (existing) {
+      // Code already exists - this means there was a race condition
+      // Throw an error to trigger retry
+      throw new Error(`Supplier code ${code} already exists - retrying`);
+    }
+
+    return code;
+  }, 5, 50); // Retry up to 5 times with 50ms base delay
 }
 
 export class SupplierRepository {

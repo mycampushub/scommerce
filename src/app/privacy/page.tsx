@@ -109,7 +109,7 @@ export default function PrivacyPage() {
                 If you have any questions about this Privacy Policy, please contact us:
               </p>
               <p className="text-gray-600">
-                Email: privacy@modern ecommerce.com<br />
+                Email: privacy@modernecommerce.com<br />
                 Address: 123 Fashion Street, Mumbai, Maharashtra 400001, India
               </p>
             </div>

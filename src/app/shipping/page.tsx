@@ -123,10 +123,10 @@ export default function ShippingPage() {
                   If you have any questions about shipping, please don't hesitate to reach out to our customer service team.
                 </p>
                 <a
-                  href="mailto:shipping@modern ecommerce.com"
+                  href="mailto:shipping@modernecommerce.com"
                   className="text-pink-600 hover:underline font-medium"
                 >
-                  shipping@modern ecommerce.com
+                  shipping@modernecommerce.com
                 </a>
               </div>
             </div>

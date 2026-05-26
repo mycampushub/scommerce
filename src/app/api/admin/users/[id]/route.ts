@@ -49,7 +49,8 @@ export async function DELETE(
     let orderCount = 0;
 
     if (isPrisma) {
-      const prisma = (await import('@/lib/database')).default;
+      const { getPrisma } = await import('@/db/unified-db');
+      const prisma = getPrisma();
       orderCount = await prisma.orders.count({
         where: { userId: id }
       });

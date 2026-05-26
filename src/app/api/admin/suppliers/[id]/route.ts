@@ -156,7 +156,8 @@ export async function DELETE(
     // Check if supplier has purchase orders
     const poCount = await queryFirst<{ count: number }>(
       env,
-      'SELECT COUNT(*) as count FROM purchase_orders WHERE supplierId = ?'
+      'SELECT COUNT(*) as count FROM purchase_orders WHERE supplierId = ?',
+      id
     )
     if (poCount && poCount.count > 0) {
       return NextResponse.json(

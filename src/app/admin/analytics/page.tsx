@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { escapeCSVField, arrayToCSV, downloadCSV } from '@/lib/csv-utils'
 import {
   Select,
   SelectContent,
@@ -81,39 +82,50 @@ export default function AnalyticsPage() {
     if (!analytics) return
 
     if (format === 'csv') {
-      // CSV Export
-      const rows = [
-        ['Date', 'Revenue', 'Orders', 'Category', 'Product', 'Quantity', 'Total']
-      ]
+      // CSV Export with proper escaping
+      const csvData: Array<Record<string, any>> = []
 
+      // Sales chart data
       analytics.salesChartData.forEach((item: any) => {
-        rows.push([
-          item.date,
-          item.revenue,
-          item.orders,
-          '',
-          '',
-          '',
-          item.revenue
-        ])
+        csvData.push({
+          Date: item.date,
+          Revenue: item.revenue,
+          Orders: item.orders,
+          Category: '',
+          Product: '',
+          Quantity: '',
+          Total: item.revenue,
+        })
       })
 
+      // Category sales
       analytics.categorySales.forEach((cat: any) => {
-        rows.push(['', cat.value, '', cat.name, '', '', cat.value])
+        csvData.push({
+          Date: '',
+          Revenue: cat.value,
+          Orders: '',
+          Category: cat.name,
+          Product: '',
+          Quantity: '',
+          Total: cat.value,
+        })
       })
 
-      analytics.topProducts.forEach((prod: any, idx: number) => {
-        rows.push(['', prod.revenue, prod.count, prod.category, prod.name, prod.count, prod.revenue])
+      // Top products
+      analytics.topProducts.forEach((prod: any) => {
+        csvData.push({
+          Date: '',
+          Revenue: prod.revenue,
+          Orders: prod.count,
+          Category: prod.category,
+          Product: prod.name,
+          Quantity: prod.count,
+          Total: prod.revenue,
+        })
       })
 
-      const csvContent = rows.map(row => row.map(cell => `"${cell || ''}"`).join(',')).join('\n')
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `analytics-export-${new Date().toISOString().split('T')[0]}.csv`
-      a.click()
-      URL.revokeObjectURL(url)
+      const csvContent = arrayToCSV(csvData)
+      downloadCSV(csvContent, `analytics-export-${new Date().toISOString().split('T')[0]}.csv`)
 
       toast.success('Analytics exported to CSV')
       return

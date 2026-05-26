@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyAdminAuth } from '@/lib/admin-auth'
 import { getEnv } from '@/lib/cloudflare'
 import { UserRepository } from '@/db/user.repository'
-import { queryAll, count, numberToBool, generateId } from '@/db/db'
+import { queryAll, queryFirst, count, numberToBool, generateId } from '@/db/db'
 import { hashPassword } from '@/lib/bcrypt-wrapper'
 
 
@@ -18,27 +18,48 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search') || ''
     const status = searchParams.get('status') || ''
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
+    const limit = Math.min(100, Math.max(10, parseInt(searchParams.get('limit') || '20')))
+    const offset = (page - 1) * limit
 
-    let users = await queryAll<any>(
-      env,
-      'SELECT * FROM users ORDER BY createdAt DESC'
-    )
+    // Build WHERE clause for SQL-level filtering
+    const conditions: string[] = ["role != 'admin'"]
+    const params: any[] = []
 
     if (search) {
-      users = users.filter(
-        (user) =>
-          user.name?.toLowerCase().includes(search.toLowerCase()) ||
-          user.email.toLowerCase().includes(search.toLowerCase())
-      )
+      conditions.push('(name LIKE ? OR email LIKE ?)')
+      const searchPattern = `%${search}%`
+      params.push(searchPattern, searchPattern)
     }
 
     if (status === 'active') {
-      users = users.filter((user) => user.isBanned !== 1)
+      conditions.push('isBanned = 0')
     } else if (status === 'banned') {
-      users = users.filter((user) => user.isBanned === 1)
+      conditions.push('isBanned = 1')
     }
 
-    const customers = users.filter((user) => user.role !== 'admin')
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
+
+    // Get total count for pagination
+    const countResult = await queryFirst<{ count: number }>(
+      env,
+      `SELECT COUNT(*) as count FROM users ${whereClause}`,
+      ...params
+    )
+    const totalCount = countResult?.count || 0
+    const totalPages = Math.ceil(totalCount / limit)
+
+    // Fetch customers with pagination
+    const customers = await queryAll<any>(
+      env,
+      `SELECT * FROM users
+       ${whereClause}
+       ORDER BY createdAt DESC
+       LIMIT ? OFFSET ?`,
+      ...params,
+      limit,
+      offset
+    )
 
     // Fix N+1 query: Get all order counts in a single GROUP BY query
     let orderCountsMap = new Map<string, { count: number; totalSpent: number }>()
@@ -82,7 +103,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: customersWithCounts,
-      total: customersWithCounts.length,
+      pagination: {
+        page,
+        limit,
+        totalCount,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
     })
   } catch (error) {
     console.error('Error fetching customers:', error)

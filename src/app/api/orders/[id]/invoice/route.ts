@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
 import { OrderRepository } from '@/db/order.repository'
 import { parseJSON } from '@/db/db'
-import { verifyAuth } from '@/lib/auth-utils'
+import { verifyAdminAuth } from '@/lib/admin-auth'
 import { jsPDF } from 'jspdf'
 
 export async function GET(
@@ -10,7 +10,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   // Verify user authentication
-  const userOrResponse = await verifyAuth(request)
+  const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff', 'user'])
   if (userOrResponse instanceof NextResponse) {
     return userOrResponse
   }

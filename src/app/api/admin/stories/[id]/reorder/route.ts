@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
 import { verifyAdminAuth } from '@/lib/admin-auth'
 import { MediaRepository } from '@/db/media.repository'
+import { logAdminAction } from '@/lib/audit-logger'
 
 
 export async function PUT(
@@ -42,6 +43,18 @@ export async function PUT(
         { status: 404 }
       )
     }
+
+    // Log audit event
+    const admin = userOrResponse as { id: string }
+    await logAdminAction(
+      env,
+      request,
+      admin.id,
+      'UPDATE',
+      'Story',
+      id,
+      `Reordered story "${story.title || id}" to position ${order}`
+    )
 
     return NextResponse.json({
       success: true,

@@ -4,6 +4,7 @@ import { verifyAdminAuth } from '@/lib/admin-auth';
 import { rateLimit, createRateLimitResponse } from '@/lib/rate-limit';
 import { getClientIp } from '@/lib/rate-limit';
 import { getEnv } from '@/lib/cloudflare';
+import { logAdminAction } from '@/lib/audit-logger';
 
 /**
  * GET /api/admin/integrations/analytics
@@ -87,9 +88,27 @@ export async function POST(request: NextRequest) {
       settings: body.settings
     });
 
+    // SECURITY: Mask sensitive credentials in response
+    const safeAnalytics = {
+      ...analytics,
+      apiKey: analytics.apiKey ? analytics.apiKey.substring(0, 4) + '****' : undefined,
+    };
+
+    // Log audit event
+    const admin = userOrResponse as { id: string };
+    await logAdminAction(
+      env,
+      request,
+      admin.id,
+      'CREATE',
+      'AdminLog',
+      analytics.id,
+      `Created analytics integration "${analytics.name}" (provider: ${analytics.provider})`
+    );
+
     return NextResponse.json({
       success: true,
-      data: analytics,
+      data: safeAnalytics,
       message: 'Analytics integration created successfully'
     }, { status: 201 });
   } catch (error) {

@@ -25,8 +25,11 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') || ''
     const dateFrom = searchParams.get('dateFrom')
     const dateTo = searchParams.get('dateTo')
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
+    const limit = Math.min(100, Math.max(10, parseInt(searchParams.get('limit') || '20')))
+    const offset = (page - 1) * limit
 
-    console.log('[orders API] Fetching orders with filters:', { search, status, dateFrom, dateTo })
+    console.log('[orders API] Fetching orders with filters:', { search, status, dateFrom, dateTo, page, limit })
 
     let orders: any[] = []
     let orderItems: any[] = []
@@ -58,7 +61,16 @@ export async function GET(request: NextRequest) {
       whereParams.push(endDate.toISOString())
     }
 
-    // Fetch orders with user details in a single query using JOIN
+    // Get total count for pagination
+    const countResult = await queryFirst<{ count: number }>(
+      env,
+      `SELECT COUNT(*) as count FROM orders o WHERE 1=1${whereClause}`,
+      ...(whereParams || [])
+    )
+    const totalCount = countResult?.count || 0
+    const totalPages = Math.ceil(totalCount / limit)
+
+    // Fetch orders with user details in a single query using JOIN with pagination
     orders = await queryAll<any>(
       env,
       `SELECT
@@ -70,8 +82,11 @@ export async function GET(request: NextRequest) {
        FROM orders o
        LEFT JOIN users u ON o.userId = u.id
        WHERE 1=1${whereClause}
-       ORDER BY o.createdAt DESC`,
-      ...(whereParams || [])
+       ORDER BY o.createdAt DESC
+       LIMIT ? OFFSET ?`,
+      ...(whereParams || []),
+      limit,
+      offset
     )
 
     console.log('[orders API] Fetched orders:', orders.length)
@@ -117,7 +132,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: enrichedOrders,
-      total: enrichedOrders.length,
+      pagination: {
+        page,
+        limit,
+        totalCount,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
     })
   } catch (error) {
     console.error('[orders API] Error fetching orders:', error)
@@ -176,7 +198,7 @@ export async function POST(request: NextRequest) {
           status: 429,
           headers: {
             'Content-Type': 'application/json',
-            'Retry-After': Math.ceil(((rateLimitResult.resetTime || 0) - Date.now()) / 1000).toString(),
+            'Retry-After': Math.ceil(((rateLimitResult.reset || 0) - Date.now()) / 1000).toString(),
           },
         }
       )

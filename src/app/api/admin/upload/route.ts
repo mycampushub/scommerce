@@ -3,19 +3,21 @@ import { verifyAdminAuth } from '@/lib/admin-auth';
 import { getEnv, getEnvVar } from '@/lib/cloudflare';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
 import { generateId, now, execute } from '@/db/db';
+import { randomUUID } from 'crypto';
 
 // Configuration
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_FILES_PER_BATCH = 5; // Maximum files in one upload
+// SECURITY: Removed SVG to prevent XSS attacks. SVG files can contain malicious JavaScript.
+// If SVG support is needed, implement proper SVG sanitization (e.g., using DOMPurify with SVG support).
 const ALLOWED_TYPES = [
   'image/jpeg',
   'image/jpg',
   'image/png',
   'image/webp',
   'image/gif',
-  'image/svg+xml',
 ];
-const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'];
+const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
 
 // In-memory cache for duplicate detection (development mode)
 const fileHashCache = new Map<string, { url: string; timestamp: number }>();
@@ -141,13 +143,23 @@ async function getImageDimensions(buffer: Buffer): Promise<{ width: number; heig
 }
 
 /**
- * Generate unique filename
+ * Generate unique filename using cryptographically secure random
  */
 function generateFilename(originalName: string, userId: string): string {
   const timestamp = Date.now();
-  const random = Math.random().toString(36).substring(2, 9);
-  const ext = originalName.split('.').pop()?.toLowerCase() || 'jpg';
-  return `${userId}-${timestamp}-${random}.${ext}`;
+  // SECURITY: Use randomUUID() instead of Math.random() for cryptographically secure randomness
+  const uniqueId = randomUUID().split('-').join('').substring(0, 12);
+  
+  // Sanitize original filename to extract extension safely
+  const safeOriginalName = originalName.replace(/[^a-zA-Z0-9._-]/g, '');
+  const ext = safeOriginalName.split('.').pop()?.toLowerCase() || 'jpg';
+  
+  // Validate extension is in allowed list
+  if (!ALLOWED_EXTENSIONS.includes(ext)) {
+    throw new Error(`Invalid file extension: ${ext}`);
+  }
+  
+  return `${userId}-${timestamp}-${uniqueId}.${ext}`;
 }
 
 /**
@@ -214,13 +226,13 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
         error: 'Too many upload attempts. Please try again later.',
         code: 'RATE_LIMIT_EXCEEDED',
         details: {
-          resetTime: rateLimitResult.resetTime,
+          resetTime: rateLimitResult.reset,
         },
       } as UploadErrorResponse,
       {
         status: 429,
         headers: {
-          'Retry-After': Math.ceil(((rateLimitResult.resetTime || 0) - Date.now()) / 1000).toString(),
+          'Retry-After': Math.ceil(((rateLimitResult.reset || 0) - Date.now()) / 1000).toString(),
         },
       }
     );

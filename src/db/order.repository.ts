@@ -1,6 +1,13 @@
 import { Env, Order, OrderItem, OrderStatus, PaymentStatus, TrackingStatus } from '@/db/types';
-import { generateId, generateOrderNumber, now, queryFirst, queryAll, execute, generateSecureId } from '@/db/db';
+import { generateId, generateOrderNumber, now, queryFirst, queryAll, execute, generateSecureId, retry } from '@/db/db';
 import { runTransaction } from '@/lib/transaction';
+import {
+  updateOrderStatusWithLock,
+  getVersionConflictErrorMessage,
+  retryOnVersionConflict,
+  updateWithOptimisticLock,
+  OptimisticLockResult
+} from '@/lib/optimistic-lock';
 
 export class OrderRepository {
   /**
@@ -45,7 +52,7 @@ export class OrderRepository {
   }
 
   /**
-   * Create new order
+   * Create new order with retry to handle order number collision
    */
   static async create(env: Env | null, data: {
     userId?: string;
@@ -65,83 +72,115 @@ export class OrderRepository {
     paymentMethod?: string;
     promoCode?: string;
   }): Promise<Order> {
-    const id = generateId();
-    const orderNumber = generateOrderNumber();
-    const currentTime = now();
+    // Use retry to handle rare order number collisions
+    return await retry(async () => {
+      const id = generateId();
+      const orderNumber = await generateOrderNumber();
+      const currentTime = now();
 
-    // Build SQL dynamically with correct number of placeholders
-    const columns = [
-      'id', 'orderNumber', 'userId', 'customerName', 'customerEmail', 'customerPhone',
-      'shippingAddress', 'billingAddress', 'city', 'district', 'division',
-      'subtotal', 'shipping', 'tax', 'discount', 'total',
-      'status', 'paymentStatus', 'paymentMethod', 'promoCode', 'trackingStatus',
-      'createdAt', 'updatedAt'
-    ];
+      // Build SQL dynamically with correct number of placeholders
+      const columns = [
+        'id', 'orderNumber', 'userId', 'customerName', 'customerEmail', 'customerPhone',
+        'shippingAddress', 'billingAddress', 'city', 'district', 'division',
+        'subtotal', 'shipping', 'tax', 'discount', 'total',
+        'status', 'paymentStatus', 'paymentMethod', 'promoCode', 'trackingStatus',
+        'createdAt', 'updatedAt'
+      ];
 
-    const placeholders = columns.map(() => '?').join(', ');
-    const values = [
-      id,
-      orderNumber,
-      data.userId || null,
-      data.customerName,
-      data.customerEmail,
-      data.customerPhone || null,
-      data.shippingAddress,
-      data.billingAddress || null,
-      data.city || null,
-      data.district || null,
-      data.division || null,
-      data.subtotal,
-      data.shipping || 0,
-      data.tax || 0,
-      data.discount || 0,
-      data.total,
-      'PENDING',
-      'PENDING',
-      data.paymentMethod || null,
-      data.promoCode || null,
-      'PENDING',
-      currentTime,
-      currentTime
-    ];
+      const placeholders = columns.map(() => '?').join(', ');
+      const values = [
+        id,
+        orderNumber,
+        data.userId || null,
+        data.customerName,
+        data.customerEmail,
+        data.customerPhone || null,
+        data.shippingAddress,
+        data.billingAddress || null,
+        data.city || null,
+        data.district || null,
+        data.division || null,
+        data.subtotal,
+        data.shipping || 0,
+        data.tax || 0,
+        data.discount || 0,
+        data.total,
+        'PENDING',
+        'PENDING',
+        data.paymentMethod || null,
+        data.promoCode || null,
+        'PENDING',
+        currentTime,
+        currentTime
+      ];
 
-    const sql = `INSERT INTO orders (${columns.join(', ')}) VALUES (${placeholders})`;
+      const sql = `INSERT INTO orders (${columns.join(', ')}) VALUES (${placeholders})`;
 
-    await execute(env, sql, ...values);
+      try {
+        await execute(env, sql, ...values);
+      } catch (error: any) {
+        // If it's a unique constraint violation on orderNumber, retry
+        if (error.message && error.message.includes('UNIQUE')) {
+          throw new Error(`Order number collision - retrying`);
+        }
+        throw error;
+      }
 
-    return (await this.findById(env, id))!;
+      return (await this.findById(env, id))!;
+    }, 3, 50); // Retry up to 3 times with 50ms base delay
   }
 
   /**
-   * Update order status
+   * Update order status with optimistic locking (prevents concurrent status updates)
+   * Uses version checking and automatic retry on conflicts
    */
   static async updateStatus(env: Env | null, id: string, status: OrderStatus): Promise<Order | null> {
-    await execute(
-      env,
-      'UPDATE orders SET status = ?, updatedAt = ? WHERE id = ?',
-      status,
-      now(),
-      id
-    );
+    const result = await retryOnVersionConflict(async () => {
+      return await updateOrderStatusWithLock(id, status);
+    });
+
+    if (!result.success) {
+      if (result.conflict) {
+        throw new Error(getVersionConflictErrorMessage('order'));
+      }
+      throw new Error(result.error || 'Failed to update order status');
+    }
+
     return this.findById(env, id);
   }
 
   /**
-   * Update payment status
+   * Update payment status with optimistic locking
    */
   static async updatePaymentStatus(env: Env | null, id: string, paymentStatus: PaymentStatus): Promise<Order | null> {
-    await execute(
+    const order = await queryFirst<{ version: number }>(
       env,
-      'UPDATE orders SET paymentStatus = ?, updatedAt = ? WHERE id = ?',
-      paymentStatus,
-      now(),
+      `SELECT version FROM orders WHERE id = ?`,
       id
     );
+
+    if (!order) {
+      throw new Error('Order not found');
+    }
+
+    const result = await retryOnVersionConflict(async () => {
+      return await updateWithOptimisticLock('orders', id, order.version, {
+        paymentStatus,
+      });
+    });
+
+    if (!result.success) {
+      if (result.conflict) {
+        throw new Error(getVersionConflictErrorMessage('order'));
+      }
+      throw new Error(result.error || 'Failed to update payment status');
+    }
+
     return this.findById(env, id);
   }
 
   /**
-   * Update tracking
+   * Update tracking with optimistic locking
    */
   static async updateTracking(
     env: Env | null,
@@ -149,36 +188,68 @@ export class OrderRepository {
     trackingNumber: string,
     trackingStatus: TrackingStatus
   ): Promise<Order | null> {
-    await execute(
+    const order = await queryFirst<{ version: number }>(
       env,
-      'UPDATE orders SET trackingNumber = ?, trackingStatus = ?, updatedAt = ? WHERE id = ?',
-      trackingNumber,
-      trackingStatus,
-      now(),
+      `SELECT version FROM orders WHERE id = ?`,
       id
     );
+
+    if (!order) {
+      throw new Error('Order not found');
+    }
+
+    const result = await retryOnVersionConflict(async () => {
+      return await updateWithOptimisticLock('orders', id, order.version, {
+        trackingNumber,
+        trackingStatus,
+      });
+    });
+
+    if (!result.success) {
+      if (result.conflict) {
+        throw new Error(getVersionConflictErrorMessage('order'));
+      }
+      throw new Error(result.error || 'Failed to update tracking');
+    }
+
     return this.findById(env, id);
   }
 
   /**
-   * Cancel order
+   * Cancel order with optimistic locking
    */
   static async cancel(env: Env | null, id: string, cancelledBy: string, reason?: string): Promise<Order | null> {
-    await execute(
+    const order = await queryFirst<{ version: number }>(
       env,
-      `UPDATE orders SET status = 'CANCELLED', cancelledAt = ?, cancelledBy = ?,
-       cancellationReason = ?, updatedAt = ? WHERE id = ?`,
-      now(),
-      cancelledBy,
-      reason || null,
-      now(),
+      `SELECT version FROM orders WHERE id = ?`,
       id
     );
+
+    if (!order) {
+      throw new Error('Order not found');
+    }
+
+    const result = await retryOnVersionConflict(async () => {
+      return await updateWithOptimisticLock('orders', id, order.version, {
+        status: 'CANCELLED',
+        cancelledAt: now(),
+        cancelledBy,
+        cancellationReason: reason || null,
+      });
+    });
+
+    if (!result.success) {
+      if (result.conflict) {
+        throw new Error(getVersionConflictErrorMessage('order'));
+      }
+      throw new Error(result.error || 'Failed to cancel order');
+    }
+
     return this.findById(env, id);
   }
 
   /**
-   * Refund order
+   * Refund order with optimistic locking (supports partial and cumulative refunds)
    */
   static async refund(
     env: Env | null,
@@ -187,18 +258,42 @@ export class OrderRepository {
     method: string,
     reason?: string
   ): Promise<Order | null> {
-    await execute(
+    const order = await queryFirst<{ version: number; refundedAmount: number | null; total: number }>(
       env,
-      `UPDATE orders SET status = 'REFUNDED', paymentStatus = 'REFUNDED',
-       refundedAt = ?, refundedAmount = ?, refundMethod = ?, refundReason = ?,
-       updatedAt = ? WHERE id = ?`,
-      now(),
-      amount,
-      method,
-      reason || null,
-      now(),
+      `SELECT version, refundedAmount, total FROM orders WHERE id = ?`,
       id
     );
+
+    if (!order) {
+      throw new Error('Order not found');
+    }
+
+    // Check cumulative refund amount doesn't exceed total
+    const currentRefunded = order.refundedAmount ? Number(order.refundedAmount) : 0;
+    const newRefundAmount = currentRefunded + amount;
+
+    if (newRefundAmount > Number(order.total)) {
+      throw new Error(`Refund amount (${newRefundAmount}) exceeds order total (${order.total})`);
+    }
+
+    const result = await retryOnVersionConflict(async () => {
+      return await updateWithOptimisticLock('orders', id, order.version, {
+        status: 'REFUNDED',
+        paymentStatus: 'REFUNDED',
+        refundedAt: now(),
+        refundedAmount: newRefundAmount,
+        refundMethod: method,
+        refundReason: reason || null,
+      });
+    });
+
+    if (!result.success) {
+      if (result.conflict) {
+        throw new Error(getVersionConflictErrorMessage('order'));
+      }
+      throw new Error(result.error || 'Failed to refund order');
+    }
+
     return this.findById(env, id);
   }
 
@@ -393,8 +488,9 @@ export class OrderRepository {
   }
 
   /**
-   * Create order with items and stock updates in a transaction
+   * Create order with items and stock updates in a transaction with retry
    * This ensures atomicity - either all operations succeed or none do
+   * Retry handles rare order number collisions
    */
   static async createOrderWithItems(
     env: Env | null,
@@ -430,163 +526,187 @@ export class OrderRepository {
     }>,
     userId?: string
   ): Promise<{ order: Order; items: OrderItem[] } | null> {
-    const result = await runTransaction(async (db, commit, rollback) => {
-      try {
-        const id = generateId();
-        const orderNumber = generateOrderNumber();
-        const currentTime = now();
+    // Use retry to handle rare order number collisions
+    return await retry(async () => {
+      const result = await runTransaction(async (db, commit, rollback) => {
+        try {
+          const id = generateId();
+          const orderNumber = await generateOrderNumber();
+          const currentTime = now();
 
-        // Create order
-        const columns = [
-          'id', 'orderNumber', 'userId', 'customerName', 'customerEmail', 'customerPhone',
-          'shippingAddress', 'billingAddress', 'city', 'district', 'division',
-          'subtotal', 'shipping', 'tax', 'discount', 'total',
-          'status', 'paymentStatus', 'paymentMethod', 'promoCode', 'trackingStatus',
-          'createdAt', 'updatedAt'
-        ];
-
-        const placeholders = columns.map(() => '?').join(', ');
-        const values = [
-          id, orderNumber, orderData.userId || null, orderData.customerName, orderData.customerEmail,
-          orderData.customerPhone || null, orderData.shippingAddress, orderData.billingAddress || null,
-          orderData.city || null, orderData.district || null, orderData.division || null,
-          orderData.subtotal, orderData.shipping, orderData.tax, orderData.discount, orderData.total,
-          'PENDING', 'PENDING', orderData.paymentMethod || null, orderData.promoCode || null,
-          'PENDING', currentTime, currentTime
-        ];
-
-        const sql = `INSERT INTO orders (${columns.join(', ')}) VALUES (${placeholders})`;
-        const stmt = db.prepare(sql).bind(values);
-        await stmt.run();
-
-        // Fetch the created order
-        const orderStmt = db.prepare('SELECT * FROM orders WHERE id = ? LIMIT 1').bind([id]);
-        const orderResult = await orderStmt.first();
-        const order = orderResult as Order;
-
-        // Create order items and update stock
-        const items: OrderItem[] = [];
-        for (const item of orderItems) {
-          const itemId = generateId();
-          const itemTime = now();
-
-          // Create order item
-          const itemColumns = [
-            'id', 'orderId', 'productId', 'variantId', 'quantity', 'price',
-            'productName', 'productImage', 'variantSku', 'variantSize', 'variantColor',
-            'variantMaterial', 'createdAt'
-          ];
-          const itemPlaceholders = itemColumns.map(() => '?').join(', ');
-          const itemValues = [
-            itemId, order.id, item.productId, item.variantId || null, item.quantity,
-            item.price, item.productName, item.productImage || null, item.variantSku || null,
-            item.variantSize || null, item.variantColor || null, item.variantMaterial || null,
-            itemTime
+          // Create order
+          const columns = [
+            'id', 'orderNumber', 'userId', 'customerName', 'customerEmail', 'customerPhone',
+            'shippingAddress', 'billingAddress', 'city', 'district', 'division',
+            'subtotal', 'shipping', 'tax', 'discount', 'total',
+            'status', 'paymentStatus', 'paymentMethod', 'promoCode', 'trackingStatus',
+            'createdAt', 'updatedAt'
           ];
 
-          const itemSql = `INSERT INTO order_items (${itemColumns.join(', ')}) VALUES (${itemPlaceholders})`;
-          const itemStmt = db.prepare(itemSql).bind(itemValues);
-          await itemStmt.run();
+          const placeholders = columns.map(() => '?').join(', ');
+          const values = [
+            id, orderNumber, orderData.userId || null, orderData.customerName, orderData.customerEmail,
+            orderData.customerPhone || null, orderData.shippingAddress, orderData.billingAddress || null,
+            orderData.city || null, orderData.district || null, orderData.division || null,
+            orderData.subtotal, orderData.shipping, orderData.tax, orderData.discount, orderData.total,
+            'PENDING', 'PENDING', orderData.paymentMethod || null, orderData.promoCode || null,
+            'PENDING', currentTime, currentTime
+          ];
 
-          // Fetch the created item
-          const fetchItemStmt = db.prepare('SELECT * FROM order_items WHERE id = ? LIMIT 1').bind([itemId]);
-          const fetchedItem = await fetchItemStmt.first();
-          items.push(fetchedItem as OrderItem);
-
-          // Update stock and generate alerts
-          if (item.variantId) {
-            // Update variant stock
-            const variantStmt = db.prepare(
-              'SELECT id, stock, lowStockAlert, reorderLevel FROM product_variants WHERE id = ? LIMIT 1'
-            ).bind([item.variantId]);
-            const variant = await variantStmt.first() as { stock: number; lowStockAlert: number; reorderLevel: number } | null;
-
-            if (variant) {
-              const newStock = Math.max(0, variant.stock - item.quantity);
-              const updateStockStmt = db.prepare(
-                'UPDATE product_variants SET stock = ? WHERE id = ?'
-              ).bind([newStock, item.variantId]);
-              await updateStockStmt.run();
-
-              // Generate alerts
-              const alertType = newStock === 0 ? 'OUT_OF_STOCK' :
-                                newStock < variant.reorderLevel ? 'REORDER_NEEDED' : 'LOW_STOCK';
-
-              const existingAlertStmt = db.prepare(
-                'SELECT id FROM inventory_alerts WHERE variantId = ? AND alertType = ? AND isResolved = 0 LIMIT 1'
-              ).bind([item.variantId, alertType]);
-              const existingAlert = await existingAlertStmt.first();
-
-              if (!existingAlert) {
-                const createAlertStmt = db.prepare(
-                  'INSERT INTO inventory_alerts (id, variantId, alertType, quantity, isRead, isResolved, createdAt) VALUES (?, ?, ?, ?, 0, 0, ?)'
-                ).bind([generateSecureId(), item.variantId, alertType, newStock, new Date().toISOString()]);
-                await createAlertStmt.run();
-              }
+          const sql = `INSERT INTO orders (${columns.join(', ')}) VALUES (${placeholders})`;
+          const stmt = db.prepare(sql).bind(values);
+          try {
+            await stmt.run();
+          } catch (error: any) {
+            // If it's a unique constraint violation on orderNumber, let retry handle it
+            if (error.message && error.message.includes('UNIQUE')) {
+              throw new Error(`Order number collision - retrying`);
             }
-          } else {
-            // Update product stock
-            const productStmt = db.prepare(
-              'SELECT id, stock, lowStockAlert, reorderLevel FROM products WHERE id = ? LIMIT 1'
-            ).bind([item.productId]);
-            const product = await productStmt.first() as { stock: number; lowStockAlert: number; reorderLevel: number } | null;
-
-            if (product) {
-              const newStock = Math.max(0, product.stock - item.quantity);
-              const updateStockStmt = db.prepare(
-                'UPDATE products SET stock = ? WHERE id = ?'
-              ).bind([newStock, item.productId]);
-              await updateStockStmt.run();
-
-              // Generate alerts
-              const alertType = newStock === 0 ? 'OUT_OF_STOCK' :
-                                newStock < product.reorderLevel ? 'REORDER_NEEDED' : 'LOW_STOCK';
-
-              const existingAlertStmt = db.prepare(
-                'SELECT id FROM inventory_alerts WHERE productId = ? AND alertType = ? AND isResolved = 0 LIMIT 1'
-              ).bind([item.productId, alertType]);
-              const existingAlert = await existingAlertStmt.first();
-
-              if (!existingAlert) {
-                const createAlertStmt = db.prepare(
-                  'INSERT INTO inventory_alerts (id, productId, alertType, quantity, isRead, isResolved, createdAt) VALUES (?, ?, ?, ?, 0, 0, ?)'
-                ).bind([generateSecureId(), item.productId, alertType, newStock, new Date().toISOString()]);
-                await createAlertStmt.run();
-              }
-            }
+            throw error;
           }
-        }
 
-        // Consume inventory reservations (delete them since stock was already deducted)
-        // This prevents reservations from expiring and causing issues
-        if (orderData.userId) {
-          // D1: Delete reservations for each item
+          // Fetch the created order
+          const orderStmt = db.prepare('SELECT * FROM orders WHERE id = ? LIMIT 1').bind([id]);
+          const orderResult = await orderStmt.first();
+          const order = orderResult as Order;
+
+          // Create order items and update stock
+          const items: OrderItem[] = [];
           for (const item of orderItems) {
+            const itemId = generateId();
+            const itemTime = now();
+
+            // Create order item
+            const itemColumns = [
+              'id', 'orderId', 'productId', 'variantId', 'quantity', 'price',
+              'productName', 'productImage', 'variantSku', 'variantSize', 'variantColor',
+              'variantMaterial', 'createdAt'
+            ];
+            const itemPlaceholders = itemColumns.map(() => '?').join(', ');
+            const itemValues = [
+              itemId, order.id, item.productId, item.variantId || null, item.quantity,
+              item.price, item.productName, item.productImage || null, item.variantSku || null,
+              item.variantSize || null, item.variantColor || null, item.variantMaterial || null,
+              itemTime
+            ];
+
+            const itemSql = `INSERT INTO order_items (${itemColumns.join(', ')}) VALUES (${itemPlaceholders})`;
+            const itemStmt = db.prepare(itemSql).bind(itemValues);
+            await itemStmt.run();
+
+            // Fetch the created item
+            const fetchItemStmt = db.prepare('SELECT * FROM order_items WHERE id = ? LIMIT 1').bind([itemId]);
+            const fetchedItem = await fetchItemStmt.first();
+            items.push(fetchedItem as OrderItem);
+
+            // Update stock and generate alerts
             if (item.variantId) {
-              const deleteResStmt = db.prepare(
-                'DELETE FROM inventory_reservations WHERE userId = ? AND variantId = ?'
-              ).bind([orderData.userId, item.variantId]);
-              await deleteResStmt.run();
+              // ATOMIC stock deduction - prevents overselling race condition
+              // This updates stock only if sufficient stock is available
+              const updateStockStmt = db.prepare(
+                'UPDATE product_variants SET stock = stock - ? WHERE id = ? AND stock >= ?'
+              ).bind([item.quantity, item.variantId, item.quantity]);
+              const updateResult = await updateStockStmt.run();
+
+              // Check if the update succeeded (stock was available)
+              if (!updateResult.meta || (updateResult.meta as any).changes === 0) {
+                throw new Error(`Insufficient stock for variant ${item.variantId}`);
+              }
+
+              // Fetch updated variant for alert generation
+              const variantStmt = db.prepare(
+                'SELECT id, stock, lowStockAlert, reorderLevel FROM product_variants WHERE id = ? LIMIT 1'
+              ).bind([item.variantId]);
+              const variant = await variantStmt.first() as { stock: number; lowStockAlert: number; reorderLevel: number } | null;
+
+              if (variant) {
+                const newStock = variant.stock;
+                // Generate alerts
+                const alertType = newStock === 0 ? 'OUT_OF_STOCK' :
+                                  newStock < variant.reorderLevel ? 'REORDER_NEEDED' : 'LOW_STOCK';
+
+                const existingAlertStmt = db.prepare(
+                  'SELECT id FROM inventory_alerts WHERE variantId = ? AND alertType = ? AND isResolved = 0 LIMIT 1'
+                ).bind([item.variantId, alertType]);
+                const existingAlert = await existingAlertStmt.first();
+
+                if (!existingAlert) {
+                  const createAlertStmt = db.prepare(
+                    'INSERT INTO inventory_alerts (id, variantId, alertType, quantity, isRead, isResolved, createdAt) VALUES (?, ?, ?, ?, 0, 0, ?)'
+                  ).bind([generateSecureId(), item.variantId, alertType, newStock, new Date().toISOString()]);
+                  await createAlertStmt.run();
+                }
+              }
             } else {
-              const deleteResStmt = db.prepare(
-                'DELETE FROM inventory_reservations WHERE userId = ? AND productId = ? AND variantId IS NULL'
-              ).bind([orderData.userId, item.productId]);
-              await deleteResStmt.run();
+              // ATOMIC stock deduction - prevents overselling race condition
+              const updateStockStmt = db.prepare(
+                'UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?'
+              ).bind([item.quantity, item.productId, item.quantity]);
+              const updateResult = await updateStockStmt.run();
+
+              // Check if the update succeeded (stock was available)
+              if (!updateResult.meta || (updateResult.meta as any).changes === 0) {
+                throw new Error(`Insufficient stock for product ${item.productId}`);
+              }
+
+              // Fetch updated product for alert generation
+              const productStmt = db.prepare(
+                'SELECT id, stock, lowStockAlert, reorderLevel FROM products WHERE id = ? LIMIT 1'
+              ).bind([item.productId]);
+              const product = await productStmt.first() as { stock: number; lowStockAlert: number; reorderLevel: number } | null;
+
+              if (product) {
+                const newStock = product.stock;
+                // Generate alerts
+                const alertType = newStock === 0 ? 'OUT_OF_STOCK' :
+                                  newStock < product.reorderLevel ? 'REORDER_NEEDED' : 'LOW_STOCK';
+
+                const existingAlertStmt = db.prepare(
+                  'SELECT id FROM inventory_alerts WHERE productId = ? AND alertType = ? AND isResolved = 0 LIMIT 1'
+                ).bind([item.productId, alertType]);
+                const existingAlert = await existingAlertStmt.first();
+
+                if (!existingAlert) {
+                  const createAlertStmt = db.prepare(
+                    'INSERT INTO inventory_alerts (id, productId, alertType, quantity, isRead, isResolved, createdAt) VALUES (?, ?, ?, ?, 0, 0, ?)'
+                  ).bind([generateSecureId(), item.productId, alertType, newStock, new Date().toISOString()]);
+                  await createAlertStmt.run();
+                }
+              }
             }
           }
+
+          // Consume inventory reservations (delete them since stock was already deducted)
+          // This prevents reservations from expiring and causing issues
+          if (orderData.userId) {
+            // D1: Delete reservations for each item
+            for (const item of orderItems) {
+              if (item.variantId) {
+                const deleteResStmt = db.prepare(
+                  'DELETE FROM inventory_reservations WHERE userId = ? AND variantId = ?'
+                ).bind([orderData.userId, item.variantId]);
+                await deleteResStmt.run();
+              } else {
+                const deleteResStmt = db.prepare(
+                  'DELETE FROM inventory_reservations WHERE userId = ? AND productId = ? AND variantId IS NULL'
+                ).bind([orderData.userId, item.productId]);
+                await deleteResStmt.run();
+              }
+            }
+          }
+
+          await commit();
+
+          return { order, items };
+        } catch (error) {
+          console.error('Error in order transaction:', error);
+          await rollback();
+          throw error;
         }
+      });
 
-        await commit();
-
-        return { order, items };
-      } catch (error) {
-        console.error('Error in order transaction:', error);
-        await rollback();
-        throw error;
-      }
-    });
-
-    return result.success && result.data ? result.data : null;
+      return result.success && result.data ? result.data : null;
+    }, 3, 50); // Retry up to 3 times with 50ms base delay for order number collisions
   }
 
   /**
@@ -606,28 +726,16 @@ export class OrderRepository {
         const result = await stmt.all();
         const orderItems = result.results as OrderItem[];
 
-        // Restore stock for each item
+        // Restore stock for each item using atomic increment
         for (const item of orderItems) {
           if (item.variantId) {
-            // Restore variant stock
-            const variantStmt = db.prepare('SELECT stock FROM product_variants WHERE id = ?').bind([item.variantId]);
-            const variant = await variantStmt.first() as { stock: number } | null;
-
-            if (variant) {
-              const newStock = variant.stock + item.quantity;
-              const updateStmt = db.prepare('UPDATE product_variants SET stock = ? WHERE id = ?').bind([newStock, item.variantId]);
-              await updateStmt.run();
-            }
+            // ATOMIC stock restore - prevents double-restore race condition
+            const updateStmt = db.prepare('UPDATE product_variants SET stock = stock + ? WHERE id = ?').bind([item.quantity, item.variantId]);
+            await updateStmt.run();
           } else {
-            // Restore product stock
-            const productStmt = db.prepare('SELECT stock FROM products WHERE id = ?').bind([item.productId]);
-            const product = await productStmt.first() as { stock: number } | null;
-
-            if (product) {
-              const newStock = product.stock + item.quantity;
-              const updateStmt = db.prepare('UPDATE products SET stock = ? WHERE id = ?').bind([newStock, item.productId]);
-              await updateStmt.run();
-            }
+            // ATOMIC stock restore - prevents double-restore race condition
+            const updateStmt = db.prepare('UPDATE products SET stock = stock + ? WHERE id = ?').bind([item.quantity, item.productId]);
+            await updateStmt.run();
           }
         }
 

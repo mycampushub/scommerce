@@ -3,10 +3,17 @@ import { getEnv } from '@/lib/cloudflare'
 import { verifyAdminAuth } from '@/lib/admin-auth'
 import { queryFirst, execute, generateId, now, parseJSON, stringifyJSON, boolToNumber, numberToBool, queryAll } from '@/db/db'
 import { getClientIp, rateLimit, createRateLimitResponse } from '@/lib/rate-limit'
+import { logAdminAction } from '@/lib/audit-logger'
 
 const SECTION_NAME = 'category_carousel'
 
 export async function GET(request: NextRequest) {
+  // Verify admin authentication (admin or staff)
+  const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
+
   try {
     const env = await getEnv()
 
@@ -205,6 +212,18 @@ export async function PUT(request: NextRequest) {
     )
 
     const settings = parseJSON<any>(updated?.settings) || {}
+
+    // Log audit event
+    const admin = userOrResponse as { id: string }
+    await logAdminAction(
+      env,
+      request,
+      admin.id,
+      'UPDATE',
+      'AdminLog',
+      SECTION_NAME,
+      `Updated category carousel: ${categoryIds ? categoryIds.length : 0} categories, autoScroll: ${autoScroll !== undefined ? autoScroll : 'unchanged'}, scrollInterval: ${scrollInterval || 'default'}ms`
+    )
 
     return NextResponse.json({
       success: true,

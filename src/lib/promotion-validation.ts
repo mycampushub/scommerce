@@ -1,4 +1,5 @@
 import { parseJSON } from '@/db/db';
+import { runTransactionWithRetry } from '@/lib/transaction';
 
 export interface PromoCodeValidationResult {
   valid: boolean;
@@ -60,7 +61,8 @@ export async function validatePromoCode(
     };
   }
 
-  // Check usage limit
+  // Check usage limit (NOTE: This is just a preliminary check.
+  // The actual atomic increment happens in incrementPromoUsage)
   if (promotion.usageLimit && promotion.usedCount >= promotion.usageLimit) {
     return {
       valid: false,
@@ -210,16 +212,26 @@ async function checkCartApplicability(
 
 /**
  * Increment usage count for a promo code after successful order
+ * This uses an atomic UPDATE to prevent race conditions
+ * Returns false if the usage limit has been exceeded
  */
 export async function incrementPromoUsage(
   env: any,
   promoCode: string
-): Promise<void> {
-  await env.DB.prepare(
-    'UPDATE promotions SET usedCount = usedCount + 1 WHERE promoCode = ?'
+): Promise<boolean> {
+  // Use atomic UPDATE with condition to prevent race condition
+  const result = await env.DB.prepare(
+    `UPDATE promotions
+     SET usedCount = usedCount + 1
+     WHERE promoCode = ?
+       AND (usageLimit IS NULL OR usedCount < usageLimit)`
   )
     .bind(promoCode)
     .run();
+
+  // Check if any row was updated
+  // If usageLimit was reached, no row will be updated
+  return (result.meta?.changes || 0) > 0;
 }
 
 /**

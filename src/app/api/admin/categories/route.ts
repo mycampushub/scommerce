@@ -21,8 +21,11 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search') || ''
     const tree = searchParams.get('tree') === 'true'
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
+    const limit = Math.min(100, Math.max(10, parseInt(searchParams.get('limit') || '20')))
+    const offset = (page - 1) * limit
 
-    // Return tree structure if requested
+    // Return tree structure if requested (no pagination for tree view)
     if (tree) {
       const categoryTree = await CategoryRepository.getTree(env)
 
@@ -32,15 +35,33 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    let categories = await CategoryRepository.findAll(env)
+    // Build WHERE clause for search
+    let whereClause = ''
+    let params: any[] = []
 
     if (search) {
-      categories = categories.filter(
-        (category) =>
-          category.name.toLowerCase().includes(search.toLowerCase()) ||
-          category.slug.toLowerCase().includes(search.toLowerCase())
-      )
+      whereClause = 'WHERE (name LIKE ? OR slug LIKE ?)'
+      const searchPattern = `%${search}%`
+      params.push(searchPattern, searchPattern)
     }
+
+    // Get total count for pagination
+    const countSql = `SELECT COUNT(*) as count FROM categories ${whereClause}`
+    const countResult = await count(env, countSql, ...params)
+    const totalCount = countResult || 0
+    const totalPages = Math.ceil(totalCount / limit)
+
+    // Fetch categories with pagination
+    const categories = await queryAll<any>(
+      env,
+      `SELECT * FROM categories
+       ${whereClause}
+       ORDER BY sortOrder ASC, name ASC
+       LIMIT ? OFFSET ?`,
+      ...params,
+      limit,
+      offset
+    )
 
     // Add product counts - Fix N+1 query by using a single GROUP BY query
     const categoriesWithCounts: any[] = []
@@ -71,7 +92,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: categoriesWithCounts,
-      total: categoriesWithCounts.length,
+      pagination: {
+        page,
+        limit,
+        totalCount,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
     })
   } catch (error) {
     console.error('Error fetching categories:', error)

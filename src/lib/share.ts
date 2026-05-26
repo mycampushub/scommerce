@@ -56,8 +56,14 @@ export function isNativeShareAvailable(): boolean {
  * Generate share URL for a product
  */
 export function getProductShareUrl(slug: string): string {
-  if (typeof window === 'undefined') return `https://example.com/product/${slug}`
-  return `${window.location.origin}/product/${slug}`
+  if (typeof window === 'undefined') {
+    // Use environment variable for server-side URL generation
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : 'http://localhost:3000';
+    return `${baseUrl}/product/${slug}`;
+  }
+  return `${window.location.origin}/product/${slug}`;
 }
 
 /**

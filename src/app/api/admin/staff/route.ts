@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
-import { verifyAdmin } from '@/lib/auth-utils'
+import { verifyAdminAuth } from '@/lib/admin-auth'
 import { UserRepository } from '@/db/user.repository'
 import { hashPassword } from '@/lib/bcrypt-wrapper'
 import { queryAll, count, numberToBool } from '@/db/db'
@@ -9,12 +9,9 @@ import { queryAll, count, numberToBool } from '@/db/db'
 export async function GET(request: NextRequest) {
   try {
     // Verify admin access
-    const authResult = await verifyAdmin(request)
-    if (!authResult.success) {
-      return NextResponse.json(
-        { success: false, error: 'Admin access required' },
-        { status: 403 }
-      )
+    const userOrResponse = await verifyAdminAuth(request, ['admin'])
+    if (userOrResponse instanceof NextResponse) {
+      return userOrResponse
     }
 
     const env = await getEnv()
@@ -71,12 +68,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Verify admin access
-    const authResult = await verifyAdmin(request)
-    if (!authResult.success) {
-      return NextResponse.json(
-        { success: false, error: 'Admin access required' },
-        { status: 403 }
-      )
+    const userOrResponse = await verifyAdminAuth(request, ['admin'])
+    if (userOrResponse instanceof NextResponse) {
+      return userOrResponse
     }
 
     const env = await getEnv()

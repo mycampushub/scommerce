@@ -39,7 +39,7 @@ export function SizeQuickSelect({
           placeholder="Or enter custom size (e.g., 750ml, 5XL)"
           value={customSize}
           onChange={(e) => setCustomSize(e.target.value)}
-          onKeyPress={(e) => {
+          onKeyDown={(e) => {
             if (e.key === 'Enter') {
               e.preventDefault()
               handleCustomSizeAdd()

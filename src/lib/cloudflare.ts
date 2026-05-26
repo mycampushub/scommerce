@@ -1,8 +1,20 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { prisma, isCloudflareEnv } from './database';
 
-// Re-export isCloudflareEnv for use in API routes
-export { isCloudflareEnv };
+/**
+ * Check if we're running in Cloudflare environment
+ * Returns true if Cloudflare bindings are available
+ */
+export function isCloudflareEnv(): boolean {
+  // Check if we're in a Cloudflare environment by checking for specific globals
+  // In build time or local development, return false
+  if (typeof window !== 'undefined') {
+    // Client-side - not a Cloudflare environment
+    return false;
+  }
+  // Server-side - assume Cloudflare if we have access to env bindings
+  // The actual check will be done by trying to get the context
+  return true;
+}
 
 /**
  * Safely get Cloudflare context, handling build-time scenarios

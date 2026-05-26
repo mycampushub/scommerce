@@ -161,6 +161,7 @@ CREATE TABLE "products" (
     "weight" REAL,
     "dimensions" TEXT,
     "tags" TEXT,
+    "version" INTEGER NOT NULL DEFAULT 0,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
     "costPrice" REAL DEFAULT 0,
@@ -171,6 +172,8 @@ CREATE TABLE "products" (
     "sizeValue" REAL,
     "sizeUnit" TEXT,
     "sizeLabel" TEXT,
+    "material" TEXT,
+    "color" TEXT,
     "countryOfOrigin" TEXT,
     "availableSizes" TEXT,
     "availableColors" TEXT,
@@ -216,6 +219,7 @@ CREATE TABLE "product_variants" (
     "lowStockAlert" INTEGER NOT NULL DEFAULT 10,
     "reorderLevel" INTEGER NOT NULL DEFAULT 5,
     "reorderQty" INTEGER NOT NULL DEFAULT 20,
+    "version" INTEGER NOT NULL DEFAULT 0,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
     "costPrice" REAL DEFAULT 0,
@@ -324,6 +328,7 @@ CREATE TABLE "orders" (
     "deletedAt" DATETIME,
     "deletedBy" TEXT,
     "deletedReason" TEXT,
+    "version" INTEGER NOT NULL DEFAULT 0,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
     "promoCode" TEXT,
@@ -379,6 +384,7 @@ CREATE TABLE "cart_items" (
     "productId" TEXT NOT NULL,
     "variantId" TEXT,
     "quantity" INTEGER NOT NULL DEFAULT 1,
+    "version" INTEGER NOT NULL DEFAULT 0,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
     CONSTRAINT "cart_items_variantId_fkey" FOREIGN KEY ("variantId") REFERENCES "product_variants" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
@@ -405,7 +411,7 @@ CREATE TABLE "inventory_alerts" (
     "quantity" INTEGER NOT NULL,
     "isRead" INTEGER NOT NULL DEFAULT 0,
     "isResolved" INTEGER NOT NULL DEFAULT 0,
-    "resolvedAt" TEXT,
+    "resolvedAt" DATETIME,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "inventory_alerts_productId_fkey" FOREIGN KEY ("productId") REFERENCES "products" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "inventory_alerts_variantId_fkey" FOREIGN KEY ("variantId") REFERENCES "product_variants" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
@@ -803,7 +809,7 @@ CREATE INDEX "purchase_order_items_variantId_idx" ON "purchase_order_items"("var
 -- INVENTORY MOVEMENTS
 CREATE TABLE "inventory_movements" (
     "id" TEXT NOT NULL PRIMARY KEY,
-    "productId" TEXT NOT NULL,
+    "productId" TEXT,
     "variantId" TEXT,
     "movementType" TEXT NOT NULL,
     "quantity" INTEGER NOT NULL,
@@ -816,7 +822,9 @@ CREATE TABLE "inventory_movements" (
     "supplierId" TEXT,
     "notes" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "inventory_movements_supplierId_fkey" FOREIGN KEY ("supplierId") REFERENCES "suppliers" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+    CONSTRAINT "inventory_movements_supplierId_fkey" FOREIGN KEY ("supplierId") REFERENCES "suppliers" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT "inventory_movements_productId_fkey" FOREIGN KEY ("productId") REFERENCES "products" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT "inventory_movements_variantId_fkey" FOREIGN KEY ("variantId") REFERENCES "product_variants" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 -- CreateIndex
@@ -830,7 +838,7 @@ CREATE INDEX "inventory_movements_supplierId_idx" ON "inventory_movements"("supp
 -- INVENTORY ADJUSTMENTS
 CREATE TABLE "inventory_adjustments" (
     "id" TEXT NOT NULL PRIMARY KEY,
-    "productId" TEXT NOT NULL,
+    "productId" TEXT,
     "variantId" TEXT,
     "adjustmentType" TEXT NOT NULL,
     "quantityBefore" INTEGER NOT NULL,
@@ -841,7 +849,9 @@ CREATE TABLE "inventory_adjustments" (
     "approved" INTEGER NOT NULL DEFAULT 0,
     "approvedAt" DATETIME,
     "notes" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "inventory_adjustments_productId_fkey" FOREIGN KEY ("productId") REFERENCES "products" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT "inventory_adjustments_variantId_fkey" FOREIGN KEY ("variantId") REFERENCES "product_variants" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 -- CreateIndex

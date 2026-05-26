@@ -3,6 +3,7 @@ import { getEnv } from '@/lib/cloudflare'
 import { verifyAdminAuth } from '@/lib/admin-auth'
 import { queryAll, execute, queryFirst, generateId, now, parseJSON, stringifyJSON, boolToNumber, numberToBool } from '@/db/db'
 import { getClientIp, rateLimit, createRateLimitResponse } from '@/lib/rate-limit'
+import { logAdminAction } from '@/lib/audit-logger'
 
 
 // Default homepage settings
@@ -34,6 +35,12 @@ const DEFAULT_SETTINGS = {
 }
 
 export async function GET(request: NextRequest) {
+  // Verify admin authentication (admin or staff)
+  const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
+
   try {
     const env = await getEnv()
     const settings = await queryAll<any>(
@@ -244,6 +251,18 @@ export async function PUT(request: NextRequest) {
       settings: parseJSON<any>(s.settings) || null,
       isEnabled: typeof s.isEnabled === 'boolean' ? s.isEnabled : numberToBool(s.isEnabled),
     }))
+
+    // Log audit event
+    const admin = userOrResponse as { id: string }
+    await logAdminAction(
+      env,
+      request,
+      admin.id,
+      'UPDATE',
+      'AdminLog',
+      undefined,
+      `Updated homepage settings for ${settingsWithParsedData.length} sections: ${settingsWithParsedData.map((s: any) => s.sectionName).join(', ')}`
+    )
 
     return NextResponse.json({
       success: true,

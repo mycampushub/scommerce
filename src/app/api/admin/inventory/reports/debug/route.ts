@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { queryAll, count } from '@/db/db';
 import { getEnv } from '@/lib/cloudflare';
+import { verifyAdminAuth } from '@/lib/admin-auth';
 
-// This endpoint doesn't require auth for debugging purposes
+// DEBUG ENDPOINT - REQUIRES ADMIN AUTHENTICATION
 export async function GET(request: NextRequest) {
+  // Verify admin authentication
+  const auth = await verifyAdminAuth(request);
+  if (auth instanceof NextResponse) {
+    return auth;
+  }
   try {
     const env = await getEnv();
     const debugInfo: any = {

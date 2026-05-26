@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { brandRepository } from '@/db/brand.repository';
+import { rateLimitMiddleware } from '@/lib/rate-limit';
 
 // GET /api/brands - Public endpoint for active brands
 export async function GET(request: NextRequest) {
+  // Apply rate limiting for public API
+  const rateLimitResponse = await rateLimitMiddleware(request, 'public');
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const featured = searchParams.get('featured') === 'true';

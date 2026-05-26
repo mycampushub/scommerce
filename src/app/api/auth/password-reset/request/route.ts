@@ -73,9 +73,11 @@ export async function POST(request: NextRequest) {
     });
 
     // Log the reset request
-    logger.logSecurityEvent('Password reset requested', 'LOW', {
+    logger.info('Password reset requested', {
       userId: user.id,
       email,
+      type: 'security_event',
+      severity: 'LOW'
     });
 
     // TODO: Send email with reset link
@@ -100,8 +102,9 @@ export async function POST(request: NextRequest) {
       ...(isDevelopment && { resetLink }), // Only in development
     });
   } catch (error) {
-    logger.logApiError('POST', '/api/auth/password-reset/request', error as Error, 500, undefined, undefined, {
+    logger.error('Password reset request failed', {
       action: 'request_password_reset',
+      error: error instanceof Error ? error.message : String(error)
     });
     return NextResponse.json(
       {

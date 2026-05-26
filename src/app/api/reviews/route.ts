@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyAuth } from '@/lib/auth-utils'
+import { verifyAdminAuth } from '@/lib/admin-auth'
 import { getEnv } from '@/lib/cloudflare'
 import { queryAll, queryFirst, execute, numberToBool, generateId, now } from '@/db/db'
 import { sanitizeHTML, sanitizeForDB } from '@/lib/sanitize'
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
 
     const reviews = await queryAll(
       env,
-      `SELECT pr.*, u.id as userId, u.name as userName, u.email as userEmail
+      `SELECT pr.*, u.id as userId, u.name as userName
        FROM product_reviews pr
        LEFT JOIN users u ON pr.userId = u.id
        WHERE pr.productId = ? AND pr.isApproved = 1
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
       user: {
         id: review.userId,
         name: review.userName,
-        email: review.userEmail,
+        // Email removed - PII should not be exposed in public reviews
       },
     }))
 
@@ -83,15 +83,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Check authentication
-    const authResult = await verifyAuth(request)
-    if (!authResult.success || !authResult.user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      )
+    const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff', 'user'])
+    if (userOrResponse instanceof NextResponse) {
+      return userOrResponse
     }
 
-    const userId = authResult.user.id
+    const userId = userOrResponse.id
 
     // Check if product exists
     const product = await queryFirst(
@@ -137,7 +134,7 @@ export async function POST(request: NextRequest) {
     // Create review
     const id = generateId()
     const currentTime = now()
-    const userName = authResult.user.name || authResult.user.email.split('@')[0]
+    const userName = userOrResponse.name || userOrResponse.email.split('@')[0]
 
     await execute(
       env,
@@ -161,12 +158,11 @@ export async function POST(request: NextRequest) {
       id: string;
       userId: string;
       userName: string;
-      userEmail: string;
       isApproved: number;
       isVerified: number;
     }>(
       env,
-      `SELECT pr.*, u.id as userId, u.name as userName, u.email as userEmail
+      `SELECT pr.*, u.id as userId, u.name as userName
        FROM product_reviews pr
        LEFT JOIN users u ON pr.userId = u.id
        WHERE pr.id = ? LIMIT 1`,
@@ -180,7 +176,7 @@ export async function POST(request: NextRequest) {
       user: {
         id: review.userId,
         name: review.userName,
-        email: review.userEmail,
+        // Email removed - PII should not be exposed in public reviews
       },
     } : null
 

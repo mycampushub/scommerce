@@ -3,33 +3,65 @@
  * Protects against XSS attacks by sanitizing user input
  */
 
+import DOMPurify from 'dompurify';
+
+// DOMPurify configuration type
+interface DOMPurifyConfig {
+  ALLOWED_TAGS?: string[];
+  ALLOWED_ATTR?: string[];
+  ALLOW_DATA_ATTR?: boolean;
+  FORBID_TAGS?: string[];
+  FORBID_ATTR?: string[];
+  KEEP_CONTENT?: boolean;
+  [key: string]: any;
+}
+
 /**
  * Sanitize HTML content to prevent XSS attacks
- * Simple implementation without external dependencies
+ * Uses DOMPurify for comprehensive XSS protection
  * @param dirty - Untrusted HTML string
+ * @param options - Optional DOMPurify configuration options
  * @returns Sanitized HTML string
  */
-export function sanitizeHTML(dirty: string): string {
+export function sanitizeHTML(dirty: string, options?: DOMPurifyConfig): string {
   // Handle empty or non-string input
   if (typeof dirty !== 'string') {
     return '';
   }
 
-  // Remove script tags and their content
-  let clean = dirty
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*<\/script>)/gi, '')
-    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*<\/iframe>)/gi, '')
-    .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*<\/object>)/gi, '')
-    .replace(/<embed\b[^<]*(?:(?!<\/embed>)<[^<]*<\/embed>)/gi, '');
+  // Default allowed tags for rich text content
+  const defaultOptions: DOMPurifyConfig = {
+    ALLOWED_TAGS: [
+      'p', 'br', 'strong', 'b', 'em', 'i', 'u',
+      'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+      'ul', 'ol', 'li',
+      'a',
+      'blockquote',
+      'code', 'pre'
+    ],
+    ALLOWED_ATTR: ['href', 'target', 'rel', 'title', 'class'],
+    ALLOW_DATA_ATTR: false,
+    FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form', 'input'],
+    FORBID_ATTR: ['onclick', 'onerror', 'onload', 'onmouseover', 'onfocus', 'onblur',
+                 'onchange', 'onsubmit', 'onkeydown', 'onkeyup', 'ontoggle', 'oninput'],
+    KEEP_CONTENT: false
+  };
 
-  // Remove dangerous event handlers
-  const dangerousEvents = ['onerror', 'onload', 'onmouseover', 'onfocus', 'onblur'];
-  dangerousEvents.forEach(event => {
-    const regex = new RegExp(`on${event}\\s*=`, 'gi');
-    clean = clean.replace(regex, '');
-  });
+  // Merge with custom options if provided
+  const purifyOptions = { ...defaultOptions, ...options };
 
-  return clean;
+  const result = DOMPurify.sanitize(dirty, purifyOptions);
+  // Convert TrustedHTML to string if needed (for browsers that return TrustedHTML)
+  return typeof result === 'string' ? result : String(result);
+}
+
+/**
+ * Sanitize HTML to plain text (no HTML allowed)
+ * @param dirty - Untrusted HTML string
+ * @returns Plain text without any HTML
+ */
+export function sanitizeToText(dirty: string): string {
+  return sanitizeHTML(dirty, { ALLOWED_TAGS: [] });
 }
 
 /**

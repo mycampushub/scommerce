@@ -347,9 +347,15 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
             baseStock: parseInt(formData.stock) || 0,
             material: material || undefined,
           })
-        } catch (error) {
+        } catch (error: any) {
           // Don't fail the entire product creation if variant generation fails
+          // But inform the user that product was created without variants
           console.error('Error generating variants:', error)
+          toast({
+            title: 'Warning',
+            description: `Product created but variant generation failed: ${error.message || 'Unknown error'}. You can manually add variants later.`,
+            variant: 'destructive',
+          })
         }
       }
 
@@ -1124,30 +1130,34 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
                 />
               </div>
             </div>
+
+            {/* Form Actions inside form */}
+            <div className="flex items-center justify-end gap-3 pt-4 border-t">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={loading}>
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    {mode === 'add' ? 'Creating...' : 'Updating...'}
+                  </>
+                ) : (
+                  <>
+                    {mode === 'add' ? 'Create Product' : 'Update Product'}
+                  </>
+                )}
+              </Button>
+            </div>
           </form>
         </ScrollArea>
 
-        {/* Footer Actions */}
+        {/* Footer Actions - Empty (moved inside form) */}
         <div className="flex items-center justify-end gap-3 pt-4 border-t">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-          >
-            Cancel
-          </Button>
-          <Button type="submit" onClick={handleSubmit} disabled={loading}>
-            {loading ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                {mode === 'add' ? 'Creating...' : 'Updating...'}
-              </>
-            ) : (
-              <>
-                {mode === 'add' ? 'Create Product' : 'Update Product'}
-              </>
-            )}
-          </Button>
         </div>
       </DialogContent>
     </Dialog>

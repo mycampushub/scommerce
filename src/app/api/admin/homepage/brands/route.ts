@@ -7,6 +7,12 @@ import { getClientIp, rateLimit, createRateLimitResponse } from '@/lib/rate-limi
 const SECTION_NAME = 'brands'
 
 export async function GET(request: NextRequest) {
+  // Verify admin authentication (admin or staff)
+  const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff'])
+  if (userOrResponse instanceof NextResponse) {
+    return userOrResponse
+  }
+
   try {
     const env = await getEnv()
 

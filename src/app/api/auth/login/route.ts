@@ -8,6 +8,7 @@ import { getEnv } from '@/lib/cloudflare';
 import { numberToBool } from '@/db/db';
 import { CartRepository } from '@/db/cart.repository';
 import type { Env } from '@/db/types';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   let env: Env | null = null;
@@ -15,13 +16,13 @@ export async function POST(request: NextRequest) {
     env = await getEnv() as Env | null;
     // Note: env can be null in both local development and some production scenarios
     // The repositories will fall back to Prisma when env is null
-    console.log('[login] Environment check:', {
+    logger.debug('Login environment check', {
       hasEnv: !!env,
       hasDB: !!env?.DB,
       nodeEnv: process.env.NODE_ENV
     });
   } catch (error) {
-    console.error('[login] Error getting environment:', error);
+    logger.error('Error getting login environment', { error });
     // Continue with null env - repositories will use Prisma fallback
   }
 
@@ -49,16 +50,15 @@ export async function POST(request: NextRequest) {
 
     const user = await UserRepository.findByEmail(env, email);
 
-    console.log('[login] Found user:', {
+    logger.info('User found for login', { 
       email: user?.email,
       hasPassword: !!user?.password,
       emailVerified: user?.emailVerified,
-      role: user?.role,
-      userId: user?.id
+      role: user?.role 
     });
 
     if (!user) {
-      console.log('[login] User not found:', email);
+      logger.warn('Login failed - user not found', { email });
       return NextResponse.json(
         { success: false, error: 'Invalid email or password' },
         { status: 401 }
@@ -80,14 +80,16 @@ export async function POST(request: NextRequest) {
     }
 
     const isValidPassword = await verifyPassword(password, user.password);
-    console.log('[login] Password validation:', { isValidPassword, email });
 
     if (!isValidPassword) {
+      logger.warn('Login failed - invalid password', { email });
       return NextResponse.json(
         { success: false, error: 'Invalid email or password' },
         { status: 401 }
       );
     }
+
+    logger.info('Password validated successfully', { email });
 
     const token = await createToken({
       userId: user.id,
@@ -126,18 +128,27 @@ export async function POST(request: NextRequest) {
           syncedCartCount++;
         }
       } catch (error) {
-        console.error('[login] Error syncing guest cart:', error);
+        logger.error('Failed to sync guest cart', { 
+          error,
+          userId: user.id,
+          syncedCartCount 
+        });
         // Don't fail login if cart sync fails
       }
     }
 
     const response = NextResponse.json({
       success: true,
-      data: { user: { id: user.id, email: user.email, name: user.name, role: user.role }, token },
+      data: {
+        user: { id: user.id, email: user.email, name: user.name, role: user.role },
+        // SECURITY: Token is NOT returned in response body
+        // It's only stored in httpOnly cookie for security
+      },
       syncedCart: syncedCartCount,
     });
 
     // Set session cookie with settings compatible with Cloudflare Workers
+    // Token is only stored here, in a secure httpOnly cookie
     response.cookies.set('session', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -149,7 +160,10 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error) {
-    console.error('Login error:', error);
+    logger.error('Login failed', { 
+      error,
+      email: body.email 
+    });
     return NextResponse.json(
       { success: false, error: 'Login failed. Please try again.' },
       { status: 500 }

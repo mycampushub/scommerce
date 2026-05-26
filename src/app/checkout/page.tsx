@@ -574,10 +574,11 @@ export default function CheckoutPage() {
                   }}>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
                           First Name <span className="text-red-500">*</span>
                         </label>
                         <input
+                          id="firstName"
                           type="text"
                           value={shippingInfo.firstName}
                           onChange={(e) => setShippingInfo({ ...shippingInfo, firstName: e.target.value })}
@@ -587,10 +588,11 @@ export default function CheckoutPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
                           Last Name <span className="text-red-500">*</span>
                         </label>
                         <input
+                          id="lastName"
                           type="text"
                           value={shippingInfo.lastName}
                           onChange={(e) => setShippingInfo({ ...shippingInfo, lastName: e.target.value })}
@@ -603,10 +605,11 @@ export default function CheckoutPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                           Email <span className="text-red-500">*</span>
                         </label>
                         <input
+                          id="email"
                           type="email"
                           value={shippingInfo.email}
                           onChange={(e) => setShippingInfo({ ...shippingInfo, email: e.target.value })}
@@ -616,10 +619,11 @@ export default function CheckoutPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
                           Phone <span className="text-red-500">*</span>
                         </label>
                         <input
+                          id="phone"
                           type="tel"
                           value={shippingInfo.phone}
                           onChange={(e) => setShippingInfo({ ...shippingInfo, phone: e.target.value })}
@@ -631,10 +635,11 @@ export default function CheckoutPage() {
                     </div>
 
                     <div className="mb-6">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-2">
                         Address <span className="text-red-500">*</span>
                       </label>
                       <textarea
+                        id="address"
                         value={shippingInfo.address}
                         onChange={(e) => setShippingInfo({ ...shippingInfo, address: e.target.value })}
                         rows={3}
@@ -646,10 +651,11 @@ export default function CheckoutPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-6">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label htmlFor="division" className="block text-sm font-medium text-gray-700 mb-2">
                           Division <span className="text-red-500">*</span>
                         </label>
                         <select
+                          id="division"
                           value={shippingInfo.division}
                           onChange={(e) => setShippingInfo({ ...shippingInfo, division: e.target.value })}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
@@ -667,10 +673,11 @@ export default function CheckoutPage() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label htmlFor="district" className="block text-sm font-medium text-gray-700 mb-2">
                           District <span className="text-red-500">*</span>
                         </label>
                         <input
+                          id="district"
                           type="text"
                           value={shippingInfo.district}
                           onChange={(e) => setShippingInfo({ ...shippingInfo, district: e.target.value })}
@@ -680,10 +687,11 @@ export default function CheckoutPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
                           City <span className="text-red-500">*</span>
                         </label>
                         <input
+                          id="city"
                           type="text"
                           value={shippingInfo.city}
                           onChange={(e) => setShippingInfo({ ...shippingInfo, city: e.target.value })}
@@ -695,10 +703,11 @@ export default function CheckoutPage() {
                     </div>
 
                     <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label htmlFor="zipCode" className="block text-sm font-medium text-gray-700 mb-2">
                         ZIP/Postal Code <span className="text-red-500">*</span>
                       </label>
                         <input
+                          id="zipCode"
                           type="text"
                           value={shippingInfo.zipCode}
                           onChange={(e) => setShippingInfo({ ...shippingInfo, zipCode: e.target.value })}
@@ -709,35 +718,41 @@ export default function CheckoutPage() {
                     </div>
 
                     <div className="mb-6">
-                      <label className="block text-sm font-medium text-gray-700 mb-3">
-                        Payment Method <span className="text-red-500">*</span>
-                      </label>
-                      <div className="grid grid-cols-2 gap-4">
-                        <button
-                          type="button"
-                          onClick={() => setPaymentMethod('cod')}
-                          className={`p-4 border-2 rounded-lg flex flex-col items-center gap-2 transition-all ${
-                            paymentMethod === 'cod'
-                              ? 'border-pink-600 bg-pink-50'
-                              : 'border-gray-200 hover:border-pink-300'
-                          }`}
-                        >
-                          <Wallet className="w-6 h-6 text-gray-700" />
-                          <span className="text-sm font-medium text-gray-900">Cash on Delivery</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setPaymentMethod('online')}
-                          className={`p-4 border-2 rounded-lg flex flex-col items-center gap-2 transition-all ${
-                            paymentMethod === 'online'
-                              ? 'border-pink-600 bg-pink-50'
-                              : 'border-gray-200 hover:border-pink-300'
-                          }`}
-                        >
-                          <CreditCard className="w-6 h-6 text-gray-700" />
-                          <span className="text-sm font-medium text-gray-900">Online Payment</span>
-                        </button>
-                      </div>
+                      <fieldset className="border-none p-0 m-0">
+                        <legend className="block text-sm font-medium text-gray-700 mb-3">
+                          Payment Method <span className="text-red-500">*</span>
+                        </legend>
+                        <div className="grid grid-cols-2 gap-4">
+                          <button
+                            type="button"
+                            onClick={() => setPaymentMethod('cod')}
+                            aria-pressed={paymentMethod === 'cod'}
+                            aria-label="Select Cash on Delivery payment method"
+                            className={`p-4 border-2 rounded-lg flex flex-col items-center gap-2 transition-all min-h-[72px] ${
+                              paymentMethod === 'cod'
+                                ? 'border-pink-600 bg-pink-50'
+                                : 'border-gray-200 hover:border-pink-300'
+                            }`}
+                          >
+                            <Wallet className="w-6 h-6 text-gray-700" aria-hidden="true" />
+                            <span className="text-sm font-medium text-gray-900">Cash on Delivery</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPaymentMethod('online')}
+                            aria-pressed={paymentMethod === 'online'}
+                            aria-label="Select Online Payment payment method"
+                            className={`p-4 border-2 rounded-lg flex flex-col items-center gap-2 transition-all min-h-[72px] ${
+                              paymentMethod === 'online'
+                                ? 'border-pink-600 bg-pink-50'
+                                : 'border-gray-200 hover:border-pink-300'
+                            }`}
+                          >
+                            <CreditCard className="w-6 h-6 text-gray-700" aria-hidden="true" />
+                            <span className="text-sm font-medium text-gray-900">Online Payment</span>
+                          </button>
+                        </div>
+                      </fieldset>
                     </div>
 
                     <button

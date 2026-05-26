@@ -23,11 +23,17 @@ function ResetPasswordContent() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
 
+  // Read token from global variable set by ResetPasswordTokenHandler
   useEffect(() => {
-    if (token) {
+    const globalToken = (window as any).__RESET_PASSWORD_TOKEN__
+    if (globalToken) {
+      setToken(globalToken)
       setSuccess(false)
+    } else {
+      // Redirect to forgot password if no token in URL
+      router.push('/forgot-password')
     }
-  }, [token])
+  }, [router])
 
   const validatePassword = (password: string) => {
     if (password.length < 8) {
@@ -290,9 +296,7 @@ export default function ResetPasswordPage() {
         <Loader2 className="h-12 w-12 animate-spin text-pink-600 mx-auto" />
       </div>
     }>
-      <ResetPasswordTokenHandler onToken={(token) => {
-        (window as any).__RESET_PASSWORD_TOKEN__ = token
-      }} />
+      <ResetPasswordTokenHandler />
       <ResetPasswordContent />
     </Suspense>
   )

@@ -61,6 +61,7 @@ import {
   Eye,
   RefreshCw,
 } from 'lucide-react'
+import { escapeCSVField, arrayToCSV, downloadCSV } from '@/lib/csv-utils'
 import { Skeleton } from '@/components/ui/skeleton'
 
 interface Customer {
@@ -441,28 +442,20 @@ export default function CustomersPage() {
   }
 
   const exportCustomers = () => {
-    const csvContent = [
-      ['Name', 'Email', 'Phone', 'Address', 'Orders', 'Total Spent', 'Status', 'VIP', 'Joined Date'].join(','),
-      ...customers.map(customer => [
-        customer.name,
-        customer.email,
-        customer.phone || '',
-        customer.address || '',
-        customer.orders || 0,
-        (customer.totalSpent || 0).toFixed(2),
-        customer.status,
-        customer.isVIP ? 'Yes' : 'No',
-        formatDate(customer.joined),
-      ]).join(',')
-    ].join('\n')
+    const csvData = customers.map(customer => ({
+      Name: customer.name,
+      Email: customer.email,
+      Phone: customer.phone || '',
+      Address: customer.address || '',
+      Orders: customer.orders || 0,
+      'Total Spent': (customer.totalSpent || 0).toFixed(2),
+      Status: customer.status,
+      VIP: customer.isVIP ? 'Yes' : 'No',
+      'Joined Date': formatDate(customer.joined),
+    }))
 
-    const blob = new Blob([csvContent], { type: 'text/csv' })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `customers-export-${new Date().toISOString().split('T')[0]}.csv`
-    a.click()
-    window.URL.revokeObjectURL(url)
+    const csvContent = arrayToCSV(csvData)
+    downloadCSV(csvContent, `customers-export-${new Date().toISOString().split('T')[0]}.csv`)
 
     toast({
       title: 'Success',
