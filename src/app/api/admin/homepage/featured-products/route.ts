@@ -8,14 +8,21 @@ import { logAdminAction } from '@/lib/audit-logger'
 const SECTION_NAME = 'featured_products'
 
 export async function GET(request: NextRequest) {
-  // Verify admin authentication (admin or staff)
-  const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff'])
-  if (userOrResponse instanceof NextResponse) {
-    return userOrResponse
-  }
-
   try {
+    // Verify admin authentication (admin or staff)
+    const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff'])
+    if (userOrResponse instanceof NextResponse) {
+      return userOrResponse
+    }
+
     const env = await getEnv()
+    if (!env) {
+      console.error('[Featured Products GET] No env available')
+      return NextResponse.json(
+        { success: false, error: 'Database not available' },
+        { status: 500 }
+      )
+    }
 
     const setting = await queryFirst<any>(
       env,
@@ -62,27 +69,34 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  // Verify admin authentication
-  const userOrResponse = await verifyAdminAuth(request, ['admin'])
-  if (userOrResponse instanceof NextResponse) {
-    return userOrResponse
-  }
-
-  const env = await getEnv()
-
-  // Rate limiting: 10 requests per minute per admin
-  const clientIp = getClientIp(request);
-  const rateLimitKey = `admin-featured-products:${clientIp}`;
-  const rateLimitResult = await rateLimit(env, rateLimitKey, {
-    maxRequests: 10,
-    windowMs: 60 * 1000, // 1 minute window
-  });
-
-  if (!rateLimitResult.success) {
-    return createRateLimitResponse(rateLimitResult);
-  }
-
   try {
+    // Verify admin authentication
+    const userOrResponse = await verifyAdminAuth(request, ['admin'])
+    if (userOrResponse instanceof NextResponse) {
+      return userOrResponse
+    }
+
+    const env = await getEnv()
+    if (!env) {
+      console.error('[Featured Products PUT] No env available')
+      return NextResponse.json(
+        { success: false, error: 'Database not available' },
+        { status: 500 }
+      )
+    }
+
+    // Rate limiting: 10 requests per minute per admin
+    const clientIp = getClientIp(request);
+    const rateLimitKey = `admin-featured-products:${clientIp}`;
+    const rateLimitResult = await rateLimit(env, rateLimitKey, {
+      maxRequests: 10,
+      windowMs: 60 * 1000, // 1 minute window
+    });
+
+    if (!rateLimitResult.success) {
+      return createRateLimitResponse(rateLimitResult);
+    }
+
     const body = await request.json()
     const { productIds, isEnabled, heading, description } = body
 

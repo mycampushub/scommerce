@@ -8,14 +8,21 @@ import { logAdminAction } from '@/lib/audit-logger'
 const SECTION_NAME = 'fullscreen-video'
 
 export async function GET(request: NextRequest) {
-  // Verify admin authentication (admin or staff)
-  const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff'])
-  if (userOrResponse instanceof NextResponse) {
-    return userOrResponse
-  }
-
   try {
+    // Verify admin authentication (admin or staff)
+    const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff'])
+    if (userOrResponse instanceof NextResponse) {
+      return userOrResponse
+    }
+
     const env = await getEnv()
+    if (!env) {
+      console.error('[Fullscreen Video GET] No env available')
+      return NextResponse.json(
+        { success: false, error: 'Database not available' },
+        { status: 500 }
+      )
+    }
 
     const setting = await queryFirst<any>(
       env,
@@ -62,13 +69,21 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  // Verify admin authentication
-  const userOrResponse = await verifyAdminAuth(request, ['admin'])
-  if (userOrResponse instanceof NextResponse) {
-    return userOrResponse
-  }
+  try {
+    // Verify admin authentication
+    const userOrResponse = await verifyAdminAuth(request, ['admin'])
+    if (userOrResponse instanceof NextResponse) {
+      return userOrResponse
+    }
 
-  const env = await getEnv()
+    const env = await getEnv()
+    if (!env) {
+      console.error('[Fullscreen Video PUT] No env available')
+      return NextResponse.json(
+        { success: false, error: 'Database not available' },
+        { status: 500 }
+      )
+    }
 
   // Rate limiting: 10 requests per minute per admin
   const clientIp = getClientIp(request);
@@ -82,11 +97,10 @@ export async function PUT(request: NextRequest) {
     return createRateLimitResponse(rateLimitResult);
   }
 
-  try {
-    const body = await request.json()
-    const { videoUrl, isEnabled, heading, description } = body
+  const body = await request.json()
+  const { videoUrl, isEnabled, heading, description } = body
 
-    console.log('[Fullscreen Video] Request body:', body)
+  console.log('[Fullscreen Video] Request body:', body)
 
     // Validate videoUrl
     if (videoUrl !== undefined && typeof videoUrl !== 'string') {

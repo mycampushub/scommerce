@@ -24,6 +24,13 @@ export async function verifyAdminAuth(
     // Development-only logging
     if (process.env.NODE_ENV === 'development') {
       console.log('[verifyAdminAuth] Checking admin auth, allowedRoles:', allowedRoles);
+      const authHeader = request.headers.get('authorization');
+      const sessionCookie = request.cookies.get('session');
+      console.log('[verifyAdminAuth] Auth header present:', !!authHeader);
+      console.log('[verifyAdminAuth] Session cookie present:', !!sessionCookie);
+      if (sessionCookie) {
+        console.log('[verifyAdminAuth] Session cookie name:', sessionCookie.name, 'value length:', sessionCookie.value?.length);
+      }
     }
 
     // First check Authorization header (for API calls)
@@ -32,37 +39,50 @@ export async function verifyAdminAuth(
 
     // If no Authorization header, check session cookie
     if (!token) {
-      token = request.cookies.get('session')?.value ?? null
+      const sessionCookie = request.cookies.get('session')
+      token = sessionCookie?.value ?? null
+      if (process.env.NODE_ENV === 'development' && token) {
+        console.log('[verifyAdminAuth] Using token from session cookie, length:', token.length);
+      }
     }
 
     if (!token) {
+      console.log('[verifyAdminAuth] No token found in header or cookie');
       return NextResponse.json(
         { success: false, error: 'Authentication required' },
         { status: 401 }
       )
     }
 
+    console.log('[verifyAdminAuth] Verifying token...');
     const payload = await verifyToken(token)
     if (!payload) {
+      console.log('[verifyAdminAuth] Token verification failed or expired');
       return NextResponse.json(
         { success: false, error: 'Invalid or expired token' },
         { status: 401 }
       )
     }
 
+    console.log('[verifyAdminAuth] Token verified, userId:', payload.userId, 'email:', payload.email);
+
     // Verify user exists and has valid role
     const env = await getEnv()
     const user = await UserRepository.findById(env, payload.userId)
 
     if (!user) {
+      console.log('[verifyAdminAuth] User not found in database:', payload.userId);
       return NextResponse.json(
         { success: false, error: 'User not found' },
         { status: 401 }
       )
     }
 
+    console.log('[verifyAdminAuth] User found, role:', user.role, 'allowedRoles:', allowedRoles);
+
     // Check if user has required role
     if (!allowedRoles.includes(user.role)) {
+      console.log('[verifyAdminAuth] User role not in allowed roles');
       return NextResponse.json(
         {
           success: false,
@@ -72,6 +92,7 @@ export async function verifyAdminAuth(
       )
     }
 
+    console.log('[verifyAdminAuth] Authentication successful');
     return {
       id: user.id,
       email: user.email,
