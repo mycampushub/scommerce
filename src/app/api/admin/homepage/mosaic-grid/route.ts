@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getEnv } from '@/lib/cloudflare'
 import { verifyAdminAuth } from '@/lib/admin-auth'
-import { queryFirst, execute, generateId, now, parseJSON, stringifyJSON, boolToNumber, numberToBool } from '@/db/db'
+import { queryFirst, execute, generateId, now, parseJSON, stringifyJSON, boolToNumber, numberToBool, queryAll } from '@/db/db'
 import { getClientIp, rateLimit, createRateLimitResponse } from '@/lib/rate-limit'
+import { logAdminAction } from '@/lib/audit-logger'
 
-const SECTION_NAME = 'marquee'
-const DEFAULT_MARQUEE_TEXT = 'FREE SHIPPING WORLDWIDE | EASY RETURNS & EXCHANGES | CUSTOM STITCHING AVAILABLE'
+const SECTION_NAME = 'mosaic_grid'
 
 export async function GET(request: NextRequest) {
   // Verify admin authentication (admin or staff)
@@ -24,16 +24,15 @@ export async function GET(request: NextRequest) {
     )
 
     if (!setting) {
-      // Return default marquee settings
+      // Return default - no products selected
       return NextResponse.json({
         success: true,
         data: {
           sectionName: SECTION_NAME,
-          text: DEFAULT_MARQUEE_TEXT,
+          productIds: [],
           isEnabled: true,
-          animationSpeed: 20, // seconds for full cycle
-          heading: 'Special Offers',
-          description: 'Don\'t miss out on our amazing deals',
+          heading: 'Shop the Look',
+          description: 'Explore our curated collection of trending styles',
         }
       })
     }
@@ -44,19 +43,18 @@ export async function GET(request: NextRequest) {
       success: true,
       data: {
         sectionName: SECTION_NAME,
-        text: settings.text || DEFAULT_MARQUEE_TEXT,
+        productIds: settings.productIds || [],
         isEnabled: typeof setting.isEnabled === 'boolean' ? setting.isEnabled : numberToBool(setting.isEnabled),
-        animationSpeed: settings.animationSpeed || 20,
-        heading: settings.heading || 'Special Offers',
-        description: settings.description || 'Don\'t miss out on our amazing deals',
+        heading: settings.heading || 'Shop the Look',
+        description: settings.description || 'Explore our curated collection of trending styles',
       }
     })
   } catch (error) {
-    console.error('Error fetching marquee settings:', error)
+    console.error('Error fetching mosaic grid settings:', error)
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to fetch marquee settings'
+        error: 'Failed to fetch mosaic grid settings'
       },
       { status: 500 }
     )
@@ -74,7 +72,7 @@ export async function PUT(request: NextRequest) {
 
   // Rate limiting: 10 requests per minute per admin
   const clientIp = getClientIp(request);
-  const rateLimitKey = `admin-marquee:${clientIp}`;
+  const rateLimitKey = `admin-mosaic-grid:${clientIp}`;
   const rateLimitResult = await rateLimit(env, rateLimitKey, {
     maxRequests: 10,
     windowMs: 60 * 1000, // 1 minute window
@@ -86,14 +84,17 @@ export async function PUT(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { text, isEnabled, animationSpeed, heading, description } = body
+    const { productIds, isEnabled, heading, description } = body
 
-    // Validate text
-    if (text !== undefined && (typeof text !== 'string' || text.trim().length === 0)) {
+    console.log('[Mosaic Grid] Request body:', body)
+
+    // Validate productIds
+    if (productIds !== undefined && !Array.isArray(productIds)) {
+      console.error('[Mosaic Grid] Invalid productIds:', productIds)
       return NextResponse.json(
         {
           success: false,
-          error: 'Marquee text must be a non-empty string'
+          error: 'productIds must be an array'
         },
         { status: 400 }
       )
@@ -101,6 +102,7 @@ export async function PUT(request: NextRequest) {
 
     // Validate isEnabled
     if (isEnabled !== undefined && typeof isEnabled !== 'boolean') {
+      console.error('[Mosaic Grid] Invalid isEnabled:', isEnabled)
       return NextResponse.json(
         {
           success: false,
@@ -110,18 +112,7 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // Validate animationSpeed
-    if (animationSpeed !== undefined && (typeof animationSpeed !== 'number' || animationSpeed < 5 || animationSpeed > 60)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'animationSpeed must be a number between 5 and 60 seconds'
-        },
-        { status: 400 }
-      )
-    }
-
-    // Validate heading
+    // Validate heading if provided
     if (heading !== undefined && (typeof heading !== 'string' || heading.length > 200)) {
       return NextResponse.json(
         {
@@ -132,7 +123,7 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // Validate description
+    // Validate description if provided
     if (description !== undefined && (typeof description !== 'string' || description.length > 500)) {
       return NextResponse.json(
         {
@@ -143,6 +134,31 @@ export async function PUT(request: NextRequest) {
       )
     }
 
+    // If productIds provided and not empty, verify they exist
+    if (productIds && productIds.length > 0) {
+      console.log('[Mosaic Grid] Verifying product IDs:', productIds)
+
+      // Build a simpler query to verify products exist
+      const existingProducts = await queryAll<any>(
+        env,
+        'SELECT id FROM products WHERE id IN (' + productIds.map(() => '?').join(',') + ')',
+        ...productIds
+      )
+
+      console.log('[Mosaic Grid] Found products:', existingProducts.length, 'expected:', productIds.length)
+
+      if (existingProducts.length !== productIds.length) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'One or more product IDs are invalid',
+            details: `Found ${existingProducts.length} of ${productIds.length} products`
+          },
+          { status: 400 }
+        )
+      }
+    }
+
     // Check if setting exists
     const existing = await queryFirst<any>(
       env,
@@ -151,10 +167,9 @@ export async function PUT(request: NextRequest) {
     )
 
     const customSettings = {
-      text: text || DEFAULT_MARQUEE_TEXT,
-      animationSpeed: animationSpeed || 20,
-      heading: heading || 'Special Offers',
-      description: description || 'Don\'t miss out on our amazing deals',
+      productIds: productIds || [],
+      heading: heading || undefined,
+      description: description || undefined,
     }
 
     if (existing) {
@@ -190,8 +205,8 @@ export async function PUT(request: NextRequest) {
         id,
         SECTION_NAME,
         boolToNumber(isEnabled !== undefined ? isEnabled : true),
-        5000, // Default autoPlay value (NOT NULL column)
-        null, // displayLimit can be NULL
+        null,
+        null,
         stringifyJSON(customSettings),
         currentTime,
         currentTime
@@ -207,23 +222,36 @@ export async function PUT(request: NextRequest) {
 
     const settings = parseJSON<any>(updated?.settings) || {}
 
+    // Log audit event
+    const admin = userOrResponse as { id: string }
+    await logAdminAction(
+      env,
+      request,
+      admin.id,
+      'UPDATE',
+      'HomepageSettings',
+      SECTION_NAME,
+      `Updated mosaic grid: ${productIds ? productIds.length : 0} products, enabled: ${isEnabled !== undefined ? isEnabled : 'unchanged'}`
+    )
+
     return NextResponse.json({
       success: true,
       data: {
         sectionName: SECTION_NAME,
-        text: settings.text || DEFAULT_MARQUEE_TEXT,
+        productIds: settings.productIds || [],
         isEnabled: typeof updated?.isEnabled === 'boolean' ? updated?.isEnabled : numberToBool(updated?.isEnabled),
-        animationSpeed: settings.animationSpeed || 20,
-        heading: settings.heading || 'Special Offers',
-        description: settings.description || 'Don\'t miss out on our amazing deals',
+        heading: settings.heading || 'Shop the Look',
+        description: settings.description || 'Explore our curated collection of trending styles',
       }
     })
   } catch (error) {
-    console.error('Error updating marquee settings:', error)
+    console.error('Error updating mosaic grid settings:', error)
+    const errorMessage = error instanceof Error ? error.message : String(error)
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to update marquee settings'
+        error: 'Failed to update mosaic grid settings',
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
       },
       { status: 500 }
     )

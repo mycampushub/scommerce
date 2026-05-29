@@ -441,3 +441,26 @@ VALUES
 
 -- Re-enable foreign key constraints after seeding
 PRAGMA foreign_keys = ON;
+
+-- ============================================
+-- PROMOTIONS
+-- ============================================
+INSERT OR IGNORE INTO promotions (id, title, description, image, ctaText, ctaLink, type, isActive, `order`, createdAt, updatedAt)
+VALUES
+('promo-001', 'Summer Sale', 'Up to 50% off on all summer collection', '/images/promotions/summer-sale.svg', 'Shop Now', '/shop', 'banner', 1, 1, datetime('now'), datetime('now')),
+('promo-002', 'Free Shipping', 'Free shipping on orders over 5000', '/images/promotions/free-shipping.svg', 'Learn More', '/shop', 'banner', 1, 2, datetime('now'), datetime('now')),
+('promo-003', 'New Collection', 'Check out our latest arrivals', '/images/promotions/new-collection.svg', 'View Collection', '/shop', 'banner', 1, 3, datetime('now'), datetime('now'));
+
+-- ============================================
+-- HOMEPAGE SETTINGS - Brands Section
+-- ============================================
+INSERT OR IGNORE INTO homepage_settings (id, sectionName, isEnabled, autoPlay, displayLimit, settings, createdAt, updatedAt)
+VALUES
+('hp-brands', 'brands', 1, 5000, null, '{"autoScroll": true, "scrollInterval": 4000, "brandIds": []}', datetime('now'), datetime('now'));
+
+-- ============================================
+-- HOMEPAGE SETTINGS - Fullscreen Video Section
+-- ============================================
+INSERT OR IGNORE INTO homepage_settings (id, sectionName, isEnabled, autoPlay, displayLimit, settings, createdAt, updatedAt)
+VALUES
+('hp-fullscreen-video', 'fullscreen-video', 1, null, null, '{"videoUrl": "https://www.youtube-nocookie.com/embed/Gk-s0icT2CI?autoplay=1&mute=1&loop=1&playlist=Gk-s0icT2CI&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&playsinline=1"}', datetime('now'), datetime('now'));

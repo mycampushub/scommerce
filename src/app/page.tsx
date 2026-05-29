@@ -277,6 +277,8 @@ function SectionMarquee() {
   const [marqueeText, setMarqueeText] = useState("FREE SHIPPING WORLDWIDE | EASY RETURNS & EXCHANGES | CUSTOM STITCHING AVAILABLE")
   const [isEnabled, setIsEnabled] = useState(true)
   const [animationSpeed, setAnimationSpeed] = useState(20)
+  const [heading, setHeading] = useState('Special Offers')
+  const [description, setDescription] = useState('Don\'t miss out on our amazing deals')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -288,6 +290,8 @@ function SectionMarquee() {
           setMarqueeText(data.data.text || "FREE SHIPPING WORLDWIDE | EASY RETURNS & EXCHANGES | CUSTOM STITCHING AVAILABLE")
           setIsEnabled(data.data.isEnabled !== undefined ? data.data.isEnabled : true)
           setAnimationSpeed(data.data.animationSpeed || 20)
+          setHeading(data.data.heading || 'Special Offers')
+          setDescription(data.data.description || 'Don\'t miss out on our amazing deals')
         }
       } catch (error) {
         console.error('Error fetching marquee settings:', error)
@@ -623,6 +627,8 @@ function CategoryCarousel({ allCategories, products }: { allCategories: Category
   const [isPaused, setIsPaused] = useState(false)
   const [autoScroll, setAutoScroll] = useState(true)
   const [scrollInterval, setScrollInterval] = useState(4000)
+  const [heading, setHeading] = useState('Shop by Category')
+  const [description, setDescription] = useState('Explore our wide range of categories')
   const [loading, setLoading] = useState(true)
 
   // Fetch category carousel settings
@@ -635,6 +641,8 @@ function CategoryCarousel({ allCategories, products }: { allCategories: Category
           const selectedIds = data.data.categoryIds || []
           setAutoScroll(data.data.autoScroll !== undefined ? data.data.autoScroll : true)
           setScrollInterval(data.data.scrollInterval || 4000)
+          setHeading(data.data.heading || 'Shop by Category')
+          setDescription(data.data.description || 'Explore our wide range of categories')
 
           // Filter categories based on selected IDs
           if (selectedIds.length > 0 && allCategories) {
@@ -698,6 +706,18 @@ function CategoryCarousel({ allCategories, products }: { allCategories: Category
   return (
     <section className="w-full py-6 md:py-8 bg-gradient-to-b from-pink-50 to-white">
       <div className="container mx-auto px-4 max-w-7xl">
+        {/* Section Heading and Description */}
+        <div className="text-center mb-6">
+          <h2 className="text-2xl md:text-4xl font-bold text-gray-900 mb-2">
+            {heading}
+          </h2>
+          {description && (
+            <p className="text-sm md:text-base text-gray-600">
+              {description}
+            </p>
+          )}
+        </div>
+
         {/* Category Name Carousel with Left/Right Controls */}
         <div
           className="relative bg-white rounded-2xl shadow-sm p-3 md:p-6"
@@ -904,6 +924,8 @@ function BrandCarousel() {
   const [scrollInterval, setScrollInterval] = useState(4000)
   const [loading, setLoading] = useState(true)
   const [isEnabled, setIsEnabled] = useState(true)
+  const [heading, setHeading] = useState('Featured Brands')
+  const [description, setDescription] = useState('Discover top brands in our collection')
 
   // Fetch brand carousel settings
   useEffect(() => {
@@ -921,6 +943,8 @@ function BrandCarousel() {
           setIsEnabled(settingsData.data.isEnabled !== undefined ? settingsData.data.isEnabled : true)
           setAutoScroll(settingsData.data.autoScroll !== undefined ? settingsData.data.autoScroll : true)
           setScrollInterval(settingsData.data.scrollInterval || 4000)
+          setHeading(settingsData.data.heading || 'Featured Brands')
+          setDescription(settingsData.data.description || 'Discover top brands in our collection')
 
           // If specific brand IDs are selected, filter brands
           if (settingsData.data.brandIds && settingsData.data.brandIds.length > 0 && brandsData.success) {
@@ -979,10 +1003,16 @@ function BrandCarousel() {
   return (
     <section className="w-full py-8 md:py-12 bg-gradient-to-b from-pink-50 to-white">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 text-center flex-1">
-            Featured Brands
+        {/* Section Heading and Description */}
+        <div className="text-center mb-6">
+          <h2 className="text-2xl md:text-4xl font-bold text-gray-900 mb-2">
+            {heading}
           </h2>
+          {description && (
+            <p className="text-sm md:text-base text-gray-600">
+              {description}
+            </p>
+          )}
         </div>
 
         <div
@@ -1124,7 +1154,9 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
   const [carouselSettings, setCarouselSettings] = useState({
     isEnabled: true,
     autoScroll: true,
-    autoPlay: 3000
+    autoPlay: 3000,
+    heading: 'Trending Reels',
+    description: 'Watch the latest video content'
   })
 
   // Fetch carousel settings
@@ -1137,7 +1169,9 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
           setCarouselSettings({
             isEnabled: data.data.isEnabled !== undefined ? data.data.isEnabled : true,
             autoScroll: data.data.autoScroll !== undefined ? data.data.autoScroll : true,
-            autoPlay: data.data.autoPlay || 3000
+            autoPlay: data.data.autoPlay || 3000,
+            heading: data.data.heading || 'Trending Reels',
+            description: data.data.description || 'Watch the latest video content'
           })
         }
       } catch (error) {
@@ -1592,13 +1626,43 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
 
 // 6. Fullscreen Video Component
 function FullscreenVideo() {
+  const [videoUrl, setVideoUrl] = useState('')
+  const [isEnabled, setIsEnabled] = useState(true)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchVideoSettings = async () => {
+      try {
+        const res = await fetch('/api/admin/homepage/fullscreen-video')
+        const data = await res.json() as any
+        if (data.success) {
+          setVideoUrl(data.data.videoUrl || 'https://www.youtube-nocookie.com/embed/Gk-s0icT2CI?autoplay=1&mute=1&loop=1&playlist=Gk-s0icT2CI&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&playsinline=1')
+          setIsEnabled(data.data.isEnabled !== undefined ? data.data.isEnabled : true)
+        }
+      } catch (error) {
+        console.error('Error fetching fullscreen video settings:', error)
+        // Use default video on error
+        setVideoUrl('https://www.youtube-nocookie.com/embed/Gk-s0icT2CI?autoplay=1&mute=1&loop=1&playlist=Gk-s0icT2CI&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&playsinline=1')
+        setIsEnabled(true)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchVideoSettings()
+  }, [])
+
+  if (loading || !isEnabled || !videoUrl) {
+    return null
+  }
+
   return (
     <section className="relative w-full overflow-hidden bg-black py-12 md:py-16">
       <div className="container mx-auto px-4">
         <div className="relative w-full mx-auto" style={{ maxWidth: '1080px', aspectRatio: '16/9' }}>
           <iframe
             className="absolute inset-0 w-full h-full"
-            src="https://www.youtube-nocookie.com/embed/Gk-s0icT2CI?autoplay=1&mute=1&loop=1&playlist=Gk-s0icT2CI&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&playsinline=1"
+            src={videoUrl}
             title="YouTube video player"
             frameBorder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -1612,7 +1676,7 @@ function FullscreenVideo() {
 }
 
 // 7. Featured Collection Carousel Component
-function FeaturedCollection({ products, onQuickView, onAddToCart }: { products: Product[]; onQuickView: (product: Product) => void; onAddToCart: (product: Product) => void }) {
+function FeaturedCollection({ products, onQuickView, onAddToCart, heading, description }: { products: Product[]; onQuickView: (product: Product) => void; onAddToCart: (product: Product) => void; heading?: string; description?: string }) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isMobile, setIsMobile] = useState(false)
   const [touchStartX, setTouchStartX] = useState(0)
@@ -1667,10 +1731,13 @@ function FeaturedCollection({ products, onQuickView, onAddToCart }: { products: 
 
   return (
     <section className="featured-collection container mx-auto px-4 py-12">
+      <div className="text-center mb-8">
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{heading || 'Featured Products'}</h2>
+        {description && <p className="text-gray-600 max-w-2xl mx-auto">{description}</p>}
+      </div>
       <div className="flex items-center justify-between mb-8">
-        <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Featured Products</h2>
         {!isMobile && (
-          <div className="flex gap-2">
+          <div className="flex gap-2 ml-auto">
             <button onClick={handlePrev} className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-50" disabled={currentIndex === 0}>
               <ChevronLeft className="w-5 h-5" />
             </button>
@@ -1743,7 +1810,7 @@ function FeaturedCollection({ products, onQuickView, onAddToCart }: { products: 
 }
 
 // 8. Mosaic Product Grid Component
-function MosaicGrid({ products, onQuickView, onAddToCart }: { products: Product[]; onQuickView: (product: Product) => void; onAddToCart: (product: Product) => void }) {
+function MosaicGrid({ products, onQuickView, onAddToCart, heading, description }: { products: Product[]; onQuickView: (product: Product) => void; onAddToCart: (product: Product) => void; heading?: string; description?: string }) {
   const productsArray = Array.isArray(products) ? products : []
 
   if (productsArray.length === 0) {
@@ -1753,7 +1820,10 @@ function MosaicGrid({ products, onQuickView, onAddToCart }: { products: Product[
   return (
     <section className="mosaic bg-gray-50 py-12">
       <div className="container mx-auto px-4">
-        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8 text-center">Shop the Look</h2>
+        <div className="text-center mb-8">
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{heading || 'Shop the Look'}</h2>
+          {description && <p className="text-gray-600 max-w-2xl mx-auto">{description}</p>}
+        </div>
         <div className="mosaic__grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {productsArray.map((product, index) => (
             <div
@@ -2094,6 +2164,16 @@ export default function Home() {
 
   // Dynamic data states
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([])
+  const [featuredProductsSettings, setFeaturedProductsSettings] = useState<{ heading: string; description: string }>({
+    heading: 'Featured Products',
+    description: 'Discover our handpicked selection of top products'
+  })
+  const [mosaicProducts, setMosaicProducts] = useState<Product[]>([])
+  const [mosaicGridSettings, setMosaicGridSettings] = useState<{ heading: string; description: string; enabled: boolean }>({
+    heading: 'Shop the Look',
+    description: 'Explore our curated collection of trending styles',
+    enabled: true
+  })
   const [saleProducts, setSaleProducts] = useState<Product[]>([])
   const [newProducts, setNewProducts] = useState<Product[]>([])
   const [trendingProducts, setTrendingProducts] = useState<Product[]>([])
@@ -2111,8 +2191,14 @@ export default function Home() {
     const fetchData = async () => {
       try {
         // Fetch featured products settings first
-        const featuredSettingsRes = await fetch('/api/admin/homepage/featured-products')
-        const featuredSettingsData = await featuredSettingsRes.json() as any
+        const [featuredSettingsRes, mosaicSettingsRes] = await Promise.all([
+          fetch('/api/admin/homepage/featured-products'),
+          fetch('/api/admin/homepage/mosaic-grid')
+        ])
+        const [featuredSettingsData, mosaicSettingsData] = await Promise.all([
+          featuredSettingsRes.json() as any,
+          mosaicSettingsRes.json() as any
+        ])
 
         // Fetch all other data in parallel
         const [
@@ -2148,6 +2234,10 @@ export default function Home() {
         // Set featured products based on admin selection
         if (featuredSettingsData.success && featuredSettingsData.data.isEnabled !== false) {
           const featuredIds = featuredSettingsData.data.productIds || []
+          setFeaturedProductsSettings({
+            heading: featuredSettingsData.data.heading || 'Featured Products',
+            description: featuredSettingsData.data.description || 'Discover our handpicked selection of top products'
+          })
           if (featuredIds.length > 0) {
             // Fetch specific featured products by IDs
             const featuredRes = await fetch(`/api/products?ids=${featuredIds.join(',')}`)
@@ -2162,6 +2252,29 @@ export default function Home() {
         } else {
           // Featured products disabled, set empty
           setFeaturedProducts([])
+        }
+
+        // Set mosaic grid based on admin selection
+        if (mosaicSettingsData.success && mosaicSettingsData.data.isEnabled !== false) {
+          const mosaicIds = mosaicSettingsData.data.productIds || []
+          setMosaicGridSettings({
+            heading: mosaicSettingsData.data.heading || 'Shop the Look',
+            description: mosaicSettingsData.data.description || 'Explore our curated collection of trending styles',
+            enabled: mosaicSettingsData.data.isEnabled !== false
+          })
+          if (mosaicIds.length > 0) {
+            // Fetch specific mosaic products by IDs
+            const mosaicRes = await fetch(`/api/products?ids=${mosaicIds.join(',')}`)
+            const mosaicData = await mosaicRes.json() as any
+            setMosaicProducts(Array.isArray(mosaicData.data?.products) ? mosaicData.data.products : [])
+          } else {
+            // Fallback to new products if no products selected
+            setMosaicProducts(newProducts.slice(0, 6))
+          }
+        } else {
+          // Mosaic grid disabled, set empty
+          setMosaicGridSettings(prev => ({ ...prev, enabled: false }))
+          setMosaicProducts([])
         }
 
         // Set other products and categories with defensive checks
@@ -2335,8 +2448,8 @@ export default function Home() {
         {homepageSettings.reels?.isEnabled !== false && reels.length > 0 && (
           <VideoReels reels={reels} />
         )}
-        {featuredProducts.length > 0 && <FeaturedCollection products={featuredProducts} onQuickView={openQuickView} onAddToCart={addToCart} />}
-        {newProducts.length > 0 && <MosaicGrid products={newProducts} onQuickView={openQuickView} onAddToCart={addToCart} />}
+        {featuredProducts.length > 0 && <FeaturedCollection products={featuredProducts} onQuickView={openQuickView} onAddToCart={addToCart} heading={featuredProductsSettings.heading} description={featuredProductsSettings.description} />}
+        {mosaicGridSettings.enabled && mosaicProducts.length > 0 && <MosaicGrid products={mosaicProducts} onQuickView={openQuickView} onAddToCart={addToCart} heading={mosaicGridSettings.heading} description={mosaicGridSettings.description} />}
         {/* Promotions - only show if enabled and has data */}
         {homepageSettings.promotions?.isEnabled !== false && promotions.length > 0 && (
           <PromotionRow promotions={promotions} />

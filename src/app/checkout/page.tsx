@@ -117,6 +117,31 @@ export default function CheckoutPage() {
       if (user && !hasFetchedServerCart) {
         setIsFetchingServerCart(true)
         try {
+          // First, sync local cart items to server if there are any (like cart page does)
+          if (items.length > 0) {
+            console.log('[Checkout] Syncing local cart to server:', items.length, 'items')
+            const syncResponse = await fetch('/api/cart', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({
+                action: 'sync',
+                items: items.map(item => ({
+                  id: item.id,
+                  productId: item.id,
+                  quantity: item.quantity,
+                  variantId: item.variantId,
+                  size: item.size,
+                  color: item.color,
+                  material: item.material,
+                })),
+              }),
+            })
+            const syncData = await syncResponse.json() as any
+            console.log('[Checkout] Sync result:', syncData)
+          }
+
+          // Now fetch the server cart
           const response = await fetch('/api/cart', {
             credentials: 'include',
           })
@@ -162,7 +187,7 @@ export default function CheckoutPage() {
     }
 
     fetchServerCart()
-  }, [user])
+  }, [user, items])
 
 
   // Fetch site settings for tax rate and shipping threshold

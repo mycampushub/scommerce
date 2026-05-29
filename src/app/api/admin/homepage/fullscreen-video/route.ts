@@ -3,9 +3,9 @@ import { getEnv } from '@/lib/cloudflare'
 import { verifyAdminAuth } from '@/lib/admin-auth'
 import { queryFirst, execute, generateId, now, parseJSON, stringifyJSON, boolToNumber, numberToBool } from '@/db/db'
 import { getClientIp, rateLimit, createRateLimitResponse } from '@/lib/rate-limit'
+import { logAdminAction } from '@/lib/audit-logger'
 
-const SECTION_NAME = 'marquee'
-const DEFAULT_MARQUEE_TEXT = 'FREE SHIPPING WORLDWIDE | EASY RETURNS & EXCHANGES | CUSTOM STITCHING AVAILABLE'
+const SECTION_NAME = 'fullscreen-video'
 
 export async function GET(request: NextRequest) {
   // Verify admin authentication (admin or staff)
@@ -24,16 +24,15 @@ export async function GET(request: NextRequest) {
     )
 
     if (!setting) {
-      // Return default marquee settings
+      // Return default - no video configured
       return NextResponse.json({
         success: true,
         data: {
           sectionName: SECTION_NAME,
-          text: DEFAULT_MARQUEE_TEXT,
+          videoUrl: '',
           isEnabled: true,
-          animationSpeed: 20, // seconds for full cycle
-          heading: 'Special Offers',
-          description: 'Don\'t miss out on our amazing deals',
+          heading: 'Featured Video',
+          description: 'Experience our exclusive video content',
         }
       })
     }
@@ -44,19 +43,18 @@ export async function GET(request: NextRequest) {
       success: true,
       data: {
         sectionName: SECTION_NAME,
-        text: settings.text || DEFAULT_MARQUEE_TEXT,
+        videoUrl: settings.videoUrl || '',
         isEnabled: typeof setting.isEnabled === 'boolean' ? setting.isEnabled : numberToBool(setting.isEnabled),
-        animationSpeed: settings.animationSpeed || 20,
-        heading: settings.heading || 'Special Offers',
-        description: settings.description || 'Don\'t miss out on our amazing deals',
+        heading: settings.heading || 'Featured Video',
+        description: settings.description || 'Experience our exclusive video content',
       }
     })
   } catch (error) {
-    console.error('Error fetching marquee settings:', error)
+    console.error('Error fetching fullscreen video settings:', error)
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to fetch marquee settings'
+        error: 'Failed to fetch fullscreen video settings'
       },
       { status: 500 }
     )
@@ -74,7 +72,7 @@ export async function PUT(request: NextRequest) {
 
   // Rate limiting: 10 requests per minute per admin
   const clientIp = getClientIp(request);
-  const rateLimitKey = `admin-marquee:${clientIp}`;
+  const rateLimitKey = `admin-fullscreen-video:${clientIp}`;
   const rateLimitResult = await rateLimit(env, rateLimitKey, {
     maxRequests: 10,
     windowMs: 60 * 1000, // 1 minute window
@@ -86,14 +84,17 @@ export async function PUT(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { text, isEnabled, animationSpeed, heading, description } = body
+    const { videoUrl, isEnabled, heading, description } = body
 
-    // Validate text
-    if (text !== undefined && (typeof text !== 'string' || text.trim().length === 0)) {
+    console.log('[Fullscreen Video] Request body:', body)
+
+    // Validate videoUrl
+    if (videoUrl !== undefined && typeof videoUrl !== 'string') {
+      console.error('[Fullscreen Video] Invalid videoUrl:', videoUrl)
       return NextResponse.json(
         {
           success: false,
-          error: 'Marquee text must be a non-empty string'
+          error: 'videoUrl must be a string'
         },
         { status: 400 }
       )
@@ -101,21 +102,11 @@ export async function PUT(request: NextRequest) {
 
     // Validate isEnabled
     if (isEnabled !== undefined && typeof isEnabled !== 'boolean') {
+      console.error('[Fullscreen Video] Invalid isEnabled:', isEnabled)
       return NextResponse.json(
         {
           success: false,
           error: 'isEnabled must be a boolean'
-        },
-        { status: 400 }
-      )
-    }
-
-    // Validate animationSpeed
-    if (animationSpeed !== undefined && (typeof animationSpeed !== 'number' || animationSpeed < 5 || animationSpeed > 60)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'animationSpeed must be a number between 5 and 60 seconds'
         },
         { status: 400 }
       )
@@ -151,10 +142,9 @@ export async function PUT(request: NextRequest) {
     )
 
     const customSettings = {
-      text: text || DEFAULT_MARQUEE_TEXT,
-      animationSpeed: animationSpeed || 20,
-      heading: heading || 'Special Offers',
-      description: description || 'Don\'t miss out on our amazing deals',
+      videoUrl: videoUrl || '',
+      heading: heading || 'Featured Video',
+      description: description || 'Experience our exclusive video content',
     }
 
     if (existing) {
@@ -190,8 +180,8 @@ export async function PUT(request: NextRequest) {
         id,
         SECTION_NAME,
         boolToNumber(isEnabled !== undefined ? isEnabled : true),
-        5000, // Default autoPlay value (NOT NULL column)
-        null, // displayLimit can be NULL
+        null,
+        null,
         stringifyJSON(customSettings),
         currentTime,
         currentTime
@@ -207,23 +197,36 @@ export async function PUT(request: NextRequest) {
 
     const settings = parseJSON<any>(updated?.settings) || {}
 
+    // Log audit event
+    const admin = userOrResponse as { id: string }
+    await logAdminAction(
+      env,
+      request,
+      admin.id,
+      'UPDATE',
+      'HomepageSettings',
+      SECTION_NAME,
+      `Updated fullscreen video: enabled=${isEnabled !== undefined ? isEnabled : 'unchanged'}`
+    )
+
     return NextResponse.json({
       success: true,
       data: {
         sectionName: SECTION_NAME,
-        text: settings.text || DEFAULT_MARQUEE_TEXT,
+        videoUrl: settings.videoUrl || '',
         isEnabled: typeof updated?.isEnabled === 'boolean' ? updated?.isEnabled : numberToBool(updated?.isEnabled),
-        animationSpeed: settings.animationSpeed || 20,
-        heading: settings.heading || 'Special Offers',
-        description: settings.description || 'Don\'t miss out on our amazing deals',
+        heading: settings.heading || 'Featured Video',
+        description: settings.description || 'Experience our exclusive video content',
       }
     })
   } catch (error) {
-    console.error('Error updating marquee settings:', error)
+    console.error('Error updating fullscreen video settings:', error)
+    const errorMessage = error instanceof Error ? error.message : String(error)
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to update marquee settings'
+        error: 'Failed to update fullscreen video settings',
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
       },
       { status: 500 }
     )

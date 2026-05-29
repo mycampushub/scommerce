@@ -31,6 +31,8 @@ export async function GET(request: NextRequest) {
           isEnabled: true,
           autoPlay: 3000,
           autoScroll: true,
+          heading: 'Trending Reels',
+          description: 'Watch the latest video content',
         }
       })
     }
@@ -44,6 +46,8 @@ export async function GET(request: NextRequest) {
         isEnabled: typeof setting.isEnabled === 'boolean' ? setting.isEnabled : numberToBool(setting.isEnabled),
         autoPlay: setting.autoPlay || 3000,
         autoScroll: settings.autoScroll !== undefined ? settings.autoScroll : true,
+        heading: settings.heading || 'Trending Reels',
+        description: settings.description || 'Watch the latest video content',
       }
     })
   } catch (error) {
@@ -81,7 +85,7 @@ export async function PUT(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { isEnabled, autoPlay, autoScroll } = body
+    const { isEnabled, autoPlay, autoScroll, heading, description } = body
 
     // Validate isEnabled
     if (isEnabled !== undefined && typeof isEnabled !== 'boolean') {
@@ -116,6 +120,28 @@ export async function PUT(request: NextRequest) {
       )
     }
 
+    // Validate heading
+    if (heading !== undefined && (typeof heading !== 'string' || heading.length > 200)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'heading must be a string with max 200 characters'
+        },
+        { status: 400 }
+      )
+    }
+
+    // Validate description
+    if (description !== undefined && (typeof description !== 'string' || description.length > 500)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'description must be a string with max 500 characters'
+        },
+        { status: 400 }
+      )
+    }
+
     // Check if setting exists
     const existing = await queryFirst<any>(
       env,
@@ -125,6 +151,8 @@ export async function PUT(request: NextRequest) {
 
     const customSettings = {
       autoScroll: autoScroll !== undefined ? autoScroll : true,
+      heading: heading || 'Trending Reels',
+      description: description || 'Watch the latest video content',
     }
 
     if (existing) {
@@ -189,6 +217,8 @@ export async function PUT(request: NextRequest) {
         isEnabled: typeof updated?.isEnabled === 'boolean' ? updated?.isEnabled : numberToBool(updated?.isEnabled),
         autoPlay: updated?.autoPlay || 3000,
         autoScroll: settings.autoScroll !== undefined ? settings.autoScroll : true,
+        heading: settings.heading || 'Trending Reels',
+        description: settings.description || 'Watch the latest video content',
       }
     })
   } catch (error) {

@@ -120,6 +120,8 @@ export default function HomepageManagementPage() {
   const [marqueeText, setMarqueeText] = useState('')
   const [marqueeEnabled, setMarqueeEnabled] = useState(true)
   const [marqueeAnimationSpeed, setMarqueeAnimationSpeed] = useState(20)
+  const [marqueeHeading, setMarqueeHeading] = useState('Special Offers')
+  const [marqueeDescription, setMarqueeDescription] = useState('Don\'t miss out on our amazing deals')
   const [savingMarquee, setSavingMarquee] = useState(false)
 
   // Category Carousel state
@@ -128,12 +130,23 @@ export default function HomepageManagementPage() {
   const [categoryCarouselEnabled, setCategoryCarouselEnabled] = useState(true)
   const [categoryCarouselAutoScroll, setCategoryCarouselAutoScroll] = useState(true)
   const [categoryCarouselScrollInterval, setCategoryCarouselScrollInterval] = useState(4000)
+  const [categoryCarouselHeading, setCategoryCarouselHeading] = useState('Shop by Category')
+  const [categoryCarouselDescription, setCategoryCarouselDescription] = useState('Explore our wide range of categories')
   const [savingCategoryCarousel, setSavingCategoryCarousel] = useState(false)
 
   // Featured Products state
   const [selectedFeaturedProductIds, setSelectedFeaturedProductIds] = useState<string[]>([])
   const [featuredProductsEnabled, setFeaturedProductsEnabled] = useState(true)
+  const [featuredProductsHeading, setFeaturedProductsHeading] = useState('Featured Products')
+  const [featuredProductsDescription, setFeaturedProductsDescription] = useState('Discover our handpicked selection of top products')
   const [savingFeaturedProducts, setSavingFeaturedProducts] = useState(false)
+
+  // Mosaic Grid state
+  const [selectedMosaicProductIds, setSelectedMosaicProductIds] = useState<string[]>([])
+  const [mosaicGridEnabled, setMosaicGridEnabled] = useState(true)
+  const [mosaicGridHeading, setMosaicGridHeading] = useState('Shop the Look')
+  const [mosaicGridDescription, setMosaicGridDescription] = useState('Explore our curated collection of trending styles')
+  const [savingMosaicGrid, setSavingMosaicGrid] = useState(false)
 
   // Brands state
   const [brands, setBrands] = useState<any[]>([])
@@ -141,6 +154,8 @@ export default function HomepageManagementPage() {
   const [brandsEnabled, setBrandsEnabled] = useState(true)
   const [brandsAutoScroll, setBrandsAutoScroll] = useState(true)
   const [brandsScrollInterval, setBrandsScrollInterval] = useState(4000)
+  const [brandsHeading, setBrandsHeading] = useState('Featured Brands')
+  const [brandsDescription, setBrandsDescription] = useState('Discover top brands in our collection')
   const [savingBrands, setSavingBrands] = useState(false)
 
   // Banners state
@@ -193,6 +208,8 @@ export default function HomepageManagementPage() {
   const [reelsCarouselEnabled, setReelsCarouselEnabled] = useState(true)
   const [reelsCarouselAutoScroll, setReelsCarouselAutoScroll] = useState(true)
   const [reelsCarouselAutoPlay, setReelsCarouselAutoPlay] = useState(3000)
+  const [reelsCarouselHeading, setReelsCarouselHeading] = useState('Trending Reels')
+  const [reelsCarouselDescription, setReelsCarouselDescription] = useState('Watch the latest video content')
   const [savingReelsCarousel, setSavingReelsCarousel] = useState(false)
 
   // Promotions state
@@ -214,6 +231,17 @@ export default function HomepageManagementPage() {
   // Settings state
   const [settings, setSettings] = useState<Record<string, HomepageSetting>>({})
   const [savingSettings, setSavingSettings] = useState(false)
+
+  // Fullscreen Video state
+  const [videoUrl, setVideoUrl] = useState('')
+  const [videoEnabled, setVideoEnabled] = useState(true)
+  const [videoHeading, setVideoHeading] = useState('Featured Video')
+  const [videoDescription, setVideoDescription] = useState('Experience our exclusive video content')
+  const [savingVideo, setSavingVideo] = useState(false)
+
+  // Section Manager state
+  const [sections, setSections] = useState<any[]>([])
+  const [savingSections, setSavingSections] = useState(false)
 
   // Fetch functions
   const fetchProducts = async () => {
@@ -249,6 +277,8 @@ export default function HomepageManagementPage() {
         setCategoryCarouselEnabled(data.data.isEnabled !== undefined ? data.data.isEnabled : true)
         setCategoryCarouselAutoScroll(data.data.autoScroll !== undefined ? data.data.autoScroll : true)
         setCategoryCarouselScrollInterval(data.data.scrollInterval || 4000)
+        setCategoryCarouselHeading(data.data.heading || 'Shop by Category')
+        setCategoryCarouselDescription(data.data.description || 'Explore our wide range of categories')
       }
     } catch (error) {
       console.error('Error fetching category carousel settings:', error)
@@ -265,7 +295,9 @@ export default function HomepageManagementPage() {
           categoryIds: selectedCategoryIds,
           isEnabled: categoryCarouselEnabled,
           autoScroll: categoryCarouselAutoScroll,
-          scrollInterval: categoryCarouselScrollInterval
+          scrollInterval: categoryCarouselScrollInterval,
+          heading: categoryCarouselHeading,
+          description: categoryCarouselDescription
         })
       })
       const data = await res.json() as any
@@ -289,6 +321,8 @@ export default function HomepageManagementPage() {
       if (data.success) {
         setSelectedFeaturedProductIds(data.data.productIds || [])
         setFeaturedProductsEnabled(data.data.isEnabled !== undefined ? data.data.isEnabled : true)
+        setFeaturedProductsHeading(data.data.heading || 'Featured Products')
+        setFeaturedProductsDescription(data.data.description || 'Discover our handpicked selection of top products')
       }
     } catch (error) {
       console.error('Error fetching featured products settings:', error)
@@ -300,7 +334,9 @@ export default function HomepageManagementPage() {
     try {
       const payload = {
         productIds: selectedFeaturedProductIds,
-        isEnabled: featuredProductsEnabled
+        isEnabled: featuredProductsEnabled,
+        heading: featuredProductsHeading,
+        description: featuredProductsDescription
       }
       console.log('[Featured Products] Sending payload:', payload)
 
@@ -328,6 +364,56 @@ export default function HomepageManagementPage() {
     }
   }
 
+  const fetchMosaicGrid = async () => {
+    try {
+      const res = await fetch('/api/admin/homepage/mosaic-grid')
+      const data = await res.json() as any
+      if (data.success) {
+        setSelectedMosaicProductIds(data.data.productIds || [])
+        setMosaicGridEnabled(data.data.isEnabled !== undefined ? data.data.isEnabled : true)
+        setMosaicGridHeading(data.data.heading || 'Shop the Look')
+        setMosaicGridDescription(data.data.description || 'Explore our curated collection of trending styles')
+      }
+    } catch (error) {
+      console.error('Error fetching mosaic grid settings:', error)
+    }
+  }
+
+  const handleSaveMosaicGrid = async () => {
+    setSavingMosaicGrid(true)
+    try {
+      const payload = {
+        productIds: selectedMosaicProductIds,
+        isEnabled: mosaicGridEnabled,
+        heading: mosaicGridHeading,
+        description: mosaicGridDescription
+      }
+      console.log('[Mosaic Grid] Sending payload:', payload)
+
+      const res = await fetch('/api/admin/homepage/mosaic-grid', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      const data = await res.json() as any
+      console.log('[Mosaic Grid] Response:', data)
+
+      if (data.success) {
+        toast.success('Mosaic grid saved successfully')
+      } else {
+        toast.error(data.error || 'Failed to save mosaic grid')
+        if (data.details) {
+          console.error('Mosaic grid error details:', data.details)
+        }
+      }
+    } catch (error) {
+      console.error('Error saving mosaic grid settings:', error)
+      toast.error('Failed to save mosaic grid')
+    } finally {
+      setSavingMosaicGrid(false)
+    }
+  }
+
   const fetchBrands = async () => {
     try {
       const res = await fetch('/api/admin/brands?limit=100')
@@ -349,6 +435,8 @@ export default function HomepageManagementPage() {
         setBrandsEnabled(data.data.isEnabled !== undefined ? data.data.isEnabled : true)
         setBrandsAutoScroll(data.data.autoScroll !== undefined ? data.data.autoScroll : true)
         setBrandsScrollInterval(data.data.scrollInterval || 4000)
+        setBrandsHeading(data.data.heading || 'Featured Brands')
+        setBrandsDescription(data.data.description || 'Discover top brands in our collection')
       }
     } catch (error) {
       console.error('Error fetching brands settings:', error)
@@ -362,7 +450,9 @@ export default function HomepageManagementPage() {
         brandIds: selectedBrandIds,
         isEnabled: brandsEnabled,
         autoScroll: brandsAutoScroll,
-        scrollInterval: brandsScrollInterval
+        scrollInterval: brandsScrollInterval,
+        heading: brandsHeading,
+        description: brandsDescription
       }
 
       const res = await fetch('/api/admin/homepage/brands', {
@@ -393,6 +483,8 @@ export default function HomepageManagementPage() {
         setMarqueeText(data.data.text || '')
         setMarqueeEnabled(data.data.isEnabled !== undefined ? data.data.isEnabled : true)
         setMarqueeAnimationSpeed(data.data.animationSpeed || 20)
+        setMarqueeHeading(data.data.heading || 'Special Offers')
+        setMarqueeDescription(data.data.description || 'Don\'t miss out on our amazing deals')
       }
     } catch (error) {
       console.error('Error fetching marquee settings:', error)
@@ -408,7 +500,9 @@ export default function HomepageManagementPage() {
         body: JSON.stringify({
           text: marqueeText,
           isEnabled: marqueeEnabled,
-          animationSpeed: marqueeAnimationSpeed
+          animationSpeed: marqueeAnimationSpeed,
+          heading: marqueeHeading,
+          description: marqueeDescription
         })
       })
       const data = await res.json() as any
@@ -472,6 +566,8 @@ export default function HomepageManagementPage() {
         setReelsCarouselEnabled(data.data.isEnabled !== undefined ? data.data.isEnabled : true)
         setReelsCarouselAutoScroll(data.data.autoScroll !== undefined ? data.data.autoScroll : true)
         setReelsCarouselAutoPlay(data.data.autoPlay || 3000)
+        setReelsCarouselHeading(data.data.heading || 'Trending Reels')
+        setReelsCarouselDescription(data.data.description || 'Watch the latest video content')
       }
     } catch (error) {
       console.error('Error fetching reels carousel settings:', error)
@@ -487,7 +583,9 @@ export default function HomepageManagementPage() {
         body: JSON.stringify({
           isEnabled: reelsCarouselEnabled,
           autoScroll: reelsCarouselAutoScroll,
-          autoPlay: reelsCarouselAutoPlay
+          autoPlay: reelsCarouselAutoPlay,
+          heading: reelsCarouselHeading,
+          description: reelsCarouselDescription
         })
       })
       const data = await res.json() as any
@@ -534,6 +632,82 @@ export default function HomepageManagementPage() {
     }
   }
 
+  const fetchFullscreenVideo = async () => {
+    try {
+      const res = await fetch('/api/admin/homepage/fullscreen-video')
+      const data = await res.json() as any
+      if (data.success) {
+        setVideoUrl(data.data.videoUrl || '')
+        setVideoEnabled(data.data.isEnabled !== undefined ? data.data.isEnabled : true)
+        setVideoHeading(data.data.heading || 'Featured Video')
+        setVideoDescription(data.data.description || 'Experience our exclusive video content')
+      }
+    } catch (error) {
+      console.error('Error fetching fullscreen video settings:', error)
+    }
+  }
+
+  const handleSaveFullscreenVideo = async () => {
+    setSavingVideo(true)
+    try {
+      const res = await fetch('/api/admin/homepage/fullscreen-video', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          videoUrl,
+          isEnabled: videoEnabled,
+          heading: videoHeading,
+          description: videoDescription
+        })
+      })
+      const data = await res.json() as any
+      if (data.success) {
+        toast.success('Fullscreen video settings saved successfully')
+      } else {
+        toast.error(data.error || 'Failed to save fullscreen video settings')
+      }
+    } catch (error) {
+      console.error('Error saving fullscreen video settings:', error)
+      toast.error('Failed to save fullscreen video settings')
+    } finally {
+      setSavingVideo(false)
+    }
+  }
+
+  const fetchSectionManager = async () => {
+    try {
+      const res = await fetch('/api/admin/homepage/section-manager')
+      const data = await res.json() as any
+      if (data.success) {
+        setSections(data.data.sections || [])
+      }
+    } catch (error) {
+      console.error('Error fetching section manager settings:', error)
+    }
+  }
+
+  const handleSaveSectionManager = async () => {
+    setSavingSections(true)
+    try {
+      const res = await fetch('/api/admin/homepage/section-manager', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sections })
+      })
+      const data = await res.json() as any
+      if (data.success) {
+        toast.success('Section order saved successfully')
+      } else {
+        toast.error(data.error || 'Failed to save section order')
+      }
+    } catch (error) {
+      console.error('Error saving section manager settings:', error)
+      toast.error('Failed to save section order')
+    } finally {
+      setSavingSections(false)
+    }
+  }
+
   useEffect(() => {
     const loadInitialData = async () => {
       setLoading(true)
@@ -543,6 +717,7 @@ export default function HomepageManagementPage() {
           fetchCategories(),
           fetchCategoryCarousel(),
           fetchFeaturedProducts(),
+          fetchMosaicGrid(),
           fetchBrands(),
           fetchBrandsSettings(),
           fetchBanners(),
@@ -551,7 +726,9 @@ export default function HomepageManagementPage() {
           fetchReelsCarousel(),
           fetchPromotions(),
           fetchSettings(),
-          fetchProducts()
+          fetchProducts(),
+          fetchFullscreenVideo(),
+          fetchSectionManager()
         ])
       } catch (error) {
         console.error('Error loading initial data:', error)
@@ -934,16 +1111,18 @@ export default function HomepageManagementPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-9">
+        <TabsList className="grid w-full grid-cols-11">
+          <TabsTrigger value="section-manager">Section Manager</TabsTrigger>
           <TabsTrigger value="marquee">Marquee</TabsTrigger>
           <TabsTrigger value="category-carousel">Categories</TabsTrigger>
           <TabsTrigger value="featured-products">Featured</TabsTrigger>
+          <TabsTrigger value="mosaic-grid">Mosaic</TabsTrigger>
           <TabsTrigger value="brands">Brands</TabsTrigger>
+          <TabsTrigger value="fullscreen-video">Video</TabsTrigger>
           <TabsTrigger value="banners">Banners</TabsTrigger>
           <TabsTrigger value="stories">Stories</TabsTrigger>
           <TabsTrigger value="reels">Reels</TabsTrigger>
           <TabsTrigger value="promotions">Promotions</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
         {/* Marquee Tab */}
@@ -971,7 +1150,38 @@ export default function HomepageManagementPage() {
               <CardDescription>Configure the scrolling text that appears below the banner carousel</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="marquee-heading">Heading</Label>
+                <Input
+                  id="marquee-heading"
+                  value={marqueeHeading}
+                  onChange={(e) => setMarqueeHeading(e.target.value)}
+                  placeholder="Special Offers"
+                  className="mt-2"
+                  maxLength={200}
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  Section heading (max 200 characters)
+                </p>
+              </div>
+
+              <div>
+                <Label htmlFor="marquee-description">Description</Label>
+                <Textarea
+                  id="marquee-description"
+                  value={marqueeDescription}
+                  onChange={(e) => setMarqueeDescription(e.target.value)}
+                  placeholder="Don't miss out on our amazing deals"
+                  rows={2}
+                  className="mt-2"
+                  maxLength={500}
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  Section description (max 500 characters)
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between pt-4 border-t">
                 <Label htmlFor="marquee-enabled">Enable Marquee</Label>
                 <Switch
                   id="marquee-enabled"
@@ -1056,11 +1266,42 @@ export default function HomepageManagementPage() {
           <div className="grid gap-6 md:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Carousel Settings</CardTitle>
-                <CardDescription>Configure category carousel behavior</CardDescription>
+                <CardTitle>Section Content</CardTitle>
+                <CardDescription>Customize the heading and description for this section</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="category-carousel-heading">Heading</Label>
+                  <Input
+                    id="category-carousel-heading"
+                    value={categoryCarouselHeading}
+                    onChange={(e) => setCategoryCarouselHeading(e.target.value)}
+                    placeholder="Shop by Category"
+                    className="mt-2"
+                    maxLength={200}
+                  />
+                  <p className="text-sm text-gray-500 mt-1">
+                    Section heading (max 200 characters)
+                  </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="category-carousel-description">Description</Label>
+                  <Textarea
+                    id="category-carousel-description"
+                    value={categoryCarouselDescription}
+                    onChange={(e) => setCategoryCarouselDescription(e.target.value)}
+                    placeholder="Explore our wide range of categories"
+                    rows={3}
+                    className="mt-2"
+                    maxLength={500}
+                  />
+                  <p className="text-sm text-gray-500 mt-1">
+                    Section description (max 500 characters)
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between pt-4 border-t">
                   <Label htmlFor="category-carousel-enabled">Enable Carousel</Label>
                   <Switch
                     id="category-carousel-enabled"
@@ -1184,72 +1425,234 @@ export default function HomepageManagementPage() {
             </div>
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Select Featured Products</CardTitle>
-              <CardDescription>Choose which products to highlight in the featured collection</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="border rounded-lg p-4 max-h-[600px] overflow-y-auto">
-                {products.length === 0 ? (
-                  <p className="text-gray-500 text-center py-4">No products available</p>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {products.map((product) => (
-                      <label
-                        key={product.id}
-                        className={`block p-4 border rounded-lg cursor-pointer transition-colors ${
-                          selectedFeaturedProductIds.includes(product.id)
-                            ? 'bg-pink-50 border-pink-300 ring-2 ring-pink-200'
-                            : 'hover:bg-gray-50'
-                        }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          <input
-                            type="checkbox"
-                            checked={selectedFeaturedProductIds.includes(product.id)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedFeaturedProductIds([...selectedFeaturedProductIds, product.id])
-                              } else {
-                                setSelectedFeaturedProductIds(selectedFeaturedProductIds.filter(id => id !== product.id))
-                              }
-                            }}
-                            className="mt-1 w-5 h-5 rounded border-2 border-gray-300 text-pink-500 focus:ring-pink-500 focus:ring-offset-0 flex-shrink-0 cursor-pointer"
-                          />
-                          <div className="flex-1 min-w-0">
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Section Content</CardTitle>
+                <CardDescription>Customize the heading and description for this section</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="featured-heading">Heading</Label>
+                  <Input
+                    id="featured-heading"
+                    value={featuredProductsHeading}
+                    onChange={(e) => setFeaturedProductsHeading(e.target.value)}
+                    placeholder="Featured Products"
+                    className="mt-2"
+                    maxLength={200}
+                  />
+                  <p className="text-sm text-gray-500 mt-1">
+                    Section heading (max 200 characters)
+                  </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="featured-description">Description</Label>
+                  <Textarea
+                    id="featured-description"
+                    value={featuredProductsDescription}
+                    onChange={(e) => setFeaturedProductsDescription(e.target.value)}
+                    placeholder="Discover our handpicked selection of top products"
+                    rows={3}
+                    className="mt-2"
+                    maxLength={500}
+                  />
+                  <p className="text-sm text-gray-500 mt-1">
+                    Section description (max 500 characters)
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Select Featured Products</CardTitle>
+                <CardDescription>Choose which products to highlight in the featured collection</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="border rounded-lg p-4 max-h-[400px] overflow-y-auto">
+                  {products.length === 0 ? (
+                    <p className="text-gray-500 text-center py-4">No products available</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {products.map((product) => (
+                        <label
+                          key={product.id}
+                          className={`block p-3 border rounded cursor-pointer transition-colors ${
+                            selectedFeaturedProductIds.includes(product.id)
+                              ? 'bg-pink-50 border-pink-300'
+                              : 'hover:bg-gray-50'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="checkbox"
+                              checked={selectedFeaturedProductIds.includes(product.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedFeaturedProductIds([...selectedFeaturedProductIds, product.id])
+                                } else {
+                                  setSelectedFeaturedProductIds(selectedFeaturedProductIds.filter(id => id !== product.id))
+                                }
+                              }}
+                              className="w-5 h-5 rounded border-2 border-gray-300 text-pink-500 focus:ring-pink-500 focus:ring-offset-0 cursor-pointer"
+                            />
                             {getProductImage(product) && (
                               <img
                                 src={getProductImage(product)!}
                                 alt={product.name}
-                                className="w-full h-32 object-cover rounded mb-2"
+                                className="w-10 h-10 object-cover rounded"
                               />
                             )}
-                            <p className="font-medium text-sm truncate">{product.name}</p>
-                            <p className="text-sm text-pink-600 font-semibold">৳{product.price}</p>
-                            <p className="text-xs text-gray-500 truncate">{product.slug}</p>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm truncate">{product.name}</p>
+                              <p className="text-sm text-pink-600 font-semibold">৳{product.price}</p>
+                            </div>
                           </div>
-                        </div>
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                <p className="text-sm text-gray-500">
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <p className="text-sm text-gray-500 mt-2">
                   {selectedFeaturedProductIds.length} product{selectedFeaturedProductIds.length !== 1 ? 's' : ''} selected
                 </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSelectedFeaturedProductIds([])}
-                  disabled={selectedFeaturedProductIds.length === 0}
-                >
-                  Clear Selection
-                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Mosaic Grid Tab */}
+        <TabsContent value="mosaic-grid" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold">Mosaic Grid</h2>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="mosaic-enabled" className="text-sm">Enable</Label>
+                <Switch
+                  id="mosaic-enabled"
+                  checked={mosaicGridEnabled}
+                  onCheckedChange={setMosaicGridEnabled}
+                />
               </div>
-            </CardContent>
-          </Card>
+              <Button onClick={handleSaveMosaicGrid} disabled={savingMosaicGrid}>
+                {savingMosaicGrid ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Mosaic
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Section Content</CardTitle>
+                <CardDescription>Customize the heading and description for this section</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="mosaic-heading">Heading</Label>
+                  <Input
+                    id="mosaic-heading"
+                    value={mosaicGridHeading}
+                    onChange={(e) => setMosaicGridHeading(e.target.value)}
+                    placeholder="Shop the Look"
+                    className="mt-2"
+                    maxLength={200}
+                  />
+                  <p className="text-sm text-gray-500 mt-1">
+                    Section heading (max 200 characters)
+                  </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="mosaic-description">Description</Label>
+                  <Textarea
+                    id="mosaic-description"
+                    value={mosaicGridDescription}
+                    onChange={(e) => setMosaicGridDescription(e.target.value)}
+                    placeholder="Explore our curated collection of trending styles"
+                    rows={3}
+                    className="mt-2"
+                    maxLength={500}
+                  />
+                  <p className="text-sm text-gray-500 mt-1">
+                    Section description (max 500 characters)
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Select Mosaic Products</CardTitle>
+                <CardDescription>Choose which products to display in the mosaic grid (max 6)</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="border rounded-lg p-4 max-h-[400px] overflow-y-auto">
+                  {products.length === 0 ? (
+                    <p className="text-gray-500 text-center py-4">No products available</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {products.map((product) => (
+                        <label
+                          key={product.id}
+                          className={`block p-3 border rounded cursor-pointer transition-colors ${
+                            selectedMosaicProductIds.includes(product.id)
+                              ? 'bg-pink-50 border-pink-300'
+                              : 'hover:bg-gray-50'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="checkbox"
+                              checked={selectedMosaicProductIds.includes(product.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  if (selectedMosaicProductIds.length < 6) {
+                                    setSelectedMosaicProductIds([...selectedMosaicProductIds, product.id])
+                                  } else {
+                                    toast.error('Maximum 6 products allowed')
+                                  }
+                                } else {
+                                  setSelectedMosaicProductIds(selectedMosaicProductIds.filter(id => id !== product.id))
+                                }
+                              }}
+                              disabled={!selectedMosaicProductIds.includes(product.id) && selectedMosaicProductIds.length >= 6}
+                              className="w-5 h-5 rounded border-2 border-gray-300 text-pink-500 focus:ring-pink-500 focus:ring-offset-0 cursor-pointer"
+                            />
+                            {getProductImage(product) && (
+                              <img
+                                src={getProductImage(product)!}
+                                alt={product.name}
+                                className="w-10 h-10 object-cover rounded"
+                              />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm truncate">{product.name}</p>
+                              <p className="text-sm text-pink-600 font-semibold">৳{product.price}</p>
+                            </div>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <p className="text-sm text-gray-500 mt-2">
+                  {selectedMosaicProductIds.length} / 6 products selected
+                </p>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         {/* Brands Tab */}
@@ -1274,11 +1677,42 @@ export default function HomepageManagementPage() {
           <div className="grid gap-6 md:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Carousel Settings</CardTitle>
-                <CardDescription>Configure brand carousel behavior</CardDescription>
+                <CardTitle>Section Content</CardTitle>
+                <CardDescription>Customize the heading and description for this section</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="brands-heading">Heading</Label>
+                  <Input
+                    id="brands-heading"
+                    value={brandsHeading}
+                    onChange={(e) => setBrandsHeading(e.target.value)}
+                    placeholder="Featured Brands"
+                    className="mt-2"
+                    maxLength={200}
+                  />
+                  <p className="text-sm text-gray-500 mt-1">
+                    Section heading (max 200 characters)
+                  </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="brands-description">Description</Label>
+                  <Textarea
+                    id="brands-description"
+                    value={brandsDescription}
+                    onChange={(e) => setBrandsDescription(e.target.value)}
+                    placeholder="Discover top brands in our collection"
+                    rows={3}
+                    className="mt-2"
+                    maxLength={500}
+                  />
+                  <p className="text-sm text-gray-500 mt-1">
+                    Section description (max 500 characters)
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between pt-4 border-t">
                   <Label htmlFor="brands-enabled">Enable Carousel</Label>
                   <Switch
                     id="brands-enabled"
@@ -1829,11 +2263,42 @@ export default function HomepageManagementPage() {
           {/* Carousel Settings Card */}
           <Card>
             <CardHeader>
-              <CardTitle>Infinite Carousel Settings</CardTitle>
-              <CardDescription>Configure the modern infinite carousel behavior</CardDescription>
+              <CardTitle>Section Content</CardTitle>
+              <CardDescription>Customize the heading and description for this section</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="reels-carousel-heading">Heading</Label>
+                <Input
+                  id="reels-carousel-heading"
+                  value={reelsCarouselHeading}
+                  onChange={(e) => setReelsCarouselHeading(e.target.value)}
+                  placeholder="Trending Reels"
+                  className="mt-2"
+                  maxLength={200}
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  Section heading (max 200 characters)
+                </p>
+              </div>
+
+              <div>
+                <Label htmlFor="reels-carousel-description">Description</Label>
+                <Textarea
+                  id="reels-carousel-description"
+                  value={reelsCarouselDescription}
+                  onChange={(e) => setReelsCarouselDescription(e.target.value)}
+                  placeholder="Watch the latest video content"
+                  rows={2}
+                  className="mt-2"
+                  maxLength={500}
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  Section description (max 500 characters)
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between pt-4 border-t">
                 <Label htmlFor="reels-carousel-enabled">Enable Carousel</Label>
                 <Switch
                   id="reels-carousel-enabled"
@@ -2149,12 +2614,15 @@ export default function HomepageManagementPage() {
           </div>
         </TabsContent>
 
-        {/* Settings Tab */}
-        <TabsContent value="settings" className="space-y-4">
+        {/* Section Manager Tab */}
+        <TabsContent value="section-manager" className="space-y-4">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold">Homepage Settings</h2>
-            <Button onClick={handleSaveSettings} disabled={savingSettings}>
-              {savingSettings ? (
+            <div>
+              <h2 className="text-xl font-semibold">Section Manager</h2>
+              <p className="text-sm text-gray-600">Drag to reorder sections, toggle to enable/disable</p>
+            </div>
+            <Button onClick={handleSaveSectionManager} disabled={savingSections}>
+              {savingSections ? (
                 <>
                   <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
                   Saving...
@@ -2162,186 +2630,177 @@ export default function HomepageManagementPage() {
               ) : (
                 <>
                   <Save className="w-4 h-4 mr-2" />
-                  Save Settings
+                  Save Order
                 </>
               )}
             </Button>
           </div>
 
-          <div className="grid gap-6">
-            {/* Banners Settings */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <ImageIcon className="w-5 h-5" />
-                  Banners Section
-                </CardTitle>
-                <CardDescription>Configure banner carousel settings</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label>Enable Banners</Label>
-                  <Switch
-                    checked={settings.banners?.isEnabled || false}
-                    onCheckedChange={(checked) =>
-                      setSettings(prev => ({
-                        ...prev,
-                        banners: { ...prev.banners!, sectionName: 'banners', isEnabled: checked }
-                      }))
-                    }
-                  />
-                </div>
-                <div>
-                  <Label>Auto-play Interval (ms)</Label>
-                  <Input
-                    type="number"
-                    value={settings.banners?.autoPlay || 5000}
-                    onChange={(e) =>
-                      setSettings(prev => ({
-                        ...prev,
-                        banners: { ...prev.banners!, sectionName: 'banners', autoPlay: parseInt(e.target.value) || 5000 }
-                      }))
-                    }
-                  />
-                </div>
-              </CardContent>
-            </Card>
+          <Card>
+            <CardContent className="p-6">
+              <div className="space-y-2">
+                {sections.map((section: any, index: number) => (
+                  <div
+                    key={section.id}
+                    className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg hover:shadow-md transition-all"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <GripVertical className="w-5 h-5 text-gray-400 cursor-grab" />
+                        <span className="text-sm font-medium text-gray-600 w-8">
+                          {section.order}
+                        </span>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-900">{section.name}</h3>
+                        <p className="text-xs text-gray-500">{section.id}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const newSections = [...sections]
+                          const temp = newSections[index]
+                          newSections[index] = newSections[index - 1]
+                          newSections[index - 1] = temp
+                          newSections.forEach((s, i) => s.order = i + 1)
+                          setSections(newSections)
+                        }}
+                        disabled={index === 0}
+                      >
+                        <ChevronUp className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const newSections = [...sections]
+                          const temp = newSections[index]
+                          newSections[index] = newSections[index + 1]
+                          newSections[index + 1] = temp
+                          newSections.forEach((s, i) => s.order = i + 1)
+                          setSections(newSections)
+                        }}
+                        disabled={index === sections.length - 1}
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                      </Button>
+                      <Switch
+                        checked={section.enabled}
+                        onCheckedChange={(checked) => {
+                          const newSections = sections.map((s: any) =>
+                            s.id === section.id ? { ...s, enabled: checked } : s
+                          )
+                          setSections(newSections)
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-            {/* Stories Settings */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <ImageIcon className="w-5 h-5" />
-                  Stories Section
-                </CardTitle>
-                <CardDescription>Configure Instagram-style stories</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label>Enable Stories</Label>
-                  <Switch
-                    checked={settings.stories?.isEnabled || false}
-                    onCheckedChange={(checked) =>
-                      setSettings(prev => ({
-                        ...prev,
-                        stories: { ...prev.stories!, sectionName: 'stories', isEnabled: checked }
-                      }))
-                    }
-                  />
-                </div>
-                <div>
-                  <Label>Auto-play Interval (ms)</Label>
-                  <Input
-                    type="number"
-                    value={settings.stories?.autoPlay || 4000}
-                    onChange={(e) =>
-                      setSettings(prev => ({
-                        ...prev,
-                        stories: { ...prev.stories!, sectionName: 'stories', autoPlay: parseInt(e.target.value) || 4000 }
-                      }))
-                    }
-                  />
-                </div>
-                <div>
-                  <Label>Display Limit</Label>
-                  <Input
-                    type="number"
-                    value={settings.stories?.displayLimit || 10}
-                    onChange={(e) =>
-                      setSettings(prev => ({
-                        ...prev,
-                        stories: { ...prev.stories!, sectionName: 'stories', displayLimit: parseInt(e.target.value) || 10 }
-                      }))
-                    }
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Reels Settings */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Video className="w-5 h-5" />
-                  Reels Section
-                </CardTitle>
-                <CardDescription>Configure video reels/shorts</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label>Enable Reels</Label>
-                  <Switch
-                    checked={settings.reels?.isEnabled || false}
-                    onCheckedChange={(checked) =>
-                      setSettings(prev => ({
-                        ...prev,
-                        reels: { ...prev.reels!, sectionName: 'reels', isEnabled: checked }
-                      }))
-                    }
-                  />
-                </div>
-                <div>
-                  <Label>Display Limit</Label>
-                  <Input
-                    type="number"
-                    value={settings.reels?.displayLimit || 10}
-                    onChange={(e) =>
-                      setSettings(prev => ({
-                        ...prev,
-                        reels: { ...prev.reels!, sectionName: 'reels', displayLimit: parseInt(e.target.value) || 10 }
-                      }))
-                    }
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Promotions Settings */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <ExternalLink className="w-5 h-5" />
-                  Promotions Section
-                </CardTitle>
-                <CardDescription>Configure promotional banners</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label>Enable Promotions</Label>
-                  <Switch
-                    checked={settings.promotions?.isEnabled || false}
-                    onCheckedChange={(checked) =>
-                      setSettings(prev => ({
-                        ...prev,
-                        promotions: { ...prev.promotions!, sectionName: 'promotions', isEnabled: checked }
-                      }))
-                    }
-                  />
-                </div>
-                <div>
-                  <Label>Display Limit</Label>
-                  <Input
-                    type="number"
-                    value={settings.promotions?.displayLimit || 4}
-                    onChange={(e) =>
-                      setSettings(prev => ({
-                        ...prev,
-                        promotions: { ...prev.promotions!, sectionName: 'promotions', displayLimit: parseInt(e.target.value) || 4 }
-                      }))
-                    }
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="flex justify-center mt-6">
-            <Button variant="outline" onClick={() => window.open('/', '_blank')}>
-              <ExternalLink className="w-4 h-4 mr-2" />
-              Preview Homepage
+        {/* Fullscreen Video Tab */}
+        <TabsContent value="fullscreen-video" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold">Fullscreen Video</h2>
+            <Button onClick={handleSaveFullscreenVideo} disabled={savingVideo}>
+              {savingVideo ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Video
+                </>
+              )}
             </Button>
           </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Video Settings</CardTitle>
+              <CardDescription>Configure the fullscreen video section on the homepage</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="video-heading">Heading</Label>
+                <Input
+                  id="video-heading"
+                  value={videoHeading}
+                  onChange={(e) => setVideoHeading(e.target.value)}
+                  placeholder="Featured Video"
+                  className="mt-2"
+                  maxLength={200}
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  Section heading (max 200 characters)
+                </p>
+              </div>
+
+              <div>
+                <Label htmlFor="video-description">Description</Label>
+                <Textarea
+                  id="video-description"
+                  value={videoDescription}
+                  onChange={(e) => setVideoDescription(e.target.value)}
+                  placeholder="Experience our exclusive video content"
+                  rows={2}
+                  className="mt-2"
+                  maxLength={500}
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  Section description (max 500 characters)
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between pt-4 border-t">
+                <Label htmlFor="video-enabled">Enable Video Section</Label>
+                <Switch
+                  id="video-enabled"
+                  checked={videoEnabled}
+                  onCheckedChange={setVideoEnabled}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="video-url">YouTube Embed URL</Label>
+                <Input
+                  id="video-url"
+                  value={videoUrl}
+                  onChange={(e) => setVideoUrl(e.target.value)}
+                  placeholder="https://www.youtube-nocookie.com/embed/VIDEO_ID?autoplay=1&mute=1&loop=1&playlist=VIDEO_ID&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&playsinline=1"
+                  className="mt-2"
+                />
+                <p className="text-sm text-gray-500 mt-2">
+                  Enter the YouTube embed URL. Recommended format includes autoplay, mute, and loop parameters.
+                </p>
+              </div>
+
+              {videoUrl && (
+                <div className="border rounded-lg overflow-hidden" style={{ maxWidth: '640px', aspectRatio: '16/9' }}>
+                  <iframe
+                    src={videoUrl}
+                    title="Video preview"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    referrerPolicy="strict-origin-when-cross-origin"
+                    allowFullScreen
+                    className="w-full h-full"
+                  />
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
+
+        {/* Old Settings Tab (now merged into individual sections) */}
       </Tabs>
     </div>
   )

@@ -445,11 +445,31 @@ export async function POST(request: NextRequest) {
       try {
         await invalidateCache(env, 'user-cart', validatedData.userId);
       } catch (error) {
-        logger.error('Failed to invalidate cart cache', { 
+        logger.error('Failed to invalidate cart cache', {
           error,
-          userId: validatedData.userId 
+          userId: validatedData.userId
         });
         // Continue even if cache invalidation fails
+      }
+
+      // Clear user's cart from database after successful order
+      try {
+        const { CartRepository } = await import('@/db/cart.repository');
+        const { releaseAllUserReservations } = await import('@/db/inventory-reservation.repository');
+
+        // Release all inventory reservations
+        await releaseAllUserReservations(env, validatedData.userId);
+
+        // Clear cart from database
+        await CartRepository.clearCart(env, validatedData.userId);
+        logger.info('Cart cleared successfully after order', { userId: validatedData.userId, orderId: order?.id });
+      } catch (error) {
+        logger.error('Failed to clear user cart after order', {
+          error,
+          userId: validatedData.userId,
+          orderId: order?.id
+        });
+        // Don't fail the order if cart clearing fails
       }
     }
 

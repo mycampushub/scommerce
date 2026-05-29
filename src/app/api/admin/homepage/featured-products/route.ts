@@ -31,6 +31,8 @@ export async function GET(request: NextRequest) {
           sectionName: SECTION_NAME,
           productIds: [],
           isEnabled: true,
+          heading: 'Featured Products',
+          description: 'Discover our handpicked selection of top products',
         }
       })
     }
@@ -43,6 +45,8 @@ export async function GET(request: NextRequest) {
         sectionName: SECTION_NAME,
         productIds: settings.productIds || [],
         isEnabled: typeof setting.isEnabled === 'boolean' ? setting.isEnabled : numberToBool(setting.isEnabled),
+        heading: settings.heading || 'Featured Products',
+        description: settings.description || 'Discover our handpicked selection of top products',
       }
     })
   } catch (error) {
@@ -80,7 +84,7 @@ export async function PUT(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { productIds, isEnabled } = body
+    const { productIds, isEnabled, heading, description } = body
 
     console.log('[Featured Products] Request body:', body)
 
@@ -108,17 +112,39 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    // If productIds provided, verify they exist
+    // Validate heading if provided
+    if (heading !== undefined && (typeof heading !== 'string' || heading.length > 200)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'heading must be a string with max 200 characters'
+        },
+        { status: 400 }
+      )
+    }
+
+    // Validate description if provided
+    if (description !== undefined && (typeof description !== 'string' || description.length > 500)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'description must be a string with max 500 characters'
+        },
+        { status: 400 }
+      )
+    }
+
+    // If productIds provided and not empty, verify they exist
     if (productIds && productIds.length > 0) {
       console.log('[Featured Products] Verifying product IDs:', productIds)
-      
+
       // Build a simpler query to verify products exist
       const existingProducts = await queryAll<any>(
         env,
         'SELECT id FROM products WHERE id IN (' + productIds.map(() => '?').join(',') + ')',
         ...productIds
       )
-      
+
       console.log('[Featured Products] Found products:', existingProducts.length, 'expected:', productIds.length)
 
       if (existingProducts.length !== productIds.length) {
@@ -142,6 +168,8 @@ export async function PUT(request: NextRequest) {
 
     const customSettings = {
       productIds: productIds || [],
+      heading: heading || undefined,
+      description: description || undefined,
     }
 
     if (existing) {
@@ -201,7 +229,7 @@ export async function PUT(request: NextRequest) {
       request,
       admin.id,
       'UPDATE',
-      'AdminLog',
+      'HomepageSettings',
       SECTION_NAME,
       `Updated featured products: ${productIds ? productIds.length : 0} products, enabled: ${isEnabled !== undefined ? isEnabled : 'unchanged'}`
     )
@@ -212,6 +240,8 @@ export async function PUT(request: NextRequest) {
         sectionName: SECTION_NAME,
         productIds: settings.productIds || [],
         isEnabled: typeof updated?.isEnabled === 'boolean' ? updated?.isEnabled : numberToBool(updated?.isEnabled),
+        heading: settings.heading || 'Featured Products',
+        description: settings.description || 'Discover our handpicked selection of top products',
       }
     })
   } catch (error) {

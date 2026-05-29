@@ -33,6 +33,8 @@ export async function GET(request: NextRequest) {
           isEnabled: true,
           autoScroll: true,
           scrollInterval: 4000,
+          heading: 'Shop by Category',
+          description: 'Explore our wide range of categories',
         }
       })
     }
@@ -47,6 +49,8 @@ export async function GET(request: NextRequest) {
         isEnabled: typeof setting.isEnabled === 'boolean' ? setting.isEnabled : numberToBool(setting.isEnabled),
         autoScroll: settings.autoScroll !== undefined ? settings.autoScroll : true,
         scrollInterval: settings.scrollInterval || 4000,
+        heading: settings.heading || 'Shop by Category',
+        description: settings.description || 'Explore our wide range of categories',
       }
     })
   } catch (error) {
@@ -84,7 +88,7 @@ export async function PUT(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { categoryIds, isEnabled, autoScroll, scrollInterval } = body
+    const { categoryIds, isEnabled, autoScroll, scrollInterval, heading, description } = body
 
     // Validate categoryIds
     if (categoryIds !== undefined && !Array.isArray(categoryIds)) {
@@ -130,6 +134,28 @@ export async function PUT(request: NextRequest) {
       )
     }
 
+    // Validate heading
+    if (heading !== undefined && (typeof heading !== 'string' || heading.length > 200)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'heading must be a string with max 200 characters'
+        },
+        { status: 400 }
+      )
+    }
+
+    // Validate description
+    if (description !== undefined && (typeof description !== 'string' || description.length > 500)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'description must be a string with max 500 characters'
+        },
+        { status: 400 }
+      )
+    }
+
     // If categoryIds provided, verify they exist
     if (categoryIds && categoryIds.length > 0) {
       const placeholders = categoryIds.map(() => '?').join(',')
@@ -161,6 +187,8 @@ export async function PUT(request: NextRequest) {
       categoryIds: categoryIds || [],
       autoScroll: autoScroll !== undefined ? autoScroll : true,
       scrollInterval: scrollInterval || 4000,
+      heading: heading || 'Shop by Category',
+      description: description || 'Explore our wide range of categories',
     }
 
     if (existing) {
@@ -233,6 +261,8 @@ export async function PUT(request: NextRequest) {
         isEnabled: typeof updated?.isEnabled === 'boolean' ? updated?.isEnabled : numberToBool(updated?.isEnabled),
         autoScroll: settings.autoScroll !== undefined ? settings.autoScroll : true,
         scrollInterval: settings.scrollInterval || 4000,
+        heading: settings.heading || 'Shop by Category',
+        description: settings.description || 'Explore our wide range of categories',
       }
     })
   } catch (error) {
