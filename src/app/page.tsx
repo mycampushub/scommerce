@@ -284,7 +284,7 @@ function SectionMarquee() {
   useEffect(() => {
     const fetchMarquee = async () => {
       try {
-        const res = await fetch('/api/admin/homepage/marquee')
+        const res = await fetch('/api/homepage/marquee')
         const data = await res.json() as any
         if (data.success) {
           setMarqueeText(data.data.text || "FREE SHIPPING WORLDWIDE | EASY RETURNS & EXCHANGES | CUSTOM STITCHING AVAILABLE")
@@ -630,15 +630,17 @@ function CategoryCarousel({ allCategories, products }: { allCategories: Category
   const [heading, setHeading] = useState('Shop by Category')
   const [description, setDescription] = useState('Explore our wide range of categories')
   const [loading, setLoading] = useState(true)
+  const [isEnabled, setIsEnabled] = useState(true)
 
   // Fetch category carousel settings
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const res = await fetch('/api/admin/homepage/category-carousel')
+        const res = await fetch('/api/homepage/category-carousel')
         const data = await res.json() as any
         if (data.success) {
           const selectedIds = data.data.categoryIds || []
+          setIsEnabled(data.data.isEnabled !== false)
           setAutoScroll(data.data.autoScroll !== undefined ? data.data.autoScroll : true)
           setScrollInterval(data.data.scrollInterval || 4000)
           setHeading(data.data.heading || 'Shop by Category')
@@ -649,8 +651,8 @@ function CategoryCarousel({ allCategories, products }: { allCategories: Category
             const filtered = allCategories.filter(cat => selectedIds.includes(cat.id))
             setCategories(filtered)
           } else {
-            // If no categories selected, show none
-            setCategories([])
+            // If no categories selected, show all as fallback
+            setCategories(allCategories || [])
           }
         }
       } catch (error) {
@@ -690,7 +692,8 @@ function CategoryCarousel({ allCategories, products }: { allCategories: Category
     setCurrentIndex(index)
   }
 
-  if (loading || !categories || categories.length === 0) return null
+  // Don't render if disabled, loading, or no categories
+  if (loading || !isEnabled || !categories || categories.length === 0) return null
 
   const currentCategory = categories && categories[currentIndex]
   const categoryProducts = (products || [])
@@ -932,7 +935,7 @@ function BrandCarousel() {
     const fetchSettings = async () => {
       try {
         const [settingsRes, brandsRes] = await Promise.all([
-          fetch('/api/admin/homepage/brands'),
+          fetch('/api/homepage/brands'),
           fetch('/api/brands?featured=true')
         ])
 
@@ -1163,7 +1166,7 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const res = await fetch('/api/admin/homepage/reels-carousel')
+        const res = await fetch('/api/homepage/reels-carousel')
         const data = await res.json() as any
         if (data.success) {
           setCarouselSettings({
@@ -1633,7 +1636,7 @@ function FullscreenVideo() {
   useEffect(() => {
     const fetchVideoSettings = async () => {
       try {
-        const res = await fetch('/api/admin/homepage/fullscreen-video')
+        const res = await fetch('/api/homepage/fullscreen-video')
         const data = await res.json() as any
         if (data.success) {
           setVideoUrl(data.data.videoUrl || 'https://www.youtube-nocookie.com/embed/Gk-s0icT2CI?autoplay=1&mute=1&loop=1&playlist=Gk-s0icT2CI&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&playsinline=1')
@@ -2164,9 +2167,10 @@ export default function Home() {
 
   // Dynamic data states
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([])
-  const [featuredProductsSettings, setFeaturedProductsSettings] = useState<{ heading: string; description: string }>({
+  const [featuredProductsSettings, setFeaturedProductsSettings] = useState<{ heading: string; description: string; enabled: boolean }>({
     heading: 'Featured Products',
-    description: 'Discover our handpicked selection of top products'
+    description: 'Discover our handpicked selection of top products',
+    enabled: true
   })
   const [mosaicProducts, setMosaicProducts] = useState<Product[]>([])
   const [mosaicGridSettings, setMosaicGridSettings] = useState<{ heading: string; description: string; enabled: boolean }>({
@@ -2192,8 +2196,8 @@ export default function Home() {
       try {
         // Fetch featured products settings first
         const [featuredSettingsRes, mosaicSettingsRes] = await Promise.all([
-          fetch('/api/admin/homepage/featured-products'),
-          fetch('/api/admin/homepage/mosaic-grid')
+          fetch('/api/homepage/featured-products'),
+          fetch('/api/homepage/mosaic-grid')
         ])
         const [featuredSettingsData, mosaicSettingsData] = await Promise.all([
           featuredSettingsRes.json() as any,
@@ -2236,7 +2240,8 @@ export default function Home() {
           const featuredIds = featuredSettingsData.data.productIds || []
           setFeaturedProductsSettings({
             heading: featuredSettingsData.data.heading || 'Featured Products',
-            description: featuredSettingsData.data.description || 'Discover our handpicked selection of top products'
+            description: featuredSettingsData.data.description || 'Discover our handpicked selection of top products',
+            enabled: featuredSettingsData.data.isEnabled !== false
           })
           if (featuredIds.length > 0) {
             // Fetch specific featured products by IDs
@@ -2252,6 +2257,7 @@ export default function Home() {
         } else {
           // Featured products disabled, set empty
           setFeaturedProducts([])
+          setFeaturedProductsSettings(prev => ({ ...prev, enabled: false }))
         }
 
         // Set mosaic grid based on admin selection
@@ -2448,7 +2454,8 @@ export default function Home() {
         {homepageSettings.reels?.isEnabled !== false && reels.length > 0 && (
           <VideoReels reels={reels} />
         )}
-        {featuredProducts.length > 0 && <FeaturedCollection products={featuredProducts} onQuickView={openQuickView} onAddToCart={addToCart} heading={featuredProductsSettings.heading} description={featuredProductsSettings.description} />}
+        {/* Featured Products - only show if enabled and has data */}
+        {featuredProductsSettings.enabled && featuredProducts.length > 0 && <FeaturedCollection products={featuredProducts} onQuickView={openQuickView} onAddToCart={addToCart} heading={featuredProductsSettings.heading} description={featuredProductsSettings.description} />}
         {mosaicGridSettings.enabled && mosaicProducts.length > 0 && <MosaicGrid products={mosaicProducts} onQuickView={openQuickView} onAddToCart={addToCart} heading={mosaicGridSettings.heading} description={mosaicGridSettings.description} />}
         {/* Promotions - only show if enabled and has data */}
         {homepageSettings.promotions?.isEnabled !== false && promotions.length > 0 && (
