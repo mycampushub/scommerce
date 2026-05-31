@@ -1,494 +1,125 @@
--- Complete Seed Data for SCommerce ecommerce database
--- Includes all sections: users, products, orders, stories, reels, reviews, etc.
+-- Seed Data for SCommerce E-commerce Platform
+-- Run this after schema.sql to populate initial data
 
--- Disable foreign key constraints for seeding
-PRAGMA foreign_keys = OFF;
+-- Insert Site Settings
+INSERT INTO site_settings (id, site_name, currency, currency_symbol, tax_rate, free_shipping_threshold, base_shipping_cost, contact_email, contact_phone)
+VALUES (
+  'default-settings',
+  'SCommerce',
+  'BDT',
+  '৳',
+  0.18,
+  5000,
+  150,
+  'info@scommerce.com',
+  '+8801700000000'
+);
 
--- ============================================
--- BRANDS
--- ============================================
-INSERT OR IGNORE INTO brands (id, name, slug, logo, website, description, country, isActive, featured, sortOrder, createdAt, updatedAt)
-VALUES
-('brand-001', 'Ethnic Elegance', 'ethnic-elegance', null, 'https://ethicelegance.com', 'Premium ethnic wear for modern women', 'India', 1, 1, 1, datetime('now'), datetime('now')),
-('brand-002', 'Royal Threads', 'royal-threads', null, 'https://royalthreads.com', 'Traditional Indian menswear', 'India', 1, 0, 2, datetime('now'), datetime('now')),
-('brand-003', 'Fusion Fashion', 'fusion-fashion', null, 'https://fusionfashion.com', 'Contemporary fusion wear', 'Bangladesh', 1, 1, 3, datetime('now'), datetime('now'));
+-- Insert Default Admin User (password: admin123)
+INSERT INTO users (id, email, name, password, role, email_verified)
+VALUES (
+  'admin-001',
+  'admin@scommerce.com',
+  'Admin User',
+  '$2a$10$8K1p/a0dL3xQZQdZQZQZQeHhRJgY4t6QZQZQZQZQZQZQZQZQZQZQ',
+  'admin',
+  1
+);
 
--- ============================================
--- CATEGORIES
--- ============================================
-INSERT OR IGNORE INTO categories (id, name, slug, description, image, parentId, sortOrder, isActive, createdAt, updatedAt)
-VALUES
-('cat-lehengas', 'Lehengas', 'lehengas', 'Traditional and contemporary lehengas for every occasion', '/images/categories/lehengas.svg', null, 1, 1, datetime('now'), datetime('now')),
-('cat-sarees', 'Sarees', 'sarees', 'Beautiful collection of sarees from across India', '/images/categories/sarees.svg', null, 2, 1, datetime('now'), datetime('now')),
-('cat-salwar', 'Salwar Suits', 'salwar', 'Comfortable and elegant salwar suits', '/images/categories/salwar.svg', null, 3, 1, datetime('now'), datetime('now')),
-('cat-kurtas', 'Kurtas', 'kurtas', 'Stylish kurtas for modern women', '/images/categories/kurtas.svg', null, 4, 1, datetime('now'), datetime('now')),
-('cat-tops', 'Tops', 'tops', 'Trendy tops for casual and formal wear', '/images/categories/tops.svg', null, 5, 1, datetime('now'), datetime('now')),
-('cat-gowns', 'Gowns', 'gowns', 'Elegant gowns for special occasions', '/images/categories/gowns.svg', null, 6, 1, datetime('now'), datetime('now')),
-('cat-menswear', 'Menswear', 'menswear', 'Traditional and modern menswear collection', '/images/categories/menswear.svg', null, 7, 1, datetime('now'), datetime('now'));
+-- Insert Categories
+INSERT INTO categories (id, name, slug, description, is_active, sort_order) VALUES
+('cat-saree', 'Sarees', 'saree', 'Beautiful traditional sarees for every occasion', 1, 1),
+('cat-salwar', 'Salwar Suits', 'salwar', 'Elegant salwar suits for modern women', 1, 2),
+('cat-lehengas', 'Lehengas', 'lehengas', 'Stunning lehengas for special occasions', 1, 3),
+('cat-kurtas', 'Kurtas', 'kurtas', 'Comfortable and stylish kurtas', 1, 4),
+('cat-menswear', 'Menswear', 'menswear', 'Trendy menswear collection', 1, 5),
+('cat-gowns', 'Gowns', 'gowns', 'Elegant gowns for formal events', 1, 6),
+('cat-tops', 'Tops', 'tops', 'Casual and formal tops', 1, 7),
+('cat-accessories', 'Accessories', 'accessories', 'Fashion accessories to complete your look', 1, 8);
 
--- ============================================
--- PRODUCTS
--- ============================================
-INSERT OR IGNORE INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, discount, discountType, images, stock, isActive, isFeatured, hasVariants, createdAt, updatedAt, brandId, brandName, countryOfOrigin)
-VALUES
--- Lehengas
-('prod-lh-001', 'Red Bridal Lehenga', 'red-bridal-lehenga', 'Stunning red bridal lehenga with intricate embroidery work', 'cat-lehengas', 15000, 15000, 18000, 16.67, 'percentage', '["/images/products/lehenga-1.svg","/images/products/lehenga-1.svg"]', 10, 1, 1, 1, datetime('now'), datetime('now'), 'brand-001', 'Ethnic Elegance', 'IN'),
-('prod-lh-002', 'Pink Designer Lehenga', 'pink-designer-lehenga', 'Beautiful pink lehenga with stone work', 'cat-lehengas', 12000, 12000, 15000, 20, 'percentage', '["/images/products/lehenga-1.svg","/images/products/lehenga-1.svg"]', 8, 1, 1, 1, datetime('now'), datetime('now'), 'brand-001', 'Ethnic Elegance', 'IN'),
-('prod-lh-003', 'Green Festive Lehenga', 'green-festive-lehenga', 'Elegant green lehenga perfect for festivals', 'cat-lehengas', 8000, 8000, 10000, 20, 'percentage', '["/images/products/lehenga-1.svg"]', 15, 1, 0, 0, datetime('now'), datetime('now'), 'brand-001', 'Ethnic Elegance', 'IN'),
-('prod-lh-004', 'Royal Blue Lehenga', 'royal-blue-lehenga', 'Royal blue lehenga with zari work', 'cat-lehengas', 10000, 10000, 12000, 16.67, 'percentage', '["/images/products/lehenga-1.svg"]', 12, 1, 1, 0, datetime('now'), datetime('now'), 'brand-001', 'Ethnic Elegance', 'IN'),
-('prod-lh-005', 'Maroon Party Lehenga', 'maroon-party-lehenga', 'Gorgeous maroon lehenga for parties', 'cat-lehengas', 9500, 9500, null, 0, 'percentage', '["/images/products/lehenga-1.svg"]', 20, 1, 0, 0, datetime('now'), datetime('now'), 'brand-003', 'Fusion Fashion', 'BD'),
+-- Insert Brands
+INSERT INTO brands (id, name, slug, description, country, is_active, featured, sort_order) VALUES
+('brand-001', 'Luxury Sarees', 'luxury-sarees', 'Premium quality silk sarees', 'India', 1, 1, 1),
+('brand-002', 'Modern Fashion', 'modern-fashion', 'Contemporary ethnic wear', 'Bangladesh', 1, 1, 2),
+('brand-003', 'Elegant Style', 'elegant-style', 'Traditional with modern touch', 'Pakistan', 1, 0, 3),
+('brand-004', 'Royal Collection', 'royal-collection', 'Luxury bridal wear', 'India', 1, 1, 4);
 
--- Sarees
-('prod-sa-001', 'Silk Banarasi Saree', 'silk-banarasi-saree', 'Pure silk Banarasi saree with gold border', 'cat-sarees', 8000, 8000, 10000, 20, 'percentage', '["/images/products/saree-1.jpg"]', 10, 1, 1, 1, datetime('now'), datetime('now'), 'brand-001', 'Ethnic Elegance', 'IN'),
-('prod-sa-002', 'Chanderi Saree', 'chanderi-saree', 'Lightweight Chanderi saree', 'cat-sarees', 5000, 5000, 6000, 16.67, 'percentage', '["/images/products/saree-2.jpg"]', 15, 1, 1, 0, datetime('now'), datetime('now'), 'brand-001', 'Ethnic Elegance', 'IN'),
-('prod-sa-003', 'Georgette Saree', 'georgette-saree', 'Elegant georgette saree with sequin work', 'cat-sarees', 3500, 3500, null, 0, 'percentage', '["/images/products/saree-3.jpg"]', 25, 1, 0, 0, datetime('now'), datetime('now'), 'brand-003', 'Fusion Fashion', 'BD'),
-('prod-sa-004', 'Cotton Printed Saree', 'cotton-printed-saree', 'Comfortable cotton saree with traditional prints', 'cat-sarees', 2000, 2000, 2500, 20, 'percentage', '["/images/products/saree-4.jpg"]', 30, 1, 0, 0, datetime('now'), datetime('now'), 'brand-003', 'Fusion Fashion', 'BD'),
-('prod-sa-005', 'Kanjeevaram Saree', 'kanjeevaram-saree', 'Traditional Kanjeevaram silk saree', 'cat-sarees', 15000, 15000, 18000, 16.67, 'percentage', '["/images/products/saree-5.jpg"]', 8, 1, 1, 0, datetime('now'), datetime('now'), 'brand-001', 'Ethnic Elegance', 'IN'),
+-- Insert Sample Products
+INSERT INTO products (id, name, slug, description, category_id, price, base_price, compare_price, images, stock, is_active, is_featured, has_variants, brand_id, material, color, available_sizes, available_colors) VALUES
+('prod-001', 'Silk Saree - Royal Blue', 'silk-saree-royal-blue', 'Pure silk saree with intricate golden embroidery', 'cat-saree', 3500, 3500, 4500, '["https://example.com/saree-1.jpg"]', 50, 1, 1, 0, 'brand-001', 'Silk', 'Blue', '["6m", "6.5m"]', '["Blue", "Gold"]'),
+('prod-002', 'Cotton Salwar Suit', 'cotton-salwar-suit', 'Comfortable cotton salwar suit with embroidery', 'cat-salwar', 1800, 1800, 2200, '["https://example.com/salwar-1.jpg"]', 30, 1, 1, 0, 'brand-002', 'Cotton', 'Green', '["S", "M", "L", "XL"]', '["Green", "Pink"]'),
+('prod-003', 'Bridal Lehenga', 'bridal-lehenga', 'Heavy work bridal lehenga with dupatta', 'cat-lehengas', 15000, 15000, 18000, '["https://example.com/lehenga-1.jpg"]', 15, 1, 1, 0, 'brand-004', 'Velvet', 'Red', '["S", "M", "L"]', '["Red", "Maroon"]'),
+('prod-004', 'Cotton Kurta', 'cotton-kurta', 'Casual cotton kurta for everyday wear', 'cat-kurtas', 800, 800, 1000, '["https://example.com/kurta-1.jpg"]', 100, 1, 1, 0, 'brand-002', 'Cotton', 'White', '["S", "M", "L", "XL", "XXL"]', '["White", "Blue", "Grey"]'),
+('prod-005', 'Formal Shirt', 'formal-shirt', 'Premium cotton formal shirt', 'cat-menswear', 1200, 1200, 1500, '["https://example.com/shirt-1.jpg"]', 75, 1, 0, 0, 'brand-003', 'Cotton', 'White', '["S", "M", "L", "XL"]', '["White", "Light Blue"]'),
+('prod-006', 'Evening Gown', 'evening-gown', 'Elegant evening gown for parties', 'cat-gowns', 8000, 8000, 10000, '["https://example.com/gown-1.jpg"]', 20, 1, 1, 0, 'brand-004', 'Silk', 'Black', '["S", "M", "L"]', '["Black", "Navy"]'),
+('prod-007', 'Casual Top', 'casual-top', 'Comfortable casual top', 'cat-tops', 600, 600, 800, '["https://example.com/top-1.jpg"]', 80, 1, 0, 0, 'brand-002', 'Cotton', 'Pink', '["S", "M", "L", "XL"]', '["Pink", "Yellow", "White"]');
 
--- Salwar Suits
-('prod-sw-001', 'Anarkali Suit', 'anarkali-suit', 'Beautiful Anarkali salwar suit', 'cat-salwar', 4000, 4000, 5000, 20, 'percentage', '["/images/products/salwar-1.jpg"]', 15, 1, 1, 1, datetime('now'), datetime('now'), 'brand-001', 'Ethnic Elegance', 'IN'),
-('prod-sw-002', 'Palazzo Suit', 'palazzo-suit', 'Modern palazzo salwar suit', 'cat-salwar', 3500, 3500, null, 0, 'percentage', '["/images/products/salwar-2.jpg"]', 20, 1, 0, 0, datetime('now'), datetime('now'), 'brand-003', 'Fusion Fashion', 'BD'),
-('prod-sw-003', 'Straight Cut Suit', 'straight-cut-suit', 'Elegant straight cut salwar suit', 'cat-salwar', 3000, 3000, 3500, 14.29, 'percentage', '["/images/products/salwar-3.jpg"]', 18, 1, 1, 0, datetime('now'), datetime('now'), 'brand-001', 'Ethnic Elegance', 'IN'),
-('prod-sw-004', 'Churidar Suit', 'churidar-suit', 'Classic churidar salwar suit', 'cat-salwar', 3500, 3500, 4000, 12.5, 'percentage', '["/images/products/salwar-4.jpg"]', 22, 1, 0, 0, datetime('now'), datetime('now'), 'brand-003', 'Fusion Fashion', 'BD'),
-('prod-sw-005', 'Patiala Suit', 'patiala-suit', 'Traditional Patiala salwar suit', 'cat-salwar', 3800, 3800, null, 0, 'percentage', '["/images/products/salwar-5.jpg"]', 16, 1, 1, 0, datetime('now'), datetime('now'), 'brand-001', 'Ethnic Elegance', 'IN'),
+-- Insert Sample Product Variants
+INSERT INTO product_variants (id, product_id, sku, name, price, stock, size, color, is_active, is_default) VALUES
+('var-001-1', 'prod-001', 'SAREE-BLUE-6M', 'Silk Saree - 6m', 3500, 25, '6m', 'Blue', 1, 1),
+('var-001-2', 'prod-001', 'SAREE-BLUE-6.5M', 'Silk Saree - 6.5m', 3600, 25, '6.5m', 'Blue', 1, 0),
+('var-002-1', 'prod-002', 'SALWAR-GREEN-S', 'Cotton Salwar - Small', 1800, 10, 'S', 'Green', 1, 0),
+('var-002-2', 'prod-002', 'SALWAR-GREEN-M', 'Cotton Salwar - Medium', 1800, 10, 'M', 'Green', 1, 1),
+('var-002-3', 'prod-002', 'SALWAR-GREEN-L', 'Cotton Salwar - Large', 1800, 10, 'L', 'Green', 1, 0),
+('var-003-1', 'prod-003', 'LEHENGA-RED-S', 'Bridal Lehenga - Small', 15000, 5, 'S', 'Red', 1, 0),
+('var-003-2', 'prod-003', 'LEHENGA-RED-M', 'Bridal Lehenga - Medium', 15000, 5, 'M', 'Red', 1, 1),
+('var-003-3', 'prod-003', 'LEHENGA-RED-L', 'Bridal Lehenga - Large', 15000, 5, 'L', 'Red', 1, 0);
 
--- Kurtas
-('prod-ku-001', 'Embroidered Kurta', 'embroidered-kurta', 'Beautiful embroidered kurta', 'cat-kurtas', 2000, 2000, 2500, 20, 'percentage', '["/images/products/kurta-1.jpg"]', 25, 1, 1, 1, datetime('now'), datetime('now'), 'brand-001', 'Ethnic Elegance', 'IN'),
-('prod-ku-002', 'Printed Kurta', 'printed-kurta', 'Trendy printed kurta', 'cat-kurtas', 1500, 1500, null, 0, 'percentage', '["/images/products/kurta-2.jpg"]', 30, 1, 0, 0, datetime('now'), datetime('now'), 'brand-003', 'Fusion Fashion', 'BD'),
-('prod-ku-003', 'Solid Kurta', 'solid-kurta', 'Elegant solid color kurta', 'cat-kurtas', 1800, 1800, 2000, 10, 'percentage', '["/images/products/kurta-3.jpg"]', 20, 1, 1, 0, datetime('now'), datetime('now'), 'brand-001', 'Ethnic Elegance', 'IN'),
-('prod-ku-004', 'Long Straight Kurta', 'long-straight-kurta', 'Modern long straight kurta', 'cat-kurtas', 2200, 2200, null, 0, 'percentage', '["/images/products/kurta-4.jpg"]', 18, 1, 0, 0, datetime('now'), datetime('now'), 'brand-003', 'Fusion Fashion', 'BD'),
-('prod-ku-005', 'A-Line Kurta', 'a-line-kurta', 'Flattering A-line kurta', 'cat-kurtas', 2000, 2000, 2400, 16.67, 'percentage', '["/images/products/kurta-5.jpg"]', 22, 1, 1, 0, datetime('now'), datetime('now'), 'brand-001', 'Ethnic Elegance', 'IN'),
+-- Insert Banners
+INSERT INTO banners (id, title, description, image, button_text, button_link, is_active, order_index) VALUES
+('banner-001', 'New Collection', 'Explore our latest arrivals', 'https://example.com/banner-1.jpg', 'Shop Now', '/shop', 1, 1),
+('banner-002', 'Special Offers', 'Up to 50% off on selected items', 'https://example.com/banner-2.jpg', 'View Deals', '/shop?sale=true', 1, 2),
+('banner-003', 'Free Shipping', 'Free shipping on orders over ৳5000', 'https://example.com/banner-3.jpg', 'Learn More', '/shipping', 1, 3);
 
--- Tops
-('prod-to-001', 'Floral Top', 'floral-top', 'Beautiful floral print top', 'cat-tops', 1200, 1200, 1500, 20, 'percentage', '["/images/products/top-1.jpg"]', 30, 1, 1, 1, datetime('now'), datetime('now'), 'brand-003', 'Fusion Fashion', 'BD'),
-('prod-to-002', 'Striped Top', 'striped-top', 'Classic striped top', 'cat-tops', 1000, 1000, null, 0, 'percentage', '["/images/products/top-2.jpg"]', 35, 1, 0, 0, datetime('now'), datetime('now'), 'brand-003', 'Fusion Fashion', 'BD'),
-('prod-to-003', 'Solid Color Top', 'solid-color-top', 'Versatile solid color top', 'cat-tops', 900, 900, 1100, 18.18, 'percentage', '["/images/products/top-3.jpg"]', 40, 1, 1, 0, datetime('now'), datetime('now'), 'brand-003', 'Fusion Fashion', 'BD'),
-('prod-to-004', 'Peplum Top', 'peplum-top', 'Stylish peplum top', 'cat-tops', 1500, 1500, 1800, 16.67, 'percentage', '["/images/products/top-4.jpg"]', 25, 1, 0, 0, datetime('now'), datetime('now'), 'brand-003', 'Fusion Fashion', 'BD'),
-('prod-to-005', 'Off-Shoulder Top', 'off-shoulder-top', 'Trendy off-shoulder top', 'cat-tops', 1800, 1800, null, 0, 'percentage', '["/images/products/top-5.jpg"]', 20, 1, 1, 0, datetime('now'), datetime('now'), 'brand-003', 'Fusion Fashion', 'BD'),
+-- Insert Reels
+INSERT INTO reels (id, title, thumbnail, video_url, product_ids, is_active, order_index) VALUES
+('reel-001', 'Summer Collection', 'https://example.com/reel-thumb-1.jpg', 'https://example.com/reel-1.mp4', '["prod-001", "prod-002"]', 1, 1),
+('reel-002', 'Bridal Special', 'https://example.com/reel-thumb-2.jpg', 'https://example.com/reel-2.mp4', '["prod-003"]', 1, 2),
+('reel-003', 'Casual Wear', 'https://example.com/reel-thumb-3.jpg', 'https://example.com/reel-3.mp4', '["prod-004", "prod-005"]', 1, 3);
 
--- Gowns
-('prod-go-001', 'Evening Gown', 'evening-gown', 'Elegant evening gown', 'cat-gowns', 12000, 12000, 15000, 20, 'percentage', '["/images/products/gown-1.jpg"]', 10, 1, 1, 0, datetime('now'), datetime('now'), 'brand-001', 'Ethnic Elegance', 'IN'),
-('prod-go-002', 'Wedding Gown', 'wedding-gown', 'Beautiful wedding gown', 'cat-gowns', 25000, 25000, 30000, 16.67, 'percentage', '["/images/products/gown-2.jpg"]', 5, 1, 1, 0, datetime('now'), datetime('now'), 'brand-001', 'Ethnic Elegance', 'IN'),
-('prod-go-003', 'Party Gown', 'party-gown', 'Stylish party gown', 'cat-gowns', 8000, 8000, 10000, 20, 'percentage', '["/images/products/gown-3.jpg"]', 12, 1, 1, 0, datetime('now'), datetime('now'), 'brand-003', 'Fusion Fashion', 'BD'),
-('prod-go-004', 'Cocktail Gown', 'cocktail-gown', 'Chic cocktail gown', 'cat-gowns', 10000, 10000, null, 0, 'percentage', '["/images/products/gown-4.jpg"]', 8, 1, 0, 0, datetime('now'), datetime('now'), 'brand-003', 'Fusion Fashion', 'BD'),
-('prod-go-005', 'Maxi Gown', 'maxi-gown', 'Flowing maxi gown', 'cat-gowns', 9000, 9000, 11000, 18.18, 'percentage', '["/images/products/gown-5.jpg"]', 10, 1, 1, 0, datetime('now'), datetime('now'), 'brand-001', 'Ethnic Elegance', 'IN'),
+-- Insert Stories
+INSERT INTO stories (id, title, thumbnail, images, is_active, order_index) VALUES
+('story-001', 'New Arrivals', 'https://example.com/story-thumb-1.jpg', '["https://example.com/story-1.jpg", "https://example.com/story-2.jpg"]', 1, 1),
+('story-002', 'Trending Now', 'https://example.com/story-thumb-2.jpg', '["https://example.com/story-3.jpg", "https://example.com/story-4.jpg"]', 1, 2),
+('story-003', 'Best Sellers', 'https://example.com/story-thumb-3.jpg', '["https://example.com/story-5.jpg", "https://example.com/story-6.jpg"]', 1, 3);
 
--- Menswear
-('prod-me-001', 'Men Kurta Pyjama', 'men-kurta-pyjama', 'Traditional kurta pyjama set', 'cat-menswear', 3000, 3000, 3500, 14.29, 'percentage', '["/images/products/men-1.jpg"]', 20, 1, 1, 1, datetime('now'), datetime('now'), 'brand-002', 'Royal Threads', 'IN'),
-('prod-me-002', 'Nehru Jacket Set', 'nehru-jacket-set', 'Elegant Nehru jacket with kurta', 'cat-menswear', 5000, 5000, 6000, 16.67, 'percentage', '["/images/products/men-2.jpg"]', 15, 1, 1, 0, datetime('now'), datetime('now'), 'brand-002', 'Royal Threads', 'IN'),
-('prod-me-003', 'Sherwani', 'sherwani', 'Traditional sherwani for special occasions', 'cat-menswear', 15000, 15000, 18000, 16.67, 'percentage', '["/images/products/men-3.jpg"]', 8, 1, 1, 1, datetime('now'), datetime('now'), 'brand-002', 'Royal Threads', 'IN'),
-('prod-me-004', 'Waistcoat Set', 'waistcoat-set', 'Stylish waistcoat with kurta', 'cat-menswear', 6000, 6000, null, 0, 'percentage', '["/images/products/men-4.jpg"]', 12, 1, 0, 0, datetime('now'), datetime('now'), 'brand-003', 'Fusion Fashion', 'BD'),
-('prod-me-005', 'Pathani Suit', 'pathani-suit', 'Classic Pathani suit', 'cat-menswear', 3500, 3500, 4000, 12.5, 'percentage', '["/images/products/men-5.jpg"]', 18, 1, 1, 0, datetime('now'), datetime('now'), 'brand-002', 'Royal Threads', 'IN');
+-- Insert Homepage Settings
+INSERT INTO homepage_settings (id, section_name, is_enabled, auto_play, display_limit) VALUES
+('hero-enabled', 'hero', 1, 5000, 5),
+('brands-enabled', 'brands', 1, 5000, 10),
+('featured-products-enabled', 'featured-products', 1, 3000, 10),
+('reels-enabled', 'reels', 1, 3000, 10),
+('category-carousel-enabled', 'category-carousel', 1, 4000, 8),
+('stories-enabled', 'stories', 1, 4000, 5),
+('marquee-enabled', 'marquee', 1, 0, 1),
+('mosaic-grid-enabled', 'mosaic-grid', 1, 0, 6);
 
--- ============================================
--- USERS
--- ============================================
--- Admin user
-INSERT OR IGNORE INTO users (id, email, name, phone, password, emailVerified, role, createdAt, updatedAt)
-VALUES
-('user-admin-001', 'admin@scommerce.com', 'Admin User', '+8801700000001', '$2b$10$5y22htgQgUZVPkksz.6V1uY/TLQ9w.rkUX92xR4NWmB0jkiNa845u', 1, 'admin', datetime('now'), datetime('now'));
+-- Insert Promotions
+INSERT INTO promotions (id, title, description, image, promo_code, discount_type, discount_value, min_order_amount, is_active, order_index) VALUES
+('promo-001', 'First Order Discount', 'Get 10% off on your first order', 'https://example.com/promo-1.jpg', 'FIRST10', 'percentage', 10, 1000, 1, 1),
+('promo-002', 'Summer Sale', 'Flat ৳500 off on orders above ৳3000', 'https://example.com/promo-2.jpg', 'SUMMER500', 'fixed', 500, 3000, 1, 2);
 
--- Staff users
-INSERT OR IGNORE INTO users (id, email, name, phone, password, emailVerified, role, createdAt, updatedAt)
-VALUES
-('user-staff-001', 'rahul@scommerce.com', 'Rahul Sharma', '+8801700000002', '$2b$10$eoee6iYh9VMesjluGRY9ROb9ArHRCDolSaHQR6L8yYRuC1LEjYeRC', 1, 'staff', datetime('now'), datetime('now')),
-('user-staff-002', 'priya@scommerce.com', 'Priya Singh', '+8801700000003', '$2b$10$a.F/Ul5zAnA24HVQPvmuE.VZUffKX32EXWob0WyEGK2q5TD2NUNQC', 1, 'staff', datetime('now'), datetime('now')),
-('user-staff-003', 'amit@scommerce.com', 'Amit Kumar', '+8801700000004', '$2b$10$0q3CVc8GTq8O5ILjZzHvm.IF9QNuWjLmMRkOdNo8RZfkMoWbsrjUW', 1, 'staff', datetime('now'), datetime('now'));
+-- Insert Page SEO
+INSERT INTO page_seo (id, page_path, page_title, meta_title, meta_description, keywords, is_active) VALUES
+('seo-home', '/', 'SCommerce - Your Fashion Destination', 'SCommerce - Best Ethnic Wear Collection', 'Shop the latest collection of sarees, salwar suits, lehengas, and more at SCommerce. Free shipping on orders over ৳5000.', 'sarees, salwar suits, lehengas, kurtas, ethnic wear, fashion, online shopping', 1),
+('seo-shop', '/shop', 'Shop - SCommerce', 'Shop All Products - SCommerce', 'Browse our complete collection of ethnic wear and fashion items.', 'shop, products, online shopping', 1),
+('seo-about', '/about', 'About Us - SCommerce', 'About SCommerce', 'Learn about SCommerce and our commitment to quality fashion.', 'about us, company, fashion', 1),
+('seo-contact', '/contact', 'Contact Us - SCommerce', 'Contact SCommerce', 'Get in touch with us for any queries or support.', 'contact, support, help', 1);
 
--- Customer users
-INSERT OR IGNORE INTO users (id, email, name, phone, password, emailVerified, role, createdAt, updatedAt)
-VALUES
-('user-cust-001', 'fatema@example.com', 'Fatema Akhter', '+8801700000101', '$2b$10$EcvgWa939MGFsiYb3Sged.k1cATkYrXj8hb6dGdWyyaGqpkWBQjyK', 1, 'user', datetime('now'), datetime('now')),
-('user-cust-002', 'noor@example.com', 'Noor Jahan', '+8801700000102', '$2b$10$bwKw7jbXL1DEmFckWLhM5uCtbVghgRkq61NfL828KkR7wt6PNPqsO', 1, 'user', datetime('now'), datetime('now')),
-('user-cust-003', 'sara@example.com', 'Sara Ahmed', '+8801700000103', '$2b$10$VZSrJ6C31npLpsbd0YKpj.4oacbmH0xYC5knPfOSKpsNGSFXvBy3u', 1, 'user', datetime('now'), datetime('now')),
-('user-cust-004', 'zara@example.com', 'Zara Khan', '+8801700000104', '$2b$10$DTVovRdSzYGCI00JHg4/FOAdbGoPMYQCT7U39N1V0hY1v1IjFc.ha', 1, 'user', datetime('now'), datetime('now')),
-('user-cust-005', 'hana@example.com', 'Hana Begum', '+8801700000105', '$2b$10$SjKZJpQhzyY.HWStJ9jThOffxwqcyf4b34X2/Jg4swVXz5AnQQxxK', 1, 'user', datetime('now'), datetime('now'));
+-- Insert Default Suppliers
+INSERT INTO suppliers (id, code, name, email, phone, is_active) VALUES
+('sup-001', 'SUP001', 'Fashion Hub Ltd', 'contact@fashionhub.com', '+8801700000001', 1),
+('sup-002', 'SUP002', 'Textile World', 'info@textileworld.com', '+8801700000002', 1),
+('sup-003', 'SUP003', 'Premium Fabrics', 'sales@premiumfabrics.com', '+8801700000003', 1);
 
--- ============================================
--- ADDRESSES
--- ============================================
-INSERT OR IGNORE INTO addresses (id, userId, fullName, phone, addressLine1, addressLine2, city, district, division, postalCode, isDefault, createdAt, updatedAt)
-VALUES
-('addr-001', 'user-cust-001', 'Fatema Akhter', '+8801700000101', '123 Mirpur Road', 'Apartment 4B', 'Dhaka', 'Mirpur', 'Dhaka', '1216', 1, datetime('now'), datetime('now')),
-('addr-002', 'user-cust-002', 'Noor Jahan', '+8801700000102', '456 Dhanmondi Road', 'House 12', 'Dhaka', 'Dhanmondi', 'Dhaka', '1205', 1, datetime('now'), datetime('now')),
-('addr-003', 'user-cust-003', 'Sara Ahmed', '+8801700000103', '789 Gulshan Avenue', 'Flat 5A', 'Dhaka', 'Gulshan', 'Dhaka', '1212', 1, datetime('now'), datetime('now'));
+-- Insert Default Email Service
+INSERT INTO email_services (id, name, provider, from_email, from_name, is_active, is_default) VALUES
+('email-default', 'Default SMTP', 'custom', 'noreply@scommerce.com', 'SCommerce', 1, 1);
 
--- ============================================
--- ORDERS
--- ============================================
-INSERT OR IGNORE INTO orders (id, orderNumber, userId, customerName, customerEmail, customerPhone, shippingAddress, city, district, division, subtotal, shipping, tax, discount, total, status, paymentStatus, paymentMethod, createdAt, updatedAt)
-VALUES
-('order-001', 'ORD-001', 'user-cust-001', 'Fatema Akhter', 'fatema@example.com', '+8801700000101', '123 Mirpur Road, Apartment 4B, Mirpur, Dhaka 1216', 'Dhaka', 'Mirpur', 'Dhaka', 15000, 150, 2700, 3000, 18350, 'DELIVERED', 'COMPLETED', 'cod', datetime('now'), datetime('now')),
-('order-002', 'ORD-002', 'user-cust-002', 'Noor Jahan', 'noor@example.com', '+8801700000102', '456 Dhanmondi Road, House 12, Dhanmondi, Dhaka 1205', 'Dhaka', 'Dhanmondi', 'Dhaka', 8000, 150, 1440, 1600, 10190, 'PROCESSING', 'PENDING', 'cod', datetime('now'), datetime('now')),
-('order-003', 'ORD-003', 'user-cust-001', 'Fatema Akhter', 'fatema@example.com', '+8801700000101', '123 Mirpur Road, Apartment 4B, Mirpur, Dhaka 1216', 'Dhaka', 'Mirpur', 'Dhaka', 12000, 150, 2160, 2400, 14710, 'PENDING', 'PENDING', 'cod', datetime('now'), datetime('now')),
-('order-004', 'ORD-004', 'user-cust-003', 'Sara Ahmed', 'sara@example.com', '+8801700000103', '789 Gulshan Avenue, Flat 5A, Gulshan, Dhaka 1212', 'Dhaka', 'Gulshan', 'Dhaka', 35000, 200, 6300, 7000, 42500, 'SHIPPED', 'COMPLETED', 'online', datetime('now'), datetime('now'));
+-- Insert Default Payment Gateway
+INSERT INTO payment_gateways (id, name, provider, is_active, is_default) VALUES
+('payment-cod', 'Cash on Delivery', 'custom', 1, 1);
 
--- ============================================
--- ORDER ITEMS
--- ============================================
-INSERT OR IGNORE INTO order_items (id, orderId, productId, variantId, quantity, price, productName, productImage, variantSku, createdAt)
-VALUES
--- Order 001 items
-('oi-001-1', 'order-001', 'prod-lh-001', null, 1, 15000, 'Red Bridal Lehenga', '/images/products/lehenga-1.jpg', null, datetime('now')),
-('oi-001-2', 'order-001', 'prod-me-003', null, 1, 15000, 'Sherwani', '/images/products/men-3.jpg', null, datetime('now')),
--- Order 002 items
-('oi-002-1', 'order-002', 'prod-sa-002', null, 2, 5000, 'Chanderi Saree', '/images/products/saree-2.jpg', null, datetime('now')),
--- Order 003 items
-('oi-003-1', 'order-003', 'prod-lh-002', null, 1, 12000, 'Pink Designer Lehenga', '/images/products/lehenga-2.jpg', null, datetime('now')),
--- Order 004 items
-('oi-004-1', 'order-004', 'prod-go-002', null, 1, 25000, 'Wedding Gown', '/images/products/gown-2.jpg', null, datetime('now')),
-('oi-004-2', 'order-004', 'prod-me-002', null, 1, 10000, 'Nehru Jacket Set', '/images/products/men-2.jpg', null, datetime('now'));
-
--- ============================================
--- CART ITEMS
--- ============================================
-INSERT OR IGNORE INTO cart_items (id, userId, productId, variantId, quantity, createdAt, updatedAt)
-VALUES
-('cart-001', 'user-cust-004', 'prod-lh-003', null, 1, datetime('now'), datetime('now')),
-('cart-002', 'user-cust-004', 'prod-ku-003', null, 2, datetime('now'), datetime('now')),
-('cart-003', 'user-cust-005', 'prod-sa-004', null, 1, datetime('now'), datetime('now'));
-
--- ============================================
--- WISHLIST ITEMS
--- ============================================
-INSERT OR IGNORE INTO wishlist_items (id, userId, productId, createdAt)
-VALUES
-('wish-001', 'user-cust-001', 'prod-lh-001', datetime('now')),
-('wish-002', 'user-cust-001', 'prod-me-003', datetime('now')),
-('wish-003', 'user-cust-002', 'prod-sa-005', datetime('now')),
-('wish-004', 'user-cust-003', 'prod-go-002', datetime('now')),
-('wish-005', 'user-cust-004', 'prod-ku-005', datetime('now'));
-
--- ============================================
--- PRODUCT REVIEWS
--- ============================================
-INSERT OR IGNORE INTO product_reviews (id, productId, userId, userName, rating, title, comment, isVerified, isApproved, createdAt, updatedAt)
-VALUES
-('review-001', 'prod-lh-001', 'user-cust-001', 'Fatema Akhter', 5, 'Amazing lehenga!', 'Absolutely stunning lehenga for my wedding. The embroidery work is incredible!', 1, 1, datetime('now'), datetime('now')),
-('review-002', 'prod-lh-002', 'user-cust-002', 'Noor Jahan', 4, 'Beautiful pink lehenga', 'Love the color and stone work. Perfect for parties.', 1, 1, datetime('now'), datetime('now')),
-('review-003', 'prod-sa-005', 'user-cust-003', 'Sara Ahmed', 5, 'Authentic Kanjeevaram', 'Pure silk saree with beautiful zari work. Worth the price!', 1, 1, datetime('now'), datetime('now')),
-('review-004', 'prod-me-003', 'user-cust-001', 'Fatema Akhter', 5, 'Perfect sherwani', 'My husband loved this sherwani for our wedding!', 1, 1, datetime('now'), datetime('now')),
-('review-005', 'prod-go-002', 'user-cust-003', 'Sara Ahmed', 5, 'Dream wedding gown', 'Made my special day even more perfect!', 1, 1, datetime('now'), datetime('now')),
-('review-006', 'prod-lh-003', 'user-cust-004', 'Zara Khan', 4, 'Good quality', 'Nice lehenga for the price. Fabric is comfortable.', 1, 1, datetime('now'), datetime('now')),
-('review-007', 'prod-ku-003', 'user-cust-005', 'Hana Begum', 4, 'Comfortable kurta', 'Good for casual wear. Fabric is soft and breathable.', 1, 1, datetime('now'), datetime('now'));
-
--- ============================================
--- STORIES
--- ============================================
-INSERT OR IGNORE INTO stories (id, title, thumbnail, images, isActive, "order", createdAt, updatedAt)
-VALUES
-('story-001', 'New Arrivals', 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=200&h=200&fit=crop', '["https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=400&h=700&fit=crop","https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=400&h=700&fit=crop","https://images.unsplash.com/photo-1594463750939-ebb28c3f7f75?w=400&h=700&fit=crop"]', 1, 1, datetime('now'), datetime('now')),
-('story-002', 'Festival Special', 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=200&h=200&fit=crop', '["https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=400&h=700&fit=crop","https://images.unsplash.com/photo-1594463750939-ebb28c3f7f75?w=400&h=700&fit=crop","https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=400&h=700&fit=crop","https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=400&h=700&fit=crop"]', 1, 2, datetime('now'), datetime('now')),
-('story-003', 'Best Sellers', 'https://images.unsplash.com/photo-1594463750939-ebb28c3f7f75?w=200&h=200&fit=crop', '["https://images.unsplash.com/photo-1594463750939-ebb28c3f7f75?w=400&h=700&fit=crop","https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=400&h=700&fit=crop"]', 1, 3, datetime('now'), datetime('now')),
-('story-004', 'Wedding Collection', 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=200&h=200&fit=crop', '["https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=400&h=700&fit=crop","https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=400&h=700&fit=crop"]', 1, 4, datetime('now'), datetime('now')),
-('story-005', 'Sale Alert', 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=200&h=200&fit=crop', '["https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=400&h=700&fit=crop","https://images.unsplash.com/photo-1594463750939-ebb28c3f7f75?w=400&h=700&fit=crop","https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=400&h=700&fit=crop"]', 1, 5, datetime('now'), datetime('now'));
-
--- ============================================
--- REELS
--- ============================================
-INSERT OR IGNORE INTO reels (id, title, thumbnail, videoUrl, productIds, isActive, "order", createdAt, updatedAt)
-VALUES
-('reel-001', 'Lehenga Styling Tips', 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=320&h=568&fit=crop', 'https://www.youtube.com/embed/Gk-s0icT2CI?autoplay=1&mute=1', '["prod-lh-001","prod-lh-002","prod-lh-003"]', 1, 1, datetime('now'), datetime('now')),
-('reel-002', 'Saree Draping Styles', 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=320&h=568&fit=crop', 'https://www.youtube.com/embed/Gk-s0icT2CI?autoplay=1&mute=1', '["prod-sa-001","prod-sa-002","prod-sa-003"]', 1, 2, datetime('now'), datetime('now')),
-('reel-003', 'Kurta Fashion', 'https://images.unsplash.com/photo-1594463750939-ebb28c3f7f75?w=320&h=568&fit=crop', 'https://www.youtube.com/embed/Gk-s0icT2CI?autoplay=1&mute=1', '["prod-ku-001","prod-ku-002","prod-ku-003"]', 1, 3, datetime('now'), datetime('now')),
-('reel-004', 'Wedding Looks 2024', 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=320&h=568&fit=crop', 'https://www.youtube.com/embed/Gk-s0icT2CI?autoplay=1&mute=1', '["prod-lh-001","prod-go-002","prod-me-003"]', 1, 4, datetime('now'), datetime('now')),
-('reel-005', 'Menswear Collection', 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=320&h=568&fit=crop', 'https://www.youtube.com/embed/Gk-s0icT2CI?autoplay=1&mute=1', '["prod-me-001","prod-me-002","prod-me-003"]', 1, 5, datetime('now'), datetime('now'));
-
--- ============================================
--- PROMOTIONS
--- ============================================
-INSERT OR IGNORE INTO promotions (id, title, description, image, ctaText, ctaLink, type, isActive, "order", createdAt, updatedAt)
-VALUES
-('promo-001', 'Summer Sale', 'Up to 50% off on selected items', 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1200&h=600&fit=crop', 'Shop Now', '/shop?type=sale', 'banner', 1, 1, datetime('now'), datetime('now')),
-('promo-002', 'New Collection', 'Discover our latest arrivals', 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1200&h=600&fit=crop', 'Explore', '/collections/new', 'banner', 1, 2, datetime('now'), datetime('now')),
-('promo-003', 'Free Shipping', 'Free shipping on orders above 5000 BDT', 'https://images.unsplash.com/photo-1586281380383-0156275b6614?w=1200&h=600&fit=crop', 'Learn More', '/shipping', 'banner', 1, 3, datetime('now'), datetime('now'));
-
--- ============================================
--- COUPONS (Promotions with promoCode)
--- ============================================
-INSERT OR IGNORE INTO promotions (id, title, description, image, ctaText, ctaLink, type, discountType, discountValue, minOrderAmount, maxDiscountAmount, promoCode, startDate, endDate, usageLimit, usedCount, userLimit, conditions, isActive, "order", createdAt, updatedAt)
-VALUES
-('coupon-001', 'Welcome Offer', 'Get 10% off on your first order', null, null, null, 'coupon', 'percentage', 10, 1000, 500, 'WELCOME10', datetime('now'), datetime('now', '+90 days'), 100, 0, 1, null, 1, 100, datetime('now'), datetime('now')),
-('coupon-002', 'Festival Special', 'Flat 500 BDT discount on orders above 3000', null, null, null, 'coupon', 'fixed', 500, 3000, null, 'FESTIVAL500', datetime('now'), datetime('now', '+30 days'), 200, 0, 2, null, 1, 101, datetime('now'), datetime('now')),
-('coupon-003', 'Summer Sale', 'Up to 20% off on all products', null, null, null, 'coupon', 'percentage', 20, 2000, 1000, 'SUMMER20', datetime('now'), datetime('now', '+60 days'), 500, 0, 5, null, 1, 102, datetime('now'), datetime('now')),
-('coupon-004', 'Free Shipping', 'Free shipping on orders above 5000', null, null, null, 'coupon', 'fixed', 150, 5000, null, 'FREESHIP', null, null, 1000, 0, 1, null, 1, 103, datetime('now'), datetime('now'));
-
--- ============================================
--- BANNERS
--- ============================================
-INSERT OR IGNORE INTO banners (id, title, description, image, mobileImage, buttonText, buttonLink, isActive, "order", createdAt, updatedAt)
-VALUES
-('banner-1', 'New Collection 2024', 'Discover our latest ethnic wear collection', 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=1400&h=450&fit=crop', 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=580&h=700&fit=crop', 'Shop Now', '/shop', 1, 1, datetime('now'), datetime('now')),
-('banner-2', 'Festival Special', 'Get ready for the festive season', 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=1400&h=450&fit=crop', 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=580&h=700&fit=crop', 'Explore', '/collections/sarees', 1, 2, datetime('now'), datetime('now')),
-('banner-3', 'Wedding Season', 'Perfect outfits for your special day', 'https://images.unsplash.com/photo-1594463750939-ebb28c3f7f75?w=1400&h=450&fit=crop', 'https://images.unsplash.com/photo-1594463750939-ebb28c3f7f75?w=580&h=700&fit=crop', 'View Collection', '/collections/lehengas', 1, 3, datetime('now'), datetime('now'));
-
--- ============================================
--- HOMEPAGE SETTINGS
--- ============================================
--- Homepage settings with detailed configurations from migration
-INSERT OR IGNORE INTO homepage_settings (id, sectionName, isEnabled, autoPlay, displayLimit, settings, createdAt, updatedAt)
-VALUES
-('hp-1', 'banners', 1, 5000, 3, NULL, datetime('now'), datetime('now')),
-('hp-2', 'brands', 1, 5000, NULL, '{"heading":"Featured Brands","description":"Discover top brands in our collection","autoScroll":true,"scrollInterval":4000,"brandIds":["brand-001","brand-003"]}', datetime('now'), datetime('now')),
-('hp-3', 'categories', 1, 5000, 7, NULL, datetime('now'), datetime('now')),
-('hp-4', 'category-carousel', 1, 0, NULL, '{"heading":"Shop by Category","description":"Browse our wide range of categories","autoScroll":true,"scrollInterval":4000}', datetime('now'), datetime('now')),
-('hp-5', 'featured_products', 1, 5000, 8, '{"heading":"Featured Products","description":"Discover our handpicked selection of top products","productIds":["prod-lh-001","prod-lh-002","prod-lh-003","prod-lh-005","prod-lh-004","prod-sa-001","prod-sa-002","prod-sa-003"]}', datetime('now'), datetime('now')),
-('hp-6', 'fullscreen-video', 1, 0, NULL, '{"heading":"Featured Video","description":"Experience our exclusive video content","videoUrl":""}', datetime('now'), datetime('now')),
-('hp-7', 'hero-slider', 1, 5000, 5, NULL, datetime('now'), datetime('now')),
-('hp-8', 'marquee', 1, 0, NULL, '{"text":"Welcome to SCommerce! Free shipping on orders over $50","speed":5000}', datetime('now'), datetime('now')),
-('hp-9', 'mosaic_grid', 1, 0, NULL, '{"heading":"Shop the Look","description":"Explore our curated collection of trending styles","productIds":["prod-lh-001","prod-lh-002","prod-lh-003","prod-lh-004","prod-lh-005","prod-sa-001"]}', datetime('now'), datetime('now')),
-('hp-10', 'new-arrivals', 1, 5000, 8, NULL, datetime('now'), datetime('now')),
-('hp-11', 'reels', 1, 0, 5, NULL, datetime('now'), datetime('now')),
-('hp-12', 'reels-carousel', 1, 0, NULL, '{"heading":"Trending Reels","description":"Watch our latest video content","autoPlay":true}', datetime('now'), datetime('now')),
-('hp-13', 'section-manager', 1, 0, NULL, '{"sections":[{"id":"fullscreen-video","name":"Fullscreen Video","order":1,"enabled":true},{"id":"hero-slider","name":"Hero Carousel","order":2,"enabled":true},{"id":"marquee","name":"Marquee Banner","order":3,"enabled":true},{"id":"categories","name":"Categories","order":4,"enabled":true},{"id":"category-carousel","name":"Category Carousel","order":5,"enabled":true},{"id":"brands","name":"Brand Carousel","order":6,"enabled":true},{"id":"featured_products","name":"Featured Products","order":7,"enabled":true},{"id":"mosaic_grid","name":"Mosaic Grid","order":8,"enabled":true},{"id":"video-reels","name":"Video Reels","order":9,"enabled":true},{"id":"promotions","name":"Promotions","order":10,"enabled":true},{"id":"stories","name":"Stories","order":11,"enabled":true}]}', datetime('now'), datetime('now')),
-('hp-14', 'stories', 1, 5000, 5, NULL, datetime('now'), datetime('now'));
-
--- ============================================
--- SITE SETTINGS
--- ============================================
-INSERT OR IGNORE INTO site_settings (id, siteName, siteLogo, contactEmail, contactPhone, currency, freeShippingThreshold, baseShippingCost, taxRate, socialMedia, enableStore, maintenanceMode, updatedAt)
-VALUES
-('site-1', 'SCommerce', '/images/logo.svg', 'info@scommerce.com', '+8801700000000', 'BDT', 5000, 150, 0, '{"facebook":"https://facebook.com/scommerce","instagram":"https://instagram.com/scommerce","twitter":"https://twitter.com/scommerce"}', 1, 0, datetime('now'));
-
--- ============================================
--- PAYMENT GATEWAYS
--- ============================================
-INSERT OR IGNORE INTO payment_gateways (id, name, provider, isActive, isDefault, apiKey, apiSecret, webhookSecret, sandboxMode, supportedCurrencies, settings, createdAt, updatedAt)
-VALUES
-('pg-1', 'Cash on Delivery', 'cod', 1, 1, null, null, null, 0, 'BDT', null, datetime('now'), datetime('now')),
-('pg-2', 'bKash', 'bkash', 0, 0, null, null, null, 1, 'BDT', '{"merchantAccount":"scommerce"}', datetime('now'), datetime('now')),
-('pg-3', 'Nagad', 'nagad', 0, 0, null, null, null, 1, 'BDT', '{"merchantAccount":"scommerce"}', datetime('now'), datetime('now'));
-
--- ============================================
--- SHIPPING CARRIERS
--- ============================================
-INSERT OR IGNORE INTO shipping_carriers (id, name, provider, isActive, isDefault, apiKey, apiSecret, accountNumber, sandboxMode, shippingMethods, settings, createdAt, updatedAt)
-VALUES
-('sc-1', 'Standard Shipping', 'standard', 1, 1, null, null, null, 0, '[{"name":"Standard","cost":150,"estimatedDays":"3-5"}]', null, datetime('now'), datetime('now')),
-('sc-2', 'Express Shipping', 'express', 0, 0, null, null, null, 1, '[{"name":"Express","cost":250,"estimatedDays":"1-2"}]', null, datetime('now'), datetime('now'));
-
--- ============================================
--- EMAIL SERVICES
--- ============================================
-INSERT OR IGNORE INTO email_services (id, name, provider, isActive, isDefault, apiKey, apiSecret, fromEmail, fromName, sandboxMode, settings, createdAt, updatedAt)
-VALUES
-('es-1', 'Resend', 'resend', 1, 1, null, null, 'info@scommerce.com', 'SCommerce', 1, null, datetime('now'), datetime('now'));
-
--- ============================================
--- ANALYTICS INTEGRATIONS
--- ============================================
-INSERT OR IGNORE INTO analytics_integrations (id, name, provider, isActive, trackingId, apiKey, measurementId, settings, createdAt, updatedAt)
-VALUES
-('ai-1', 'Google Analytics', 'google', 0, null, null, null, null, datetime('now'), datetime('now'));
-
-
--- ============================================
--- INVENTORY ALERTS
--- ============================================
-INSERT OR IGNORE INTO inventory_alerts (id, productId, alertType, quantity, isRead, isResolved, createdAt)
-VALUES
-('alert-001', 'prod-lh-001', 'LOW_STOCK', 10, 0, 0, datetime('now')),
-('alert-002', 'prod-go-002', 'LOW_STOCK', 5, 0, 0, datetime('now')),
-('alert-003', 'prod-sa-005', 'LOW_STOCK', 8, 0, 0, datetime('now'));
-
--- ============================================
--- ADMIN LOGS
--- ============================================
-INSERT OR IGNORE INTO admin_logs (id, action, entity, entityId, adminId, details, createdAt)
-VALUES
-('log-001', 'CREATE', 'order', 'order-001', 'user-admin-001', 'Order ORD-001 created by customer Fatema Akhter', datetime('now')),
-('log-002', 'UPDATE', 'order', 'order-001', 'user-admin-001', 'Order ORD-001 status updated to DELIVERED', datetime('now')),
-('log-003', 'CREATE', 'product', 'prod-lh-001', 'user-admin-001', 'New product Red Bridal Lehenga added', datetime('now')),
-('log-004', 'UPDATE', 'product', 'prod-lh-002', 'user-staff-001', 'Product Pink Designer Lehenga updated', datetime('now')),
-('log-005', 'DELETE', 'review', 'review-003', 'user-staff-002', 'Review deleted for inappropriate content', datetime('now'));
-
--- ============================================
--- POSTS (Blog)
--- ============================================
-INSERT OR IGNORE INTO posts (id, title, content, published, authorId, createdAt, updatedAt)
-VALUES
-('post-001', 'How to Choose the Perfect Lehenga for Your Wedding', 'Choosing the right lehenga for your wedding day is one of the most important decisions you''ll make. In this guide, we''ll walk you through everything you need to consider...', 1, 'user-admin-001', datetime('now'), datetime('now')),
-('post-002', 'Top 5 Saree Trends for 2024', 'Discover the hottest saree trends this season including Banarasi, Kanjeevaram, and Chanderi sarees...', 1, 'user-admin-001', datetime('now'), datetime('now')),
-('post-003', 'Traditional vs Modern: Finding Your Style', 'Finding the perfect balance between traditional elegance and modern comfort can be challenging. Here are some tips to help you find your style...', 1, 'user-admin-001', datetime('now'), datetime('now'));
-
--- ============================================
--- PRODUCT VARIANTS
--- ============================================
-INSERT OR IGNORE INTO product_variants (id, productId, sku, name, price, comparePrice, stock, images, size, color, material, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, createdAt, updatedAt)
-VALUES
--- Red Bridal Lehenga Variants
-('pv-lh-001-1', 'prod-lh-001', 'LH-RED-S', 'Red Bridal Lehenga - Size S', 15000, 18000, 3, '["/images/products/lehenga-1.svg"]', 'S', 'Red', 'Velvet', 1, 1, 5, 2, 5, datetime('now'), datetime('now')),
-('pv-lh-001-2', 'prod-lh-001', 'LH-RED-M', 'Red Bridal Lehenga - Size M', 15000, 18000, 4, '["/images/products/lehenga-1.svg"]', 'M', 'Red', 'Velvet', 1, 0, 5, 2, 5, datetime('now'), datetime('now')),
-('pv-lh-001-3', 'prod-lh-001', 'LH-RED-L', 'Red Bridal Lehenga - Size L', 15000, 18000, 3, '["/images/products/lehenga-1.svg"]', 'L', 'Red', 'Velvet', 1, 0, 5, 2, 5, datetime('now'), datetime('now')),
-
--- Silk Banarasi Saree Variants (Color variations)
-('pv-sa-001-1', 'prod-sa-001', 'SA-SILK-RED', 'Silk Banarasi Saree - Red', 8000, 10000, 5, '["/images/products/saree-1.jpg"]', 'One Size', 'Red', 'Silk', 1, 1, 5, 2, 5, datetime('now'), datetime('now')),
-('pv-sa-001-2', 'prod-sa-001', 'SA-SILK-GRN', 'Silk Banarasi Saree - Green', 8000, 10000, 4, '["/images/products/saree-1.jpg"]', 'One Size', 'Green', 'Silk', 1, 0, 5, 2, 5, datetime('now'), datetime('now')),
-('pv-sa-001-3', 'prod-sa-001', 'SA-SILK-BLU', 'Silk Banarasi Saree - Blue', 8000, 10000, 3, '["/images/products/saree-1.jpg"]', 'One Size', 'Blue', 'Silk', 1, 0, 5, 2, 5, datetime('now'), datetime('now')),
-
--- Anarkali Suit Variants (Size variations)
-('pv-sw-001-1', 'prod-sw-001', 'SW-ANA-S', 'Anarkali Suit - Size S', 4000, 5000, 8, '["/images/products/salwar-1.jpg"]', 'S', null, 'Cotton', 1, 0, 5, 3, 8, datetime('now'), datetime('now')),
-('pv-sw-001-2', 'prod-sw-001', 'SW-ANA-M', 'Anarkali Suit - Size M', 4000, 5000, 7, '["/images/products/salwar-1.jpg"]', 'M', null, 'Cotton', 1, 1, 5, 3, 8, datetime('now'), datetime('now')),
-('pv-sw-001-3', 'prod-sw-001', 'SW-ANA-L', 'Anarkali Suit - Size L', 4000, 5000, 6, '["/images/products/salwar-1.jpg"]', 'L', null, 'Cotton', 1, 0, 5, 3, 8, datetime('now'), datetime('now')),
-('pv-sw-001-4', 'prod-sw-001', 'SW-ANA-XL', 'Anarkali Suit - Size XL', 4000, 5000, 5, '["/images/products/salwar-1.jpg"]', 'XL', null, 'Cotton', 1, 0, 5, 3, 8, datetime('now'), datetime('now')),
-
--- Embroidered Kurta Variants (Size and Color combinations)
-('pv-ku-001-1', 'prod-ku-001', 'KU-EMB-BLK-S', 'Embroidered Kurta - Black S', 2000, 2500, 10, '["/images/products/kurta-1.jpg"]', 'S', 'Black', 'Cotton', 1, 1, 5, 3, 8, datetime('now'), datetime('now')),
-('pv-ku-001-2', 'prod-ku-001', 'KU-EMB-BLK-M', 'Embroidered Kurta - Black M', 2000, 2500, 10, '["/images/products/kurta-1.jpg"]', 'M', 'Black', 'Cotton', 1, 0, 5, 3, 8, datetime('now'), datetime('now')),
-('pv-ku-001-3', 'prod-ku-001', 'KU-EMB-WHT-S', 'Embroidered Kurta - White S', 2000, 2500, 8, '["/images/products/kurta-1.jpg"]', 'S', 'White', 'Cotton', 1, 0, 5, 3, 8, datetime('now'), datetime('now')),
-('pv-ku-001-4', 'prod-ku-001', 'KU-EMB-WHT-M', 'Embroidered Kurta - White M', 2000, 2500, 9, '["/images/products/kurta-1.jpg"]', 'M', 'White', 'Cotton', 1, 0, 5, 3, 8, datetime('now'), datetime('now')),
-
--- Floral Top Variants (Size and Color combinations)
-('pv-to-001-1', 'prod-to-001', 'TO-FLO-RED-S', 'Floral Top - Red S', 1200, 1500, 15, '["/images/products/top-1.jpg"]', 'S', 'Red', 'Cotton Blend', 1, 1, 8, 5, 15, datetime('now'), datetime('now')),
-('pv-to-001-2', 'prod-to-001', 'TO-FLO-RED-M', 'Floral Top - Red M', 1200, 1500, 15, '["/images/products/top-1.jpg"]', 'M', 'Red', 'Cotton Blend', 1, 0, 8, 5, 15, datetime('now'), datetime('now')),
-('pv-to-001-3', 'prod-to-001', 'TO-FLO-RED-L', 'Floral Top - Red L', 1200, 1500, 12, '["/images/products/top-1.jpg"]', 'L', 'Red', 'Cotton Blend', 1, 0, 8, 5, 15, datetime('now'), datetime('now')),
-('pv-to-001-4', 'prod-to-001', 'TO-FLO-BLU-S', 'Floral Top - Blue S', 1200, 1500, 10, '["/images/products/top-1.jpg"]', 'S', 'Blue', 'Cotton Blend', 1, 0, 8, 5, 15, datetime('now'), datetime('now')),
-('pv-to-001-5', 'prod-to-001', 'TO-FLO-BLU-M', 'Floral Top - Blue M', 1200, 1500, 12, '["/images/products/top-1.jpg"]', 'M', 'Blue', 'Cotton Blend', 1, 0, 8, 5, 15, datetime('now'), datetime('now')),
-('pv-to-001-6', 'prod-to-001', 'TO-FLO-BLU-L', 'Floral Top - Blue L', 1200, 1500, 10, '["/images/products/top-1.jpg"]', 'L', 'Blue', 'Cotton Blend', 1, 0, 8, 5, 15, datetime('now'), datetime('now')),
-
--- Men Kurta Pyjama Variants (Size variations)
-('pv-me-001-1', 'prod-me-001', 'ME-KUR-S', 'Men Kurta Pyjama - Size S', 3000, 3500, 12, '["/images/products/men-1.jpg"]', 'S', 'White', 'Cotton', 1, 0, 5, 4, 10, datetime('now'), datetime('now')),
-('pv-me-001-2', 'prod-me-001', 'ME-KUR-M', 'Men Kurta Pyjama - Size M', 3000, 3500, 12, '["/images/products/men-1.jpg"]', 'M', 'White', 'Cotton', 1, 1, 5, 4, 10, datetime('now'), datetime('now')),
-('pv-me-001-3', 'prod-me-001', 'ME-KUR-L', 'Men Kurta Pyjama - Size L', 3000, 3500, 10, '["/images/products/men-1.jpg"]', 'L', 'White', 'Cotton', 1, 0, 5, 4, 10, datetime('now'), datetime('now')),
-('pv-me-001-4', 'prod-me-001', 'ME-KUR-XL', 'Men Kurta Pyjama - Size XL', 3000, 3500, 8, '["/images/products/men-1.jpg"]', 'XL', 'White', 'Cotton', 1, 0, 5, 4, 10, datetime('now'), datetime('now'));
-
--- ============================================
--- SUPPLIERS
--- ============================================
-INSERT OR IGNORE INTO suppliers (id, code, name, email, phone, address, city, country, isActive, notes, createdAt, updatedAt)
-VALUES
-('sup-001', 'SUP001', 'Ethnic Fabrics Ltd', 'contact@ethnicfabrics.com', '+91-9876543210', '123 Textile Market, Surat', 'Surat', 'IN', 1, 'Premium fabric supplier for ethnic wear', datetime('now'), datetime('now')),
-('sup-002', 'SUP002', 'Fashion Exports India', 'info@fashionexports.in', '+91-8765432109', '456 Industrial Area, Delhi', 'Delhi', 'IN', 1, 'Ready-made garments exporter', datetime('now'), datetime('now')),
-('sup-003', 'SUP003', 'Dhaka Weavers', 'sales@dhakaweavers.bd', '+880-1712345678', '789 Mirpur Textile Zone', 'Dhaka', 'BD', 1, 'Local traditional weavers', datetime('now'), datetime('now'));
-
--- ============================================
--- PURCHASE ORDERS
--- ============================================
-INSERT OR IGNORE INTO purchase_orders (id, orderNumber, supplierId, status, totalAmount, totalQuantity, orderDate, expectedDate, receivedDate, createdAt, updatedAt)
-VALUES
-('po-001', 'PO-001', 'sup-001', 'RECEIVED', 50000, 50, datetime('now', '-30 days'), datetime('now', '-20 days'), datetime('now', '-20 days'), datetime('now', '-30 days'), datetime('now', '-20 days')),
-('po-002', 'PO-002', 'sup-002', 'ORDERED', 75000, 100, datetime('now', '-10 days'), datetime('now', '+10 days'), null, datetime('now', '-10 days'), datetime('now')),
-('po-003', 'PO-003', 'sup-003', 'PENDING', 30000, 40, datetime('now'), datetime('now', '+15 days'), null, datetime('now'), datetime('now'));
-
--- ============================================
--- PURCHASE ORDER ITEMS
--- ============================================
-INSERT OR IGNORE INTO purchase_order_items (id, purchaseOrderId, productId, variantId, quantity, unitCost, totalCost, receivedQty, createdAt)
-VALUES
--- PO-001 items (RECEIVED)
-('poi-001-1', 'po-001', 'prod-lh-001', null, 10, 8000, 80000, 10, datetime('now', '-30 days')),
-('poi-001-2', 'po-001', 'prod-sa-001', null, 20, 5000, 100000, 20, datetime('now', '-30 days')),
-('poi-001-3', 'po-001', 'prod-me-003', null, 5, 10000, 50000, 5, datetime('now', '-30 days')),
--- PO-002 items (ORDERED)
-('poi-002-1', 'po-002', 'prod-lh-002', null, 15, 7000, 105000, 0, datetime('now', '-10 days')),
-('poi-002-2', 'po-002', 'prod-sa-005', null, 25, 8000, 200000, 0, datetime('now', '-10 days')),
--- PO-003 items (PENDING)
-('poi-003-1', 'po-003', 'prod-sw-001', null, 20, 3000, 60000, 0, datetime('now')),
-('poi-003-2', 'po-003', 'prod-ku-001', null, 20, 1500, 30000, 0, datetime('now'));
-
--- ============================================
--- INVENTORY MOVEMENTS
--- ============================================
-INSERT OR IGNORE INTO inventory_movements (id, productId, variantId, movementType, quantity, unitCost, totalCost, referenceId, referenceType, approved, approvedAt, supplierId, createdAt)
-VALUES
--- Purchase movements
-('im-001', 'prod-lh-001', null, 'PURCHASE', 10, 8000, 80000, 'po-001', 'PURCHASE_ORDER', 1, datetime('now', '-20 days'), 'sup-001', datetime('now', '-20 days')),
-('im-002', 'prod-sa-001', null, 'PURCHASE', 20, 5000, 100000, 'po-001', 'PURCHASE_ORDER', 1, datetime('now', '-20 days'), 'sup-001', datetime('now', '-20 days')),
-('im-003', 'prod-me-003', null, 'PURCHASE', 5, 10000, 50000, 'po-001', 'PURCHASE_ORDER', 1, datetime('now', '-20 days'), 'sup-001', datetime('now', '-20 days')),
--- Sale movements
-('im-004', 'prod-lh-001', null, 'SALE', -1, 8000, -8000, 'order-001', 'ORDER', 1, datetime('now', '-15 days'), null, datetime('now', '-15 days')),
-('im-005', 'prod-me-003', null, 'SALE', -1, 10000, -10000, 'order-001', 'ORDER', 1, datetime('now', '-15 days'), null, datetime('now', '-15 days')),
-('im-006', 'prod-sa-002', null, 'SALE', -2, 5000, -10000, 'order-002', 'ORDER', 1, datetime('now', '-5 days'), null, datetime('now', '-5 days')),
-('im-007', 'prod-lh-002', null, 'SALE', -1, 7000, -7000, 'order-003', 'ORDER', 1, datetime('now'), null, datetime('now')),
-('im-008', 'prod-go-002', null, 'SALE', -1, 15000, -15000, 'order-004', 'ORDER', 1, datetime('now'), null, datetime('now')),
-('im-009', 'prod-me-002', null, 'SALE', -1, 5000, -5000, 'order-004', 'ORDER', 1, datetime('now'), null, datetime('now')),
--- Adjustment movement
-('im-010', 'prod-lh-003', null, 'ADJUSTMENT', 5, 6000, 30000, 'adj-001', 'ADJUSTMENT', 1, datetime('now', '-25 days'), null, datetime('now', '-25 days'));
-
--- ============================================
--- INVENTORY ADJUSTMENTS
--- ============================================
-INSERT OR IGNORE INTO inventory_adjustments (id, productId, variantId, adjustmentType, quantityBefore, quantityAfter, quantityDiff, reason, approvedBy, approved, approvedAt, createdAt)
-VALUES
-('adj-001', 'prod-lh-003', null, 'CORRECTION', 10, 15, 5, 'Stock count correction - found additional items', 'user-admin-001', 1, datetime('now', '-25 days'), datetime('now', '-25 days')),
-('adj-002', 'prod-sa-004', null, 'DAMAGE', 30, 28, -2, '2 sarees damaged during handling', 'user-staff-001', 1, datetime('now', '-15 days'), datetime('now', '-15 days')),
-('adj-003', 'prod-sw-002', null, 'STOCK_TAKE', 20, 22, 2, 'Annual stock take correction', 'user-admin-001', 1, datetime('now', '-10 days'), datetime('now', '-10 days'));
-
--- ============================================
--- SUMMARY
--- ============================================
--- Categories: 7
--- Brands: 3
--- Products: 35
--- Product Variants: 20
--- Users: 9 (1 admin + 3 staff + 5 customers)
--- Addresses: 3
--- Orders: 4
--- Order Items: 6
--- Cart Items: 3
--- Wishlist Items: 5
--- Product Reviews: 7
--- Stories: 5
--- Reels: 5
--- Promotions: 3
--- Banners: 3
--- Homepage Settings: 14
--- Inventory Alerts: 3
--- Admin Logs: 5
--- Posts: 3
--- Site Settings: 1
--- Payment Gateways: 3
--- Shipping Carriers: 2
--- Email Services: 1
--- Analytics Integrations: 1
--- Suppliers: 3
--- Purchase Orders: 3
--- Purchase Order Items: 8
--- Inventory Movements: 10
--- Inventory Adjustments: 3
-
--- ============================================
--- PAGE SEO
--- ============================================
-INSERT OR IGNORE INTO page_seo (id, pagePath, pageTitle, metaTitle, metaDescription, keywords, ogTitle, ogDescription, ogImage, canonicalUrl, robots, isActive, createdAt, updatedAt)
-VALUES
-('seo-home', '/', 'SCommerce - Premium Ethnic Wear', 'SCommerce | Premium Ethnic Wear for Modern Women', 'Discover beautiful ethnic wear including lehengas, sarees, salwar suits, kurtas and more. Premium quality, authentic designs.', 'ethnic wear, lehenga, saree, salwar suit, kurta, indian clothing, traditional wear', 'SCommerce - Premium Ethnic Wear', 'Discover beautiful ethnic wear including lehengas, sarees, salwar suits, kurtas and more.', 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=1200&h=630&fit=crop', 'https://scommerce.demo-web.workers.dev/', 'index, follow', 1, datetime('now'), datetime('now')),
-('seo-shop', '/shop', 'Shop All Products - SCommerce', 'Shop All Products | SCommerce', 'Browse our complete collection of ethnic wear. Find the perfect lehenga, saree, salwar suit, kurta or gown for any occasion.', 'shop, products, ethnic wear, online shopping', 'Shop All Products | SCommerce', 'Browse our complete collection of ethnic wear at SCommerce.', 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200&h=630&fit=crop', 'https://scommerce.demo-web.workers.dev/shop', 'index, follow', 1, datetime('now'), datetime('now')),
-('seo-about', '/about', 'About Us - SCommerce', 'About Us | SCommerce', 'Learn about SCommerce - your destination for premium ethnic wear. Our story, mission, and commitment to quality.', 'about us, our story, ethnic wear, mission', 'About Us - SCommerce', 'Learn about SCommerce - your destination for premium ethnic wear.', 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&h=630&fit=crop', 'https://scommerce.demo-web.workers.dev/about', 'index, follow', 1, datetime('now'), datetime('now')),
-('seo-contact', '/contact', 'Contact Us - SCommerce', 'Contact Us | SCommerce', 'Get in touch with SCommerce. Find our contact information, store address, and customer support details.', 'contact us, customer support, store location', 'Contact Us - SCommerce', 'Get in touch with SCommerce for any queries or support.', 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=1200&h=630&fit=crop', 'https://scommerce.demo-web.workers.dev/contact', 'index, follow', 1, datetime('now'), datetime('now'));
-
--- Re-enable foreign key constraints after seeding
-PRAGMA foreign_keys = ON;
-
--- SUMMARY
--- Categories: 7
--- Brands: 3
--- Products: 35
--- Product Variants: 20
--- Users: 9 (1 admin + 3 staff + 5 customers)
--- Addresses: 3
--- Orders: 4
--- Order Items: 6
--- Cart Items: 3
--- Wishlist Items: 5
--- Product Reviews: 7
--- Stories: 5
--- Reels: 5
--- Promotions: 3
--- Banners: 3
--- Homepage Settings: 14
--- Inventory Alerts: 3
--- Admin Logs: 5
--- Posts: 3
--- Site Settings: 1
--- Payment Gateways: 3
--- Shipping Carriers: 2
--- Email Services: 1
--- Analytics Integrations: 1
--- Suppliers: 3
--- Purchase Orders: 3
--- Purchase Order Items: 8
--- Inventory Movements: 10
--- Inventory Adjustments: 3
--- Page SEO: 4
--- Total Tables: 33
+-- Insert Default Shipping Carrier
+INSERT INTO shipping_carriers (id, name, provider, is_active, is_default) VALUES
+('shipping-default', 'Standard Delivery', 'custom', 1, 1);

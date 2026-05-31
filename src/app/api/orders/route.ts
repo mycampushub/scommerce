@@ -267,9 +267,9 @@ export async function POST(request: NextRequest) {
         actualName = variant.name || item.productName;
       } else {
         // Get product price from database
-        const product = await queryFirst<{ price: number; basePrice: number; discountPrice: number | null; discount: number; name: string }>(
+        const product = await queryFirst<{ price: number; basePrice: number; comparePrice: number | null; discount: number; name: string }>(
           env,
-          'SELECT price, basePrice, discountPrice, discount, name FROM products WHERE id = ? LIMIT 1',
+          'SELECT price, basePrice, comparePrice, discount, name FROM products WHERE id = ? LIMIT 1',
           item.productId
         );
 
@@ -283,7 +283,7 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        actualPrice = product.discountPrice || product.basePrice || product.price;
+        actualPrice = product.comparePrice || product.basePrice || product.price;
         actualName = product.name || item.productName;
       }
 

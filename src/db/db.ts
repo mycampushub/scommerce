@@ -107,7 +107,9 @@ const ALLOWED_TABLES = [
   'banners', 'media', 'product_reviews', 'inventory_adjustments',
   'inventory_movements', 'inventory_reservations', 'purchase_orders',
   'purchase_order_items', 'suppliers', 'homepage_settings', 'admin_logs',
-  'site_settings'
+  'site_settings', 'addresses', 'analytics_integrations', 'email_services',
+  'inventory_alerts', 'payment_gateways', 'posts', 'product_color_images',
+  'reels', 'shipping_carriers', 'stories', 'wishlist_items', 'page_seo'
 ];
 
 /**

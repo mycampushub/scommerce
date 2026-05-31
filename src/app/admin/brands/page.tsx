@@ -894,7 +894,7 @@ export default function BrandsPage() {
                   <SelectValue placeholder="Select country" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No country selected</SelectItem>
+                  <SelectItem value="none">No country selected</SelectItem>
                   {COUNTRIES.map((country) => (
                     <SelectItem key={country.code} value={country.code}>
                       {country.name}
@@ -1066,7 +1066,7 @@ export default function BrandsPage() {
                   <SelectValue placeholder="Select country" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No country selected</SelectItem>
+                  <SelectItem value="none">No country selected</SelectItem>
                   {COUNTRIES.map((country) => (
                     <SelectItem key={country.code} value={country.code}>
                       {country.name}
