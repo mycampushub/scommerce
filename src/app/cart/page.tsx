@@ -22,9 +22,11 @@ export default function CartPage() {
   const clearLocalCart = useCartStore(state => state.clearCart)
   const addItem = useCartStore(state => state.addItem)
 
-  const [items, setItems] = useState(localItems)
-  const [loading, setLoading] = useState(true)
+  // For authenticated users, use server cart state; for guests, use local zustand store directly
+  const [items, setItems] = useState<ReturnType<typeof useCartStore.getState>['items']>([])
+  const [loading, setLoading] = useState(!!user) // Only show loading for authenticated users
   const [hasSynced, setHasSynced] = useState(false) // Track if we've synced for this session
+
   const updateQuantity = async (id: string, quantity: number, variantId?: string) => {
     if (quantity < 1) return
 
@@ -68,8 +70,9 @@ export default function CartPage() {
         })
       }
     } else {
-      // For guest users, update local storage
+      // For guest users, update local zustand store AND local state
       localUpdateQuantity(id, quantity, variantId)
+      setItems(localItems) // Sync local state with updated store
     }
   }
 
@@ -110,8 +113,9 @@ export default function CartPage() {
         })
       }
     } else {
-      // For guest users, update local storage
+      // For guest users, update local zustand store AND local state
       localRemoveItem(id, variantId)
+      setItems(localItems) // Sync local state with updated store
     }
   }
 
@@ -182,6 +186,7 @@ export default function CartPage() {
               color: item.color,
               material: item.material,
               quantity: item.quantity,
+              slug: item.slug || item.product?.slug || '',
             }))
 
             // Update items state from server
@@ -203,16 +208,20 @@ export default function CartPage() {
           setHasSynced(true)
         }
       } else if (!user) {
-        // Not authenticated, use local storage and reset sync flag
+        // Not authenticated, use local zustand store directly
         setItems(localItems)
         setHasSynced(false)
+        setLoading(false)
+      } else {
+        // Already synced, no need to fetch again
+        setLoading(false)
       }
-      setLoading(false)
     }
 
     // Only fetch on initial mount and when user changes (NOT on localItems changes)
+    // But re-sync when user logs in
     fetchServerCart()
-  }, [user])
+  }, [user, hasSynced, localItems])
 
   // Fetch site settings for shipping thresholds
   useEffect(() => {
@@ -350,7 +359,7 @@ export default function CartPage() {
                     {/* Desktop Layout: Horizontal */}
                     <div className="hidden md:flex gap-4 md:gap-6">
                       <div className="w-24 md:w-28 flex-shrink-0">
-                        <Link href={`/product/${item.slug}`}>
+                        <Link href={`/product/${item.slug || ''}`}>
                           <img
                             src={item.image}
                             alt={item.name}
@@ -361,7 +370,7 @@ export default function CartPage() {
                       <div className="flex-1 min-w-0 flex flex-col justify-between">
                         <div className="flex justify-between items-start gap-4">
                           <div className="flex-1 min-w-0">
-                            <Link href={`/product/${item.slug}`}>
+                            <Link href={`/product/${item.slug || ''}`}>
                               <h3 className="font-semibold text-base text-gray-900 mb-1 line-clamp-2 hover:text-pink-600 transition-colors">
                                 {item.name}
                               </h3>
@@ -407,7 +416,7 @@ export default function CartPage() {
                     {/* Mobile Layout: Vertical with better spacing */}
                     <div className="flex md:hidden gap-3">
                       <div className="w-20 flex-shrink-0">
-                        <Link href={`/product/${item.slug}`}>
+                        <Link href={`/product/${item.slug || ''}`}>
                           <img
                             src={item.image}
                             alt={item.name}
@@ -417,7 +426,7 @@ export default function CartPage() {
                       </div>
                       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
                         <div className="flex justify-between items-start gap-2 mb-2 min-w-0">
-                          <Link href={`/product/${item.slug}`} className="flex-1 min-w-0">
+                          <Link href={`/product/${item.slug || ''}`} className="flex-1 min-w-0">
                             <h3 className="font-semibold text-sm text-gray-900 line-clamp-2 hover:text-pink-600 transition-colors">
                               {item.name}
                             </h3>

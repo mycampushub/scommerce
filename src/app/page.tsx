@@ -946,6 +946,7 @@ function BrandCarousel({ sectionEnabled = true }: { sectionEnabled?: boolean }) 
         const settingsData = await settingsRes.json() as any
         const brandsData = await brandsRes.json() as any
 
+        // Always update settings if successful
         if (settingsData.success) {
           setIsEnabled(settingsData.data.isEnabled !== undefined ? settingsData.data.isEnabled : true)
           setAutoScroll(settingsData.data.autoScroll !== undefined ? settingsData.data.autoScroll : true)
@@ -963,12 +964,30 @@ function BrandCarousel({ sectionEnabled = true }: { sectionEnabled?: boolean }) 
             // Otherwise, show all featured brands
             setBrands(brandsData.data || [])
           }
-        } else if (brandsData.success) {
-          // Fallback to all featured brands if settings fail
-          setBrands(brandsData.data || [])
+        } else {
+          // If settings fail, use defaults and try to show featured brands
+          setIsEnabled(true)
+          setAutoScroll(true)
+          setScrollInterval(4000)
+          setHeading('Featured Brands')
+          setDescription('Discover top brands in our collection')
+
+          if (brandsData.success) {
+            setBrands(brandsData.data || [])
+          }
         }
       } catch (error) {
         console.error('Error fetching brand carousel settings:', error)
+        // On error, show all featured brands if available
+        try {
+          const brandsRes = await fetch('/api/brands?featured=true')
+          const brandsData = await brandsRes.json() as any
+          if (brandsData.success) {
+            setBrands(brandsData.data || [])
+          }
+        } catch (e) {
+          console.error('Error fetching featured brands:', e)
+        }
       } finally {
         setLoading(false)
       }
@@ -1175,10 +1194,14 @@ function VideoReels({ reels, sectionEnabled = true }: { reels: VideoReel[]; sect
         const res = await fetch('/api/homepage/reels-carousel')
         const data = await res.json() as any
         if (data.success) {
+          const autoPlayValue = typeof data.data.autoPlay === 'number'
+            ? Math.max(1000, data.data.autoPlay)
+            : 3000
+
           setCarouselSettings({
             isEnabled: data.data.isEnabled !== undefined ? data.data.isEnabled : true,
             autoScroll: data.data.autoScroll !== undefined ? data.data.autoScroll : true,
-            autoPlay: data.data.autoPlay || 3000,
+            autoPlay: autoPlayValue,
             heading: data.data.heading || 'Trending Reels',
             description: data.data.description || 'Watch the latest video content'
           })
@@ -2447,6 +2470,85 @@ export default function Home() {
     return section ? section.enabled : true // Default to enabled if not found
   }
 
+  // Get sections in the correct order based on section-manager
+  const getOrderedSections = () => {
+    // Define all available sections with their render functions
+    const sectionDefinitions = [
+      {
+        id: 'fullscreen-video',
+        render: () => <FullscreenVideo sectionEnabled={isSectionEnabled('fullscreen-video')} />,
+        shouldRender: () => isSectionEnabled('fullscreen-video')
+      },
+      {
+        id: 'hero-slider',
+        render: () => <HeroCarousel banners={banners} autoPlay={homepageSettings.banners?.autoPlay} />,
+        shouldRender: () => isSectionEnabled('hero-slider') && homepageSettings.banners?.isEnabled !== false && banners.length > 0
+      },
+      {
+        id: 'marquee',
+        render: () => <SectionMarquee sectionEnabled={isSectionEnabled('marquee')} />,
+        shouldRender: () => isSectionEnabled('marquee')
+      },
+      {
+        id: 'stories',
+        render: () => <Stories stories={stories} autoPlay={homepageSettings.stories?.autoPlay} />,
+        shouldRender: () => isSectionEnabled('stories') && homepageSettings.stories?.isEnabled !== false && stories.length > 0
+      },
+      {
+        id: 'category-carousel',
+        render: () => <CategoryCarousel allCategories={categories} products={[...featuredProducts, ...saleProducts, ...newProducts, ...trendingProducts]} />,
+        shouldRender: () => isSectionEnabled('category-carousel') && categories.length > 0 && featuredProducts.length > 0
+      },
+      {
+        id: 'categories',
+        render: () => <Categories categories={categories} />,
+        shouldRender: () => isSectionEnabled('categories') && categories.length > 0
+      },
+      {
+        id: 'brands',
+        render: () => <BrandCarousel sectionEnabled={isSectionEnabled('brands')} />,
+        shouldRender: () => isSectionEnabled('brands')
+      },
+      {
+        id: 'video-reels',
+        render: () => <VideoReels reels={reels} />,
+        shouldRender: () => isSectionEnabled('video-reels') && homepageSettings.reels?.isEnabled !== false && reels.length > 0
+      },
+      {
+        id: 'featured-products',
+        render: () => <FeaturedCollection products={featuredProducts} onQuickView={openQuickView} onAddToCart={addToCart} heading={featuredProductsSettings.heading} description={featuredProductsSettings.description} />,
+        shouldRender: () => isSectionEnabled('featured-products') && featuredProductsSettings.enabled && featuredProducts.length > 0
+      },
+      {
+        id: 'mosaic-grid',
+        render: () => <MosaicGrid products={mosaicProducts} onQuickView={openQuickView} onAddToCart={addToCart} heading={mosaicGridSettings.heading} description={mosaicGridSettings.description} />,
+        shouldRender: () => isSectionEnabled('mosaic-grid') && mosaicGridSettings.enabled && mosaicProducts.length > 0
+      },
+      {
+        id: 'promotions',
+        render: () => <PromotionRow promotions={promotions} />,
+        shouldRender: () => isSectionEnabled('promotions') && homepageSettings.promotions?.isEnabled !== false && promotions.length > 0
+      },
+    ]
+
+    // If section manager is not loaded, use default order
+    if (!sectionManager || !sectionManager.sections) {
+      return sectionDefinitions.filter(s => s.shouldRender())
+    }
+
+    // Sort sections based on their order in section-manager
+    return sectionDefinitions
+      .map(sectionDef => {
+        const sectionConfig = sectionManager.sections.find(s => s.id === sectionDef.id)
+        return {
+          ...sectionDef,
+          order: sectionConfig?.order || 999
+        }
+      })
+      .sort((a, b) => a.order - b.order)
+      .filter(s => s.shouldRender())
+  }
+
   const openQuickView = (product: Product) => {
     setQuickViewProduct(product)
     setQuickViewOpen(true)
@@ -2469,37 +2571,13 @@ export default function Home() {
     <div className="min-h-screen flex flex-col bg-white">
       <Header />
       <main className="w-full flex-grow pb-24 md:pb-0">
-        {/* Banners - only show if enabled and has data */}
-        {isSectionEnabled('hero-slider') && homepageSettings.banners?.isEnabled !== false && banners.length > 0 && (
-          <HeroCarousel banners={banners} autoPlay={homepageSettings.banners?.autoPlay} />
-        )}
-        {/* Marquee - controlled by section-manager */}
-        <SectionMarquee sectionEnabled={isSectionEnabled('marquee')} />
-        {/* Stories - only show if enabled and has data */}
-        {isSectionEnabled('stories') && homepageSettings.stories?.isEnabled !== false && stories.length > 0 && (
-          <Stories stories={stories} autoPlay={homepageSettings.stories?.autoPlay} />
-        )}
-        {/* Category Carousel with Products - controlled by section-manager */}
-        {isSectionEnabled('category-carousel') && categories.length > 0 && featuredProducts.length > 0 && (
-          <CategoryCarousel allCategories={categories} products={[...featuredProducts, ...saleProducts, ...newProducts, ...trendingProducts]} />
-        )}
-        {/* Fullscreen Video - controlled by section-manager */}
-        <FullscreenVideo sectionEnabled={isSectionEnabled('fullscreen-video')} />
-        {/* Categories - controlled by section-manager */}
-        {isSectionEnabled('categories') && categories.length > 0 && <Categories categories={categories} />}
-        {/* Brand Carousel - controlled by section-manager */}
-        <BrandCarousel sectionEnabled={isSectionEnabled('brands')} />
-        {/* Reels - only show if enabled and has data */}
-        {isSectionEnabled('video-reels') && homepageSettings.reels?.isEnabled !== false && reels.length > 0 && (
-          <VideoReels reels={reels} />
-        )}
-        {/* Featured Products - only show if enabled and has data */}
-        {isSectionEnabled('featured-products') && featuredProductsSettings.enabled && featuredProducts.length > 0 && <FeaturedCollection products={featuredProducts} onQuickView={openQuickView} onAddToCart={addToCart} heading={featuredProductsSettings.heading} description={featuredProductsSettings.description} />}
-        {isSectionEnabled('mosaic-grid') && mosaicGridSettings.enabled && mosaicProducts.length > 0 && <MosaicGrid products={mosaicProducts} onQuickView={openQuickView} onAddToCart={addToCart} heading={mosaicGridSettings.heading} description={mosaicGridSettings.description} />}
-        {/* Promotions - only show if enabled and has data */}
-        {isSectionEnabled('promotions') && homepageSettings.promotions?.isEnabled !== false && promotions.length > 0 && (
-          <PromotionRow promotions={promotions} />
-        )}
+        {/* Render sections in the configured order */}
+        {getOrderedSections().map(section => (
+          <React.Fragment key={section.id}>
+            {section.render()}
+          </React.Fragment>
+        ))}
+        {/* StickyImageCards is always shown at the end */}
         <StickyImageCards />
       </main>
       <Footer />

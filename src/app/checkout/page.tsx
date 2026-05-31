@@ -162,6 +162,7 @@ export default function CheckoutPage() {
               color: item.color,
               material: item.material,
               quantity: item.quantity,
+              slug: item.slug || item.product?.slug || '',
             }))
 
             setServerCartItems(transformedItems)
@@ -188,7 +189,7 @@ export default function CheckoutPage() {
     }
 
     fetchServerCart()
-  }, [user, items])
+  }, [user, hasFetchedServerCart])
 
 
   // Fetch site settings for tax rate and shipping threshold
