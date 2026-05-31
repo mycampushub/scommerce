@@ -42,6 +42,7 @@
     "examples",
     "skills",
     "prisma/*.ts",
-    "scripts"
+    "scripts",
+    "mini-services"
   ]
 }
