@@ -225,15 +225,23 @@ VALUES
 -- ============================================
 -- HOMEPAGE SETTINGS
 -- ============================================
-INSERT OR IGNORE INTO homepage_settings (id, sectionName, isEnabled, autoPlay, displayLimit, settings, updatedAt)
+-- Homepage settings with detailed configurations from migration
+INSERT OR IGNORE INTO homepage_settings (id, sectionName, isEnabled, autoPlay, displayLimit, settings, createdAt, updatedAt)
 VALUES
-('hp-1', 'hero-slider', 1, 5000, 5, null, datetime('now')),
-('hp-2', 'categories', 1, 5000, 7, null, datetime('now')),
-('hp-3', 'featured-products', 1, 5000, 8, null, datetime('now')),
-('hp-4', 'new-arrivals', 1, 5000, 8, null, datetime('now')),
-('hp-5', 'banners', 1, 5000, 3, null, datetime('now')),
-('hp-6', 'stories', 1, 5000, 5, null, datetime('now')),
-('hp-7', 'reels', 1, 0, 5, null, datetime('now'));
+('hp-1', 'banners', 1, 5000, 3, NULL, datetime('now'), datetime('now')),
+('hp-2', 'brands', 1, 5000, NULL, '{"heading":"Featured Brands","description":"Discover top brands in our collection","autoScroll":true,"scrollInterval":4000,"brandIds":["brand-001","brand-003"]}', datetime('now'), datetime('now')),
+('hp-3', 'categories', 1, 5000, 7, NULL, datetime('now'), datetime('now')),
+('hp-4', 'category-carousel', 1, 0, NULL, '{"heading":"Shop by Category","description":"Browse our wide range of categories","autoScroll":true,"scrollInterval":4000}', datetime('now'), datetime('now')),
+('hp-5', 'featured_products', 1, 5000, 8, '{"heading":"Featured Products","description":"Discover our handpicked selection of top products","productIds":["prod-lh-001","prod-lh-002","prod-lh-003","prod-lh-005","prod-lh-004","prod-sa-001","prod-sa-002","prod-sa-003"]}', datetime('now'), datetime('now')),
+('hp-6', 'fullscreen-video', 1, 0, NULL, '{"heading":"Featured Video","description":"Experience our exclusive video content","videoUrl":""}', datetime('now'), datetime('now')),
+('hp-7', 'hero-slider', 1, 5000, 5, NULL, datetime('now'), datetime('now')),
+('hp-8', 'marquee', 1, 0, NULL, '{"text":"Welcome to SCommerce! Free shipping on orders over $50","speed":5000}', datetime('now'), datetime('now')),
+('hp-9', 'mosaic_grid', 1, 0, NULL, '{"heading":"Shop the Look","description":"Explore our curated collection of trending styles","productIds":["prod-lh-001","prod-lh-002","prod-lh-003","prod-lh-004","prod-lh-005","prod-sa-001"]}', datetime('now'), datetime('now')),
+('hp-10', 'new-arrivals', 1, 5000, 8, NULL, datetime('now'), datetime('now')),
+('hp-11', 'reels', 1, 0, 5, NULL, datetime('now'), datetime('now')),
+('hp-12', 'reels-carousel', 1, 0, NULL, '{"heading":"Trending Reels","description":"Watch our latest video content","autoPlay":true}', datetime('now'), datetime('now')),
+('hp-13', 'section-manager', 1, 0, NULL, '{"sections":[{"id":"fullscreen-video","name":"Fullscreen Video","order":1,"enabled":true},{"id":"hero-slider","name":"Hero Carousel","order":2,"enabled":true},{"id":"marquee","name":"Marquee Banner","order":3,"enabled":true},{"id":"categories","name":"Categories","order":4,"enabled":true},{"id":"category-carousel","name":"Category Carousel","order":5,"enabled":true},{"id":"brands","name":"Brand Carousel","order":6,"enabled":true},{"id":"featured_products","name":"Featured Products","order":7,"enabled":true},{"id":"mosaic_grid","name":"Mosaic Grid","order":8,"enabled":true},{"id":"video-reels","name":"Video Reels","order":9,"enabled":true},{"id":"promotions","name":"Promotions","order":10,"enabled":true},{"id":"stories","name":"Stories","order":11,"enabled":true}]}', datetime('now'), datetime('now')),
+('hp-14', 'stories', 1, 5000, 5, NULL, datetime('now'), datetime('now'));
 
 -- ============================================
 -- SITE SETTINGS
@@ -424,7 +432,7 @@ VALUES
 -- Reels: 5
 -- Promotions: 3
 -- Banners: 3
--- Homepage Settings: 7
+-- Homepage Settings: 14
 -- Inventory Alerts: 3
 -- Admin Logs: 5
 -- Posts: 3
@@ -439,28 +447,48 @@ VALUES
 -- Inventory Movements: 10
 -- Inventory Adjustments: 3
 
+-- ============================================
+-- PAGE SEO
+-- ============================================
+INSERT OR IGNORE INTO page_seo (id, pagePath, pageTitle, metaTitle, metaDescription, keywords, ogTitle, ogDescription, ogImage, canonicalUrl, robots, isActive, createdAt, updatedAt)
+VALUES
+('seo-home', '/', 'SCommerce - Premium Ethnic Wear', 'SCommerce | Premium Ethnic Wear for Modern Women', 'Discover beautiful ethnic wear including lehengas, sarees, salwar suits, kurtas and more. Premium quality, authentic designs.', 'ethnic wear, lehenga, saree, salwar suit, kurta, indian clothing, traditional wear', 'SCommerce - Premium Ethnic Wear', 'Discover beautiful ethnic wear including lehengas, sarees, salwar suits, kurtas and more.', 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=1200&h=630&fit=crop', 'https://scommerce.demo-web.workers.dev/', 'index, follow', 1, datetime('now'), datetime('now')),
+('seo-shop', '/shop', 'Shop All Products - SCommerce', 'Shop All Products | SCommerce', 'Browse our complete collection of ethnic wear. Find the perfect lehenga, saree, salwar suit, kurta or gown for any occasion.', 'shop, products, ethnic wear, online shopping', 'Shop All Products | SCommerce', 'Browse our complete collection of ethnic wear at SCommerce.', 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200&h=630&fit=crop', 'https://scommerce.demo-web.workers.dev/shop', 'index, follow', 1, datetime('now'), datetime('now')),
+('seo-about', '/about', 'About Us - SCommerce', 'About Us | SCommerce', 'Learn about SCommerce - your destination for premium ethnic wear. Our story, mission, and commitment to quality.', 'about us, our story, ethnic wear, mission', 'About Us - SCommerce', 'Learn about SCommerce - your destination for premium ethnic wear.', 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&h=630&fit=crop', 'https://scommerce.demo-web.workers.dev/about', 'index, follow', 1, datetime('now'), datetime('now')),
+('seo-contact', '/contact', 'Contact Us - SCommerce', 'Contact Us | SCommerce', 'Get in touch with SCommerce. Find our contact information, store address, and customer support details.', 'contact us, customer support, store location', 'Contact Us - SCommerce', 'Get in touch with SCommerce for any queries or support.', 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=1200&h=630&fit=crop', 'https://scommerce.demo-web.workers.dev/contact', 'index, follow', 1, datetime('now'), datetime('now'));
+
 -- Re-enable foreign key constraints after seeding
 PRAGMA foreign_keys = ON;
 
--- ============================================
--- PROMOTIONS
--- ============================================
-INSERT OR IGNORE INTO promotions (id, title, description, image, ctaText, ctaLink, type, isActive, `order`, createdAt, updatedAt)
-VALUES
-('promo-001', 'Summer Sale', 'Up to 50% off on all summer collection', '/images/promotions/summer-sale.svg', 'Shop Now', '/shop', 'banner', 1, 1, datetime('now'), datetime('now')),
-('promo-002', 'Free Shipping', 'Free shipping on orders over 5000', '/images/promotions/free-shipping.svg', 'Learn More', '/shop', 'banner', 1, 2, datetime('now'), datetime('now')),
-('promo-003', 'New Collection', 'Check out our latest arrivals', '/images/promotions/new-collection.svg', 'View Collection', '/shop', 'banner', 1, 3, datetime('now'), datetime('now'));
-
--- ============================================
--- HOMEPAGE SETTINGS - Brands Section
--- ============================================
-INSERT OR IGNORE INTO homepage_settings (id, sectionName, isEnabled, autoPlay, displayLimit, settings, createdAt, updatedAt)
-VALUES
-('hp-brands', 'brands', 1, 5000, null, '{"autoScroll": true, "scrollInterval": 4000, "brandIds": []}', datetime('now'), datetime('now'));
-
--- ============================================
--- HOMEPAGE SETTINGS - Fullscreen Video Section
--- ============================================
-INSERT OR IGNORE INTO homepage_settings (id, sectionName, isEnabled, autoPlay, displayLimit, settings, createdAt, updatedAt)
-VALUES
-('hp-fullscreen-video', 'fullscreen-video', 1, null, null, '{"videoUrl": "https://www.youtube-nocookie.com/embed/Gk-s0icT2CI?autoplay=1&mute=1&loop=1&playlist=Gk-s0icT2CI&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&playsinline=1"}', datetime('now'), datetime('now'));
+-- SUMMARY
+-- Categories: 7
+-- Brands: 3
+-- Products: 35
+-- Product Variants: 20
+-- Users: 9 (1 admin + 3 staff + 5 customers)
+-- Addresses: 3
+-- Orders: 4
+-- Order Items: 6
+-- Cart Items: 3
+-- Wishlist Items: 5
+-- Product Reviews: 7
+-- Stories: 5
+-- Reels: 5
+-- Promotions: 3
+-- Banners: 3
+-- Homepage Settings: 14
+-- Inventory Alerts: 3
+-- Admin Logs: 5
+-- Posts: 3
+-- Site Settings: 1
+-- Payment Gateways: 3
+-- Shipping Carriers: 2
+-- Email Services: 1
+-- Analytics Integrations: 1
+-- Suppliers: 3
+-- Purchase Orders: 3
+-- Purchase Order Items: 8
+-- Inventory Movements: 10
+-- Inventory Adjustments: 3
+-- Page SEO: 4
+-- Total Tables: 33

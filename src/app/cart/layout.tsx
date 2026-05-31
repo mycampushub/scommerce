@@ -1,16 +1,13 @@
 import { Metadata } from 'next'
+import { getSeoMetadata, seoToMetadata } from '@/lib/seo'
 
 export async function generateMetadata(): Promise<Metadata> {
-  return {
+  const seo = await getSeoMetadata('/cart')
+
+  return seoToMetadata(seo, {
     title: 'Shopping Cart - SCommerce',
-    description: 'Review your selected items and proceed to checkout. Manage quantities and apply promo codes.',
-    keywords: 'cart, shopping, basket, review items, checkout',
-    openGraph: {
-      title: 'Shopping Cart - SCommerce',
-      description: 'Review your selected items and proceed to checkout. Manage quantities and apply promo codes.',
-      type: 'website',
-    },
-  }
+    description: 'Review your selected items in the shopping cart. Complete your purchase with secure checkout and free shipping on eligible orders.',
+  })
 }
 
 export default function CartLayout({ children }: { children: React.ReactNode }) {

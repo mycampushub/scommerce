@@ -15,11 +15,15 @@ import { SettingsProvider } from "@/contexts/SettingsContext";
 const inter = Inter({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  display: 'swap',
+  preload: false,
 });
 
 const jetbrainsMono = JetBrains_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: 'swap',
+  preload: false,
 });
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://yourdomain.com";

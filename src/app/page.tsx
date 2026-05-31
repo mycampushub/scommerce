@@ -252,10 +252,12 @@ function HeroCarousel({ banners, autoPlay = 5000 }: { banners: Banner[], autoPla
                   setTimeout(() => setIsTransitioning(false), 500)
                 }
               }}
-              className={`w-2 h-2 rounded-full transition-all ${index === currentIndex ? 'bg-white w-6' : 'bg-white/50'}`}
+              className={`min-w-[44px] min-h-[44px] flex items-center justify-center p-2 transition-all`}
               aria-label={`Page dot ${index + 1}`}
               aria-current={index === currentIndex ? 'step' : undefined}
-            />
+            >
+              <span className={`w-2 h-2 rounded-full transition-all ${index === currentIndex ? 'bg-white w-6' : 'bg-white/50'}`} />
+            </button>
           ))}
         </div>
       </div>
@@ -761,12 +763,14 @@ function CategoryCarousel({ allCategories, products }: { allCategories: Category
               <button
                 key={index}
                 onClick={() => goToSlide(index)}
-                className={`h-2 rounded-full transition-all ${
-                  index === currentIndex ? 'bg-pink-600 w-6' : 'bg-gray-300 w-2 hover:bg-gray-400'
-                }`}
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 transition-all"
                 aria-label={`Go to category ${index + 1}`}
                 aria-current={index === currentIndex ? 'step' : undefined}
-              />
+              >
+                <span className={`h-2 rounded-full transition-all ${
+                  index === currentIndex ? 'bg-pink-600 w-6' : 'bg-gray-300 w-2 hover:bg-gray-400'
+                }`} />
+              </button>
             ))}
           </div>
         </div>
@@ -856,7 +860,7 @@ function Categories({ categories }: { categories: Category[] }) {
                     className="text-center font-medium text-[11px] mt-2 leading-tight block w-[90px] transition-colors group-hover:text-pink-600"
                     data-testid={`category-menu-item-${index}-text`}
                     style={{
-                      color: '#8c8b8b',
+                      color: '#4b5563',
                       display: '-webkit-box',
                       WebkitLineClamp: 3,
                       WebkitBoxOrient: 'vertical',
@@ -898,7 +902,7 @@ function Categories({ categories }: { categories: Category[] }) {
                     className="text-center font-medium text-[13px] mt-2 leading-tight block transition-colors group-hover:text-pink-600"
                     data-testid={`category-menu-item-${index}-text-desktop`}
                     style={{
-                      color: '#8c8b8b',
+                      color: '#4b5563',
                       display: '-webkit-box',
                       WebkitLineClamp: 3,
                       WebkitBoxOrient: 'vertical',
@@ -1073,12 +1077,14 @@ function BrandCarousel() {
               <button
                 key={index}
                 onClick={() => goToSlide(index)}
-                className={`h-2 rounded-full transition-all ${
-                  index === currentIndex ? 'bg-pink-600 w-6' : 'bg-gray-300 w-2 hover:bg-gray-400'
-                }`}
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 transition-all"
                 aria-label={`Go to brand ${index + 1}`}
                 aria-current={index === currentIndex ? 'step' : undefined}
-              />
+              >
+                <span className={`h-2 rounded-full transition-all ${
+                  index === currentIndex ? 'bg-pink-600 w-6' : 'bg-gray-300 w-2 hover:bg-gray-400'
+                }`} />
+              </button>
             ))}
           </div>
         </div>
@@ -1468,12 +1474,14 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
                 <button
                   key={index}
                   onClick={() => !isTransitioning && handleCardClick(index)}
-                  className={`h-2 rounded-full transition-all duration-300 flex-shrink-0 ${
-                    isActive ? 'w-8 bg-pink-600' : 'w-2 bg-gray-300 hover:bg-gray-400'
-                  }`}
+                  className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 transition-all duration-300 flex-shrink-0"
                   aria-label={`Go to slide ${index + 1}`}
                   aria-current={isActive ? 'step' : undefined}
-                />
+                >
+                  <span className={`h-2 rounded-full transition-all duration-300 flex-shrink-0 ${
+                    isActive ? 'w-8 bg-pink-600' : 'w-2 bg-gray-300 hover:bg-gray-400'
+                  }`} />
+                </button>
               )
             })}
           </div>

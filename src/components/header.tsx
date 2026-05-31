@@ -31,20 +31,31 @@ export function Header() {
   const fetchWishlistCount = async () => {
     try {
       const response = await fetch('/api/wishlist')
+      if (response.status === 401) {
+        // User not authenticated, clear the count
+        setWishlistCount(0)
+        return
+      }
       const data = await response.json() as any
-      if (data.success) {
+      if (data.success && Array.isArray(data.data)) {
         setWishlistCount(data.data.length)
+      } else {
+        setWishlistCount(0)
       }
     } catch (error) {
       console.error('Error fetching wishlist count:', error)
+      setWishlistCount(0)
     }
   }
 
   React.useEffect(() => {
-    if (isAuthenticated && hasMounted) {
+    if (!loading && isAuthenticated && hasMounted) {
       fetchWishlistCount()
+    } else if (!isAuthenticated && hasMounted) {
+      // Clear wishlist count when user is not authenticated
+      setWishlistCount(0)
     }
-  }, [isAuthenticated, hasMounted])
+  }, [isAuthenticated, hasMounted, loading])
 
   // Focus trap and body scroll management
   useEffect(() => {

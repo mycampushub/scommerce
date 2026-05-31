@@ -1,16 +1,13 @@
 import { Metadata } from 'next'
+import { getSeoMetadata, seoToMetadata } from '@/lib/seo'
 
 export async function generateMetadata(): Promise<Metadata> {
-  return {
+  const seo = await getSeoMetadata('/shop')
+
+  return seoToMetadata(seo, {
     title: 'Shop All Products - SCommerce',
-    description: 'Browse our complete collection of premium products. Discover amazing deals and find exactly what you are looking for.',
-    keywords: 'shop, products, online shopping, ecommerce, buy, store',
-    openGraph: {
-      title: 'Shop All Products - SCommerce',
-      description: 'Browse our complete collection of premium products. Discover amazing deals and find exactly what you are looking for.',
-      type: 'website',
-    },
-  }
+    description: 'Browse our complete collection of fashion and lifestyle products. Find sarees, kurtas, menswear, accessories and more at the best prices in Bangladesh.',
+  })
 }
 
 export default function ShopLayout({ children }: { children: React.ReactNode }) {

@@ -103,11 +103,11 @@ export async function execute(
 // Whitelist of allowed table names to prevent SQL injection
 const ALLOWED_TABLES = [
   'users', 'products', 'product_variants', 'categories', 'brands',
-  'orders', 'order_items', 'cart_items', 'cart', 'promotions',
+  'orders', 'order_items', 'cart_items', 'promotions',
   'banners', 'media', 'product_reviews', 'inventory_adjustments',
   'inventory_movements', 'inventory_reservations', 'purchase_orders',
-  'purchase_order_items', 'suppliers', 'homepage_settings', 'audit_logs',
-  'settings'
+  'purchase_order_items', 'suppliers', 'homepage_settings', 'admin_logs',
+  'site_settings'
 ];
 
 /**

@@ -60,17 +60,17 @@ model admin_logs {
 }
 
 model analytics_integrations {
-  id         String   @id
-  name       String   @unique
-  provider   String   @default("custom")
-  trackingId String?
+  id            String   @id
+  name          String   @unique
+  provider      String   @default("custom")
+  trackingId    String?
   measurementId String?
-  apiKey     String?
-  pixelId    String?
-  isActive   Boolean  @default(true)
-  settings   String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime
+  apiKey        String?
+  pixelId       String?
+  isActive      Boolean  @default(true)
+  settings      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime
 }
 
 model banners {
@@ -91,17 +91,17 @@ model banners {
 }
 
 model brands {
-  id          String    @id
-  name        String    @unique
-  slug        String    @unique
+  id          String   @id
+  name        String   @unique
+  slug        String   @unique
   logo        String?
   website     String?
   description String?
   country     String?
-  isActive    Int       @default(1)
-  featured    Int       @default(0)
-  sortOrder   Int       @default(0)
-  createdAt   DateTime  @default(now())
+  isActive    Int      @default(1)
+  featured    Int      @default(0)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
   updatedAt   DateTime
 
   @@index([isActive, sortOrder])
@@ -115,12 +115,12 @@ model cart_items {
   productId        String
   variantId        String?
   quantity         Int               @default(1)
-  version          Int               @default(0) // Optimistic locking version
+  version          Int               @default(0)
   createdAt        DateTime          @default(now())
   updatedAt        DateTime
-  users            users             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  products         products          @relation(fields: [productId], references: [id], onDelete: Cascade)
   product_variants product_variants? @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  products         products          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  users            users             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, productId, variantId])
   @@index([variantId])
@@ -134,14 +134,14 @@ model categories {
   slug        String       @unique
   description String?
   image       String?
-  parentId    String?      // For hierarchy/sub-categories
+  parentId    String?
   sortOrder   Int          @default(0)
   isActive    Int          @default(1)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime
-  products    products[]
   parent      categories?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
-  children    categories[]  @relation("CategoryHierarchy")
+  children    categories[] @relation("CategoryHierarchy")
+  products    products[]
 
   @@index([isActive])
   @@index([slug])
@@ -150,22 +150,22 @@ model categories {
 }
 
 model email_services {
-  id         String    @id
-  name       String    @unique
-  provider   String    @default("custom")
-  apiKey     String?
-  apiSecret  String?
-  fromEmail  String?
-  fromName   String?
-  webhookUrl String?
-  sandboxMode Int      @default(0)
-  isActive   Boolean   @default(true)
-  isDefault  Boolean   @default(false)
-  settings   String?
-  lastTested DateTime?
-  testStatus String?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime
+  id          String    @id
+  name        String    @unique
+  provider    String    @default("custom")
+  apiKey      String?
+  apiSecret   String?
+  fromEmail   String?
+  fromName    String?
+  webhookUrl  String?
+  sandboxMode Int       @default(0)
+  isActive    Boolean   @default(true)
+  isDefault   Boolean   @default(false)
+  settings    String?
+  lastTested  DateTime?
+  testStatus  String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime
 }
 
 model inventory_alerts {
@@ -178,8 +178,8 @@ model inventory_alerts {
   isResolved       Int               @default(0)
   resolvedAt       DateTime?
   createdAt        DateTime          @default(now())
-  product_variants product_variants? @relation(fields: [variantId], references: [id], onDelete: Cascade)
   products         products?         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product_variants product_variants? @relation(fields: [variantId], references: [id], onDelete: Cascade)
 
   @@unique([productId, variantId, alertType], name: "unique_product_variant_alert")
   @@index([isRead, isResolved])
@@ -195,8 +195,8 @@ model inventory_reservations {
   quantity         Int
   expiresAt        DateTime
   createdAt        DateTime          @default(now())
-  product_variants product_variants? @relation(fields: [variantId], references: [id], onDelete: Cascade)
   products         products?         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product_variants product_variants? @relation(fields: [variantId], references: [id], onDelete: Cascade)
 
   @@index([expiresAt])
   @@index([userId])
@@ -218,9 +218,9 @@ model order_items {
   variantColor     String?
   variantMaterial  String?
   createdAt        DateTime          @default(now())
+  product_variants product_variants? @relation(fields: [variantId], references: [id])
+  products         products          @relation(fields: [productId], references: [id])
   orders           orders            @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  products         products          @relation(fields: [productId], references: [id], onDelete: Restrict)
-  product_variants product_variants? @relation(fields: [variantId], references: [id], onDelete: SetNull)
 
   @@index([variantId])
   @@index([productId])
@@ -261,12 +261,12 @@ model orders {
   deletedAt             DateTime?
   deletedBy             String?
   deletedReason         String?
-  version               Int           @default(0) // Optimistic locking version
+  version               Int           @default(0)
   createdAt             DateTime      @default(now())
   updatedAt             DateTime
   promoCode             String?
   order_items           order_items[]
-  users                 users?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  users                 users?        @relation(fields: [userId], references: [id])
 
   @@index([deletedAt])
   @@index([customerEmail, status])
@@ -277,22 +277,22 @@ model orders {
 }
 
 model payment_gateways {
-  id         String    @id
-  name       String    @unique
-  provider   String    @default("custom")
-  apiKey     String?
-  apiSecret  String?
-  webhookUrl String?
-  webhookSecret String?
-  sandboxMode Int       @default(0)
+  id                  String    @id
+  name                String    @unique
+  provider            String    @default("custom")
+  apiKey              String?
+  apiSecret           String?
+  webhookUrl          String?
+  webhookSecret       String?
+  sandboxMode         Int       @default(0)
   supportedCurrencies String?
-  isActive   Boolean   @default(true)
-  isDefault  Boolean   @default(false)
-  settings   String?
-  lastTested DateTime?
-  testStatus String?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime
+  isActive            Boolean   @default(true)
+  isDefault           Boolean   @default(false)
+  settings            String?
+  lastTested          DateTime?
+  testStatus          String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime
 }
 
 model posts {
@@ -320,8 +320,8 @@ model product_reviews {
   isApproved Int      @default(0)
   createdAt  DateTime @default(now())
   updatedAt  DateTime
-  products   products @relation(fields: [productId], references: [id], onDelete: Cascade)
   users      users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  products   products @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([productId, userId])
   @@index([isApproved, createdAt(sort: Desc)])
@@ -347,28 +347,25 @@ model product_variants {
   lowStockAlert          Int                      @default(10)
   reorderLevel           Int                      @default(5)
   reorderQty             Int                      @default(20)
-  version                Int                      @default(0) // Optimistic locking version
+  version                Int                      @default(0)
   createdAt              DateTime                 @default(now())
   updatedAt              DateTime
-  costPrice              Decimal?                 @default(0) 
-  // Size system (two types: unit or label)
-  sizeType               String?                  // 'unit' or 'label'
-  sizeValue              Float?                   // For unit sizes (e.g., 500)
-  sizeUnit               String?                  // For unit sizes (e.g., 'ml', 'g')
-  sizeLabel              String?                  // For label sizes (e.g., 'S', 'M', 'L')
-  // Country of origin
-  countryOfOrigin        String?                  // ISO country code
-  // Inventory tracking
+  costPrice              Decimal?                 @default(0)
+  sizeType               String?
+  sizeValue              Float?
+  sizeUnit               String?
+  sizeLabel              String?
+  countryOfOrigin        String?
   totalPurchased         Int                      @default(0)
   totalSold              Int                      @default(0)
-  totalCost              Decimal?                 @default(0) 
-  averageCost            Decimal?                 @default(0) 
+  totalCost              Decimal?                 @default(0)
+  averageCost            Decimal?                 @default(0)
   cart_items             cart_items[]
+  inventory_adjustments  inventory_adjustments[]
   inventory_alerts       inventory_alerts[]
+  inventory_movements    inventory_movements[]
   inventory_reservations inventory_reservations[]
   order_items            order_items[]
-  inventory_adjustments  inventory_adjustments[]
-  inventory_movements    inventory_movements[]
   products               products                 @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([productId, size, color])
@@ -385,10 +382,10 @@ model products {
   slug                   String                   @unique
   description            String?
   categoryId             String
-  price                  Decimal                  @default(0) 
-  basePrice              Decimal                  @default(0) 
-  comparePrice           Decimal?                 
-  discount               Decimal                  @default(0) 
+  price                  Decimal                  @default(0)
+  basePrice              Decimal                  @default(0)
+  comparePrice           Decimal?
+  discount               Decimal                  @default(0)
   discountType           String                   @default("percentage")
   images                 String?
   stock                  Int                      @default(0)
@@ -401,44 +398,38 @@ model products {
   weight                 Float?
   dimensions             String?
   tags                   String?
-  version                Int                      @default(0) // Optimistic locking version
+  version                Int                      @default(0)
   createdAt              DateTime                 @default(now())
   updatedAt              DateTime
-  costPrice              Decimal?                 @default(0) 
-  // Brand (inline, no separate page)
-  brandId                String?                  // Simple brand reference
-  brandName              String?                  // Brand name stored inline
-  brandLogo              String?                  // Brand logo URL
-  // Size system (two types: unit or label)
-  sizeType               String?                  // 'unit' or 'label'
-  sizeValue              Float?                   // For unit sizes (e.g., 500)
-  sizeUnit               String?                  // For unit sizes (e.g., 'ml', 'g')
-  sizeLabel              String?                  // For label sizes (e.g., 'S', 'M', 'L')
-  // Material and color for single products (without variants)
-  material               String?                  // Material for single products
-  color                  String?                  // Color for single products
-  // Country of origin
-  countryOfOrigin        String?                  // ISO country code
-  // Multi-size/color system
-  availableSizes         String?                  // JSON: ["S", "M", "L", "XL"]
-  availableColors        String?                  // JSON: ["Red", "Blue", "Green"]
-  // Inventory tracking
+  costPrice              Decimal?                 @default(0)
+  brandId                String?
+  brandName              String?
+  brandLogo              String?
+  sizeType               String?
+  sizeValue              Float?
+  sizeUnit               String?
+  sizeLabel              String?
+  material               String?
+  color                  String?
+  countryOfOrigin        String?
+  availableSizes         String?
+  availableColors        String?
   totalPurchased         Int                      @default(0)
   totalSold              Int                      @default(0)
-  totalCost              Decimal?                 @default(0) 
-  averageCost            Decimal?                 @default(0) 
+  totalCost              Decimal?                 @default(0)
+  averageCost            Decimal?                 @default(0)
   lastPurchaseAt         DateTime?
-  lastPurchaseCost       Decimal?                 
+  lastPurchaseCost       Decimal?
   cart_items             cart_items[]
+  inventory_adjustments  inventory_adjustments[]
   inventory_alerts       inventory_alerts[]
+  inventory_movements    inventory_movements[]
   inventory_reservations inventory_reservations[]
   order_items            order_items[]
+  product_color_images   product_color_images[]
   product_reviews        product_reviews[]
   product_variants       product_variants[]
-  product_color_images   product_color_images[]
-  inventory_adjustments  inventory_adjustments[]
-  inventory_movements    inventory_movements[]
-  categories             categories               @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  categories             categories               @relation(fields: [categoryId], references: [id])
   wishlist_items         wishlist_items[]
 
   @@index([isActive, isFeatured])
@@ -455,10 +446,9 @@ model product_color_images {
   id        String   @id
   productId String
   color     String
-  images    String?  // JSON array of image URLs
+  images    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
   products  products @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([productId, color])
@@ -476,9 +466,9 @@ model promotions {
   type                 String    @default("banner")
   promoCode            String?   @unique
   discountType         String?
-  discountValue        Decimal?  
-  minOrderAmount       Decimal?  
-  maxDiscountAmount    Decimal?  
+  discountValue        Decimal?
+  minOrderAmount       Decimal?
+  maxDiscountAmount    Decimal?
   startDate            DateTime?
   endDate              DateTime?
   usageLimit           Int?
@@ -514,22 +504,22 @@ model reels {
 }
 
 model shipping_carriers {
-  id            String    @id
-  name          String    @unique
-  provider      String    @default("custom")
-  apiKey        String?
-  apiSecret     String?
-  accountNumber String?
-  webhookUrl    String?
-  sandboxMode   Int       @default(0)
+  id              String    @id
+  name            String    @unique
+  provider        String    @default("custom")
+  apiKey          String?
+  apiSecret       String?
+  accountNumber   String?
+  webhookUrl      String?
+  sandboxMode     Int       @default(0)
   shippingMethods String?
-  isActive      Boolean   @default(true)
-  isDefault     Boolean   @default(false)
-  settings      String?
-  lastTested    DateTime?
-  testStatus    String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime
+  isActive        Boolean   @default(true)
+  isDefault       Boolean   @default(false)
+  settings        String?
+  lastTested      DateTime?
+  testStatus      String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime
 }
 
 model site_settings {
@@ -538,9 +528,9 @@ model site_settings {
   siteLogo              String?
   currency              String   @default("BDT")
   currencySymbol        String   @default("৳")
-  taxRate               Decimal  @default(0.18) 
-  freeShippingThreshold Decimal  @default(5000) 
-  baseShippingCost      Decimal  @default(150) 
+  taxRate               Decimal  @default(0.18)
+  freeShippingThreshold Decimal  @default(5000)
+  baseShippingCost      Decimal  @default(150)
   contactEmail          String?
   contactPhone          String?
   socialMedia           String?
@@ -598,70 +588,68 @@ model wishlist_items {
   userId    String
   productId String
   createdAt DateTime @default(now())
-  users     users    @relation(fields: [userId], references: [id], onDelete: Cascade)
   products  products @relation(fields: [productId], references: [id], onDelete: Cascade)
+  users     users    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, productId])
 }
 
 model media {
-  id          String   @id
-  filename    String
+  id           String   @id
+  filename     String
   originalName String
-  url         String   @unique
-  mimeType    String
-  size        Int      // in bytes
-  width       Int?
-  height      Int?
-  alt         String?
-  tags        String?  // JSON array of tags
-  category    String?  // e.g., "product", "category", "banner", "story"
-  uploadedBy  String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  url          String   @unique
+  mimeType     String
+  size         Int
+  width        Int?
+  height       Int?
+  alt          String?
+  tags         String?
+  category     String?
+  uploadedBy   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   @@index([category])
   @@index([createdAt(sort: Desc)])
   @@index([uploadedBy])
 }
 
-// Advanced Inventory Management Tables
-
 model suppliers {
-  id          String             @id
-  code        String             @unique
-  name        String
-  email       String?
-  phone       String?
-  address     String?
-  city        String?
-  country     String?
-  isActive    Int                @default(1)
-  notes       String?
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime
-  purchaseOrders purchase_orders[]
+  id                 String                @id
+  code               String                @unique
+  name               String
+  email              String?
+  phone              String?
+  address            String?
+  city               String?
+  country            String?
+  isActive           Int                   @default(1)
+  notes              String?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime
   inventoryMovements inventory_movements[]
+  purchaseOrders     purchase_orders[]
 
   @@index([isActive])
   @@index([code])
 }
 
 model purchase_orders {
-  id              String                @id
-  orderNumber     String                @unique
-  supplierId      String
-  status          String                @default("PENDING") // PENDING, ORDERED, RECEIVED, CANCELLED
-  totalAmount     Decimal               
-  totalQuantity   Int
-  orderDate       DateTime
-  expectedDate    DateTime?
-  receivedDate    DateTime?
-  notes           String?
-  createdAt       DateTime              @default(now())
-  updatedAt       DateTime
-  supplier        suppliers             @relation(fields: [supplierId], references: [id], onDelete: Cascade)
-  items           purchase_order_items[]
+  id            String                 @id
+  orderNumber   String                 @unique
+  supplierId    String
+  status        String                 @default("PENDING")
+  totalAmount   Decimal
+  totalQuantity Int
+  orderDate     DateTime
+  expectedDate  DateTime?
+  receivedDate  DateTime?
+  notes         String?
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime
+  items         purchase_order_items[]
+  supplier      suppliers              @relation(fields: [supplierId], references: [id], onDelete: Cascade)
 
   @@index([supplierId])
   @@index([status, orderDate])
@@ -669,15 +657,15 @@ model purchase_orders {
 }
 
 model purchase_order_items {
-  id              String         @id
+  id              String          @id
   purchaseOrderId String
   productId       String
   variantId       String?
   quantity        Int
-  unitCost        Decimal        
-  totalCost       Decimal        
-  receivedQty     Int            @default(0)
-  createdAt       DateTime       @default(now())
+  unitCost        Decimal
+  totalCost       Decimal
+  receivedQty     Int             @default(0)
+  createdAt       DateTime        @default(now())
   purchaseOrder   purchase_orders @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
 
   @@index([purchaseOrderId])
@@ -686,23 +674,23 @@ model purchase_order_items {
 }
 
 model inventory_movements {
-  id              String   @id
-  productId       String?
-  variantId       String?
-  movementType    String   // PURCHASE, SALE, RETURN, ADJUSTMENT, TRANSFER, DAMAGE
-  quantity        Int
-  unitCost        Decimal?  // Cost per unit at time of movement
-  totalCost       Decimal?  // Total cost for this movement
-  referenceId     String?  // Related order, PO, or adjustment ID
-  referenceType   String?  // ORDER, PURCHASE_ORDER, ADJUSTMENT
-  approved        Int      @default(0)
-  approvedAt      DateTime?
-  supplierId      String?
-  supplier        suppliers?        @relation(fields: [supplierId], references: [id], onDelete: SetNull)
-  product         products?         @relation(fields: [productId], references: [id], onDelete: SetNull)
-  variant         product_variants? @relation(fields: [variantId], references: [id], onDelete: SetNull)
-  notes           String?
-  createdAt       DateTime          @default(now())
+  id            String            @id
+  productId     String?
+  variantId     String?
+  movementType  String
+  quantity      Int
+  unitCost      Decimal?
+  totalCost     Decimal?
+  referenceId   String?
+  referenceType String?
+  approved      Int               @default(0)
+  approvedAt    DateTime?
+  supplierId    String?
+  notes         String?
+  createdAt     DateTime          @default(now())
+  variant       product_variants? @relation(fields: [variantId], references: [id])
+  product       products?         @relation(fields: [productId], references: [id])
+  supplier      suppliers?        @relation(fields: [supplierId], references: [id])
 
   @@index([productId, createdAt])
   @@index([variantId, createdAt])
@@ -713,23 +701,43 @@ model inventory_movements {
 }
 
 model inventory_adjustments {
-  id              String   @id
-  productId       String?
-  variantId       String?
-  adjustmentType  String   // STOCK_TAKE, DAMAGE, LOSS, THEFT, CORRECTION
-  quantityBefore  Int
-  quantityAfter   Int
-  quantityDiff    Int
-  reason          String
-  approvedBy      String?
-  approved      Int      @default(0)
-  approvedAt      DateTime?
-  product         products?         @relation(fields: [productId], references: [id], onDelete: SetNull)
-  variant         product_variants? @relation(fields: [variantId], references: [id], onDelete: SetNull)
-  notes           String?
-  createdAt       DateTime          @default(now())
+  id             String            @id
+  productId      String?
+  variantId      String?
+  adjustmentType String
+  quantityBefore Int
+  quantityAfter  Int
+  quantityDiff   Int
+  reason         String
+  approvedBy     String?
+  approved       Int               @default(0)
+  approvedAt     DateTime?
+  notes          String?
+  createdAt      DateTime          @default(now())
+  variant        product_variants? @relation(fields: [variantId], references: [id])
+  product        products?         @relation(fields: [productId], references: [id])
 
   @@index([productId, createdAt])
   @@index([adjustmentType, createdAt])
   @@index([createdAt(sort: Desc)])
+}
+
+model page_seo {
+  id               String   @id
+  pagePath         String   @unique
+  pageTitle        String?
+  metaTitle        String?
+  metaDescription  String?
+  keywords         String?
+  ogTitle          String?
+  ogDescription    String?
+  ogImage          String?
+  canonicalUrl     String?
+  robots           String?  @default("index, follow")
+  isActive         Int      @default(1)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([pagePath])
+  @@index([isActive])
 }

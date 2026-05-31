@@ -1,16 +1,13 @@
 import { Metadata } from 'next'
+import { getSeoMetadata, seoToMetadata } from '@/lib/seo'
 
 export async function generateMetadata(): Promise<Metadata> {
-  return {
+  const seo = await getSeoMetadata('/about')
+
+  return seoToMetadata(seo, {
     title: 'About Us - SCommerce',
-    description: 'Learn more about our story, mission, and values. Discover what makes us different.',
-    keywords: 'about, our story, company, mission, values',
-    openGraph: {
-      title: 'About Us - SCommerce',
-      description: 'Learn more about our story, mission, and values. Discover what makes us different.',
-      type: 'website',
-    },
-  }
+    description: 'Learn about SCommerce, Bangladesh\'s premier fashion and lifestyle online store. Discover our story, values, and commitment to quality fashion.',
+  })
 }
 
 import Link from 'next/link'

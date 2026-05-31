@@ -878,3 +878,30 @@ CREATE TABLE "product_color_images" (
 -- CreateIndex
 CREATE INDEX "product_color_images_productId_idx" ON "product_color_images"("productId");
 CREATE INDEX "product_color_images_color_idx" ON "product_color_images"("color");
+
+-- ============================================
+-- PAGE SEO
+-- ============================================
+
+-- CreateTable
+CREATE TABLE "page_seo" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "pagePath" TEXT NOT NULL UNIQUE,
+    "pageTitle" TEXT,
+    "metaTitle" TEXT,
+    "metaDescription" TEXT,
+    "keywords" TEXT,
+    "ogTitle" TEXT,
+    "ogDescription" TEXT,
+    "ogImage" TEXT,
+    "canonicalUrl" TEXT,
+    "robots" TEXT DEFAULT 'index, follow',
+    "isActive" INTEGER NOT NULL DEFAULT 1,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "page_seo_pagePath_key" ON "page_seo"("pagePath");
+CREATE INDEX "page_seo_pagePath_idx" ON "page_seo"("pagePath");
+CREATE INDEX "page_seo_isActive_idx" ON "page_seo"("isActive");
