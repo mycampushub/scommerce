@@ -9,36 +9,21 @@ export async function GET() {
   const env = await getEnv(new Request('https://example.com'))
 
   try {
+    // Only fetch banner promotions for homepage display (not coupons)
     const promotions = await queryAll(
       env,
-      'SELECT * FROM promotions WHERE isActive = 1 ORDER BY `order` ASC, createdAt DESC'
+      'SELECT id, title, description, image, ctaText, ctaLink FROM promotions WHERE type = ? AND isActive = 1 ORDER BY `order` ASC, createdAt DESC',
+      'banner'
     )
 
-    // Transform promotions to convert boolean fields and parse JSON
-    const transformedPromotions = promotions.map((promo: any) => {
-      // Parse JSON fields
-      const discountRules = promo.discountRules ? parseJSON(promo.discountRules) as { minOrderValue?: number; maxDiscountAmount?: number; [key: string]: any } | null : null;
-
-      return {
-        id: promo.id,
-        name: promo.name,
-        description: promo.description,
-        code: promo.code,
-        discountType: promo.discountType, // FIXED, PERCENTAGE, BOGO, etc.
-        discountValue: promo.discountValue, // The actual discount amount/percentage customers get
-        minOrderValue: discountRules?.minOrderValue || null, // Only expose min order value for transparency
-        maxDiscountAmount: discountRules?.maxDiscountAmount || null, // Only expose max discount for transparency
-        startDate: promo.startDate,
-        endDate: promo.endDate,
-        usageLimit: promo.usageLimit,
-        usedCount: promo.usedCount,
-        isActive: numberToBool(promo.isActive),
-        // INTERNAL FIELDS NOT EXPOSED:
-        // - discountRules: Contains internal business logic
-        // - applicableProducts: Exposes internal product IDs
-        // - applicableCategories: Exposes internal category IDs
-      };
-    })
+    // Transform promotions to match frontend expectations
+    const transformedPromotions = promotions.map((promo: any) => ({
+      id: promo.id,
+      title: promo.title,
+      subtitle: promo.description || '',
+      image: promo.image || '',
+      href: promo.ctaLink || '#'
+    }))
 
     const response = NextResponse.json({
       success: true,

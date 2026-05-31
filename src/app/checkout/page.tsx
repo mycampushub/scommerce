@@ -66,6 +66,7 @@ interface AuthResponse {
       name: string
     }
   }
+  syncedCart?: number
   error?: string
 }
 
@@ -972,7 +973,11 @@ export default function CheckoutPage() {
                       const response = await fetch('/api/auth/login', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email, password }),
+                        body: JSON.stringify({
+                          email,
+                          password,
+                          guestCart: items.length > 0 ? items : undefined
+                        }),
                       })
 
                       const result: AuthResponse = await response.json()
@@ -980,7 +985,13 @@ export default function CheckoutPage() {
                       if (result.success && result.data?.user) {
                         // Store the authenticated user data
                         setAuthenticatedUser(result.data.user)
-                        toast.success('Logged in successfully!')
+
+                        // Clear local cart after successful sync
+                        if (result.syncedCart && result.syncedCart > 0) {
+                          clearCart()
+                        }
+
+                        toast.success('Logged in successfully!' + (result.syncedCart && result.syncedCart > 0 ? ` ${result.syncedCart} item(s) synced.` : ''))
                         setShowLoginDialog(false)
 
                         // Fetch the server cart after login
@@ -1009,6 +1020,8 @@ export default function CheckoutPage() {
                             setServerCartItems(transformedItems)
                             setHasFetchedServerCart(true)
                             console.log('[Checkout] Loaded server cart after login:', transformedItems.length, 'items')
+                          } else {
+                            setServerCartItems([])
                           }
 
                           // After fetching server cart, place the order
@@ -1135,7 +1148,13 @@ export default function CheckoutPage() {
                       if (result.success && result.data?.user) {
                         // Store the authenticated user data
                         setAuthenticatedUser(result.data.user)
-                        toast.success('Account created successfully!')
+
+                        // Clear local cart after successful sync
+                        if (result.syncedCart && result.syncedCart > 0) {
+                          clearCart()
+                        }
+
+                        toast.success('Account created successfully!' + (result.syncedCart && result.syncedCart > 0 ? ` ${result.syncedCart} item(s) synced.` : ''))
                         setShowLoginDialog(false)
 
                         // Fetch the synced cart from server after registration
@@ -1164,6 +1183,8 @@ export default function CheckoutPage() {
                             setServerCartItems(transformedItems)
                             setHasFetchedServerCart(true)
                             console.log('[Checkout] Loaded synced cart after signup:', transformedItems.length, 'items')
+                          } else {
+                            setServerCartItems([])
                           }
 
                           // After fetching synced cart, place the order

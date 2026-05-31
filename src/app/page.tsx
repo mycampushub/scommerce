@@ -275,7 +275,7 @@ function HeroCarousel({ banners, autoPlay = 5000 }: { banners: Banner[], autoPla
 }
 
 // 2. Section Marquee Component
-function SectionMarquee() {
+function SectionMarquee({ sectionEnabled = true }: { sectionEnabled?: boolean }) {
   const [marqueeText, setMarqueeText] = useState("FREE SHIPPING WORLDWIDE | EASY RETURNS & EXCHANGES | CUSTOM STITCHING AVAILABLE")
   const [isEnabled, setIsEnabled] = useState(true)
   const [animationSpeed, setAnimationSpeed] = useState(20)
@@ -306,7 +306,7 @@ function SectionMarquee() {
   }, [])
 
   // Don't render if disabled or loading
-  if (loading || !isEnabled) {
+  if (loading || !isEnabled || !sectionEnabled) {
     return null
   }
 
@@ -623,7 +623,7 @@ function Stories({ stories, autoPlay = 4000 }: { stories: Story[], autoPlay?: nu
 }
 
 // 4b. Category Carousel with Products Component
-function CategoryCarousel({ allCategories, products }: { allCategories: Category[]; products: Product[] }) {
+function CategoryCarousel({ allCategories, products, sectionEnabled = true }: { allCategories: Category[]; products: Product[]; sectionEnabled?: boolean }) {
   const [categories, setCategories] = useState<Category[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
@@ -695,7 +695,7 @@ function CategoryCarousel({ allCategories, products }: { allCategories: Category
   }
 
   // Don't render if disabled, loading, or no categories
-  if (loading || !isEnabled || !categories || categories.length === 0) return null
+  if (loading || !isEnabled || !sectionEnabled || !categories || categories.length === 0) return null
 
   const currentCategory = categories && categories[currentIndex]
   const categoryProducts = (products || [])
@@ -923,7 +923,7 @@ function Categories({ categories }: { categories: Category[] }) {
 }
 
 // 4c. Brand Carousel Component
-function BrandCarousel() {
+function BrandCarousel({ sectionEnabled = true }: { sectionEnabled?: boolean }) {
   const [brands, setBrands] = useState<Brand[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
@@ -1003,7 +1003,7 @@ function BrandCarousel() {
   }
 
   // Don't render if disabled, loading, or no brands
-  if (loading || !isEnabled || !brands || brands.length === 0) return null
+  if (loading || !isEnabled || !sectionEnabled || !brands || brands.length === 0) return null
 
   const currentBrand = brands[currentIndex]
 
@@ -1105,7 +1105,7 @@ function BrandCarousel() {
 }
 
 // 5. Modern 3D Shorts Carousel Component with Auto-scroll
-function VideoReels({ reels }: { reels: VideoReel[] }) {
+function VideoReels({ reels, sectionEnabled = true }: { reels: VideoReel[]; sectionEnabled?: boolean }) {
   const [selectedReel, setSelectedReel] = useState<VideoReel | null>(null)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isTransitioning, setIsTransitioning] = useState(false)
@@ -1261,7 +1261,7 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
     setTimeout(() => setIsTransitioning(false), 400)
   }
 
-  if (!reels || reels.length === 0 || !carouselSettings.isEnabled) return null
+  if (!reels || reels.length === 0 || !carouselSettings.isEnabled || !sectionEnabled) return null
 
   const totalCards = reels.length
 
@@ -1636,7 +1636,7 @@ function VideoReels({ reels }: { reels: VideoReel[] }) {
 }
 
 // 6. Fullscreen Video Component
-function FullscreenVideo() {
+function FullscreenVideo({ sectionEnabled = true }: { sectionEnabled?: boolean }) {
   const [videoUrl, setVideoUrl] = useState('')
   const [isEnabled, setIsEnabled] = useState(true)
   const [loading, setLoading] = useState(true)
@@ -1663,7 +1663,7 @@ function FullscreenVideo() {
     fetchVideoSettings()
   }, [])
 
-  if (loading || !isEnabled || !videoUrl) {
+  if (loading || !isEnabled || !sectionEnabled || !videoUrl) {
     return null
   }
 
@@ -2167,6 +2167,18 @@ interface HomepageSettings {
   promotions?: { sectionName: string; isEnabled: boolean; autoPlay: number | null; displayLimit: number | null }
 }
 
+interface SectionManagerSection {
+  id: string
+  name: string
+  order: number
+  enabled: boolean
+}
+
+interface SectionManagerData {
+  sectionName: string
+  sections: SectionManagerSection[]
+}
+
 // Main Component
 export default function Home() {
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null)
@@ -2195,6 +2207,7 @@ export default function Home() {
   const [reels, setReels] = useState<VideoReel[]>([])
   const [promotions, setPromotions] = useState<Promotion[]>([])
   const [homepageSettings, setHomepageSettings] = useState<HomepageSettings>({})
+  const [sectionManager, setSectionManager] = useState<SectionManagerData | null>(null)
 
   const { addItem, getItemCount } = useCartStore()
 
@@ -2202,6 +2215,13 @@ export default function Home() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Fetch section-manager settings
+        const sectionManagerRes = await fetch('/api/homepage/section-manager')
+        const sectionManagerData = await sectionManagerRes.json() as any
+        if (sectionManagerData.success) {
+          setSectionManager(sectionManagerData.data)
+        }
+
         // Fetch featured products settings first
         const [featuredSettingsRes, mosaicSettingsRes] = await Promise.all([
           fetch('/api/homepage/featured-products'),
@@ -2413,11 +2433,19 @@ export default function Home() {
         setReels([])
         setPromotions([])
         setHomepageSettings({})
+        setSectionManager(null)
       }
     }
 
     fetchData()
   }, [])
+
+  // Helper function to check if a section is enabled in section-manager
+  const isSectionEnabled = (sectionId: string): boolean => {
+    if (!sectionManager || !sectionManager.sections) return true // Default to enabled if not loaded
+    const section = sectionManager.sections.find(s => s.id === sectionId)
+    return section ? section.enabled : true // Default to enabled if not found
+  }
 
   const openQuickView = (product: Product) => {
     setQuickViewProduct(product)
@@ -2442,31 +2470,34 @@ export default function Home() {
       <Header />
       <main className="w-full flex-grow pb-24 md:pb-0">
         {/* Banners - only show if enabled and has data */}
-        {homepageSettings.banners?.isEnabled !== false && banners.length > 0 && (
+        {isSectionEnabled('hero-slider') && homepageSettings.banners?.isEnabled !== false && banners.length > 0 && (
           <HeroCarousel banners={banners} autoPlay={homepageSettings.banners?.autoPlay} />
         )}
-        <SectionMarquee />
+        {/* Marquee - controlled by section-manager */}
+        <SectionMarquee sectionEnabled={isSectionEnabled('marquee')} />
         {/* Stories - only show if enabled and has data */}
-        {homepageSettings.stories?.isEnabled !== false && stories.length > 0 && (
+        {isSectionEnabled('stories') && homepageSettings.stories?.isEnabled !== false && stories.length > 0 && (
           <Stories stories={stories} autoPlay={homepageSettings.stories?.autoPlay} />
         )}
-        {/* Category Carousel with Products */}
-        {categories.length > 0 && featuredProducts.length > 0 && (
+        {/* Category Carousel with Products - controlled by section-manager */}
+        {isSectionEnabled('category-carousel') && categories.length > 0 && featuredProducts.length > 0 && (
           <CategoryCarousel allCategories={categories} products={[...featuredProducts, ...saleProducts, ...newProducts, ...trendingProducts]} />
         )}
-        <FullscreenVideo />
-        {categories.length > 0 && <Categories categories={categories} />}
-        {/* Brand Carousel */}
-        <BrandCarousel />
+        {/* Fullscreen Video - controlled by section-manager */}
+        <FullscreenVideo sectionEnabled={isSectionEnabled('fullscreen-video')} />
+        {/* Categories - controlled by section-manager */}
+        {isSectionEnabled('categories') && categories.length > 0 && <Categories categories={categories} />}
+        {/* Brand Carousel - controlled by section-manager */}
+        <BrandCarousel sectionEnabled={isSectionEnabled('brands')} />
         {/* Reels - only show if enabled and has data */}
-        {homepageSettings.reels?.isEnabled !== false && reels.length > 0 && (
+        {isSectionEnabled('video-reels') && homepageSettings.reels?.isEnabled !== false && reels.length > 0 && (
           <VideoReels reels={reels} />
         )}
         {/* Featured Products - only show if enabled and has data */}
-        {featuredProductsSettings.enabled && featuredProducts.length > 0 && <FeaturedCollection products={featuredProducts} onQuickView={openQuickView} onAddToCart={addToCart} heading={featuredProductsSettings.heading} description={featuredProductsSettings.description} />}
-        {mosaicGridSettings.enabled && mosaicProducts.length > 0 && <MosaicGrid products={mosaicProducts} onQuickView={openQuickView} onAddToCart={addToCart} heading={mosaicGridSettings.heading} description={mosaicGridSettings.description} />}
+        {isSectionEnabled('featured-products') && featuredProductsSettings.enabled && featuredProducts.length > 0 && <FeaturedCollection products={featuredProducts} onQuickView={openQuickView} onAddToCart={addToCart} heading={featuredProductsSettings.heading} description={featuredProductsSettings.description} />}
+        {isSectionEnabled('mosaic-grid') && mosaicGridSettings.enabled && mosaicProducts.length > 0 && <MosaicGrid products={mosaicProducts} onQuickView={openQuickView} onAddToCart={addToCart} heading={mosaicGridSettings.heading} description={mosaicGridSettings.description} />}
         {/* Promotions - only show if enabled and has data */}
-        {homepageSettings.promotions?.isEnabled !== false && promotions.length > 0 && (
+        {isSectionEnabled('promotions') && homepageSettings.promotions?.isEnabled !== false && promotions.length > 0 && (
           <PromotionRow promotions={promotions} />
         )}
         <StickyImageCards />

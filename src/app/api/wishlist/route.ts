@@ -1,72 +1,75 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyAdminAuth } from '@/lib/admin-auth'
-import { getEnv } from '@/lib/cloudflare'
+import { verifyToken, extractTokenFromHeader } from '@/lib/auth'
 import { ProductRepository } from '@/db/product.repository'
 import { CategoryRepository } from '@/db/category.repository'
 import { queryAll, queryFirst, execute, parseJSON, numberToBool, generateSecureId } from '@/db/db'
 import { sanitizeForDB } from '@/lib/sanitize'
-import { addCacheHeaders, CachePresets } from '@/lib/http-cache'
+import { getEnv } from '@/lib/cloudflare'
 
 
 // GET /api/wishlist - Get user's wishlist
 export async function GET(request: NextRequest) {
-  // Get D1 database from request context
   const env = await getEnv()
 
   try {
-    // Verify authentication
-    const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff', 'user'])
-    if (userOrResponse instanceof NextResponse) {
-      return userOrResponse
+    // Get token from Authorization header or cookie
+    const authHeader = request.headers.get('authorization')
+    const cookieToken = request.cookies.get('session')?.value
+    const token = extractTokenFromHeader(authHeader) || cookieToken
+
+    // If user is authenticated, fetch from database
+    if (token) {
+      const payload = await verifyToken(token)
+      if (payload && payload.userId) {
+        const userId = payload.userId
+
+        // Get wishlist items with product and category details
+        const wishlistItems = await queryAll(
+          env,
+          `SELECT wi.*, p.*, c.name as categoryName, c.slug as categorySlug
+           FROM wishlist_items wi
+           LEFT JOIN products p ON wi.productId = p.id
+           LEFT JOIN categories c ON p.categoryId = c.id
+           WHERE wi.userId = ?
+           ORDER BY wi.createdAt DESC`,
+          userId
+        )
+
+        // Transform items
+        const transformedItems = wishlistItems.map((item: any) => {
+          const images = parseJSON<string[]>(item.images) || []
+          return {
+            id: item.id,
+            userId: item.userId,
+            productId: item.productId,
+            createdAt: item.createdAt,
+            product: {
+              id: item.productId,
+              name: item.name,
+              slug: item.slug,
+              description: item.description,
+              basePrice: item.basePrice,
+              comparePrice: item.comparePrice,
+              images: images,
+              stock: item.stock,
+              isActive: numberToBool(item.isActive),
+              isFeatured: numberToBool(item.isFeatured),
+              hasVariants: numberToBool(item.hasVariants),
+              category: {
+                id: item.categoryId,
+                name: item.categoryName,
+                slug: item.categorySlug,
+              },
+            },
+          }
+        })
+
+        return NextResponse.json({ success: true, data: transformedItems, source: 'database' })
+      }
     }
 
-    const userId = userOrResponse.id
-
-    // Get wishlist items with product and category details
-    const wishlistItems = await queryAll(
-      env,
-      `SELECT wi.*, p.*, c.name as categoryName, c.slug as categorySlug
-       FROM wishlist_items wi
-       LEFT JOIN products p ON wi.productId = p.id
-       LEFT JOIN categories c ON p.categoryId = c.id
-       WHERE wi.userId = ?
-       ORDER BY wi.createdAt DESC`,
-      userId
-    )
-
-    // Transform items
-    const transformedItems = wishlistItems.map((item: any) => {
-      const images = parseJSON<string[]>(item.images) || []
-      return {
-        id: item.id,
-        userId: item.userId,
-        productId: item.productId,
-        createdAt: item.createdAt,
-        product: {
-          id: item.productId,
-          name: item.name,
-          slug: item.slug,
-          description: item.description,
-          basePrice: item.basePrice,
-          comparePrice: item.comparePrice,
-          images: images,
-          stock: item.stock,
-          isActive: numberToBool(item.isActive),
-          isFeatured: numberToBool(item.isFeatured),
-          hasVariants: numberToBool(item.hasVariants),
-          category: {
-            id: item.categoryId,
-            name: item.categoryName,
-            slug: item.categorySlug,
-          },
-        },
-      }
-    })
-
-    const response = NextResponse.json({ success: true, data: transformedItems })
-
-    // Add caching headers for wishlist (user-specific - 2 minutes, private)
-    return addCacheHeaders(response, CachePresets.PRIVATE);
+    // For guest users, return empty wishlist (client-side uses localStorage)
+    return NextResponse.json({ success: true, data: [], source: 'guest' })
   } catch (error) {
     console.error('Error fetching wishlist:', error)
     return NextResponse.json(
@@ -78,16 +81,9 @@ export async function GET(request: NextRequest) {
 
 // POST /api/wishlist - Add product to wishlist
 export async function POST(request: NextRequest) {
-  // Get D1 database from request context
   const env = await getEnv()
 
   try {
-    // Verify authentication
-    const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff', 'user'])
-    if (userOrResponse instanceof NextResponse) {
-      return userOrResponse
-    }
-
     const body = await request.json() as any
     const { productId } = body
 
@@ -98,7 +94,29 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const userId = userOrResponse.id
+    // Get token from Authorization header or cookie
+    const authHeader = request.headers.get('authorization')
+    const cookieToken = request.cookies.get('session')?.value
+    const token = extractTokenFromHeader(authHeader) || cookieToken
+
+    // For guest users, return success (wishlist stored in localStorage)
+    if (!token) {
+      return NextResponse.json({
+        success: true,
+        message: 'Wishlist stored locally',
+        source: 'guest',
+      })
+    }
+
+    const payload = await verifyToken(token)
+    if (!payload || !payload.userId) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid token' },
+        { status: 401 }
+      )
+    }
+
+    const userId = payload.userId
 
     // Check if product exists
     const product = await ProductRepository.findById(env, productId)
@@ -153,6 +171,7 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'Product added to wishlist',
       data: wishlistItem,
+      source: 'database',
     })
   } catch (error) {
     console.error('Error adding to wishlist:', error)
@@ -165,16 +184,9 @@ export async function POST(request: NextRequest) {
 
 // DELETE /api/wishlist?productId={id} - Remove from wishlist
 export async function DELETE(request: NextRequest) {
-  // Get D1 database from request context
   const env = await getEnv()
 
   try {
-    // Verify authentication
-    const userOrResponse = await verifyAdminAuth(request, ['admin', 'staff', 'user'])
-    if (userOrResponse instanceof NextResponse) {
-      return userOrResponse
-    }
-
     const { searchParams } = new URL(request.url)
     const productId = searchParams.get('productId')
 
@@ -185,7 +197,29 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    const userId = userOrResponse.id
+    // Get token from Authorization header or cookie
+    const authHeader = request.headers.get('authorization')
+    const cookieToken = request.cookies.get('session')?.value
+    const token = extractTokenFromHeader(authHeader) || cookieToken
+
+    // For guest users, return success (wishlist stored in localStorage)
+    if (!token) {
+      return NextResponse.json({
+        success: true,
+        message: 'Wishlist stored locally',
+        source: 'guest',
+      })
+    }
+
+    const payload = await verifyToken(token)
+    if (!payload || !payload.userId) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid token' },
+        { status: 401 }
+      )
+    }
+
+    const userId = payload.userId
 
     // Check if item exists
     const wishlistItem = await queryFirst(
@@ -213,6 +247,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: 'Product removed from wishlist',
+      source: 'database',
     })
   } catch (error) {
     console.error('Error removing from wishlist:', error)
