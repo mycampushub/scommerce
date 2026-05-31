@@ -50,11 +50,10 @@ export async function POST(request: NextRequest) {
 
     const user = await UserRepository.findByEmail(env, email);
 
-    logger.info('User found for login', { 
+    logger.info('User found for login', {
       email: user?.email,
       hasPassword: !!user?.password,
-      emailVerified: user?.emailVerified,
-      role: user?.role 
+      role: user?.role
     });
 
     if (!user) {
@@ -65,12 +64,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!numberToBool(user.emailVerified)) {
-      return NextResponse.json(
-        { success: false, error: 'Please verify your email before logging in' },
-        { status: 403 }
-      );
-    }
+    // Email verification disabled - users can login without verifying email
+    // if (!numberToBool(user.emailVerified)) {
+    //   return NextResponse.json(
+    //     { success: false, error: 'Please verify your email before logging in' },
+    //     { status: 403 }
+    //   );
+    // }
 
     if (!user.password) {
       return NextResponse.json(
