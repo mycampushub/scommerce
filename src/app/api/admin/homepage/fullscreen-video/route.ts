@@ -85,22 +85,22 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-  // Rate limiting: 10 requests per minute per admin
-  const clientIp = getClientIp(request);
-  const rateLimitKey = `admin-fullscreen-video:${clientIp}`;
-  const rateLimitResult = await rateLimit(env, rateLimitKey, {
-    maxRequests: 10,
-    windowMs: 60 * 1000, // 1 minute window
-  });
+    // Rate limiting: 10 requests per minute per admin
+    const clientIp = getClientIp(request)
+    const rateLimitKey = `admin-fullscreen-video:${clientIp}`
+    const rateLimitResult = await rateLimit(env, rateLimitKey, {
+      maxRequests: 10,
+      windowMs: 60 * 1000, // 1 minute window
+    })
 
-  if (!rateLimitResult.success) {
-    return createRateLimitResponse(rateLimitResult);
-  }
+    if (!rateLimitResult.success) {
+      return createRateLimitResponse(rateLimitResult)
+    }
 
-  const body = await request.json()
-  const { videoUrl, isEnabled, heading, description } = body
+    const body = await request.json()
+    const { videoUrl, isEnabled, heading, description } = body
 
-  console.log('[Fullscreen Video] Request body:', body)
+    console.log('[Fullscreen Video] Request body:', body)
 
     // Validate videoUrl
     if (videoUrl !== undefined && typeof videoUrl !== 'string') {

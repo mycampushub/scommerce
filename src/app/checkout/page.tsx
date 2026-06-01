@@ -78,7 +78,7 @@ export default function CheckoutPage() {
   const { user, loading } = useAuth()
   const [step, setStep] = useState(1)
   const [isProcessing, setIsProcessing] = useState(false)
-  const [stockIssues, setStockIssues] = useState<{[key: string]: { inStock: boolean, availableStock: number }}>({})
+  const [stockIssues, setStockIssues] = useState<{[key: string]: { inStock: boolean; availableStock: number; productExists?: boolean; productActive?: boolean; errorMessage?: string }}>({})
   const [shippingCost, setShippingCost] = useState(150)
   const [calculatingShipping, setCalculatingShipping] = useState(false)
   const [showLoginDialog, setShowLoginDialog] = useState(false)
@@ -246,7 +246,7 @@ export default function CheckoutPage() {
     }
   }, [shippingInfo.division, total])
 
-  // Check stock status for all cart items
+  // Check stock status and product availability for all cart items
   const checkStockStatus = async () => {
     try {
       // Use effective items (same logic as effectiveItems calculation)
@@ -259,6 +259,9 @@ export default function CheckoutPage() {
       const itemKeys: {[key: string]: {
         inStock: boolean;
         availableStock: number;
+        productExists: boolean;
+        productActive: boolean;
+        errorMessage?: string;
       }} = {}
 
       for (const item of itemsToCheck) {
@@ -266,35 +269,83 @@ export default function CheckoutPage() {
         const response = await fetch(`/api/products/${item.id}`)
         const data: ProductResponse = await response.json()
         
-        if (data.success && data.data) {
-          const product = data.data
-          let stock = 0
-          
-          if (item.variantId) {
-            // Check variant stock
-            const variant = product.variants?.find(v => v.id === item.variantId)
-            stock = variant?.stock || 0
-          } else {
-            // Check product stock
-            stock = product.stock || 0
-          }
-          
+        if (!data.success || !data.data) {
+          // Product not found
           itemKeys[itemKey] = {
-            inStock: stock >= item.quantity,
-            availableStock: stock
+            inStock: false,
+            availableStock: 0,
+            productExists: false,
+            productActive: false,
+            errorMessage: 'Product not found'
           }
+          continue
+        }
+
+        const product = data.data
+        
+        // Check if product is active
+        if (product.isActive === false) {
+          itemKeys[itemKey] = {
+            inStock: false,
+            availableStock: 0,
+            productExists: true,
+            productActive: false,
+            errorMessage: 'Product is no longer available'
+          }
+          continue
+        }
+
+        let stock = 0
+        let variantExists = false
+        
+        if (item.variantId) {
+          // Check variant stock and existence
+          const variant = product.variants?.find(v => v.id === item.variantId)
+          if (!variant) {
+            // Variant not found
+            itemKeys[itemKey] = {
+              inStock: false,
+              availableStock: 0,
+              productExists: true,
+              productActive: true,
+              errorMessage: 'Product variant not found'
+            }
+            continue
+          }
+          variantExists = true
+          stock = variant.stock || 0
+        } else {
+          // Check product stock
+          stock = product.stock || 0
+        }
+        
+        itemKeys[itemKey] = {
+          inStock: stock >= item.quantity,
+          availableStock: stock,
+          productExists: true,
+          productActive: true,
+          errorMessage: stock < item.quantity 
+            ? `Only ${stock} available` 
+            : undefined
         }
       }
       
       setStockIssues(itemKeys)
       
-      // Check if any items are out of stock
-      const hasOutOfStock = Object.values(itemKeys).some(item => !item.inStock)
-      if (hasOutOfStock) {
-        toast.error('Some items in your cart are out of stock')
+      // Check if any items are out of stock, not found, or inactive
+      const hasIssues = Object.values(itemKeys).some(item => 
+        !item.inStock || !item.productExists || !item.productActive
+      )
+      
+      if (hasIssues) {
+        const issueMessages = Object.values(itemKeys)
+          .filter(item => !item.inStock || !item.productExists || !item.productActive)
+          .map(item => item.errorMessage || 'Out of stock')
+        
+        toast.error('Some items in your cart have issues: ' + issueMessages.join(', '))
       }
       
-      return !hasOutOfStock
+      return !hasIssues
     } catch (error) {
       console.error('Error checking stock:', error)
       return true // Allow checkout if stock check fails
@@ -484,10 +535,12 @@ export default function CheckoutPage() {
       }
       
       // Order created successfully
-      toast.success(result.message || 'Order placed successfully!')
       
-      // Clear the cart
+      // IMPORTANT: Clear cart AFTER successful order confirmation
+      // This prevents cart from disappearing if order fails
       clearCart()
+      
+      toast.success(result.message || 'Order placed successfully!')
       
       // Navigate to order confirmation page with order ID
       router.push(`/order-confirmation?id=${result.data?.id}`)

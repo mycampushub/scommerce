@@ -86,15 +86,15 @@ export async function PUT(request: NextRequest) {
     }
 
     // Rate limiting: 10 requests per minute per admin
-    const clientIp = getClientIp(request);
-    const rateLimitKey = `admin-featured-products:${clientIp}`;
+    const clientIp = getClientIp(request)
+    const rateLimitKey = `admin-featured-products:${clientIp}`
     const rateLimitResult = await rateLimit(env, rateLimitKey, {
       maxRequests: 10,
       windowMs: 60 * 1000, // 1 minute window
-    });
+    })
 
     if (!rateLimitResult.success) {
-      return createRateLimitResponse(rateLimitResult);
+      return createRateLimitResponse(rateLimitResult)
     }
 
     const body = await request.json()

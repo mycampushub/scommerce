@@ -106,23 +106,23 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-  // Rate limiting: 10 requests per minute per admin
-  const clientIp = getClientIp(request);
-  const rateLimitKey = `admin-section-manager:${clientIp}`;
-  const rateLimitResult = await rateLimit(env, rateLimitKey, {
-    maxRequests: 10,
-    windowMs: 60 * 1000, // 1 minute window
-  });
+    // Rate limiting: 10 requests per minute per admin
+    const clientIp = getClientIp(request)
+    const rateLimitKey = `admin-section-manager:${clientIp}`
+    const rateLimitResult = await rateLimit(env, rateLimitKey, {
+      maxRequests: 10,
+      windowMs: 60 * 1000, // 1 minute window
+    })
 
-  if (!rateLimitResult.success) {
-    return createRateLimitResponse(rateLimitResult);
-  }
+    if (!rateLimitResult.success) {
+      return createRateLimitResponse(rateLimitResult)
+    }
 
-  const body = await request.json()
-  const { sections } = body
+    const body = await request.json()
+    const { sections } = body
 
-  console.log('[Section Manager] Request body:', body)
-
+    console.log('[Section Manager] Request body:', body)
+    
     // Validate sections
     if (!sections || !Array.isArray(sections)) {
       return NextResponse.json(

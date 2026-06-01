@@ -2,8 +2,43 @@
 -- Run this after schema.sql to populate initial data
 -- Note: Uses camelCase column names to match database schema
 
+-- Clear existing data in correct order (child tables first, then parent tables)
+-- This is needed because INSERT OR REPLACE fails with foreign key constraints
+DELETE FROM order_items;
+DELETE FROM product_reviews;
+DELETE FROM inventory_reservations;
+DELETE FROM cart_items;
+DELETE FROM wishlist_items;
+DELETE FROM inventory_movements;
+DELETE FROM inventory_adjustments;
+DELETE FROM inventory_alerts;
+DELETE FROM product_variants;
+DELETE FROM purchase_order_items;
+DELETE FROM purchase_orders;
+DELETE FROM orders;
+DELETE FROM products;
+DELETE FROM categories;
+DELETE FROM brands;
+DELETE FROM suppliers;
+DELETE FROM addresses;
+DELETE FROM admin_logs;
+DELETE FROM posts;
+DELETE FROM banners;
+DELETE FROM reels;
+DELETE FROM stories;
+DELETE FROM promotions;
+DELETE FROM page_seo;
+DELETE FROM homepage_settings;
+DELETE FROM email_services;
+DELETE FROM payment_gateways;
+DELETE FROM shipping_carriers;
+DELETE FROM media;
+DELETE FROM analytics_integrations;
+DELETE FROM site_settings;
+DELETE FROM users;
+
 -- Insert Site Settings
-INSERT INTO site_settings (id, siteName, currency, currencySymbol, taxRate, freeShippingThreshold, baseShippingCost, contactEmail, contactPhone, createdAt, updatedAt)
+INSERT OR REPLACE INTO site_settings (id, siteName, currency, currencySymbol, taxRate, freeShippingThreshold, baseShippingCost, contactEmail, contactPhone, createdAt, updatedAt)
 VALUES (
   'default-settings',
   'SCommerce',
@@ -19,7 +54,7 @@ VALUES (
 );
 
 -- Insert Default Admin User (password: admin123)
-INSERT INTO users (id, email, name, password, role, emailVerified, createdAt, updatedAt)
+INSERT OR REPLACE INTO users (id, email, name, password, role, emailVerified, createdAt, updatedAt)
 VALUES (
   'admin-001',
   'admin@scommerce.com',
@@ -32,7 +67,7 @@ VALUES (
 );
 
 -- Insert Demo User (password: user123)
-INSERT INTO users (id, email, name, password, role, emailVerified, phone, createdAt, updatedAt)
+INSERT OR REPLACE INTO users (id, email, name, password, role, emailVerified, phone, createdAt, updatedAt)
 VALUES (
   'user-001',
   'user@scommerce.com',
@@ -46,7 +81,7 @@ VALUES (
 );
 
 -- Insert Categories
-INSERT INTO categories (id, name, slug, description, isActive, sortOrder, createdAt, updatedAt) VALUES
+INSERT OR REPLACE INTO categories (id, name, slug, description, isActive, sortOrder, createdAt, updatedAt) VALUES
 ('cat-saree', 'Sarees', 'saree', 'Beautiful traditional sarees for every occasion', 1, 1, datetime('now'), datetime('now')),
 ('cat-salwar', 'Salwar Suits', 'salwar', 'Elegant salwar suits for modern women', 1, 2, datetime('now'), datetime('now')),
 ('cat-lehengas', 'Lehengas', 'lehengas', 'Stunning lehengas for special occasions', 1, 3, datetime('now'), datetime('now')),
@@ -57,7 +92,7 @@ INSERT INTO categories (id, name, slug, description, isActive, sortOrder, create
 ('cat-accessories', 'Accessories', 'accessories', 'Fashion accessories to complete your look', 1, 8, datetime('now'), datetime('now'));
 
 -- Insert Brands
-INSERT INTO brands (id, name, slug, logo, description, country, isActive, featured, sortOrder, createdAt, updatedAt) VALUES
+INSERT OR REPLACE INTO brands (id, name, slug, logo, description, country, isActive, featured, sortOrder, createdAt, updatedAt) VALUES
 ('brand-001', 'Luxury Sarees', 'luxury-sarees', 'https://example.com/logos/luxury-sarees.png', 'Premium quality silk sarees', 'India', 1, 1, 1, datetime('now'), datetime('now')),
 ('brand-002', 'Modern Fashion', 'modern-fashion', 'https://example.com/logos/modern-fashion.png', 'Contemporary ethnic wear', 'Bangladesh', 1, 1, 2, datetime('now'), datetime('now')),
 ('brand-003', 'Elegant Style', 'elegant-style', 'https://example.com/logos/elegant-style.png', 'Traditional with modern touch', 'Pakistan', 1, 0, 3, datetime('now'), datetime('now')),
@@ -68,7 +103,7 @@ INSERT INTO brands (id, name, slug, logo, description, country, isActive, featur
 ('brand-008', 'Classic Cut', 'classic-cut', 'https://example.com/logos/classic-cut.png', 'Timeless designs', 'India', 1, 1, 8, datetime('now'), datetime('now'));
 
 -- Insert Comprehensive Products - Sarees
-INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, images, stock, isActive, isFeatured, hasVariants, brandId, brandName, material, color, availableSizes, availableColors, createdAt, updatedAt) VALUES
+INSERT OR REPLACE INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, images, stock, isActive, isFeatured, hasVariants, brandId, brandName, material, color, availableSizes, availableColors, createdAt, updatedAt) VALUES
 -- Sarees
 ('prod-001', 'Silk Saree - Royal Blue', 'silk-saree-royal-blue', 'Pure silk saree with intricate golden embroidery. Perfect for weddings and special occasions.', 'cat-saree', 3500, 3500, 4500, '["https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=800", "https://images.unsplash.com/photo-1610030469668-98e550d6193d?w=800"]', 50, 1, 1, 0, 'brand-001', 'Luxury Sarees', 'Silk', 'Blue', '["6m", "6.5m"]', '["Blue", "Gold"]', datetime('now'), datetime('now')),
 
@@ -182,7 +217,7 @@ INSERT INTO products (id, name, slug, description, categoryId, price, basePrice,
 ('prod-052', 'Sunglasses', 'sunglasses', 'Stylish sunglasses. UV protection.', 'cat-accessories', 950, 950, 1200, '["https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=800"]', 70, 1, 0, 0, 'brand-007', 'Urban Chic', 'Plastic', 'Black', '["One Size"]', '["Black", "Brown", "Tortoise"]', datetime('now'), datetime('now'));
 
 -- Insert Sample Product Variants for key products
-INSERT INTO product_variants (id, productId, sku, name, price, stock, size, color, isActive, isDefault, costPrice, createdAt, updatedAt) VALUES
+INSERT OR REPLACE INTO product_variants (id, productId, sku, name, price, stock, size, color, isActive, isDefault, costPrice, createdAt, updatedAt) VALUES
 -- Saree Variants
 ('var-001-1', 'prod-001', 'SAREE-BLUE-6M', 'Silk Saree - 6m', 3500, 25, '6m', 'Blue', 1, 1, 2500, datetime('now'), datetime('now')),
 ('var-001-2', 'prod-001', 'SAREE-BLUE-6.5M', 'Silk Saree - 6.5m', 3600, 25, '6.5m', 'Blue', 1, 0, 2600, datetime('now'), datetime('now')),
@@ -223,13 +258,13 @@ INSERT INTO product_variants (id, productId, sku, name, price, stock, size, colo
 ('var-039-5', 'prod-039', 'TOP-WHITE-L', 'Casual Top - White Large', 600, 18, 'L', 'White', 1, 0, 350, datetime('now'), datetime('now'));
 
 -- Insert Banners
-INSERT INTO banners (id, title, description, image, mobileImage, buttonText, buttonLink, isActive, `order`, createdAt, updatedAt) VALUES
+INSERT OR REPLACE INTO banners (id, title, description, image, mobileImage, buttonText, buttonLink, isActive, `order`, createdAt, updatedAt) VALUES
 ('banner-001', 'New Collection', 'Explore our latest arrivals', 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1600', 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800', 'Shop Now', '/shop', 1, 1, datetime('now'), datetime('now')),
 ('banner-002', 'Special Offers', 'Up to 50% off on selected items', 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600', 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800', 'View Deals', '/shop?sale=true', 1, 2, datetime('now'), datetime('now')),
 ('banner-003', 'Free Shipping', 'Free shipping on orders over ৳5000', 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1600', 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800', 'Learn More', '/shipping', 1, 3, datetime('now'), datetime('now'));
 
 -- Insert Reels
-INSERT INTO reels (id, title, thumbnail, videoUrl, productIds, isActive, `order`, createdAt, updatedAt) VALUES
+INSERT OR REPLACE INTO reels (id, title, thumbnail, videoUrl, productIds, isActive, `order`, createdAt, updatedAt) VALUES
 ('reel-001', 'Summer Collection', 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600', 'https://example.com/reel-1.mp4', '["prod-001", "prod-009", "prod-020"]', 1, 1, datetime('now'), datetime('now')),
 ('reel-002', 'Bridal Special', 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600', 'https://example.com/reel-2.mp4', '["prod-015", "prod-016", "prod-019"]', 1, 2, datetime('now'), datetime('now')),
 ('reel-003', 'Casual Wear', 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600', 'https://example.com/reel-3.mp4', '["prod-020", "prod-026", "prod-030"]', 1, 3, datetime('now'), datetime('now')),
@@ -237,7 +272,7 @@ INSERT INTO reels (id, title, thumbnail, videoUrl, productIds, isActive, `order`
 ('reel-005', 'Accessories', 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600', 'https://example.com/reel-5.mp4', '["prod-045", "prod-046", "prod-051"]', 1, 5, datetime('now'), datetime('now'));
 
 -- Insert Stories
-INSERT INTO stories (id, title, thumbnail, images, isActive, `order`, createdAt, updatedAt) VALUES
+INSERT OR REPLACE INTO stories (id, title, thumbnail, images, isActive, `order`, createdAt, updatedAt) VALUES
 ('story-001', 'New Arrivals', 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=400', '["https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600", "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600"]', 1, 1, datetime('now'), datetime('now')),
 ('story-002', 'Trending Now', 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400', '["https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600", "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600"]', 1, 2, datetime('now'), datetime('now')),
 ('story-003', 'Best Sellers', 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=400', '["https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600", "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600"]', 1, 3, datetime('now'), datetime('now')),
@@ -245,31 +280,33 @@ INSERT INTO stories (id, title, thumbnail, images, isActive, `order`, createdAt,
 ('story-005', 'Menswear', 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=400', '["https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=600", "https://images.unsplash.com/photo-1625910513413-5fc0ec78d0d5?w=600"]', 1, 5, datetime('now'), datetime('now'));
 
 -- Insert Homepage Settings
-INSERT INTO homepage_settings (id, sectionName, isEnabled, autoPlay, displayLimit, createdAt, updatedAt) VALUES
-('hero-enabled', 'hero', 1, 5000, 5, datetime('now'), datetime('now')),
-('brands-enabled', 'brands', 1, 5000, 10, datetime('now'), datetime('now')),
-('featured-products-enabled', 'featured-products', 1, 3000, 10, datetime('now'), datetime('now')),
-('reels-enabled', 'reels', 1, 3000, 10, datetime('now'), datetime('now')),
-('category-carousel-enabled', 'category-carousel', 1, 4000, 8, datetime('now'), datetime('now')),
-('stories-enabled', 'stories', 1, 4000, 5, datetime('now'), datetime('now')),
-('marquee-enabled', 'marquee', 1, 0, 1, datetime('now'), datetime('now')),
-('mosaic-grid-enabled', 'mosaic-grid', 1, 0, 6, datetime('now'), datetime('now'));
+INSERT OR REPLACE INTO homepage_settings (id, sectionName, isEnabled, autoPlay, displayLimit, settings, createdAt, updatedAt) VALUES
+('hero-enabled', 'hero', 1, 5000, 5, NULL, datetime('now'), datetime('now')),
+('brands-enabled', 'brands', 1, 5000, 10, NULL, datetime('now'), datetime('now')),
+('featured-products-enabled', 'featured_products', 1, 3000, 10, '{"productIds": [], "heading": "Featured Products", "description": "Discover our handpicked selection of top products"}', datetime('now'), datetime('now')),
+('reels-enabled', 'reels', 1, 3000, 10, NULL, datetime('now'), datetime('now')),
+('category-carousel-enabled', 'category-carousel', 1, 4000, 8, '{"categoryIds": [], "heading": "Shop by Category", "description": "Explore our wide range of categories"}', datetime('now'), datetime('now')),
+('stories-enabled', 'stories', 1, 4000, 5, NULL, datetime('now'), datetime('now')),
+('marquee-enabled', 'marquee', 1, 0, 1, '{"text": "", "heading": "Special Offers", "description": "Don''t miss out on our amazing deals"}', datetime('now'), datetime('now')),
+('mosaic-grid-enabled', 'mosaic_grid', 1, 0, 6, '{"productIds": [], "heading": "Shop the Look", "description": "Explore our curated collection of trending styles"}', datetime('now'), datetime('now')),
+('fullscreen-video-enabled', 'fullscreen-video', 1, 0, NULL, '{"videoUrl": "", "heading": "Featured Video", "description": "Experience our exclusive video content"}', datetime('now'), datetime('now')),
+('section-manager-enabled', 'section-manager', 1, 0, NULL, '{"sections": [{"id": "fullscreen-video", "name": "Fullscreen Video", "order": 1, "enabled": true}, {"id": "hero-slider", "name": "Hero Carousel", "order": 2, "enabled": true}, {"id": "marquee", "name": "Marquee Banner", "order": 3, "enabled": true}, {"id": "categories", "name": "Categories", "order": 4, "enabled": true}, {"id": "category-carousel", "name": "Category Carousel", "order": 5, "enabled": true}, {"id": "brands", "name": "Brand Carousel", "order": 6, "enabled": true}, {"id": "featured-products", "name": "Featured Products", "order": 7, "enabled": true}, {"id": "mosaic-grid", "name": "Mosaic Grid", "order": 8, "enabled": true}, {"id": "video-reels", "name": "Video Reels", "order": 9, "enabled": true}, {"id": "promotions", "name": "Promotions", "order": 10, "enabled": true}, {"id": "stories", "name": "Stories", "order": 11, "enabled": true}]}', datetime('now'), datetime('now'));
 
 -- Insert Promotions
-INSERT INTO promotions (id, title, description, image, ctaText, ctaLink, promoCode, discountType, discountValue, minOrderAmount, isActive, `order`, createdAt, updatedAt) VALUES
+INSERT OR REPLACE INTO promotions (id, title, description, image, ctaText, ctaLink, promoCode, discountType, discountValue, minOrderAmount, isActive, `order`, createdAt, updatedAt) VALUES
 ('promo-001', 'First Order Discount', 'Get 10% off on your first order', 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600', 'Use Code FIRST10', '/shop', 'FIRST10', 'percentage', 10, 1000, 1, 1, datetime('now'), datetime('now')),
 ('promo-002', 'Summer Sale', 'Flat ৳500 off on orders above ৳3000', 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600', 'Use Code SUMMER500', '/shop', 'SUMMER500', 'fixed', 500, 3000, 1, 2, datetime('now'), datetime('now')),
 ('promo-003', 'Festival Special', 'Extra 15% off on ethnic wear', 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600', 'Shop Festival Collection', '/shop?category=saree', 'FESTIVAL15', 'percentage', 15, 2000, 1, 3, datetime('now'), datetime('now'));
 
 -- Insert Page SEO
-INSERT INTO page_seo (id, pagePath, pageTitle, metaTitle, metaDescription, keywords, ogTitle, ogDescription, isActive, createdAt, updatedAt) VALUES
+INSERT OR REPLACE INTO page_seo (id, pagePath, pageTitle, metaTitle, metaDescription, keywords, ogTitle, ogDescription, isActive, createdAt, updatedAt) VALUES
 ('seo-home', '/', 'SCommerce - Your Fashion Destination', 'SCommerce - Best Ethnic Wear Collection', 'Shop the latest collection of sarees, salwar suits, lehengas, kurtas, and more at SCommerce. Free shipping on orders over ৳5000.', 'sarees, salwar suits, lehengas, kurtas, ethnic wear, fashion, online shopping, Bangladesh', 'SCommerce - Premium Ethnic Wear', 'Discover premium ethnic wear at SCommerce. Quality fashion at best prices.', 1, datetime('now'), datetime('now')),
 ('seo-shop', '/shop', 'Shop - SCommerce', 'Shop All Products - SCommerce', 'Browse our complete collection of ethnic wear and fashion items for men and women.', 'shop, products, online shopping, fashion store', 'Shop Fashion at SCommerce', 'Find your perfect style from our extensive collection.', 1, datetime('now'), datetime('now')),
 ('seo-about', '/about', 'About Us - SCommerce', 'About SCommerce', 'Learn about SCommerce and our commitment to quality fashion and customer satisfaction.', 'about us, company, fashion, ecommerce', 'About SCommerce', 'Your trusted destination for premium ethnic wear and fashion.', 1, datetime('now'), datetime('now')),
 ('seo-contact', '/contact', 'Contact Us - SCommerce', 'Contact SCommerce', 'Get in touch with us for any queries, support, or feedback.', 'contact, support, help, customer service', 'Contact SCommerce', 'We are here to help. Reach out to us anytime.', 1, datetime('now'), datetime('now'));
 
 -- Insert Default Suppliers
-INSERT INTO suppliers (id, code, name, email, phone, city, country, isActive, createdAt, updatedAt) VALUES
+INSERT OR REPLACE INTO suppliers (id, code, name, email, phone, city, country, isActive, createdAt, updatedAt) VALUES
 ('sup-001', 'SUP001', 'Fashion Hub Ltd', 'contact@fashionhub.com', '+8801700000001', 'Dhaka', 'Bangladesh', 1, datetime('now'), datetime('now')),
 ('sup-002', 'SUP002', 'Textile World', 'info@textileworld.com', '+8801700000002', 'Chittagong', 'Bangladesh', 1, datetime('now'), datetime('now')),
 ('sup-003', 'SUP003', 'Premium Fabrics', 'sales@premiumfabrics.com', '+8801700000003', 'Dhaka', 'Bangladesh', 1, datetime('now'), datetime('now')),
@@ -277,31 +314,31 @@ INSERT INTO suppliers (id, code, name, email, phone, city, country, isActive, cr
 ('sup-005', 'SUP005', 'Cotton Exports', 'trade@cottonexports.com', '+919876543211', 'Mumbai', 'India', 1, datetime('now'), datetime('now'));
 
 -- Insert Default Email Service
-INSERT INTO email_services (id, name, provider, fromEmail, fromName, isActive, isDefault, createdAt, updatedAt) VALUES
+INSERT OR REPLACE INTO email_services (id, name, provider, fromEmail, fromName, isActive, isDefault, createdAt, updatedAt) VALUES
 ('email-default', 'Default SMTP', 'custom', 'noreply@scommerce.com', 'SCommerce', 1, 1, datetime('now'), datetime('now'));
 
 -- Insert Default Payment Gateway
-INSERT INTO payment_gateways (id, name, provider, isActive, isDefault, createdAt, updatedAt) VALUES
+INSERT OR REPLACE INTO payment_gateways (id, name, provider, isActive, isDefault, createdAt, updatedAt) VALUES
 ('payment-cod', 'Cash on Delivery', 'custom', 1, 1, datetime('now'), datetime('now'));
 
 -- Insert Default Shipping Carrier
-INSERT INTO shipping_carriers (id, name, provider, isActive, isDefault, createdAt, updatedAt) VALUES
+INSERT OR REPLACE INTO shipping_carriers (id, name, provider, isActive, isDefault, createdAt, updatedAt) VALUES
 ('shipping-default', 'Standard Delivery', 'custom', 1, 1, datetime('now'), datetime('now'));
 
 -- Insert Sample Orders
-INSERT INTO orders (id, orderNumber, userId, customerName, customerEmail, customerPhone, shippingAddress, billingAddress, city, district, division, subtotal, shipping, tax, discount, total, status, paymentStatus, paymentMethod, createdAt, updatedAt) VALUES
+INSERT OR REPLACE INTO orders (id, orderNumber, userId, customerName, customerEmail, customerPhone, shippingAddress, billingAddress, city, district, division, subtotal, shipping, tax, discount, total, status, paymentStatus, paymentMethod, createdAt, updatedAt) VALUES
 ('order-001', 'ORD-2024001', 'user-001', 'Demo User', 'user@scommerce.com', '+8801800000000', 'House 123, Road 5, Dhanmondi', 'House 123, Road 5, Dhanmondi', 'Dhaka', 'Dhaka', 'Dhaka', 4500, 150, 810, 0, 5460, 'DELIVERED', 'PAID', 'COD', datetime('now', '-5 days'), datetime('now')),
 ('order-002', 'ORD-2024002', 'user-001', 'Demo User', 'user@scommerce.com', '+8801800000000', 'House 123, Road 5, Dhanmondi', 'House 123, Road 5, Dhanmondi', 'Dhaka', 'Dhaka', 'Dhaka', 2800, 150, 504, 280, 3174, 'PROCESSING', 'PENDING', 'COD', datetime('now', '-1 day'), datetime('now'));
 
 -- Insert Sample Order Items
-INSERT INTO order_items (id, orderId, productId, variantId, quantity, price, productName, productImage, variantSku, variantSize, variantColor, createdAt) VALUES
+INSERT OR REPLACE INTO order_items (id, orderId, productId, variantId, quantity, price, productName, productImage, variantSku, variantSize, variantColor, createdAt) VALUES
 ('order-item-001', 'order-001', 'prod-001', 'var-001-1', 1, 3500, 'Silk Saree - Royal Blue', '["https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=800"]', 'SAREE-BLUE-6M', '6m', 'Blue', datetime('now')),
 ('order-item-002', 'order-001', 'prod-009', 'var-009-2', 1, 1000, 'Cotton Salwar Suit', '["https://images.unsplash.com/photo-1583391733958-3750e0ff4e8b?w=800"]', 'SALWAR-GREEN-M', 'M', 'Green', datetime('now')),
 ('order-item-003', 'order-002', 'prod-020', 'var-020-2', 2, 800, 'Cotton Kurta', '["https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=800"]', 'KURTA-WHITE-M', 'M', 'White', datetime('now')),
 ('order-item-004', 'order-002', 'prod-026', 'var-026-2', 1, 1200, 'Formal Shirt', '["https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=800"]', 'SHIRT-WHITE-M', 'M', 'White', datetime('now'));
 
 -- Insert Sample Reviews
-INSERT INTO product_reviews (id, productId, userId, userName, rating, title, comment, isVerified, isApproved, createdAt, updatedAt) VALUES
+INSERT OR REPLACE INTO product_reviews (id, productId, userId, userName, rating, title, comment, isVerified, isApproved, createdAt, updatedAt) VALUES
 ('review-001', 'prod-001', 'user-001', 'Demo User', 5, 'Beautiful saree!', 'The silk saree exceeded my expectations. The quality is amazing and it looks even better in person.', 1, 1, datetime('now', '-3 days'), datetime('now')),
 ('review-002', 'prod-009', 'user-001', 'Demo User', 4, 'Comfortable and stylish', 'Great salwar suit for daily wear. Comfortable fabric and nice embroidery work.', 1, 1, datetime('now', '-3 days'), datetime('now')),
 ('review-003', 'prod-020', 'user-001', 'Demo User', 5, 'Perfect fit', 'The kurta fits perfectly and the fabric is very comfortable. Will buy again!', 1, 1, datetime('now', '-2 days'), datetime('now')),
