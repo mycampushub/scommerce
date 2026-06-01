@@ -55,10 +55,10 @@ export async function GET(
         basePrice: product.basePrice || product.price,
         variants: variants.map((variant: any) => {
           // Parse images from JSON string to array
-          const parsedImages = variant.images 
+          const parsedImages = variant.images
             ? (typeof variant.images === 'string' ? JSON.parse(variant.images) : variant.images)
             : [];
-          
+
           return {
             id: variant.id,
             sku: variant.sku,
@@ -71,7 +71,7 @@ export async function GET(
             color: variant.color,
             material: variant.material,
             isDefault: variant.isDefault,
-            isActive: variant.isActive,
+            isActive: typeof variant.isActive === 'boolean' ? variant.isActive : Boolean(variant.isActive),
           };
         }),
       },

@@ -50,10 +50,6 @@ interface ProductResponse {
     name: string
     stock?: number
     isActive?: boolean
-    variants?: Array<{
-      id: string
-      stock?: number
-    }>
   }
   error?: string
 }
@@ -113,44 +109,20 @@ export default function CheckoutPage() {
   const [isFetchingServerCart, setIsFetchingServerCart] = useState(false)
 
 
-  // Fetch cart from server for authenticated users (similar to cart page logic)
+  // Fetch cart from server for authenticated users
   useEffect(() => {
     const fetchServerCart = async () => {
       if (user && !hasFetchedServerCart) {
         setIsFetchingServerCart(true)
         try {
-          // First, sync local cart items to server if there are any (like cart page does)
-          if (items.length > 0) {
-            console.log('[Checkout] Syncing local cart to server:', items.length, 'items')
-            const syncResponse = await fetch('/api/cart', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              credentials: 'include',
-              body: JSON.stringify({
-                action: 'sync',
-                items: items.map(item => ({
-                  id: item.id,
-                  productId: item.id,
-                  quantity: item.quantity,
-                  variantId: item.variantId,
-                  size: item.size,
-                  color: item.color,
-                  material: item.material,
-                })),
-              }),
-            })
-            const syncData = await syncResponse.json() as any
-            console.log('[Checkout] Sync result:', syncData)
-          }
-
-          // Now fetch the server cart
+          // Fetch the server cart first
           const response = await fetch('/api/cart', {
             credentials: 'include',
           })
           const data = await response.json() as any
 
-          if (data.success && data.source === 'database' && data.items) {
-            // Transform server items to match cart store format
+          if (data.success && data.items && data.items.length > 0) {
+            // Server has cart items, use them
             const transformedItems = data.items.map((item: any) => ({
               id: item.id,
               name: item.name,
@@ -165,16 +137,63 @@ export default function CheckoutPage() {
               quantity: item.quantity,
               slug: item.slug || item.product?.slug || '',
             }))
-
             setServerCartItems(transformedItems)
             console.log('[Checkout] Loaded cart from server:', transformedItems.length, 'items')
           } else {
-            // Server returned empty cart
-            setServerCartItems([])
-            console.log('[Checkout] Server returned empty cart')
+            // Server cart is empty, sync local cart to server
+            if (items.length > 0) {
+              console.log('[Checkout] Server cart empty, syncing local cart:', items.length, 'items')
+              const syncResponse = await fetch('/api/cart', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                  action: 'sync',
+                  items: items.map(item => ({
+                    id: item.id,
+                    productId: item.id,
+                    quantity: item.quantity,
+                    variantId: item.variantId,
+                    size: item.size,
+                    color: item.color,
+                    material: item.material,
+                  })),
+                }),
+              })
+              const syncData = await syncResponse.json() as any
+              console.log('[Checkout] Sync result:', syncData)
+
+              // After sync, fetch the server cart again
+              const fetchAfterSync = await fetch('/api/cart', {
+                credentials: 'include',
+              })
+              const dataAfterSync = await fetchAfterSync.json() as any
+
+              if (dataAfterSync.success && dataAfterSync.items) {
+                const transformedItems = dataAfterSync.items.map((item: any) => ({
+                  id: item.id,
+                  name: item.name,
+                  price: item.price,
+                  originalPrice: item.originalPrice,
+                  image: item.image,
+                  variantId: item.variantId,
+                  variantSku: item.variantSku,
+                  size: item.size,
+                  color: item.color,
+                  material: item.material,
+                  quantity: item.quantity,
+                  slug: item.slug || item.product?.slug || '',
+                }))
+                setServerCartItems(transformedItems)
+                console.log('[Checkout] Loaded cart from server after sync:', transformedItems.length, 'items')
+              }
+            } else {
+              setServerCartItems([])
+              console.log('[Checkout] Server cart empty and no local items')
+            }
           }
         } catch (error) {
-          console.error('[Checkout] Error fetching server cart:', error)
+          console.error('[Checkout] Error fetching/syncing server cart:', error)
           // Fall back to local storage cart
           setServerCartItems(items)
         } finally {
@@ -267,9 +286,11 @@ export default function CheckoutPage() {
 
       for (const item of itemsToCheck) {
         const itemKey = `${item.id}-${item.variantId || 'no-variant'}`
+
+        // Fetch product data
         const response = await fetch(`/api/products/${item.id}`)
         const data: ProductResponse = await response.json()
-        
+
         if (!data.success || !data.data) {
           // Product not found
           itemKeys[itemKey] = {
@@ -283,9 +304,12 @@ export default function CheckoutPage() {
         }
 
         const product = data.data
-        
+
         // Check if product is active
-        if (product.isActive === false) {
+        // The API should return isActive as a boolean (via numberToBool)
+        const isActive = product.isActive !== false
+
+        if (!isActive) {
           itemKeys[itemKey] = {
             inStock: false,
             availableStock: 0,
@@ -298,11 +322,42 @@ export default function CheckoutPage() {
 
         let stock = 0
         let variantExists = false
-        
+
         if (item.variantId) {
-          // Check variant stock and existence
-          const variant = product.variants?.find(v => v.id === item.variantId)
-          if (!variant) {
+          // Fetch variants separately for this product
+          let variantStock = 0
+          let foundVariant = false
+
+          try {
+            const variantsResponse = await fetch(`/api/products/${item.id}/variants`)
+            const variantsData = await variantsResponse.json() as any
+
+            if (variantsData.success && variantsData.data?.variants) {
+              const variants = variantsData.data.variants
+              const variant = variants.find((v: any) => v.id === item.variantId)
+
+              if (variant) {
+                // Check variant isActive (API should return as boolean)
+                const variantIsActive = variant.isActive !== false
+                if (!variantIsActive) {
+                  itemKeys[itemKey] = {
+                    inStock: false,
+                    availableStock: 0,
+                    productExists: true,
+                    productActive: true,
+                    errorMessage: 'Product variant is no longer available'
+                  }
+                  continue
+                }
+                foundVariant = true
+                variantStock = variant.stock || 0
+              }
+            }
+          } catch (error) {
+            console.error('[Checkout] Error fetching variants:', error)
+          }
+
+          if (!foundVariant) {
             // Variant not found
             itemKeys[itemKey] = {
               inStock: false,
@@ -313,39 +368,40 @@ export default function CheckoutPage() {
             }
             continue
           }
+
           variantExists = true
-          stock = variant.stock || 0
+          stock = variantStock
         } else {
           // Check product stock
           stock = product.stock || 0
         }
-        
+
         itemKeys[itemKey] = {
           inStock: stock >= item.quantity,
           availableStock: stock,
           productExists: true,
           productActive: true,
-          errorMessage: stock < item.quantity 
-            ? `Only ${stock} available` 
+          errorMessage: stock < item.quantity
+            ? `Only ${stock} available`
             : undefined
         }
       }
-      
+
       setStockIssues(itemKeys)
-      
+
       // Check if any items are out of stock, not found, or inactive
-      const hasIssues = Object.values(itemKeys).some(item => 
+      const hasIssues = Object.values(itemKeys).some(item =>
         !item.inStock || !item.productExists || !item.productActive
       )
-      
+
       if (hasIssues) {
         const issueMessages = Object.values(itemKeys)
           .filter(item => !item.inStock || !item.productExists || !item.productActive)
           .map(item => item.errorMessage || 'Out of stock')
-        
+
         toast.error('Some items in your cart have issues: ' + issueMessages.join(', '))
       }
-      
+
       return !hasIssues
     } catch (error) {
       console.error('Error checking stock:', error)

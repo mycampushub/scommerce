@@ -19,7 +19,6 @@ export default function CartPage() {
   const localRemoveItem = useCartStore(state => state.removeItem)
   const localGetSubtotal = useCartStore(state => state.getSubtotal)
   const localGetTotal = useCartStore(state => state.getTotal)
-  const clearLocalCart = useCartStore(state => state.clearCart)
   const addItem = useCartStore(state => state.addItem)
 
   // For authenticated users, use server cart state; for guests, use local zustand store directly
@@ -143,37 +142,16 @@ export default function CartPage() {
     const fetchServerCart = async () => {
       // If user is authenticated, fetch cart from server
       if (user && !hasSynced) {
+        setLoading(true)
         try {
-          // First, sync local cart items to server if there are any
-          if (localItems.length > 0) {
-            console.log('[Cart] Syncing local cart to server:', localItems.length, 'items')
-            await fetch('/api/cart', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              credentials: 'include',
-              body: JSON.stringify({
-                action: 'sync',
-                items: localItems.map(item => ({
-                  id: item.id,
-                  productId: item.id,
-                  quantity: item.quantity,
-                  variantId: item.variantId,
-                  size: item.size,
-                  color: item.color,
-                  material: item.material,
-                })),
-              }),
-            })
-          }
-
-          // Now fetch the server cart
+          // Fetch the server cart first
           const response = await fetch('/api/cart', {
             credentials: 'include',
           })
           const data = await response.json() as any
 
-          if (data.success && data.source === 'database' && data.items) {
-            // Transform server items to match cart store format
+          if (data.success && data.items && data.items.length > 0) {
+            // Server has cart items, use them
             const transformedItems = data.items.map((item: any) => ({
               id: item.id,
               name: item.name,
@@ -188,40 +166,80 @@ export default function CartPage() {
               quantity: item.quantity,
               slug: item.slug || item.product?.slug || '',
             }))
-
-            // Update items state from server
             setItems(transformedItems)
-            // Clear localStorage to prevent duplication
-            clearLocalCart()
-            // Mark as synced to prevent re-running
-            setHasSynced(true)
-            console.log('[Cart] Loaded from server:', transformedItems.length, 'items')
+            console.log('[Cart] Loaded cart from server:', transformedItems.length, 'items')
           } else {
-            // Server returned empty cart or guest cart
-            setItems([])
-            setHasSynced(true)
+            // Server cart is empty, sync local cart to server
+            if (localItems.length > 0) {
+              console.log('[Cart] Server cart empty, syncing local cart:', localItems.length, 'items')
+              const syncResponse = await fetch('/api/cart', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                  action: 'sync',
+                  items: localItems.map(item => ({
+                    id: item.id,
+                    productId: item.id,
+                    quantity: item.quantity,
+                    variantId: item.variantId,
+                    size: item.size,
+                    color: item.color,
+                    material: item.material,
+                  })),
+                }),
+              })
+              const syncData = await syncResponse.json() as any
+              console.log('[Cart] Sync result:', syncData)
+
+              // After sync, fetch the server cart again
+              const fetchAfterSync = await fetch('/api/cart', {
+                credentials: 'include',
+              })
+              const dataAfterSync = await fetchAfterSync.json() as any
+
+              if (dataAfterSync.success && dataAfterSync.items) {
+                const transformedItems = dataAfterSync.items.map((item: any) => ({
+                  id: item.id,
+                  name: item.name,
+                  price: item.price,
+                  originalPrice: item.originalPrice,
+                  image: item.image,
+                  variantId: item.variantId,
+                  variantSku: item.variantSku,
+                  size: item.size,
+                  color: item.color,
+                  material: item.material,
+                  quantity: item.quantity,
+                  slug: item.slug || item.product?.slug || '',
+                }))
+                setItems(transformedItems)
+                console.log('[Cart] Loaded cart from server after sync:', transformedItems.length, 'items')
+              }
+            } else {
+              setItems([])
+              console.log('[Cart] Server cart empty and no local items')
+            }
           }
+          setHasSynced(true)
         } catch (error) {
-          console.error('[Cart] Error fetching server cart:', error)
+          console.error('[Cart] Error fetching/syncing server cart:', error)
           // Fall back to local storage
           setItems(localItems)
           setHasSynced(true)
+        } finally {
+          setLoading(false)
         }
       } else if (!user) {
         // Not authenticated, use local zustand store directly
         setItems(localItems)
         setHasSynced(false)
         setLoading(false)
-      } else {
-        // Already synced, no need to fetch again
-        setLoading(false)
       }
     }
 
-    // Only fetch on initial mount and when user changes (NOT on localItems changes)
-    // But re-sync when user logs in
     fetchServerCart()
-  }, [user, hasSynced, localItems])
+  }, [user, hasSynced])
 
   // Fetch site settings for shipping thresholds
   useEffect(() => {

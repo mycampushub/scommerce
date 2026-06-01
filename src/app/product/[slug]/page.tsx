@@ -298,10 +298,6 @@ export default function ProductPage() {
   }
 
   // Process variants and selections
-  // Show variant selectors if variants exist, regardless of hasVariants flag
-  // The hasVariants flag is used as a hint, but actual variants are the source of truth
-  const hasVariants = variants.length > 0
-
   // Get available sizes, colors, materials from variants OR product-level fields
   // Priority: product.availableSizes/availableColors > derived from variants
   const availableSizes = (product?.availableSizes && product.availableSizes.length > 0)
@@ -314,10 +310,18 @@ export default function ProductPage() {
 
   const availableMaterials = [...new Set(variants.map(v => v.material).filter(Boolean))]
 
+  // Show variant selectors if variants exist OR if product has availableSizes/availableColors
+  // This handles the case where a product has sizes/colors defined but no variant rows yet
+  const hasVariantsFromDb = variants.length > 0
+  const hasVariantsFromAttributes = availableSizes.length > 0 || availableColors.length > 0
+  const hasVariants = hasVariantsFromDb || hasVariantsFromAttributes
+
   // Debug logging for variant attributes
   if (hasVariants) {
     console.log('[Product Page] Variant attributes:', {
       hasVariants,
+      hasVariantsFromDb,
+      hasVariantsFromAttributes,
       variantsCount: variants.length,
       productAvailableSizes: product?.availableSizes,
       productAvailableColors: product?.availableColors,
@@ -331,11 +335,13 @@ export default function ProductPage() {
   } else {
     console.log('[Product Page] Variant selectors will NOT show:', {
       hasVariants,
+      hasVariantsFromDb,
+      hasVariantsFromAttributes,
       productHasVariants: product?.hasVariants,
       productAvailableSizes: product?.availableSizes,
       productAvailableColors: product?.availableColors,
       variantsLength: variants.length,
-      reason: !product?.hasVariants ? 'Product hasVariants is false' : variants.length === 0 ? 'No variants loaded' : 'Unknown',
+      reason: !product?.hasVariants && !hasVariantsFromAttributes ? 'Product hasVariants is false and no sizes/colors defined' : variants.length === 0 ? 'No variants loaded' : 'Unknown',
     })
   }
 
@@ -388,41 +394,86 @@ export default function ProductPage() {
     if (!product) return
 
     // Use variant data if available
-    if (hasVariants) {
+    if (hasVariantsFromDb) {
       if (!selectedVariant) {
         toast.error('Please select a variant')
         return
       }
     }
 
+    // If product has size/color attributes but no variant rows, require selection
+    if (!hasVariantsFromDb && hasVariantsFromAttributes) {
+      if (availableSizes.length > 0 && !selectedSize) {
+        toast.error('Please select a size')
+        return
+      }
+      if (availableColors.length > 0 && !selectedColor) {
+        toast.error('Please select a color')
+        return
+      }
+    }
+
     setAddingToCart(true)
     try {
-      if (hasVariants) {
-        addItem({
-          id: product.id,
-          slug: product.slug,
-          name: product.name,
-          price: selectedVariant!.price,
-          originalPrice: selectedVariant!.comparePrice || product.comparePrice,
-          image: (Array.isArray(selectedVariant!.images) && selectedVariant!.images.length > 0 ? selectedVariant!.images[0] : null) || (Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : product.image),
-          variantId: selectedVariant!.id,
-          variantSku: selectedVariant!.sku,
-          size: selectedVariant!.size,
-          color: selectedVariant!.color,
-          material: selectedVariant!.material,
-          quantity,
-        })
-      } else {
-        addItem({
-          id: product.id,
-          slug: product.slug,
-          name: product.name,
-          price: product.basePrice || product.price,
-          originalPrice: product.comparePrice,
-          image: Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : product.image,
-          quantity,
-        })
+      const cartItem = hasVariantsFromDb
+        ? {
+            id: product.id,
+            slug: product.slug,
+            name: product.name,
+            price: selectedVariant!.price,
+            originalPrice: selectedVariant!.comparePrice || product.comparePrice,
+            image: (Array.isArray(selectedVariant!.images) && selectedVariant!.images.length > 0 ? selectedVariant!.images[0] : null) || (Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : product.image),
+            variantId: selectedVariant!.id,
+            variantSku: selectedVariant!.sku,
+            size: selectedVariant!.size,
+            color: selectedVariant!.color,
+            material: selectedVariant!.material,
+            quantity,
+          }
+        : {
+            id: product.id,
+            slug: product.slug,
+            name: product.name,
+            price: product.basePrice || product.price,
+            originalPrice: product.comparePrice,
+            image: Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : product.image,
+            size: selectedSize || undefined,
+            color: selectedColor || undefined,
+            material: selectedMaterial || undefined,
+            quantity,
+          }
+
+      // Add to local cart store
+      addItem(cartItem)
+
+      // Sync to server for logged-in users
+      if (user) {
+        try {
+          const syncResponse = await fetch('/api/cart', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              action: 'add',
+              item: {
+                productId: cartItem.id,
+                variantId: cartItem.variantId,
+                quantity: cartItem.quantity,
+                size: cartItem.size,
+                color: cartItem.color,
+              },
+            }),
+          })
+          const syncData = await syncResponse.json()
+          if (!syncData.success) {
+            console.error('[Product Page] Failed to sync cart to server:', syncData.error)
+            toast.warning('Added to cart but sync failed. Item may not appear in your cart.')
+          }
+        } catch (syncError) {
+          console.error('[Product Page] Error syncing cart to server:', syncError)
+        }
       }
+
       toast.success('Added to cart successfully!')
     } finally {
       setAddingToCart(false)
@@ -867,15 +918,15 @@ export default function ProductPage() {
                 <div className="flex flex-col sm:flex-row gap-4">
                   <button
                     onClick={handleAddToCart}
-                    disabled={currentStock <= 0 || (hasVariants && !selectedVariant) || addingToCart}
+                    disabled={currentStock <= 0 || (hasVariantsFromDb && !selectedVariant) || (hasVariantsFromAttributes && !selectedSize && !selectedColor) || addingToCart}
                     className={`min-h-[48px] flex-1 py-4 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2 ${
-                      currentStock <= 0 || (hasVariants && !selectedVariant) || addingToCart
+                      currentStock <= 0 || (hasVariantsFromDb && !selectedVariant) || (hasVariantsFromAttributes && !selectedSize && !selectedColor) || addingToCart
                         ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                         : 'bg-pink-600 text-white hover:bg-pink-700'
                     }`}
                   >
                     {addingToCart ? <Loader2 className="w-5 h-5 animate-spin" /> : <ShoppingCart className="w-5 h-5" />}
-                    {addingToCart ? 'Adding...' : (currentStock <= 0 ? 'Out of Stock' : hasVariants && !selectedVariant ? 'Select a Variant' : 'Add to Cart')}
+                    {addingToCart ? 'Adding...' : (currentStock <= 0 ? 'Out of Stock' : hasVariantsFromDb && !selectedVariant ? 'Select a Variant' : hasVariantsFromAttributes && !selectedSize && !selectedColor ? 'Select Options' : 'Add to Cart')}
                   </button>
                   <button
                     onClick={() => {
