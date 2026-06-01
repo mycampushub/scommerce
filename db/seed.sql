@@ -282,7 +282,7 @@ INSERT OR REPLACE INTO stories (id, title, thumbnail, images, isActive, `order`,
 -- Insert Homepage Settings
 INSERT OR REPLACE INTO homepage_settings (id, sectionName, isEnabled, autoPlay, displayLimit, settings, createdAt, updatedAt) VALUES
 ('hero-enabled', 'hero', 1, 5000, 5, NULL, datetime('now'), datetime('now')),
-('brands-enabled', 'brands', 1, 5000, 10, NULL, datetime('now'), datetime('now')),
+('brands-enabled', 'brands', 1, 5000, 10, '{"brandIds": ["brand-001", "brand-002", "brand-003", "brand-004", "brand-005", "brand-006", "brand-007", "brand-008"], "autoScroll": true, "scrollInterval": 4000, "heading": "Featured Brands", "description": "Discover top brands in our collection"}', datetime('now'), datetime('now')),
 ('featured-products-enabled', 'featured_products', 1, 3000, 10, '{"productIds": [], "heading": "Featured Products", "description": "Discover our handpicked selection of top products"}', datetime('now'), datetime('now')),
 ('reels-enabled', 'reels', 1, 3000, 10, NULL, datetime('now'), datetime('now')),
 ('category-carousel-enabled', 'category-carousel', 1, 4000, 8, '{"categoryIds": [], "heading": "Shop by Category", "description": "Explore our wide range of categories"}', datetime('now'), datetime('now')),

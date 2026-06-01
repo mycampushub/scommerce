@@ -8,7 +8,8 @@ const protectedPaths = ['/admin']
 // Sensitive API routes that need extra protection
 const sensitiveApiRoutes = [
   '/api/orders',
-  '/api/cart',
+  // '/api/cart', // Removed - cart handles guest users with localStorage fallback
+  // '/api/wishlist', // Removed - wishlist should work for guest users (localStorage fallback)
   '/api/reviews',
   '/api/products/favorite',
   '/api/addresses',

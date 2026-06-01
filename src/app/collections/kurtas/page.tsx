@@ -1,5 +1,7 @@
 import { CategoryPage } from '@/components/category-page'
 
+export const dynamic = 'force-dynamic'
+
 export default function KurtasCollectionPage() {
   return (
     <CategoryPage

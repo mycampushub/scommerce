@@ -17,6 +17,7 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: false,
   },
   reactStrictMode: true,
+  output: 'standalone',
   // Enable production source maps (optional, for debugging)
   productionBrowserSourceMaps: false,
   // Compress responses

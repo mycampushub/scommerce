@@ -1111,10 +1111,11 @@ export default function HomepageManagementPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-11">
+        <TabsList className="grid w-full grid-cols-12">
           <TabsTrigger value="section-manager">Section Manager</TabsTrigger>
           <TabsTrigger value="marquee">Marquee</TabsTrigger>
-          <TabsTrigger value="category-carousel">Categories</TabsTrigger>
+          <TabsTrigger value="categories">Category Grid</TabsTrigger>
+          <TabsTrigger value="category-carousel">Category Carousel</TabsTrigger>
           <TabsTrigger value="featured-products">Featured</TabsTrigger>
           <TabsTrigger value="mosaic-grid">Mosaic</TabsTrigger>
           <TabsTrigger value="brands">Brands</TabsTrigger>
@@ -1244,10 +1245,53 @@ export default function HomepageManagementPage() {
           </Card>
         </TabsContent>
 
+        {/* Categories Grid Tab */}
+        <TabsContent value="categories" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Category Grid Section</CardTitle>
+              <CardDescription>
+                The category grid displays all active categories in a 4x2 grid layout on the homepage.
+                This section automatically shows all active categories and cannot be individually configured.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h3 className="font-semibold text-blue-900 mb-2">How it works:</h3>
+                  <ul className="text-sm text-blue-800 space-y-1">
+                    <li>• Displays all active categories automatically</li>
+                    <li>• Categories are shown in a 4x2 grid layout</li>
+                    <li>• Categories appear in their sort order</li>
+                    <li>• Clicking a category navigates to its collection page</li>
+                  </ul>
+                </div>
+                <div>
+                  <Label className="text-base font-semibold">Section Management</Label>
+                  <p className="text-sm text-gray-600 mt-1">
+                    To enable or disable this section, go to the <strong>Section Manager</strong> tab and toggle the "Categories" section.
+                  </p>
+                  <p className="text-sm text-gray-600 mt-1">
+                    To manage categories (add, edit, delete, or reorder), go to <strong>Admin → Categories</strong>.
+                  </p>
+                </div>
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900 mb-2">Difference from Category Carousel:</h3>
+                  <p className="text-sm text-gray-600 mb-2">
+                    <strong>Category Grid</strong> shows all categories at once in a static grid view, while
+                    <strong> Category Carousel</strong> rotates through selected categories one at a time and
+                    displays their products.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* Category Carousel Tab */}
         <TabsContent value="category-carousel" className="space-y-4">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold">Category Carousel</h2>
+            <h2 className="text-xl font-semibold">Category Carousel Settings</h2>
             <Button onClick={handleSaveCategoryCarousel} disabled={savingCategoryCarousel}>
               {savingCategoryCarousel ? (
                 <>
@@ -1257,7 +1301,7 @@ export default function HomepageManagementPage() {
               ) : (
                 <>
                   <Save className="w-4 h-4 mr-2" />
-                  Save Categories
+                  Save Carousel
                 </>
               )}
             </Button>
