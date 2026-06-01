@@ -131,3 +131,8 @@ export function withAdminAuth(
     return handler(request, { user: userOrResponse })
   }
 }
+
+/**
+ * Alias for verifyAdminAuth for backward compatibility
+ */
+export const verifyAdmin = verifyAdminAuth;

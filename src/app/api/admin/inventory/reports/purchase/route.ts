@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { purchaseOrderRepository } from '@/db/purchase-order.repository';
 import { getEnv } from '@/lib/cloudflare';
 import { queryAll } from '@/db/db';
-import { verifyAdmin } from '@/lib/auth/admin-auth';
+import { verifyAdmin } from '@/lib/admin-auth';
 
 // GET /api/admin/inventory/reports/purchase - Purchase history report
 export async function GET(request: NextRequest) {

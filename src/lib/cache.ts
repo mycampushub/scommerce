@@ -250,13 +250,13 @@ export async function deleteCacheByPrefix(
 
     // Delete all tracked cache keys
     await Promise.all(
-      keys.map(key => env.KV.delete(key).catch(err => {
+      keys.map(key => env.KV.delete(key).catch((err: unknown) => {
         console.warn(`Failed to delete cache key ${key}:`, err);
       }))
     );
 
     // Delete the tracking key itself
-    await env.KV.delete(trackingKey).catch(err => {
+    await env.KV.delete(trackingKey).catch((err: unknown) => {
       console.warn(`Failed to delete tracking key ${trackingKey}:`, err);
     });
   } catch (error) {

@@ -31,7 +31,7 @@ R2_PUBLIC_URL = "https://pub-fce53fe542d84412a03d3ff73c33d43f.r2.dev"
 [[d1_databases]]
 binding = "DB"
 database_name = "scommerce-db"
-database_id = "a3f10722-4d99-410d-bd8b-e83f4a8e64e2"
+database_id = "8ca91023-1487-44c4-befd-b1ba89dc9c93"
 
 [[r2_buckets]]
 binding = "BUCKET"

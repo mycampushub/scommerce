@@ -22,6 +22,11 @@ const EMAIL_CONFIG = {
     region: process.env.AWS_REGION || 'us-east-1',
     from: process.env.EMAIL_FROM || 'noreply@scommerce.com',
   },
+
+  // Mock configuration for development/testing
+  mock: {
+    from: process.env.EMAIL_FROM || 'noreply@scommerce.com',
+  },
 };
 
 // Email interfaces

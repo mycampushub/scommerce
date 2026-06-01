@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { inventoryMovementRepository } from '@/db/inventory-movement.repository';
-import { verifyAdmin } from '@/lib/auth/admin-auth';
+import { verifyAdmin } from '@/lib/admin-auth';
 import { getEnv } from '@/lib/cloudflare';
 
 // GET /api/admin/inventory/movements/product/[productId] - Get movements for a specific product

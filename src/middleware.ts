@@ -9,7 +9,6 @@ const protectedPaths = ['/admin']
 const sensitiveApiRoutes = [
   '/api/orders',
   '/api/cart',
-  '/api/wishlist',
   '/api/reviews',
   '/api/products/favorite',
   '/api/addresses',

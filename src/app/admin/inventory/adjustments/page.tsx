@@ -146,7 +146,7 @@ export default function StockAdjustmentsPage() {
       
       // Log any adjustments with invalid types for debugging
       const validTypes = Object.keys(ADJUSTMENT_TYPES);
-      const invalidAdjustments = adjustments.filter(adj => !adj.adjustmentType || !validTypes.includes(adj.adjustmentType));
+      const invalidAdjustments = adjustments.filter((adj: Adjustment) => !adj.adjustmentType || !validTypes.includes(adj.adjustmentType));
       if (invalidAdjustments.length > 0) {
         console.warn('[Stock Adjustments] Found adjustments with invalid types:', invalidAdjustments);
       }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyPassword } from '@/lib/bcrypt-wrapper';
+import { verifyPassword, isPBKDF2Hash } from '@/lib/bcrypt-wrapper';
 import { createToken } from '@/lib/auth';
 import { rateLimit, createRateLimitResponse, getClientIp } from '@/lib/rate-limit';
 import { loginSchema } from '@/lib/validations';
@@ -75,6 +75,19 @@ export async function POST(request: NextRequest) {
     if (!user.password) {
       return NextResponse.json(
         { success: false, error: 'Password not set for this account. Please reset your password.' },
+        { status: 401 }
+      );
+    }
+
+    // Check if user has legacy bcrypt hash that needs migration
+    if (!isPBKDF2Hash(user.password)) {
+      logger.warn('Login failed - legacy bcrypt hash detected', { email });
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Your account needs a password reset. Please use the forgot password feature to reset your password.',
+          requiresPasswordReset: true
+        },
         { status: 401 }
       );
     }

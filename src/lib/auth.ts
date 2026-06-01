@@ -1,11 +1,12 @@
 /**
  * JWT Authentication Utilities (Edge Runtime compatible)
+ *
+ * Note: Password hashing functions (hashPassword, verifyPassword) are available
+ * in @/lib/bcrypt-wrapper which uses Web Crypto API and is Edge Runtime compatible
  */
 
 import { SignJWT, jwtVerify } from 'jose';
-
-// Note: Password hashing functions (hashPassword, verifyPassword) are in bcrypt-wrapper.ts
-// Import them directly when needed, not here to keep this file Edge Runtime compatible
+import { logger } from '@/lib/logger';
 
 function getJWTSecret(): Uint8Array {
   const secret = process.env.JWT_SECRET;
@@ -18,9 +19,9 @@ function getJWTSecret(): Uint8Array {
         + 'Set JWT_SECRET in Cloudflare Dashboard or wrangler.toml with a secure, random string (at least 32 characters).'
       );
     }
-    console.warn(
-      'SECURITY WARNING: Using insecure JWT_SECRET fallback. '
-      + 'This is only for development. Set JWT_SECRET environment variable!'
+    logger.warn(
+      'SECURITY WARNING: Using insecure JWT_SECRET fallback. ' +
+      'This is only for development. Set JWT_SECRET environment variable!'
     );
     return new TextEncoder().encode('dev-only-secret-min-32-chars-do-not-use-in-production');
   }
@@ -33,7 +34,7 @@ function getJWTSecret(): Uint8Array {
     );
   }
 
-  console.log('[auth.ts] JWT_SECRET configured, length:', secret.length, 'is production:', process.env.NODE_ENV === 'production');
+  logger.debug('JWT_SECRET configured', { length: secret.length, isProduction: process.env.NODE_ENV === 'production' });
   return new TextEncoder().encode(secret);
 }
 
@@ -56,7 +57,7 @@ export async function generateToken(payload: JWTPayload): Promise<string> {
     .setExpirationTime(getJWTExpiresIn())
     .sign(JWT_SECRET);
 
-  console.log('[auth.ts] Token generated successfully for user:', payload.userId, payload.email, 'role:', payload.role);
+  logger.authAction('Token generated', payload.userId, { email: payload.email, role: payload.role });
   return token;
 }
 
@@ -70,18 +71,18 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
 
     // Explicitly check token expiration (jose does this, but we want to be explicit)
     if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
-      console.error('[auth.ts] Token has expired');
+      logger.warn('Token has expired');
       return null;
     }
 
-    console.log('[auth.ts] Token verified successfully, userId:', (payload as any).userId, 'email:', (payload as any).email);
+    logger.authAction('Token verified', (payload as any).userId, { email: (payload as any).email });
     return payload as JWTPayload;
   } catch (error: any) {
     // Distinguish between expired tokens and other verification errors
     if (error?.code === 'ERR_JWT_EXPIRED' || error?.message?.includes('expired')) {
-      console.error('[auth.ts] Token has expired');
+      logger.warn('Token has expired');
     } else {
-      console.error('[auth.ts] Token verification failed:', error?.message || error);
+      logger.error('Token verification failed', { error: error?.message || error });
     }
     return null;
   }
@@ -120,9 +121,11 @@ export function decodeToken(token: string): JWTPayload | null {
     // Add padding if needed
     const paddedBase64 = base64 + '='.repeat((4 - base64.length % 4) % 4);
 
-    return JSON.parse(Buffer.from(paddedBase64, 'base64').toString());
+    // Use TextDecoder for Edge Runtime compatibility
+    const binaryString = atob(paddedBase64);
+    return JSON.parse(binaryString);
   } catch (error) {
-    console.error('Token decode failed:', error);
+    logger.error('Token decode failed', { error });
     return null;
   }
 }

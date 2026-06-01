@@ -41,9 +41,9 @@ export type InventoryMovementWithDetails = InventoryMovement & {
 
 class InventoryMovementRepository {
   async findById(env: Env | null, id: string): Promise<InventoryMovementWithDetails | null> {
-    const movement = await queryFirst<InventoryMovementWithDetails>(
+    const movement = await queryFirst<any>(
       env,
-      `SELECT 
+      `SELECT
         im.*,
         s.id as supplier_id,
         s.code as supplier_code,

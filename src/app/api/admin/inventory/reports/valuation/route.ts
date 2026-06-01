@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { queryAll, queryFirst } from '@/db/db';
 import { getEnv } from '@/lib/cloudflare';
-import { verifyAdmin } from '@/lib/auth/admin-auth';
+import { verifyAdmin } from '@/lib/admin-auth';
 
 // GET /api/admin/inventory/reports/valuation - Inventory valuation report with pagination
 export async function GET(request: NextRequest) {

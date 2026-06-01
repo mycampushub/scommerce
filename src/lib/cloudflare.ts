@@ -62,9 +62,9 @@ async function safelyGetCloudflareContext() {
 export async function getDB(_request?: Request): Promise<any | null> {
   // First, try Cloudflare D1
   const context = await safelyGetCloudflareContext();
-  if (context?.env?.['DB']) {
+  if (context?.env && 'DB' in context.env) {
     console.log('[cloudflare.ts] Using Cloudflare D1 database');
-    return context.env['DB'];
+    return (context.env as any)['DB'];
   }
 
   // Fallback to Prisma for local development
@@ -84,13 +84,16 @@ export async function getDB(_request?: Request): Promise<any | null> {
 export async function getEnvAsync(_request?: Request): Promise<any | null> {
   // Try Cloudflare bindings
   const context = await safelyGetCloudflareContext();
-  if (context?.env && (context.env['DB'] || context.env['KV'] || context.env['BUCKET'])) {
-    console.log('[cloudflare.ts] Using Cloudflare bindings', {
-      hasDB: !!context.env['DB'],
-      hasKV: !!context.env['KV'],
-      hasBUCKET: !!context.env['BUCKET'],
-    });
-    return context.env;
+  if (context?.env) {
+    const env = context.env as any;
+    if (env['DB'] || env['KV'] || env['BUCKET']) {
+      console.log('[cloudflare.ts] Using Cloudflare bindings', {
+        hasDB: !!env['DB'],
+        hasKV: !!env['KV'],
+        hasBUCKET: !!env['BUCKET'],
+      });
+      return env;
+    }
   }
 
   // Then check if we're in local development mode
@@ -119,8 +122,11 @@ export async function getEnv(_request?: Request): Promise<any | null> {
 export async function getEnvVar(key: string): Promise<string | undefined> {
   // Try Cloudflare env context first
   const context = await safelyGetCloudflareContext();
-  if (context?.env && key in context.env) {
-    return context.env[key];
+  if (context?.env) {
+    const env = context.env as any;
+    if (key in env) {
+      return env[key];
+    }
   }
 
   // Fallback to process.env

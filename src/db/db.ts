@@ -268,10 +268,13 @@ export async function transaction<T>(
 
   // Check if we're using Cloudflare D1 (has batch method)
   if (db && typeof (db as any).batch === 'function') {
-    // Cloudflare D1 - execute without explicit BEGIN/COMMIT
-    // NOTE: For atomic operations in D1, use batchTransaction() instead
-    logger.warn('Using non-atomic execution in D1. Use batchTransaction() for atomic operations.');
-    return await callback(env);
+    // Cloudflare D1 does not support traditional transactions
+    // For atomic operations, use batchTransaction() instead
+    throw new Error(
+      'Cannot use transaction() with Cloudflare D1. ' +
+      'Please use batchTransaction() for atomic operations in D1. ' +
+      'For non-atomic operations, execute queries directly without transaction wrapper.'
+    );
   } else {
     // Prisma/SQLite - use traditional transactions
     try {

@@ -41,12 +41,25 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Add order counts for each user
-    for (const user of users) {
-      const orderCount = await count(env, 'SELECT COUNT(*) as count FROM orders WHERE userId = ?', user.id)
-      user._count = { orders: orderCount }
-      user.emailVerified = numberToBool(user.emailVerified)
+    // Convert boolean numbers and add order counts in a single query
+    const userIds = users.map(u => u.id).filter(Boolean)
+    const orderCountMap = new Map<string, number>()
+
+    if (userIds.length > 0) {
+      const placeholders = userIds.map(() => '?').join(',')
+      const orderCounts = await queryAll<any>(
+        env,
+        `SELECT userId, COUNT(*) as count FROM orders WHERE userId IN (${placeholders}) GROUP BY userId`,
+        userIds
+      )
+      orderCounts.forEach((oc: any) => orderCountMap.set(oc.userId, oc.count))
     }
+
+    users = users.map(user => ({
+      ...user,
+      _count: { orders: orderCountMap.get(user.id) || 0 },
+      emailVerified: numberToBool(user.emailVerified)
+    }))
 
     return NextResponse.json({
       success: true,

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { purchaseOrderRepository } from '@/db/purchase-order.repository';
-import { verifyAdmin } from '@/lib/auth/admin-auth';
+import { verifyAdmin } from '@/lib/admin-auth';
 import { getEnv } from '@/lib/cloudflare';
 
 // POST /api/admin/purchase-orders/[id]/receive - Receive purchase order and update inventory

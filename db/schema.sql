@@ -1,742 +1,948 @@
--- Schema for SCommerce E-commerce Platform
--- This file is used for Cloudflare D1 deployment
--- Generated from Prisma schema
-
--- Homepage Settings
-CREATE TABLE IF NOT EXISTS homepage_settings (
-  id TEXT PRIMARY KEY,
-  section_name TEXT UNIQUE NOT NULL,
-  is_enabled INTEGER DEFAULT 1,
-  auto_play INTEGER DEFAULT 5000,
-  display_limit INTEGER,
-  settings TEXT,
-  created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now'))
+-- CreateTable
+CREATE TABLE "homepage_settings" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "sectionName" TEXT NOT NULL,
+    "isEnabled" INTEGER NOT NULL DEFAULT 1,
+    "autoPlay" INTEGER NOT NULL DEFAULT 5000,
+    "displayLimit" INTEGER,
+    "settings" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_homepage_settings_section ON homepage_settings(section_name);
-
--- Addresses
-CREATE TABLE IF NOT EXISTS addresses (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL,
-  full_name TEXT NOT NULL,
-  phone TEXT NOT NULL,
-  address_line1 TEXT NOT NULL,
-  address_line2 TEXT,
-  city TEXT NOT NULL,
-  district TEXT,
-  division TEXT NOT NULL,
-  postal_code TEXT,
-  is_default INTEGER DEFAULT 0,
-  created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now')),
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+-- CreateTable
+CREATE TABLE "addresses" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "fullName" TEXT NOT NULL,
+    "phone" TEXT NOT NULL,
+    "addressLine1" TEXT NOT NULL,
+    "addressLine2" TEXT,
+    "city" TEXT NOT NULL,
+    "district" TEXT,
+    "division" TEXT NOT NULL,
+    "postalCode" TEXT,
+    "isDefault" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "addresses_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_addresses_is_default ON addresses(is_default);
-CREATE INDEX IF NOT EXISTS idx_addresses_user_id ON addresses(user_id);
-
--- Admin Logs
-CREATE TABLE IF NOT EXISTS admin_logs (
-  id TEXT PRIMARY KEY,
-  action TEXT NOT NULL,
-  entity TEXT NOT NULL,
-  entity_id TEXT,
-  admin_id TEXT NOT NULL,
-  details TEXT,
-  ip_address TEXT,
-  user_agent TEXT,
-  created_at TEXT DEFAULT (datetime('now')),
-  FOREIGN KEY (admin_id) REFERENCES users(id) ON DELETE CASCADE
+-- CreateTable
+CREATE TABLE "admin_logs" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "action" TEXT NOT NULL,
+    "entity" TEXT NOT NULL,
+    "entityId" TEXT,
+    "adminId" TEXT NOT NULL,
+    "details" TEXT,
+    "ipAddress" TEXT,
+    "userAgent" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "admin_logs_adminId_fkey" FOREIGN KEY ("adminId") REFERENCES "users" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_admin_logs_entity ON admin_logs(entity, entity_id);
-CREATE INDEX IF NOT EXISTS idx_admin_logs_created_at ON admin_logs(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_admin_logs_action_created ON admin_logs(action, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_admin_logs_entity_created ON admin_logs(entity, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_admin_logs_admin_created ON admin_logs(admin_id, created_at DESC);
-
--- Analytics Integrations
-CREATE TABLE IF NOT EXISTS analytics_integrations (
-  id TEXT PRIMARY KEY,
-  name TEXT UNIQUE NOT NULL,
-  provider TEXT DEFAULT 'custom',
-  tracking_id TEXT,
-  measurement_id TEXT,
-  api_key TEXT,
-  pixel_id TEXT,
-  is_active BOOLEAN DEFAULT 1,
-  settings TEXT,
-  created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now'))
+-- CreateTable
+CREATE TABLE "analytics_integrations" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "name" TEXT NOT NULL,
+    "provider" TEXT NOT NULL DEFAULT 'custom',
+    "trackingId" TEXT,
+    "measurementId" TEXT,
+    "apiKey" TEXT,
+    "pixelId" TEXT,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "settings" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
 );
 
--- Banners
-CREATE TABLE IF NOT EXISTS banners (
-  id TEXT PRIMARY KEY,
-  title TEXT NOT NULL,
-  description TEXT,
-  image TEXT NOT NULL,
-  mobile_image TEXT,
-  button_text TEXT,
-  button_link TEXT,
-  is_active INTEGER DEFAULT 1,
-  order_index INTEGER DEFAULT 0,
-  created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now'))
+-- CreateTable
+CREATE TABLE "banners" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "title" TEXT NOT NULL,
+    "description" TEXT,
+    "image" TEXT NOT NULL,
+    "mobileImage" TEXT,
+    "buttonText" TEXT,
+    "buttonLink" TEXT,
+    "isActive" INTEGER NOT NULL DEFAULT 1,
+    "order" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_banners_order ON banners(order_index);
-CREATE INDEX IF NOT EXISTS idx_banners_is_active ON banners(is_active);
-
--- Brands
-CREATE TABLE IF NOT EXISTS brands (
-  id TEXT PRIMARY KEY,
-  name TEXT UNIQUE NOT NULL,
-  slug TEXT UNIQUE NOT NULL,
-  logo TEXT,
-  website TEXT,
-  description TEXT,
-  country TEXT,
-  is_active INTEGER DEFAULT 1,
-  featured INTEGER DEFAULT 0,
-  sort_order INTEGER DEFAULT 0,
-  created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now'))
+-- CreateTable
+CREATE TABLE "brands" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "name" TEXT NOT NULL,
+    "slug" TEXT NOT NULL,
+    "logo" TEXT,
+    "website" TEXT,
+    "description" TEXT,
+    "country" TEXT,
+    "isActive" INTEGER NOT NULL DEFAULT 1,
+    "featured" INTEGER NOT NULL DEFAULT 0,
+    "sortOrder" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_brands_active_order ON brands(is_active, sort_order);
-CREATE INDEX IF NOT EXISTS idx_brands_featured ON brands(featured);
-CREATE INDEX IF NOT EXISTS idx_brands_slug ON brands(slug);
-
--- Cart Items
-CREATE TABLE IF NOT EXISTS cart_items (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL,
-  product_id TEXT NOT NULL,
-  variant_id TEXT,
-  quantity INTEGER DEFAULT 1,
-  version INTEGER DEFAULT 0,
-  created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now')),
-  FOREIGN KEY (variant_id) REFERENCES product_variants(id) ON DELETE CASCADE,
-  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  UNIQUE(user_id, product_id, variant_id)
+-- CreateTable
+CREATE TABLE "cart_items" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "productId" TEXT NOT NULL,
+    "variantId" TEXT,
+    "quantity" INTEGER NOT NULL DEFAULT 1,
+    "version" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "cart_items_variantId_fkey" FOREIGN KEY ("variantId") REFERENCES "product_variants" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "cart_items_productId_fkey" FOREIGN KEY ("productId") REFERENCES "products" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "cart_items_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_cart_items_variant ON cart_items(variant_id);
-CREATE INDEX IF NOT EXISTS idx_cart_items_user_variant ON cart_items(user_id, variant_id);
-CREATE INDEX IF NOT EXISTS idx_cart_items_user_id ON cart_items(user_id);
-
--- Categories
-CREATE TABLE IF NOT EXISTS categories (
-  id TEXT PRIMARY KEY,
-  name TEXT UNIQUE NOT NULL,
-  slug TEXT UNIQUE NOT NULL,
-  description TEXT,
-  image TEXT,
-  parent_id TEXT,
-  sort_order INTEGER DEFAULT 0,
-  is_active INTEGER DEFAULT 1,
-  created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now')),
-  FOREIGN KEY (parent_id) REFERENCES categories(id) ON DELETE CASCADE
+-- CreateTable
+CREATE TABLE "categories" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "name" TEXT NOT NULL,
+    "slug" TEXT NOT NULL,
+    "description" TEXT,
+    "image" TEXT,
+    "parentId" TEXT,
+    "sortOrder" INTEGER NOT NULL DEFAULT 0,
+    "isActive" INTEGER NOT NULL DEFAULT 1,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "categories_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "categories" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_categories_active ON categories(is_active);
-CREATE INDEX IF NOT EXISTS idx_categories_slug ON categories(slug);
-CREATE INDEX IF NOT EXISTS idx_categories_parent ON categories(parent_id);
-CREATE INDEX IF NOT EXISTS idx_categories_active_order ON categories(is_active, sort_order);
-
--- Email Services
-CREATE TABLE IF NOT EXISTS email_services (
-  id TEXT PRIMARY KEY,
-  name TEXT UNIQUE NOT NULL,
-  provider TEXT DEFAULT 'custom',
-  api_key TEXT,
-  api_secret TEXT,
-  from_email TEXT,
-  from_name TEXT,
-  webhook_url TEXT,
-  sandbox_mode INTEGER DEFAULT 0,
-  is_active BOOLEAN DEFAULT 1,
-  is_default BOOLEAN DEFAULT 0,
-  settings TEXT,
-  last_tested TEXT,
-  test_status TEXT,
-  created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now'))
+-- CreateTable
+CREATE TABLE "email_services" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "name" TEXT NOT NULL,
+    "provider" TEXT NOT NULL DEFAULT 'custom',
+    "apiKey" TEXT,
+    "apiSecret" TEXT,
+    "fromEmail" TEXT,
+    "fromName" TEXT,
+    "webhookUrl" TEXT,
+    "sandboxMode" INTEGER NOT NULL DEFAULT 0,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "isDefault" BOOLEAN NOT NULL DEFAULT false,
+    "settings" TEXT,
+    "lastTested" DATETIME,
+    "testStatus" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
 );
 
--- Inventory Alerts
-CREATE TABLE IF NOT EXISTS inventory_alerts (
-  id TEXT PRIMARY KEY,
-  variant_id TEXT,
-  product_id TEXT,
-  alert_type TEXT DEFAULT 'LOW_STOCK',
-  quantity INTEGER NOT NULL,
-  is_read INTEGER DEFAULT 0,
-  is_resolved INTEGER DEFAULT 0,
-  resolved_at TEXT,
-  created_at TEXT DEFAULT (datetime('now')),
-  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
-  FOREIGN KEY (variant_id) REFERENCES product_variants(id) ON DELETE CASCADE,
-  UNIQUE(product_id, variant_id, alert_type)
+-- CreateTable
+CREATE TABLE "inventory_alerts" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "variantId" TEXT,
+    "productId" TEXT,
+    "alertType" TEXT NOT NULL DEFAULT 'LOW_STOCK',
+    "quantity" INTEGER NOT NULL,
+    "isRead" INTEGER NOT NULL DEFAULT 0,
+    "isResolved" INTEGER NOT NULL DEFAULT 0,
+    "resolvedAt" DATETIME,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "inventory_alerts_productId_fkey" FOREIGN KEY ("productId") REFERENCES "products" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "inventory_alerts_variantId_fkey" FOREIGN KEY ("variantId") REFERENCES "product_variants" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_inventory_alerts_read_resolved ON inventory_alerts(is_read, is_resolved);
-CREATE INDEX IF NOT EXISTS idx_inventory_alerts_product ON inventory_alerts(product_id);
-CREATE INDEX IF NOT EXISTS idx_inventory_alerts_variant ON inventory_alerts(variant_id);
-
--- Inventory Reservations
-CREATE TABLE IF NOT EXISTS inventory_reservations (
-  id TEXT PRIMARY KEY,
-  variant_id TEXT,
-  product_id TEXT,
-  user_id TEXT NOT NULL,
-  quantity INTEGER NOT NULL,
-  expires_at TEXT NOT NULL,
-  created_at TEXT DEFAULT (datetime('now')),
-  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
-  FOREIGN KEY (variant_id) REFERENCES product_variants(id) ON DELETE CASCADE
+-- CreateTable
+CREATE TABLE "inventory_reservations" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "variantId" TEXT,
+    "productId" TEXT,
+    "userId" TEXT NOT NULL,
+    "quantity" INTEGER NOT NULL,
+    "expiresAt" DATETIME NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "inventory_reservations_productId_fkey" FOREIGN KEY ("productId") REFERENCES "products" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "inventory_reservations_variantId_fkey" FOREIGN KEY ("variantId") REFERENCES "product_variants" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_inventory_reservations_expires ON inventory_reservations(expires_at);
-CREATE INDEX IF NOT EXISTS idx_inventory_reservations_user ON inventory_reservations(user_id);
-CREATE INDEX IF NOT EXISTS idx_inventory_reservations_product ON inventory_reservations(product_id);
-CREATE INDEX IF NOT EXISTS idx_inventory_reservations_variant ON inventory_reservations(variant_id);
-
--- Order Items
-CREATE TABLE IF NOT EXISTS order_items (
-  id TEXT PRIMARY KEY,
-  order_id TEXT NOT NULL,
-  product_id TEXT NOT NULL,
-  variant_id TEXT,
-  quantity INTEGER NOT NULL,
-  price REAL NOT NULL,
-  product_name TEXT NOT NULL,
-  product_image TEXT,
-  variant_sku TEXT,
-  variant_size TEXT,
-  variant_color TEXT,
-  variant_material TEXT,
-  created_at TEXT DEFAULT (datetime('now')),
-  FOREIGN KEY (variant_id) REFERENCES product_variants(id),
-  FOREIGN KEY (product_id) REFERENCES products(id),
-  FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+-- CreateTable
+CREATE TABLE "order_items" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "orderId" TEXT NOT NULL,
+    "productId" TEXT NOT NULL,
+    "variantId" TEXT,
+    "quantity" INTEGER NOT NULL,
+    "price" DECIMAL NOT NULL,
+    "productName" TEXT NOT NULL,
+    "productImage" TEXT,
+    "variantSku" TEXT,
+    "variantSize" TEXT,
+    "variantColor" TEXT,
+    "variantMaterial" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "order_items_variantId_fkey" FOREIGN KEY ("variantId") REFERENCES "product_variants" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT "order_items_productId_fkey" FOREIGN KEY ("productId") REFERENCES "products" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT "order_items_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "orders" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_order_items_variant ON order_items(variant_id);
-CREATE INDEX IF NOT EXISTS idx_order_items_product ON order_items(product_id);
-CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);
-
--- Orders
-CREATE TABLE IF NOT EXISTS orders (
-  id TEXT PRIMARY KEY,
-  order_number TEXT UNIQUE NOT NULL,
-  user_id TEXT,
-  customer_name TEXT NOT NULL,
-  customer_email TEXT NOT NULL,
-  customer_phone TEXT,
-  shipping_address TEXT NOT NULL,
-  billing_address TEXT,
-  city TEXT,
-  district TEXT,
-  division TEXT,
-  subtotal REAL NOT NULL,
-  shipping REAL DEFAULT 0,
-  tax REAL DEFAULT 0,
-  discount REAL DEFAULT 0,
-  total REAL NOT NULL,
-  status TEXT DEFAULT 'PENDING',
-  payment_status TEXT DEFAULT 'PENDING',
-  payment_method TEXT,
-  tracking_number TEXT,
-  tracking_status TEXT DEFAULT 'PENDING',
-  estimated_delivery_date TEXT,
-  cancelled_at TEXT,
-  cancelled_by TEXT,
-  cancellation_reason TEXT,
-  refunded_at TEXT,
-  refunded_amount REAL,
-  refund_method TEXT,
-  refund_reason TEXT,
-  notes TEXT,
-  deleted_at TEXT,
-  deleted_by TEXT,
-  deleted_reason TEXT,
-  version INTEGER DEFAULT 0,
-  created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now')),
-  promo_code TEXT,
-  FOREIGN KEY (user_id) REFERENCES users(id)
+-- CreateTable
+CREATE TABLE "orders" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "orderNumber" TEXT NOT NULL,
+    "userId" TEXT,
+    "customerName" TEXT NOT NULL,
+    "customerEmail" TEXT NOT NULL,
+    "customerPhone" TEXT,
+    "shippingAddress" TEXT NOT NULL,
+    "billingAddress" TEXT,
+    "city" TEXT,
+    "district" TEXT,
+    "division" TEXT,
+    "subtotal" DECIMAL NOT NULL,
+    "shipping" DECIMAL NOT NULL DEFAULT 0,
+    "tax" DECIMAL NOT NULL DEFAULT 0,
+    "discount" DECIMAL NOT NULL DEFAULT 0,
+    "total" DECIMAL NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'PENDING',
+    "paymentStatus" TEXT NOT NULL DEFAULT 'PENDING',
+    "paymentMethod" TEXT,
+    "trackingNumber" TEXT,
+    "trackingStatus" TEXT NOT NULL DEFAULT 'PENDING',
+    "estimatedDeliveryDate" TEXT,
+    "cancelledAt" TEXT,
+    "cancelledBy" TEXT,
+    "cancellationReason" TEXT,
+    "refundedAt" TEXT,
+    "refundedAmount" DECIMAL,
+    "refundMethod" TEXT,
+    "refundReason" TEXT,
+    "notes" TEXT,
+    "deletedAt" DATETIME,
+    "deletedBy" TEXT,
+    "deletedReason" TEXT,
+    "version" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    "promoCode" TEXT,
+    CONSTRAINT "orders_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_orders_deleted_at ON orders(deleted_at);
-CREATE INDEX IF NOT EXISTS idx_orders_email_status ON orders(customer_email, status);
-CREATE INDEX IF NOT EXISTS idx_orders_status_created ON orders(status, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_orders_number ON orders(order_number);
-CREATE INDEX IF NOT EXISTS idx_orders_email ON orders(customer_email);
-CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
-
--- Payment Gateways
-CREATE TABLE IF NOT EXISTS payment_gateways (
-  id TEXT PRIMARY KEY,
-  name TEXT UNIQUE NOT NULL,
-  provider TEXT DEFAULT 'custom',
-  api_key TEXT,
-  api_secret TEXT,
-  webhook_url TEXT,
-  webhook_secret TEXT,
-  sandbox_mode INTEGER DEFAULT 0,
-  supported_currencies TEXT,
-  is_active BOOLEAN DEFAULT 1,
-  is_default BOOLEAN DEFAULT 0,
-  settings TEXT,
-  last_tested TEXT,
-  test_status TEXT,
-  created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now'))
+-- CreateTable
+CREATE TABLE "payment_gateways" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "name" TEXT NOT NULL,
+    "provider" TEXT NOT NULL DEFAULT 'custom',
+    "apiKey" TEXT,
+    "apiSecret" TEXT,
+    "webhookUrl" TEXT,
+    "webhookSecret" TEXT,
+    "sandboxMode" INTEGER NOT NULL DEFAULT 0,
+    "supportedCurrencies" TEXT,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "isDefault" BOOLEAN NOT NULL DEFAULT false,
+    "settings" TEXT,
+    "lastTested" DATETIME,
+    "testStatus" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
 );
 
--- Posts
-CREATE TABLE IF NOT EXISTS posts (
-  id TEXT PRIMARY KEY,
-  title TEXT NOT NULL,
-  content TEXT,
-  published INTEGER DEFAULT 0,
-  author_id TEXT NOT NULL,
-  created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now')),
-  FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE
+-- CreateTable
+CREATE TABLE "posts" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "title" TEXT NOT NULL,
+    "content" TEXT,
+    "published" INTEGER NOT NULL DEFAULT 0,
+    "authorId" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "posts_authorId_fkey" FOREIGN KEY ("authorId") REFERENCES "users" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_posts_author ON posts(author_id);
-
--- Product Reviews
-CREATE TABLE IF NOT EXISTS product_reviews (
-  id TEXT PRIMARY KEY,
-  product_id TEXT NOT NULL,
-  user_id TEXT NOT NULL,
-  user_name TEXT,
-  rating INTEGER NOT NULL,
-  title TEXT,
-  comment TEXT,
-  is_verified INTEGER DEFAULT 0,
-  is_approved INTEGER DEFAULT 0,
-  created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now')),
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
-  UNIQUE(product_id, user_id)
+-- CreateTable
+CREATE TABLE "product_reviews" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "productId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "userName" TEXT,
+    "rating" INTEGER NOT NULL,
+    "title" TEXT,
+    "comment" TEXT,
+    "isVerified" INTEGER NOT NULL DEFAULT 0,
+    "isApproved" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "product_reviews_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "product_reviews_productId_fkey" FOREIGN KEY ("productId") REFERENCES "products" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_product_reviews_approved_created ON product_reviews(is_approved, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_product_reviews_user ON product_reviews(user_id);
-CREATE INDEX IF NOT EXISTS idx_product_reviews_product_rating ON product_reviews(product_id, rating DESC);
-CREATE INDEX IF NOT EXISTS idx_product_reviews_product_approved ON product_reviews(product_id, is_approved);
-
--- Product Variants
-CREATE TABLE IF NOT EXISTS product_variants (
-  id TEXT PRIMARY KEY,
-  product_id TEXT NOT NULL,
-  sku TEXT UNIQUE NOT NULL,
-  name TEXT NOT NULL,
-  price REAL NOT NULL,
-  compare_price REAL,
-  stock INTEGER DEFAULT 0,
-  images TEXT,
-  size TEXT,
-  color TEXT,
-  material TEXT,
-  is_active INTEGER DEFAULT 1,
-  is_default INTEGER DEFAULT 0,
-  low_stock_alert INTEGER DEFAULT 10,
-  reorder_level INTEGER DEFAULT 5,
-  reorder_qty INTEGER DEFAULT 20,
-  version INTEGER DEFAULT 0,
-  created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now')),
-  cost_price REAL DEFAULT 0,
-  size_type TEXT,
-  size_value REAL,
-  size_unit TEXT,
-  size_label TEXT,
-  country_of_origin TEXT,
-  total_purchased INTEGER DEFAULT 0,
-  total_sold INTEGER DEFAULT 0,
-  total_cost REAL DEFAULT 0,
-  average_cost REAL DEFAULT 0,
-  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+-- CreateTable
+CREATE TABLE "product_variants" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "productId" TEXT NOT NULL,
+    "sku" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "price" DECIMAL NOT NULL,
+    "comparePrice" DECIMAL,
+    "stock" INTEGER NOT NULL DEFAULT 0,
+    "images" TEXT,
+    "size" TEXT,
+    "color" TEXT,
+    "material" TEXT,
+    "isActive" INTEGER NOT NULL DEFAULT 1,
+    "isDefault" INTEGER NOT NULL DEFAULT 0,
+    "lowStockAlert" INTEGER NOT NULL DEFAULT 10,
+    "reorderLevel" INTEGER NOT NULL DEFAULT 5,
+    "reorderQty" INTEGER NOT NULL DEFAULT 20,
+    "version" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    "costPrice" DECIMAL DEFAULT 0,
+    "sizeType" TEXT,
+    "sizeValue" REAL,
+    "sizeUnit" TEXT,
+    "sizeLabel" TEXT,
+    "countryOfOrigin" TEXT,
+    "totalPurchased" INTEGER NOT NULL DEFAULT 0,
+    "totalSold" INTEGER NOT NULL DEFAULT 0,
+    "totalCost" DECIMAL DEFAULT 0,
+    "averageCost" DECIMAL DEFAULT 0,
+    CONSTRAINT "product_variants_productId_fkey" FOREIGN KEY ("productId") REFERENCES "products" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_product_variants_product_size_color ON product_variants(product_id, size, color);
-CREATE INDEX IF NOT EXISTS idx_product_variants_product_active ON product_variants(product_id, is_active);
-CREATE INDEX IF NOT EXISTS idx_product_variants_sku ON product_variants(sku);
-CREATE INDEX IF NOT EXISTS idx_product_variants_product ON product_variants(product_id);
-CREATE INDEX IF NOT EXISTS idx_product_variants_country ON product_variants(country_of_origin);
-CREATE INDEX IF NOT EXISTS idx_product_variants_size_type ON product_variants(size_type, size_unit);
-
--- Products
-CREATE TABLE IF NOT EXISTS products (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  slug TEXT UNIQUE NOT NULL,
-  description TEXT,
-  category_id TEXT NOT NULL,
-  price REAL DEFAULT 0,
-  base_price REAL DEFAULT 0,
-  compare_price REAL,
-  discount REAL DEFAULT 0,
-  discount_type TEXT DEFAULT 'percentage',
-  images TEXT,
-  stock INTEGER DEFAULT 0,
-  low_stock_alert INTEGER DEFAULT 10,
-  reorder_level INTEGER DEFAULT 5,
-  reorder_qty INTEGER DEFAULT 20,
-  is_active INTEGER DEFAULT 1,
-  is_featured INTEGER DEFAULT 0,
-  has_variants INTEGER DEFAULT 0,
-  weight REAL,
-  dimensions TEXT,
-  tags TEXT,
-  version INTEGER DEFAULT 0,
-  created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now')),
-  cost_price REAL DEFAULT 0,
-  brand_id TEXT,
-  brand_name TEXT,
-  brand_logo TEXT,
-  size_type TEXT,
-  size_value REAL,
-  size_unit TEXT,
-  size_label TEXT,
-  material TEXT,
-  color TEXT,
-  country_of_origin TEXT,
-  available_sizes TEXT,
-  available_colors TEXT,
-  total_purchased INTEGER DEFAULT 0,
-  total_sold INTEGER DEFAULT 0,
-  total_cost REAL DEFAULT 0,
-  average_cost REAL DEFAULT 0,
-  last_purchase_at TEXT,
-  last_purchase_cost REAL,
-  FOREIGN KEY (category_id) REFERENCES categories(id),
-  FOREIGN KEY (brand_id) REFERENCES brands(id)
+-- CreateTable
+CREATE TABLE "products" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "name" TEXT NOT NULL,
+    "slug" TEXT NOT NULL,
+    "description" TEXT,
+    "categoryId" TEXT NOT NULL,
+    "price" DECIMAL NOT NULL DEFAULT 0,
+    "basePrice" DECIMAL NOT NULL DEFAULT 0,
+    "comparePrice" DECIMAL,
+    "discount" DECIMAL NOT NULL DEFAULT 0,
+    "discountType" TEXT NOT NULL DEFAULT 'percentage',
+    "images" TEXT,
+    "stock" INTEGER NOT NULL DEFAULT 0,
+    "lowStockAlert" INTEGER NOT NULL DEFAULT 10,
+    "reorderLevel" INTEGER NOT NULL DEFAULT 5,
+    "reorderQty" INTEGER NOT NULL DEFAULT 20,
+    "isActive" INTEGER NOT NULL DEFAULT 1,
+    "isFeatured" INTEGER NOT NULL DEFAULT 0,
+    "hasVariants" INTEGER NOT NULL DEFAULT 0,
+    "weight" REAL,
+    "dimensions" TEXT,
+    "tags" TEXT,
+    "version" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    "costPrice" DECIMAL DEFAULT 0,
+    "brandId" TEXT,
+    "brandName" TEXT,
+    "brandLogo" TEXT,
+    "sizeType" TEXT,
+    "sizeValue" REAL,
+    "sizeUnit" TEXT,
+    "sizeLabel" TEXT,
+    "material" TEXT,
+    "color" TEXT,
+    "countryOfOrigin" TEXT,
+    "availableSizes" TEXT,
+    "availableColors" TEXT,
+    "totalPurchased" INTEGER NOT NULL DEFAULT 0,
+    "totalSold" INTEGER NOT NULL DEFAULT 0,
+    "totalCost" DECIMAL DEFAULT 0,
+    "averageCost" DECIMAL DEFAULT 0,
+    "lastPurchaseAt" DATETIME,
+    "lastPurchaseCost" DECIMAL,
+    CONSTRAINT "products_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "categories" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_products_active_featured ON products(is_active, is_featured);
-CREATE INDEX IF NOT EXISTS idx_products_slug ON products(slug);
-CREATE INDEX IF NOT EXISTS idx_products_active_created ON products(is_active, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_products_featured ON products(is_featured);
-CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id);
-CREATE INDEX IF NOT EXISTS idx_products_brand ON products(brand_id);
-CREATE INDEX IF NOT EXISTS idx_products_country ON products(country_of_origin);
-CREATE INDEX IF NOT EXISTS idx_products_size_type ON products(size_type, size_unit);
-
--- Product Color Images
-CREATE TABLE IF NOT EXISTS product_color_images (
-  id TEXT PRIMARY KEY,
-  product_id TEXT NOT NULL,
-  color TEXT NOT NULL,
-  images TEXT,
-  created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now')),
-  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
-  UNIQUE(product_id, color)
+-- CreateTable
+CREATE TABLE "product_color_images" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "productId" TEXT NOT NULL,
+    "color" TEXT NOT NULL,
+    "images" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "product_color_images_productId_fkey" FOREIGN KEY ("productId") REFERENCES "products" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_product_color_images_product ON product_color_images(product_id);
-CREATE INDEX IF NOT EXISTS idx_product_color_images_color ON product_color_images(color);
-
--- Promotions
-CREATE TABLE IF NOT EXISTS promotions (
-  id TEXT PRIMARY KEY,
-  title TEXT NOT NULL,
-  description TEXT,
-  image TEXT,
-  cta_text TEXT,
-  cta_link TEXT,
-  type TEXT DEFAULT 'banner',
-  promo_code TEXT UNIQUE,
-  discount_type TEXT,
-  discount_value REAL,
-  min_order_amount REAL,
-  max_discount_amount REAL,
-  start_date TEXT,
-  end_date TEXT,
-  usage_limit INTEGER,
-  used_count INTEGER DEFAULT 0,
-  user_limit INTEGER,
-  applicable_categories TEXT,
-  applicable_products TEXT,
-  conditions TEXT,
-  discount_rules TEXT,
-  is_active INTEGER DEFAULT 1,
-  order_index INTEGER DEFAULT 0,
-  created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now'))
+-- CreateTable
+CREATE TABLE "promotions" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "title" TEXT NOT NULL,
+    "description" TEXT,
+    "image" TEXT,
+    "ctaText" TEXT,
+    "ctaLink" TEXT,
+    "type" TEXT NOT NULL DEFAULT 'banner',
+    "promoCode" TEXT,
+    "discountType" TEXT,
+    "discountValue" DECIMAL,
+    "minOrderAmount" DECIMAL,
+    "maxDiscountAmount" DECIMAL,
+    "startDate" DATETIME,
+    "endDate" DATETIME,
+    "usageLimit" INTEGER,
+    "usedCount" INTEGER NOT NULL DEFAULT 0,
+    "userLimit" INTEGER,
+    "applicableCategories" TEXT,
+    "applicableProducts" TEXT,
+    "conditions" TEXT,
+    "discountRules" TEXT,
+    "isActive" INTEGER NOT NULL DEFAULT 1,
+    "order" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_promotions_code ON promotions(promo_code);
-CREATE INDEX IF NOT EXISTS idx_promotions_type_active ON promotions(type, is_active);
-CREATE INDEX IF NOT EXISTS idx_promotions_active ON promotions(is_active);
-
--- Reels
-CREATE TABLE IF NOT EXISTS reels (
-  id TEXT PRIMARY KEY,
-  title TEXT NOT NULL,
-  thumbnail TEXT NOT NULL,
-  video_url TEXT NOT NULL,
-  product_ids TEXT,
-  is_active INTEGER DEFAULT 1,
-  order_index INTEGER DEFAULT 0,
-  created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now'))
+-- CreateTable
+CREATE TABLE "reels" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "title" TEXT NOT NULL,
+    "thumbnail" TEXT NOT NULL,
+    "videoUrl" TEXT NOT NULL,
+    "productIds" TEXT,
+    "isActive" INTEGER NOT NULL DEFAULT 1,
+    "order" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_reels_order ON reels(order_index);
-CREATE INDEX IF NOT EXISTS idx_reels_active ON reels(is_active);
-
--- Shipping Carriers
-CREATE TABLE IF NOT EXISTS shipping_carriers (
-  id TEXT PRIMARY KEY,
-  name TEXT UNIQUE NOT NULL,
-  provider TEXT DEFAULT 'custom',
-  api_key TEXT,
-  api_secret TEXT,
-  account_number TEXT,
-  webhook_url TEXT,
-  sandbox_mode INTEGER DEFAULT 0,
-  shipping_methods TEXT,
-  is_active BOOLEAN DEFAULT 1,
-  is_default BOOLEAN DEFAULT 0,
-  settings TEXT,
-  last_tested TEXT,
-  test_status TEXT,
-  created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now'))
+-- CreateTable
+CREATE TABLE "shipping_carriers" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "name" TEXT NOT NULL,
+    "provider" TEXT NOT NULL DEFAULT 'custom',
+    "apiKey" TEXT,
+    "apiSecret" TEXT,
+    "accountNumber" TEXT,
+    "webhookUrl" TEXT,
+    "sandboxMode" INTEGER NOT NULL DEFAULT 0,
+    "shippingMethods" TEXT,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "isDefault" BOOLEAN NOT NULL DEFAULT false,
+    "settings" TEXT,
+    "lastTested" DATETIME,
+    "testStatus" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
 );
 
--- Site Settings
-CREATE TABLE IF NOT EXISTS site_settings (
-  id TEXT PRIMARY KEY,
-  site_name TEXT DEFAULT 'SCommerce',
-  site_logo TEXT,
-  currency TEXT DEFAULT 'BDT',
-  currency_symbol TEXT DEFAULT '৳',
-  tax_rate REAL DEFAULT 0.18,
-  free_shipping_threshold REAL DEFAULT 5000,
-  base_shipping_cost REAL DEFAULT 150,
-  contact_email TEXT,
-  contact_phone TEXT,
-  social_media TEXT,
-  enable_store INTEGER DEFAULT 1,
-  maintenance_mode INTEGER DEFAULT 0,
-  seo TEXT,
-  created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now'))
+-- CreateTable
+CREATE TABLE "site_settings" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "siteName" TEXT NOT NULL DEFAULT 'SCommerce',
+    "siteLogo" TEXT,
+    "currency" TEXT NOT NULL DEFAULT 'BDT',
+    "currencySymbol" TEXT NOT NULL DEFAULT '৳',
+    "taxRate" DECIMAL NOT NULL DEFAULT 0.18,
+    "freeShippingThreshold" DECIMAL NOT NULL DEFAULT 5000,
+    "baseShippingCost" DECIMAL NOT NULL DEFAULT 150,
+    "contactEmail" TEXT,
+    "contactPhone" TEXT,
+    "socialMedia" TEXT,
+    "enableStore" INTEGER NOT NULL DEFAULT 1,
+    "maintenanceMode" INTEGER NOT NULL DEFAULT 0,
+    "seo" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
 );
 
--- Stories
-CREATE TABLE IF NOT EXISTS stories (
-  id TEXT PRIMARY KEY,
-  title TEXT NOT NULL,
-  thumbnail TEXT NOT NULL,
-  images TEXT NOT NULL,
-  is_active INTEGER DEFAULT 1,
-  order_index INTEGER DEFAULT 0,
-  created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now'))
+-- CreateTable
+CREATE TABLE "stories" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "title" TEXT NOT NULL,
+    "thumbnail" TEXT NOT NULL,
+    "images" TEXT NOT NULL,
+    "isActive" INTEGER NOT NULL DEFAULT 1,
+    "order" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_stories_order ON stories(order_index);
-CREATE INDEX IF NOT EXISTS idx_stories_active ON stories(is_active);
-
--- Users
-CREATE TABLE IF NOT EXISTS users (
-  id TEXT PRIMARY KEY,
-  email TEXT UNIQUE NOT NULL,
-  name TEXT,
-  phone TEXT UNIQUE,
-  address TEXT,
-  password TEXT,
-  email_verified INTEGER DEFAULT 0,
-  email_token TEXT,
-  new_email TEXT,
-  reset_token TEXT,
-  reset_token_expiry TEXT,
-  role TEXT DEFAULT 'user',
-  avatar TEXT,
-  is_banned BOOLEAN DEFAULT 0,
-  banned_at TEXT,
-  last_login_at TEXT,
-  created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now'))
+-- CreateTable
+CREATE TABLE "users" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "email" TEXT NOT NULL,
+    "name" TEXT,
+    "phone" TEXT,
+    "address" TEXT,
+    "password" TEXT,
+    "emailVerified" INTEGER NOT NULL DEFAULT 0,
+    "emailToken" TEXT,
+    "newEmail" TEXT,
+    "resetToken" TEXT,
+    "resetTokenExpiry" TEXT,
+    "role" TEXT NOT NULL DEFAULT 'user',
+    "avatar" TEXT,
+    "isBanned" BOOLEAN NOT NULL DEFAULT false,
+    "bannedAt" DATETIME,
+    "lastLoginAt" DATETIME,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
 );
 
--- Wishlist Items
-CREATE TABLE IF NOT EXISTS wishlist_items (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL,
-  product_id TEXT NOT NULL,
-  created_at TEXT DEFAULT (datetime('now')),
-  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  UNIQUE(user_id, product_id)
+-- CreateTable
+CREATE TABLE "wishlist_items" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "productId" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "wishlist_items_productId_fkey" FOREIGN KEY ("productId") REFERENCES "products" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "wishlist_items_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
--- Media
-CREATE TABLE IF NOT EXISTS media (
-  id TEXT PRIMARY KEY,
-  filename TEXT NOT NULL,
-  original_name TEXT NOT NULL,
-  url TEXT UNIQUE NOT NULL,
-  mime_type TEXT NOT NULL,
-  size INTEGER NOT NULL,
-  width INTEGER,
-  height INTEGER,
-  alt TEXT,
-  tags TEXT,
-  category TEXT,
-  uploaded_by TEXT,
-  created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now'))
+-- CreateTable
+CREATE TABLE "media" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "filename" TEXT NOT NULL,
+    "originalName" TEXT NOT NULL,
+    "url" TEXT NOT NULL,
+    "mimeType" TEXT NOT NULL,
+    "size" INTEGER NOT NULL,
+    "width" INTEGER,
+    "height" INTEGER,
+    "alt" TEXT,
+    "tags" TEXT,
+    "category" TEXT,
+    "uploadedBy" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_media_category ON media(category);
-CREATE INDEX IF NOT EXISTS idx_media_created ON media(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_media_uploader ON media(uploaded_by);
-
--- Suppliers
-CREATE TABLE IF NOT EXISTS suppliers (
-  id TEXT PRIMARY KEY,
-  code TEXT UNIQUE NOT NULL,
-  name TEXT NOT NULL,
-  email TEXT,
-  phone TEXT,
-  address TEXT,
-  city TEXT,
-  country TEXT,
-  is_active INTEGER DEFAULT 1,
-  notes TEXT,
-  created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now'))
+-- CreateTable
+CREATE TABLE "suppliers" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "code" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "email" TEXT,
+    "phone" TEXT,
+    "address" TEXT,
+    "city" TEXT,
+    "country" TEXT,
+    "isActive" INTEGER NOT NULL DEFAULT 1,
+    "notes" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_suppliers_active ON suppliers(is_active);
-CREATE INDEX IF NOT EXISTS idx_suppliers_code ON suppliers(code);
-
--- Purchase Orders
-CREATE TABLE IF NOT EXISTS purchase_orders (
-  id TEXT PRIMARY KEY,
-  order_number TEXT UNIQUE NOT NULL,
-  supplier_id TEXT NOT NULL,
-  status TEXT DEFAULT 'PENDING',
-  total_amount REAL NOT NULL,
-  total_quantity INTEGER NOT NULL,
-  order_date TEXT NOT NULL,
-  expected_date TEXT,
-  received_date TEXT,
-  notes TEXT,
-  created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now')),
-  FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE CASCADE
+-- CreateTable
+CREATE TABLE "purchase_orders" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "orderNumber" TEXT NOT NULL,
+    "supplierId" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'PENDING',
+    "totalAmount" DECIMAL NOT NULL,
+    "totalQuantity" INTEGER NOT NULL,
+    "orderDate" DATETIME NOT NULL,
+    "expectedDate" DATETIME,
+    "receivedDate" DATETIME,
+    "notes" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "purchase_orders_supplierId_fkey" FOREIGN KEY ("supplierId") REFERENCES "suppliers" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_purchase_orders_supplier ON purchase_orders(supplier_id);
-CREATE INDEX IF NOT EXISTS idx_purchase_orders_status_date ON purchase_orders(status, order_date);
-CREATE INDEX IF NOT EXISTS idx_purchase_orders_date ON purchase_orders(order_date DESC);
-
--- Purchase Order Items
-CREATE TABLE IF NOT EXISTS purchase_order_items (
-  id TEXT PRIMARY KEY,
-  purchase_order_id TEXT NOT NULL,
-  product_id TEXT NOT NULL,
-  variant_id TEXT,
-  quantity INTEGER NOT NULL,
-  unit_cost REAL NOT NULL,
-  total_cost REAL NOT NULL,
-  received_qty INTEGER DEFAULT 0,
-  created_at TEXT DEFAULT (datetime('now')),
-  FOREIGN KEY (purchase_order_id) REFERENCES purchase_orders(id) ON DELETE CASCADE
+-- CreateTable
+CREATE TABLE "purchase_order_items" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "purchaseOrderId" TEXT NOT NULL,
+    "productId" TEXT NOT NULL,
+    "variantId" TEXT,
+    "quantity" INTEGER NOT NULL,
+    "unitCost" DECIMAL NOT NULL,
+    "totalCost" DECIMAL NOT NULL,
+    "receivedQty" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "purchase_order_items_purchaseOrderId_fkey" FOREIGN KEY ("purchaseOrderId") REFERENCES "purchase_orders" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_purchase_order_items_purchase ON purchase_order_items(purchase_order_id);
-CREATE INDEX IF NOT EXISTS idx_purchase_order_items_product ON purchase_order_items(product_id);
-CREATE INDEX IF NOT EXISTS idx_purchase_order_items_variant ON purchase_order_items(variant_id);
-
--- Inventory Movements
-CREATE TABLE IF NOT EXISTS inventory_movements (
-  id TEXT PRIMARY KEY,
-  product_id TEXT,
-  variant_id TEXT,
-  movement_type TEXT NOT NULL,
-  quantity INTEGER NOT NULL,
-  unit_cost REAL,
-  total_cost REAL,
-  reference_id TEXT,
-  reference_type TEXT,
-  approved INTEGER DEFAULT 0,
-  approved_at TEXT,
-  supplier_id TEXT,
-  notes TEXT,
-  created_at TEXT DEFAULT (datetime('now')),
-  FOREIGN KEY (variant_id) REFERENCES product_variants(id),
-  FOREIGN KEY (product_id) REFERENCES products(id),
-  FOREIGN KEY (supplier_id) REFERENCES suppliers(id)
+-- CreateTable
+CREATE TABLE "inventory_movements" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "productId" TEXT,
+    "variantId" TEXT,
+    "movementType" TEXT NOT NULL,
+    "quantity" INTEGER NOT NULL,
+    "unitCost" DECIMAL,
+    "totalCost" DECIMAL,
+    "referenceId" TEXT,
+    "referenceType" TEXT,
+    "approved" INTEGER NOT NULL DEFAULT 0,
+    "approvedAt" DATETIME,
+    "supplierId" TEXT,
+    "notes" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "inventory_movements_variantId_fkey" FOREIGN KEY ("variantId") REFERENCES "product_variants" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT "inventory_movements_productId_fkey" FOREIGN KEY ("productId") REFERENCES "products" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT "inventory_movements_supplierId_fkey" FOREIGN KEY ("supplierId") REFERENCES "suppliers" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_inventory_movements_product_created ON inventory_movements(product_id, created_at);
-CREATE INDEX IF NOT EXISTS idx_inventory_movements_variant_created ON inventory_movements(variant_id, created_at);
-CREATE INDEX IF NOT EXISTS idx_inventory_movements_type_created ON inventory_movements(movement_type, created_at);
-CREATE INDEX IF NOT EXISTS idx_inventory_movements_reference ON inventory_movements(reference_id, reference_type);
-CREATE INDEX IF NOT EXISTS idx_inventory_movements_created ON inventory_movements(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_inventory_movements_supplier ON inventory_movements(supplier_id);
-
--- Inventory Adjustments
-CREATE TABLE IF NOT EXISTS inventory_adjustments (
-  id TEXT PRIMARY KEY,
-  product_id TEXT,
-  variant_id TEXT,
-  adjustment_type TEXT NOT NULL,
-  quantity_before INTEGER NOT NULL,
-  quantity_after INTEGER NOT NULL,
-  quantity_diff INTEGER NOT NULL,
-  reason TEXT NOT NULL,
-  approved_by TEXT,
-  approved INTEGER DEFAULT 0,
-  approved_at TEXT,
-  notes TEXT,
-  created_at TEXT DEFAULT (datetime('now')),
-  FOREIGN KEY (variant_id) REFERENCES product_variants(id),
-  FOREIGN KEY (product_id) REFERENCES products(id)
+-- CreateTable
+CREATE TABLE "inventory_adjustments" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "productId" TEXT,
+    "variantId" TEXT,
+    "adjustmentType" TEXT NOT NULL,
+    "quantityBefore" INTEGER NOT NULL,
+    "quantityAfter" INTEGER NOT NULL,
+    "quantityDiff" INTEGER NOT NULL,
+    "reason" TEXT NOT NULL,
+    "approvedBy" TEXT,
+    "approved" INTEGER NOT NULL DEFAULT 0,
+    "approvedAt" DATETIME,
+    "notes" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "inventory_adjustments_variantId_fkey" FOREIGN KEY ("variantId") REFERENCES "product_variants" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT "inventory_adjustments_productId_fkey" FOREIGN KEY ("productId") REFERENCES "products" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS idx_inventory_adjustments_product_created ON inventory_adjustments(product_id, created_at);
-CREATE INDEX IF NOT EXISTS idx_inventory_adjustments_type_created ON inventory_adjustments(adjustment_type, created_at);
-CREATE INDEX IF NOT EXISTS idx_inventory_adjustments_created ON inventory_adjustments(created_at DESC);
-
--- Page SEO
-CREATE TABLE IF NOT EXISTS page_seo (
-  id TEXT PRIMARY KEY,
-  page_path TEXT UNIQUE NOT NULL,
-  page_title TEXT,
-  meta_title TEXT,
-  meta_description TEXT,
-  keywords TEXT,
-  og_title TEXT,
-  og_description TEXT,
-  og_image TEXT,
-  canonical_url TEXT,
-  robots TEXT DEFAULT 'index, follow',
-  is_active INTEGER DEFAULT 1,
-  created_at TEXT DEFAULT (datetime('now')),
-  updated_at TEXT DEFAULT (datetime('now'))
+-- CreateTable
+CREATE TABLE "page_seo" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "pagePath" TEXT NOT NULL,
+    "pageTitle" TEXT,
+    "metaTitle" TEXT,
+    "metaDescription" TEXT,
+    "keywords" TEXT,
+    "ogTitle" TEXT,
+    "ogDescription" TEXT,
+    "ogImage" TEXT,
+    "canonicalUrl" TEXT,
+    "robots" TEXT DEFAULT 'index, follow',
+    "isActive" INTEGER NOT NULL DEFAULT 1,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_page_seo_path ON page_seo(page_path);
-CREATE INDEX IF NOT EXISTS idx_page_seo_active ON page_seo(is_active);
+-- CreateIndex
+CREATE UNIQUE INDEX "homepage_settings_sectionName_key" ON "homepage_settings"("sectionName");
+
+-- CreateIndex
+CREATE INDEX "addresses_isDefault_idx" ON "addresses"("isDefault");
+
+-- CreateIndex
+CREATE INDEX "addresses_userId_idx" ON "addresses"("userId");
+
+-- CreateIndex
+CREATE INDEX "admin_logs_entity_entityId_idx" ON "admin_logs"("entity", "entityId");
+
+-- CreateIndex
+CREATE INDEX "admin_logs_createdAt_idx" ON "admin_logs"("createdAt" DESC);
+
+-- CreateIndex
+CREATE INDEX "admin_logs_action_createdAt_idx" ON "admin_logs"("action", "createdAt" DESC);
+
+-- CreateIndex
+CREATE INDEX "admin_logs_entity_createdAt_idx" ON "admin_logs"("entity", "createdAt" DESC);
+
+-- CreateIndex
+CREATE INDEX "admin_logs_adminId_createdAt_idx" ON "admin_logs"("adminId", "createdAt" DESC);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "analytics_integrations_name_key" ON "analytics_integrations"("name");
+
+-- CreateIndex
+CREATE INDEX "banners_order_idx" ON "banners"("order");
+
+-- CreateIndex
+CREATE INDEX "banners_isActive_idx" ON "banners"("isActive");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "brands_name_key" ON "brands"("name");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "brands_slug_key" ON "brands"("slug");
+
+-- CreateIndex
+CREATE INDEX "brands_isActive_sortOrder_idx" ON "brands"("isActive", "sortOrder");
+
+-- CreateIndex
+CREATE INDEX "brands_featured_idx" ON "brands"("featured");
+
+-- CreateIndex
+CREATE INDEX "brands_slug_idx" ON "brands"("slug");
+
+-- CreateIndex
+CREATE INDEX "cart_items_variantId_idx" ON "cart_items"("variantId");
+
+-- CreateIndex
+CREATE INDEX "cart_items_userId_variantId_idx" ON "cart_items"("userId", "variantId");
+
+-- CreateIndex
+CREATE INDEX "cart_items_userId_idx" ON "cart_items"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "cart_items_userId_productId_variantId_key" ON "cart_items"("userId", "productId", "variantId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "categories_name_key" ON "categories"("name");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "categories_slug_key" ON "categories"("slug");
+
+-- CreateIndex
+CREATE INDEX "categories_isActive_idx" ON "categories"("isActive");
+
+-- CreateIndex
+CREATE INDEX "categories_slug_idx" ON "categories"("slug");
+
+-- CreateIndex
+CREATE INDEX "categories_parentId_idx" ON "categories"("parentId");
+
+-- CreateIndex
+CREATE INDEX "categories_isActive_sortOrder_idx" ON "categories"("isActive", "sortOrder");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "email_services_name_key" ON "email_services"("name");
+
+-- CreateIndex
+CREATE INDEX "inventory_alerts_isRead_isResolved_idx" ON "inventory_alerts"("isRead", "isResolved");
+
+-- CreateIndex
+CREATE INDEX "inventory_alerts_productId_idx" ON "inventory_alerts"("productId");
+
+-- CreateIndex
+CREATE INDEX "inventory_alerts_variantId_idx" ON "inventory_alerts"("variantId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "inventory_alerts_productId_variantId_alertType_key" ON "inventory_alerts"("productId", "variantId", "alertType");
+
+-- CreateIndex
+CREATE INDEX "inventory_reservations_expiresAt_idx" ON "inventory_reservations"("expiresAt");
+
+-- CreateIndex
+CREATE INDEX "inventory_reservations_userId_idx" ON "inventory_reservations"("userId");
+
+-- CreateIndex
+CREATE INDEX "inventory_reservations_productId_idx" ON "inventory_reservations"("productId");
+
+-- CreateIndex
+CREATE INDEX "inventory_reservations_variantId_idx" ON "inventory_reservations"("variantId");
+
+-- CreateIndex
+CREATE INDEX "order_items_variantId_idx" ON "order_items"("variantId");
+
+-- CreateIndex
+CREATE INDEX "order_items_productId_idx" ON "order_items"("productId");
+
+-- CreateIndex
+CREATE INDEX "order_items_orderId_idx" ON "order_items"("orderId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "orders_orderNumber_key" ON "orders"("orderNumber");
+
+-- CreateIndex
+CREATE INDEX "orders_deletedAt_idx" ON "orders"("deletedAt");
+
+-- CreateIndex
+CREATE INDEX "orders_customerEmail_status_idx" ON "orders"("customerEmail", "status");
+
+-- CreateIndex
+CREATE INDEX "orders_status_createdAt_idx" ON "orders"("status", "createdAt" DESC);
+
+-- CreateIndex
+CREATE INDEX "orders_orderNumber_idx" ON "orders"("orderNumber");
+
+-- CreateIndex
+CREATE INDEX "orders_customerEmail_idx" ON "orders"("customerEmail");
+
+-- CreateIndex
+CREATE INDEX "orders_userId_idx" ON "orders"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "payment_gateways_name_key" ON "payment_gateways"("name");
+
+-- CreateIndex
+CREATE INDEX "posts_authorId_idx" ON "posts"("authorId");
+
+-- CreateIndex
+CREATE INDEX "product_reviews_isApproved_createdAt_idx" ON "product_reviews"("isApproved", "createdAt" DESC);
+
+-- CreateIndex
+CREATE INDEX "product_reviews_userId_idx" ON "product_reviews"("userId");
+
+-- CreateIndex
+CREATE INDEX "product_reviews_productId_rating_idx" ON "product_reviews"("productId", "rating" DESC);
+
+-- CreateIndex
+CREATE INDEX "product_reviews_productId_isApproved_idx" ON "product_reviews"("productId", "isApproved");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "product_reviews_productId_userId_key" ON "product_reviews"("productId", "userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "product_variants_sku_key" ON "product_variants"("sku");
+
+-- CreateIndex
+CREATE INDEX "product_variants_productId_size_color_idx" ON "product_variants"("productId", "size", "color");
+
+-- CreateIndex
+CREATE INDEX "product_variants_productId_isActive_idx" ON "product_variants"("productId", "isActive");
+
+-- CreateIndex
+CREATE INDEX "product_variants_sku_idx" ON "product_variants"("sku");
+
+-- CreateIndex
+CREATE INDEX "product_variants_productId_idx" ON "product_variants"("productId");
+
+-- CreateIndex
+CREATE INDEX "product_variants_countryOfOrigin_idx" ON "product_variants"("countryOfOrigin");
+
+-- CreateIndex
+CREATE INDEX "product_variants_sizeType_sizeUnit_idx" ON "product_variants"("sizeType", "sizeUnit");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "products_slug_key" ON "products"("slug");
+
+-- CreateIndex
+CREATE INDEX "products_isActive_isFeatured_idx" ON "products"("isActive", "isFeatured");
+
+-- CreateIndex
+CREATE INDEX "products_slug_idx" ON "products"("slug");
+
+-- CreateIndex
+CREATE INDEX "products_isActive_createdAt_idx" ON "products"("isActive", "createdAt" DESC);
+
+-- CreateIndex
+CREATE INDEX "products_isFeatured_idx" ON "products"("isFeatured");
+
+-- CreateIndex
+CREATE INDEX "products_categoryId_idx" ON "products"("categoryId");
+
+-- CreateIndex
+CREATE INDEX "products_brandId_idx" ON "products"("brandId");
+
+-- CreateIndex
+CREATE INDEX "products_countryOfOrigin_idx" ON "products"("countryOfOrigin");
+
+-- CreateIndex
+CREATE INDEX "products_sizeType_sizeUnit_idx" ON "products"("sizeType", "sizeUnit");
+
+-- CreateIndex
+CREATE INDEX "product_color_images_productId_idx" ON "product_color_images"("productId");
+
+-- CreateIndex
+CREATE INDEX "product_color_images_color_idx" ON "product_color_images"("color");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "product_color_images_productId_color_key" ON "product_color_images"("productId", "color");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "promotions_promoCode_key" ON "promotions"("promoCode");
+
+-- CreateIndex
+CREATE INDEX "promotions_promoCode_idx" ON "promotions"("promoCode");
+
+-- CreateIndex
+CREATE INDEX "promotions_type_isActive_idx" ON "promotions"("type", "isActive");
+
+-- CreateIndex
+CREATE INDEX "promotions_isActive_idx" ON "promotions"("isActive");
+
+-- CreateIndex
+CREATE INDEX "reels_order_idx" ON "reels"("order");
+
+-- CreateIndex
+CREATE INDEX "reels_isActive_idx" ON "reels"("isActive");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "shipping_carriers_name_key" ON "shipping_carriers"("name");
+
+-- CreateIndex
+CREATE INDEX "stories_order_idx" ON "stories"("order");
+
+-- CreateIndex
+CREATE INDEX "stories_isActive_idx" ON "stories"("isActive");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "users_phone_key" ON "users"("phone");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "wishlist_items_userId_productId_key" ON "wishlist_items"("userId", "productId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "media_url_key" ON "media"("url");
+
+-- CreateIndex
+CREATE INDEX "media_category_idx" ON "media"("category");
+
+-- CreateIndex
+CREATE INDEX "media_createdAt_idx" ON "media"("createdAt" DESC);
+
+-- CreateIndex
+CREATE INDEX "media_uploadedBy_idx" ON "media"("uploadedBy");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "suppliers_code_key" ON "suppliers"("code");
+
+-- CreateIndex
+CREATE INDEX "suppliers_isActive_idx" ON "suppliers"("isActive");
+
+-- CreateIndex
+CREATE INDEX "suppliers_code_idx" ON "suppliers"("code");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "purchase_orders_orderNumber_key" ON "purchase_orders"("orderNumber");
+
+-- CreateIndex
+CREATE INDEX "purchase_orders_supplierId_idx" ON "purchase_orders"("supplierId");
+
+-- CreateIndex
+CREATE INDEX "purchase_orders_status_orderDate_idx" ON "purchase_orders"("status", "orderDate");
+
+-- CreateIndex
+CREATE INDEX "purchase_orders_orderDate_idx" ON "purchase_orders"("orderDate" DESC);
+
+-- CreateIndex
+CREATE INDEX "purchase_order_items_purchaseOrderId_idx" ON "purchase_order_items"("purchaseOrderId");
+
+-- CreateIndex
+CREATE INDEX "purchase_order_items_productId_idx" ON "purchase_order_items"("productId");
+
+-- CreateIndex
+CREATE INDEX "purchase_order_items_variantId_idx" ON "purchase_order_items"("variantId");
+
+-- CreateIndex
+CREATE INDEX "inventory_movements_productId_createdAt_idx" ON "inventory_movements"("productId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "inventory_movements_variantId_createdAt_idx" ON "inventory_movements"("variantId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "inventory_movements_movementType_createdAt_idx" ON "inventory_movements"("movementType", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "inventory_movements_referenceId_referenceType_idx" ON "inventory_movements"("referenceId", "referenceType");
+
+-- CreateIndex
+CREATE INDEX "inventory_movements_createdAt_idx" ON "inventory_movements"("createdAt" DESC);
+
+-- CreateIndex
+CREATE INDEX "inventory_movements_supplierId_idx" ON "inventory_movements"("supplierId");
+
+-- CreateIndex
+CREATE INDEX "inventory_adjustments_productId_createdAt_idx" ON "inventory_adjustments"("productId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "inventory_adjustments_adjustmentType_createdAt_idx" ON "inventory_adjustments"("adjustmentType", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "inventory_adjustments_createdAt_idx" ON "inventory_adjustments"("createdAt" DESC);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "page_seo_pagePath_key" ON "page_seo"("pagePath");
+
+-- CreateIndex
+CREATE INDEX "page_seo_pagePath_idx" ON "page_seo"("pagePath");
+
+-- CreateIndex
+CREATE INDEX "page_seo_isActive_idx" ON "page_seo"("isActive");
+

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getEnv } from '@/lib/cloudflare';
 import { queryFirst, execute } from '@/db/db';
-import { verifyAdmin } from '@/lib/auth/admin-auth';
+import { verifyAdmin } from '@/lib/admin-auth';
 import { logAdminAction } from '@/lib/audit-logger';
 
 // DELETE /api/admin/inventory/adjustments/[id] - Delete a stock adjustment

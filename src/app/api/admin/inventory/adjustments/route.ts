@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { inventoryAdjustmentRepository } from '@/db/inventory-adjustment.repository';
 import { getEnv } from '@/lib/cloudflare';
 import { queryFirst } from '@/db/db';
-import { verifyAdmin } from '@/lib/auth/admin-auth';
+import { verifyAdmin } from '@/lib/admin-auth';
 
 // GET /api/admin/inventory/adjustments - Get inventory adjustments
 export async function GET(request: NextRequest) {
