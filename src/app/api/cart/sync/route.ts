@@ -109,6 +109,7 @@ export async function POST(request: NextRequest) {
 
     let addedCount = 0
     let updatedCount = 0
+    let skippedCount = 0
     const warnings: string[] = []
 
     // Merge local cart with database cart
@@ -118,61 +119,76 @@ export async function POST(request: NextRequest) {
 
       // Check stock availability
       const stockCheck = localItem.variantId
-        ? await queryFirst<{ stock: number; name: string }>(
+        ? await queryFirst<{ stock: number; name: string; sku?: string }>(
             env,
-            'SELECT pv.stock, p.name FROM product_variants pv JOIN products p ON pv.productId = p.id WHERE pv.id = ? LIMIT 1',
+            'SELECT pv.stock, p.name, pv.sku FROM product_variants pv JOIN products p ON pv.productId = p.id WHERE pv.id = ? LIMIT 1',
             localItem.variantId
           )
-        : await queryFirst<{ stock: number; name: string }>(
+        : await queryFirst<{ stock: number; name: string; sku?: string }>(
             env,
-            'SELECT stock, name FROM products WHERE id = ? LIMIT 1',
+            'SELECT stock, name, NULL as sku FROM products WHERE id = ? LIMIT 1',
             localItem.id
           )
 
-      const availableStock = stockCheck?.stock || 0
+      if (!stockCheck) {
+        warnings.push(`${localItem.name || 'Item'} (ID: ${localItem.id}): Product not found, skipped`)
+        skippedCount++
+        continue
+      }
+
+      const availableStock = stockCheck.stock || 0
       const requestedQuantity = localItem.quantity || 1
-      const adjustedQuantity = Math.min(requestedQuantity, availableStock)
+      const finalQuantity = Math.min(requestedQuantity, availableStock)
+
+      if (availableStock === 0) {
+        warnings.push(`${stockCheck.name}: Out of stock, skipped`)
+        skippedCount++
+        continue
+      }
+
+      if (finalQuantity < requestedQuantity) {
+        warnings.push(`${stockCheck.name}${stockCheck.sku ? ` (${stockCheck.sku})` : ''}: Only ${availableStock} available, adjusted from ${requestedQuantity}`)
+      }
 
       if (existingItem) {
-        // Item exists in both, keep higher quantity (but not exceeding available stock)
+        // Item exists in both, update quantity (keep higher quantity, but not exceeding available stock)
         const newQuantity = Math.min(
           Math.max(existingItem.quantity, requestedQuantity),
           availableStock
         )
 
         if (newQuantity !== existingItem.quantity) {
-          if (newQuantity < requestedQuantity) {
-            warnings.push(`${stockCheck?.name || 'Item'}: Only ${availableStock} available, adjusted from ${requestedQuantity}`)
-          }
           await CartRepository.updateQuantity(env, existingItem.id, newQuantity)
           updatedCount++
-        }
-      } else {
-        // Item only in local cart, add to database (with stock validation)
-        if (availableStock > 0) {
-          await CartRepository.addItem(env, {
-            userId,
-            productId: localItem.id,
-            variantId: localItem.variantId,
-            quantity: adjustedQuantity,
-          })
-          addedCount++
 
-          // Reserve stock for 30 minutes
+          // Update reservation for the quantity change
+          await cleanupExpiredReservations(env)
           await reserveStock(env, {
             variantId: localItem.variantId,
             productId: localItem.id,
             userId,
-            quantity: adjustedQuantity,
+            quantity: newQuantity,
             expiresAt: new Date(Date.now() + 30 * 60 * 1000),
           })
-
-          if (adjustedQuantity < requestedQuantity) {
-            warnings.push(`${stockCheck?.name || 'Item'}: Only ${availableStock} available, adjusted from ${requestedQuantity}`)
-          }
-        } else {
-          warnings.push(`${stockCheck?.name || 'Item'}: Out of stock, skipped`)
         }
+      } else {
+        // Item only in local cart, add to database (with stock validation)
+        await CartRepository.addItem(env, {
+          userId,
+          productId: localItem.id,
+          variantId: localItem.variantId,
+          quantity: finalQuantity,
+        })
+        addedCount++
+
+        // Reserve stock for 30 minutes
+        await reserveStock(env, {
+          variantId: localItem.variantId,
+          productId: localItem.id,
+          userId,
+          quantity: finalQuantity,
+          expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+        })
       }
     }
 
@@ -213,6 +229,7 @@ export async function POST(request: NextRequest) {
       summary: {
         added: addedCount,
         updated: updatedCount,
+        skipped: skippedCount,
         total: formattedItems.length,
       },
       warnings: warnings.length > 0 ? warnings : undefined,

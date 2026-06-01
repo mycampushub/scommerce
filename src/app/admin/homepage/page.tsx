@@ -1160,20 +1160,22 @@ export default function HomepageManagementPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-12">
-          <TabsTrigger value="section-manager">Section Manager</TabsTrigger>
-          <TabsTrigger value="marquee">Marquee</TabsTrigger>
-          <TabsTrigger value="categories">Category Grid</TabsTrigger>
-          <TabsTrigger value="category-carousel">Category Carousel</TabsTrigger>
-          <TabsTrigger value="featured-products">Featured</TabsTrigger>
-          <TabsTrigger value="mosaic-grid">Mosaic</TabsTrigger>
-          <TabsTrigger value="brands">Brands</TabsTrigger>
-          <TabsTrigger value="fullscreen-video">Video</TabsTrigger>
-          <TabsTrigger value="banners">Banners</TabsTrigger>
-          <TabsTrigger value="stories">Stories</TabsTrigger>
-          <TabsTrigger value="reels">Reels</TabsTrigger>
-          <TabsTrigger value="promotions">Promotions</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto pb-2">
+          <TabsList className="inline-flex w-auto min-w-full grid-cols-none lg:grid lg:grid-cols-12 h-auto p-1">
+            <TabsTrigger value="section-manager" className="whitespace-nowrap px-3 py-2 text-sm">Section Manager</TabsTrigger>
+            <TabsTrigger value="marquee" className="whitespace-nowrap px-3 py-2 text-sm">Marquee</TabsTrigger>
+            <TabsTrigger value="categories" className="whitespace-nowrap px-3 py-2 text-sm">Category Grid</TabsTrigger>
+            <TabsTrigger value="category-carousel" className="whitespace-nowrap px-3 py-2 text-sm">Category Carousel</TabsTrigger>
+            <TabsTrigger value="featured-products" className="whitespace-nowrap px-3 py-2 text-sm">Featured</TabsTrigger>
+            <TabsTrigger value="mosaic-grid" className="whitespace-nowrap px-3 py-2 text-sm">Mosaic</TabsTrigger>
+            <TabsTrigger value="brands" className="whitespace-nowrap px-3 py-2 text-sm">Brands</TabsTrigger>
+            <TabsTrigger value="fullscreen-video" className="whitespace-nowrap px-3 py-2 text-sm">Video</TabsTrigger>
+            <TabsTrigger value="banners" className="whitespace-nowrap px-3 py-2 text-sm">Banners</TabsTrigger>
+            <TabsTrigger value="stories" className="whitespace-nowrap px-3 py-2 text-sm">Stories</TabsTrigger>
+            <TabsTrigger value="reels" className="whitespace-nowrap px-3 py-2 text-sm">Reels</TabsTrigger>
+            <TabsTrigger value="promotions" className="whitespace-nowrap px-3 py-2 text-sm">Promotions</TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* Marquee Tab */}
         <TabsContent value="marquee" className="space-y-4">

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { Search, ShoppingCart, Menu, Loader2, Heart, X } from 'lucide-react'
+import { Search, ShoppingCart, Menu, Loader2, Heart, X, ChevronDown, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 import { useCartStore } from '@/lib/store/cart-store'
 import { useScrollDirection } from '@/hooks/use-scroll-direction'
@@ -18,6 +18,7 @@ interface Category {
   slug: string
   image: string
   href: string
+  children?: Category[]
 }
 
 export function Header() {
@@ -26,6 +27,7 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [wishlistCount, setWishlistCount] = useState(0)
   const [categories, setCategories] = useState<Category[]>([])
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
   const { getItemCount } = useCartStore()
   const isHeaderVisible = useScrollDirection()
   const hasMounted = useHasMounted()
@@ -35,6 +37,19 @@ export function Header() {
 
   // Avoid hydration mismatch by only rendering cart count on client
   const cartCount = hasMounted ? getItemCount() : 0
+
+  // Toggle category expansion in mobile menu
+  const toggleCategory = (categoryId: string) => {
+    setExpandedCategories(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(categoryId)) {
+        newSet.delete(categoryId)
+      } else {
+        newSet.add(categoryId)
+      }
+      return newSet
+    })
+  }
 
   // Fetch wishlist count when user is authenticated
   const fetchWishlistCount = async () => {
@@ -57,28 +72,58 @@ export function Header() {
     }
   }
 
-  // Fetch categories for navigation
+  // Fetch hierarchical categories for navigation
   const fetchCategories = async () => {
     try {
-      const response = await fetch('/api/categories')
+      const response = await fetch('/api/categories?hierarchical=true')
       const data = await response.json() as any
+
+      let categoryList: Category[] = []
+
       if (data.success && Array.isArray(data.data)) {
-        const categoryList = data.data.map((cat: any) => ({
+        // If hierarchical data is returned
+        categoryList = data.data.map((cat: any) => ({
           id: cat.id,
           name: cat.name,
           slug: cat.slug,
-          image: cat.image,
+          image: cat.image || '',
+          href: `/collections/${cat.slug}`,
+          children: cat.children ? cat.children.map((child: any) => ({
+            id: child.id,
+            name: child.name,
+            slug: child.slug,
+            image: child.image || '',
+            href: `/collections/${child.slug}`
+          })) : undefined
+        }))
+      } else if (data.success && Array.isArray(data.categories)) {
+        // Fallback for different response structure
+        categoryList = data.categories.map((cat: any) => ({
+          id: cat.id,
+          name: cat.name,
+          slug: cat.slug,
+          image: cat.image || '',
           href: `/collections/${cat.slug}`
         }))
-        setCategories(categoryList)
+      } else {
+        // Fallback to hardcoded categories if API fails
+        categoryList = [
+          { id: '1', name: 'Sarees', slug: 'saree', image: '/images/categories/sarees.svg', href: '/collections/saree' },
+          { id: '2', name: 'Salwar Suits', slug: 'salwar', image: '/images/categories/salwar.svg', href: '/collections/salwar' },
+          { id: '3', name: 'Lehengas', slug: 'lehengas', image: '/images/categories/lehengas.svg', href: '/collections/lehengas' },
+          { id: '4', name: 'Kurtas', slug: 'kurtas', image: '/images/categories/kurtas.svg', href: '/collections/kurtas' },
+          { id: '5', name: 'Menswear', slug: 'menswear', image: '/images/categories/menswear.svg', href: '/collections/menswear' },
+        ]
       }
+
+      setCategories(categoryList)
     } catch (error) {
       console.error('Error fetching categories:', error)
       // Fallback to hardcoded categories if API fails
       setCategories([
         { id: '1', name: 'Sarees', slug: 'saree', image: '/images/categories/sarees.svg', href: '/collections/saree' },
         { id: '2', name: 'Salwar Suits', slug: 'salwar', image: '/images/categories/salwar.svg', href: '/collections/salwar' },
-        { id: '3', name: 'Lehangas', slug: 'lehengas', image: '/images/categories/lehengas.svg', href: '/collections/lehengas' },
+        { id: '3', name: 'Lehengas', slug: 'lehengas', image: '/images/categories/lehengas.svg', href: '/collections/lehengas' },
         { id: '4', name: 'Kurtas', slug: 'kurtas', image: '/images/categories/kurtas.svg', href: '/collections/kurtas' },
         { id: '5', name: 'Menswear', slug: 'menswear', image: '/images/categories/menswear.svg', href: '/collections/menswear' },
       ])
@@ -244,19 +289,57 @@ export function Header() {
                 <X className="w-6 h-6" />
               </button>
 
-              <nav className="flex flex-col gap-4 pt-8" role="navigation" aria-label="Main navigation">
-                {categories.map((category, index) => (
-                  <Link
-                    key={category.id}
-                    href={category.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`text-gray-700 hover:text-pink-600 transition-colors font-medium py-2 border-b border-gray-100 ${
-                      hasMounted && pathname?.startsWith(category.href) ? 'text-pink-600' : ''
-                    }`}
-                  >
-                    {category.name}
-                  </Link>
-                ))}
+              <nav className="flex flex-col gap-2 pt-8" role="navigation" aria-label="Main navigation">
+                {categories.map((category) => {
+                  const hasChildren = category.children && category.children.length > 0
+                  const isExpanded = expandedCategories.has(category.id)
+
+                  return (
+                    <div key={category.id}>
+                      <div className="flex items-center justify-between">
+                        <Link
+                          href={category.href}
+                          onClick={() => setMobileMenuOpen(false)}
+                          className={`flex-1 text-gray-700 hover:text-pink-600 transition-colors font-medium py-3 border-b border-gray-100 ${
+                            hasMounted && pathname?.startsWith(category.href) ? 'text-pink-600' : ''
+                          }`}
+                        >
+                          {category.name}
+                        </Link>
+                        {hasChildren && (
+                          <button
+                            onClick={() => toggleCategory(category.id)}
+                            className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 text-gray-700 hover:text-pink-600 transition-colors ml-2"
+                            aria-label={isExpanded ? `Collapse ${category.name}` : `Expand ${category.name}`}
+                            aria-expanded={isExpanded}
+                          >
+                            {isExpanded ? (
+                              <ChevronDown className="w-5 h-5" />
+                            ) : (
+                              <ChevronRight className="w-5 h-5" />
+                            )}
+                          </button>
+                        )}
+                      </div>
+                      {hasChildren && isExpanded && (
+                        <div className="ml-4 pl-4 border-l-2 border-gray-200">
+                          {category.children?.map((child) => (
+                            <Link
+                              key={child.id}
+                              href={child.href}
+                              onClick={() => setMobileMenuOpen(false)}
+                              className={`block text-gray-600 hover:text-pink-600 transition-colors py-2 border-b border-gray-50 text-sm ${
+                                hasMounted && pathname?.startsWith(child.href) ? 'text-pink-600 font-medium' : ''
+                              }`}
+                            >
+                              {child.name}
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </nav>
               <div className="flex items-center gap-6 mt-6 pt-6 border-t border-gray-200">
                 <button

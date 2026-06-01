@@ -10,6 +10,7 @@
 
 import { runTransaction, runTransactionWithRetry, TransactionResult } from './transaction';
 import { queryFirst, execute, now } from '@/db/db';
+import { Env } from '@/db/types';
 
 /**
  * Result of an optimistic lock update operation
@@ -33,11 +34,12 @@ export interface VersionedEntity {
  * Get current version of an entity
  */
 export async function getEntityVersion(
+  env: Env | null,
   tableName: string,
   id: string
 ): Promise<number | null> {
   const result = await queryFirst<{ version: number }>(
-    null,
+    env,
     `SELECT version FROM ${tableName} WHERE id = ?`,
     id
   );
@@ -47,6 +49,7 @@ export async function getEntityVersion(
 /**
  * Update entity with optimistic locking
  *
+ * @param env Database environment
  * @param tableName Table name
  * @param id Entity ID
  * @param expectedVersion Expected version (for concurrency check)
@@ -54,6 +57,7 @@ export async function getEntityVersion(
  * @returns OptimisticLockResult with success status and new version
  */
 export async function updateWithOptimisticLock(
+  env: Env | null,
   tableName: string,
   id: string,
   expectedVersion: number,
@@ -104,7 +108,7 @@ export async function updateWithOptimisticLock(
       }
 
       // Get new version
-      const newVersion = await getEntityVersion(tableName, id);
+      const newVersion = await getEntityVersion(env, tableName, id);
 
       return {
         success: true,
@@ -144,6 +148,7 @@ export async function updateWithOptimisticLock(
  * @returns OptimisticLockResult
  */
 export async function updateStockWithLock(
+  env: Env | null,
   variantId: string,
   quantity: number,
   isProduct: boolean = false
@@ -153,7 +158,7 @@ export async function updateStockWithLock(
 
   // Get current entity
   const entity = await queryFirst<{ stock: number; version: number }>(
-    null,
+    env,
     `SELECT stock, version FROM ${tableName} WHERE id = ?`,
     id
   );
@@ -177,7 +182,7 @@ export async function updateStockWithLock(
     };
   }
 
-  return await updateWithOptimisticLock(tableName, id, expectedVersion, {
+  return await updateWithOptimisticLock(env, tableName, id, expectedVersion, {
     stock: newStock,
   });
 }
@@ -190,11 +195,12 @@ export async function updateStockWithLock(
  * @returns OptimisticLockResult
  */
 export async function updateOrderStatusWithLock(
+  env: Env | null,
   orderId: string,
   status: string
 ): Promise<OptimisticLockResult> {
   const order = await queryFirst<{ version: number }>(
-    null,
+    env,
     `SELECT version FROM orders WHERE id = ?`,
     orderId
   );
@@ -206,7 +212,7 @@ export async function updateOrderStatusWithLock(
     };
   }
 
-  return await updateWithOptimisticLock('orders', orderId, order.version, {
+  return await updateWithOptimisticLock(env, 'orders', orderId, order.version, {
     status,
   });
 }
@@ -219,6 +225,7 @@ export async function updateOrderStatusWithLock(
  * @returns OptimisticLockResult
  */
 export async function updateCartItemQuantityWithLock(
+  env: Env | null,
   cartItemId: string,
   quantity: number
 ): Promise<OptimisticLockResult> {
@@ -230,7 +237,7 @@ export async function updateCartItemQuantityWithLock(
   }
 
   const cartItem = await queryFirst<{ version: number }>(
-    null,
+    env,
     `SELECT version FROM cart_items WHERE id = ?`,
     cartItemId
   );
@@ -242,7 +249,7 @@ export async function updateCartItemQuantityWithLock(
     };
   }
 
-  return await updateWithOptimisticLock('cart_items', cartItemId, cartItem.version, {
+  return await updateWithOptimisticLock(env, 'cart_items', cartItemId, cartItem.version, {
     quantity,
   });
 }
@@ -256,11 +263,13 @@ export async function updateCartItemQuantityWithLock(
  * @returns OptimisticLockResult
  */
 export async function updateVariantWithLock(
+  env: Env | null,
   variantId: string,
   expectedVersion: number,
   updateFields: Record<string, any>
 ): Promise<OptimisticLockResult> {
   return await updateWithOptimisticLock(
+    env,
     'product_variants',
     variantId,
     expectedVersion,
@@ -277,11 +286,13 @@ export async function updateVariantWithLock(
  * @returns OptimisticLockResult
  */
 export async function updateProductWithLock(
+  env: Env | null,
   productId: string,
   expectedVersion: number,
   updateFields: Record<string, any>
 ): Promise<OptimisticLockResult> {
   return await updateWithOptimisticLock(
+    env,
     'products',
     productId,
     expectedVersion,

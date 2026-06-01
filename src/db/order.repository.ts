@@ -136,7 +136,7 @@ export class OrderRepository {
    */
   static async updateStatus(env: Env | null, id: string, status: OrderStatus): Promise<Order | null> {
     const result = await retryOnVersionConflict(async () => {
-      return await updateOrderStatusWithLock(id, status);
+      return await updateOrderStatusWithLock(env, id, status);
     });
 
     if (!result.success) {
@@ -164,7 +164,7 @@ export class OrderRepository {
     }
 
     const result = await retryOnVersionConflict(async () => {
-      return await updateWithOptimisticLock('orders', id, order.version, {
+      return await updateWithOptimisticLock(env, 'orders', id, order.version, {
         paymentStatus,
       });
     });
@@ -199,7 +199,7 @@ export class OrderRepository {
     }
 
     const result = await retryOnVersionConflict(async () => {
-      return await updateWithOptimisticLock('orders', id, order.version, {
+      return await updateWithOptimisticLock(env, 'orders', id, order.version, {
         trackingNumber,
         trackingStatus,
       });
@@ -230,7 +230,7 @@ export class OrderRepository {
     }
 
     const result = await retryOnVersionConflict(async () => {
-      return await updateWithOptimisticLock('orders', id, order.version, {
+      return await updateWithOptimisticLock(env, 'orders', id, order.version, {
         status: 'CANCELLED',
         cancelledAt: now(),
         cancelledBy,
@@ -277,7 +277,7 @@ export class OrderRepository {
     }
 
     const result = await retryOnVersionConflict(async () => {
-      return await updateWithOptimisticLock('orders', id, order.version, {
+      return await updateWithOptimisticLock(env, 'orders', id, order.version, {
         status: 'REFUNDED',
         paymentStatus: 'REFUNDED',
         refundedAt: now(),

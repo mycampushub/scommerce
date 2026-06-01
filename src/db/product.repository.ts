@@ -754,7 +754,7 @@ export class ProductRepository {
    */
   static async updateVariantStock(env: Env | null, id: string, quantity: number): Promise<void> {
     const result = await retryOnVersionConflict(async () => {
-      return await updateStockWithLock(id, quantity, false);
+      return await updateStockWithLock(env, id, quantity, false);
     });
 
     if (!result.success) {
@@ -771,7 +771,7 @@ export class ProductRepository {
    */
   static async updateProductStock(env: Env | null, id: string, quantity: number): Promise<void> {
     const result = await retryOnVersionConflict(async () => {
-      return await updateStockWithLock(id, quantity, true);
+      return await updateStockWithLock(env, id, quantity, true);
     });
 
     if (!result.success) {

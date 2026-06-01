@@ -758,16 +758,16 @@ function CategoryCarousel({ allCategories, products, sectionEnabled = true }: { 
           </button>
 
           {/* Category Dots Indicator */}
-          <div className="flex justify-center gap-2 mt-2">
+          <div className="relative mt-2 flex justify-center gap-2 max-w-full overflow-x-auto px-4 scrollbar-hide">
             {categories.map((_, index) => (
               <button
                 key={index}
                 onClick={() => goToSlide(index)}
-                className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 transition-all"
+                className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 transition-all flex-shrink-0"
                 aria-label={`Go to category ${index + 1}`}
                 aria-current={index === currentIndex ? 'step' : undefined}
               >
-                <span className={`h-2 rounded-full transition-all ${
+                <span className={`h-2 rounded-full transition-all flex-shrink-0 ${
                   index === currentIndex ? 'bg-pink-600 w-6' : 'bg-gray-300 w-2 hover:bg-gray-400'
                 }`} />
               </button>

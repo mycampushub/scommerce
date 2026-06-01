@@ -400,9 +400,102 @@ export async function POST(request: NextRequest) {
       case 'sync': {
         // Sync all cart items from client to server
         if (!Array.isArray(items) || items.length === 0) {
-          // Clear user's cart
-          await CartRepository.clearCart(env, userId);
-          return NextResponse.json({ success: true, synced: 0 });
+          // Keep existing cart, don't clear it
+          // Just fetch and return existing items
+          const existingCartItems = await CartRepository.findByUserId(env, userId);
+
+          // Batch fetch all products to avoid N+1 queries
+          const productIds = existingCartItems.map(item => item.productId);
+          const productsMap = new Map<string, {
+            id: string;
+            name: string;
+            slug: string;
+            basePrice: number;
+            comparePrice: number | null;
+            images: string;
+            stock: number;
+            isActive: number;
+          }>();
+
+          if (productIds.length > 0) {
+            const placeholders = productIds.map(() => '?').join(',');
+            const products = await queryAll<{
+              id: string;
+              name: string;
+              slug: string;
+              basePrice: number;
+              comparePrice: number | null;
+              images: string;
+              stock: number;
+              isActive: number;
+            }>(
+              env,
+              `SELECT id, name, slug, basePrice, comparePrice, images, stock, isActive FROM products WHERE id IN (${placeholders})`,
+              ...productIds
+            );
+            products.forEach(p => productsMap.set(p.id, p));
+          }
+
+          // Batch fetch all variants to avoid N+1 queries
+          const variantIds = existingCartItems.map(item => item.variantId).filter(Boolean) as string[];
+          const variantsMap = new Map<string, {
+            id: string;
+            sku: string | null;
+            size: string | null;
+            color: string | null;
+            material: string | null;
+            productId: string;
+          }>();
+
+          if (variantIds.length > 0) {
+            const placeholders = variantIds.map(() => '?').join(',');
+            const variants = await queryAll<{
+              id: string;
+              sku: string | null;
+              size: string | null;
+              color: string | null;
+              material: string | null;
+              productId: string;
+            }>(
+              env,
+              `SELECT id, sku, size, color, material, productId FROM product_variants WHERE id IN (${placeholders})`,
+              ...variantIds
+            );
+            variants.forEach(v => variantsMap.set(v.id, v));
+          }
+
+          // Transform to match cart store format
+          const formattedItems = existingCartItems.map(item => {
+            const product = productsMap.get(item.productId);
+            if (!product) return null;
+
+            const variant = item.variantId ? variantsMap.get(item.variantId) : null;
+            const parsedImages = parseJSON<string[]>(product.images);
+            const images = Array.isArray(parsedImages) ? parsedImages : [];
+
+            return {
+              id: item.productId,
+              slug: product.slug,
+              name: product.name,
+              price: product.basePrice,
+              originalPrice: product.comparePrice,
+              image: images[0] || '',
+              quantity: item.quantity,
+              variantId: item.variantId || undefined,
+              variantSku: variant?.sku || undefined,
+              size: variant?.size || null,
+              color: variant?.color || null,
+              material: variant?.material || null,
+            };
+          });
+
+          const validItems = formattedItems.filter(item => item !== null);
+
+          return NextResponse.json({
+            success: true,
+            synced: 0,
+            items: validItems,
+          });
         }
 
         const errors: string[] = [];
@@ -411,10 +504,13 @@ export async function POST(request: NextRequest) {
         // Clean up expired reservations before sync
         await cleanupExpiredReservations(env);
 
-        // Clear existing cart
-        await CartRepository.clearCart(env, userId);
+        // Get existing database cart items for merging
+        const existingDbCartItems = await CartRepository.findByUserId(env, userId);
+        const dbCartMap = new Map(
+          existingDbCartItems.map(item => [`${item.productId}-${item.variantId || 'no-variant'}`, item])
+        );
 
-        // Create new cart items
+        // Process each client item and sync with database
         for (const clientItem of items) {
           const validation = cartItemSchema.safeParse({
             productId: clientItem.id,
@@ -427,7 +523,10 @@ export async function POST(request: NextRequest) {
             continue; // Skip invalid items but continue with others
           }
 
-          // Check stock availability before adding to cart
+          const itemKey = `${clientItem.id}-${clientItem.variantId || 'no-variant'}`;
+          const existingDbItem = dbCartMap.get(itemKey);
+
+          // Check stock availability before adding/updating to cart
           const stockCheck = clientItem.variantId
             ? await queryFirst<{ stock: number }>(
                 env,
@@ -442,24 +541,28 @@ export async function POST(request: NextRequest) {
 
           const availableStock = stockCheck?.stock || 0;
           const quantityToAdd = clientItem.quantity || 1;
+          const finalQuantity = Math.min(quantityToAdd, availableStock);
 
-          if (quantityToAdd > availableStock) {
-            errors.push(`Item ${clientItem.id}: Only ${availableStock} available, requested ${quantityToAdd}`);
-            // Still add the item but with available stock
-            await CartRepository.addItem(env, {
-              userId,
-              productId: clientItem.id,
-              variantId: clientItem.variantId,
-              quantity: availableStock,
-            });
-            synced++;
+          if (availableStock === 0) {
+            errors.push(`Item ${clientItem.id}: Out of stock, skipped`);
+            continue;
+          }
+
+          if (finalQuantity < quantityToAdd) {
+            errors.push(`Item ${clientItem.id}: Only ${availableStock} available, adjusted from ${quantityToAdd}`);
+          }
+
+          if (existingDbItem) {
+            // Item exists in database, update quantity
+            await CartRepository.updateQuantity(env, existingDbItem.id, finalQuantity);
           } else {
+            // Item doesn't exist in database, add it
             // Reserve stock
             await reserveStock(env, {
               variantId: clientItem.variantId,
               productId: clientItem.id,
               userId,
-              quantity: quantityToAdd,
+              quantity: finalQuantity,
               expiresAt: new Date(Date.now() + 30 * 60 * 1000),
             });
 
@@ -467,16 +570,107 @@ export async function POST(request: NextRequest) {
               userId,
               productId: clientItem.id,
               variantId: clientItem.variantId,
-              quantity: quantityToAdd,
+              quantity: finalQuantity,
             });
-            synced++;
           }
+          synced++;
         }
+
+        // Fetch the merged cart to return
+        const mergedCartItems = await CartRepository.findByUserId(env, userId);
+
+        // Batch fetch all products to avoid N+1 queries
+        const productIds = mergedCartItems.map(item => item.productId);
+        const productsMap = new Map<string, {
+          id: string;
+          name: string;
+          slug: string;
+          basePrice: number;
+          comparePrice: number | null;
+          images: string;
+          stock: number;
+          isActive: number;
+        }>();
+
+        if (productIds.length > 0) {
+          const placeholders = productIds.map(() => '?').join(',');
+          const products = await queryAll<{
+            id: string;
+            name: string;
+            slug: string;
+            basePrice: number;
+            comparePrice: number | null;
+            images: string;
+            stock: number;
+            isActive: number;
+          }>(
+            env,
+            `SELECT id, name, slug, basePrice, comparePrice, images, stock, isActive FROM products WHERE id IN (${placeholders})`,
+            ...productIds
+          );
+          products.forEach(p => productsMap.set(p.id, p));
+        }
+
+        // Batch fetch all variants to avoid N+1 queries
+        const variantIds = mergedCartItems.map(item => item.variantId).filter(Boolean) as string[];
+        const variantsMap = new Map<string, {
+          id: string;
+          sku: string | null;
+          size: string | null;
+          color: string | null;
+          material: string | null;
+          productId: string;
+        }>();
+
+        if (variantIds.length > 0) {
+          const placeholders = variantIds.map(() => '?').join(',');
+          const variants = await queryAll<{
+            id: string;
+            sku: string | null;
+            size: string | null;
+            color: string | null;
+            material: string | null;
+            productId: string;
+          }>(
+            env,
+            `SELECT id, sku, size, color, material, productId FROM product_variants WHERE id IN (${placeholders})`,
+            ...variantIds
+          );
+          variants.forEach(v => variantsMap.set(v.id, v));
+        }
+
+        // Transform to match cart store format
+        const formattedItems = mergedCartItems.map(item => {
+          const product = productsMap.get(item.productId);
+          if (!product) return null;
+
+          const variant = item.variantId ? variantsMap.get(item.variantId) : null;
+          const parsedImages = parseJSON<string[]>(product.images);
+          const images = Array.isArray(parsedImages) ? parsedImages : [];
+
+          return {
+            id: item.productId,
+            slug: product.slug,
+            name: product.name,
+            price: product.basePrice,
+            originalPrice: product.comparePrice,
+            image: images[0] || '',
+            quantity: item.quantity,
+            variantId: item.variantId || undefined,
+            variantSku: variant?.sku || undefined,
+            size: variant?.size || null,
+            color: variant?.color || null,
+            material: variant?.material || null,
+          };
+        });
+
+        const validItems = formattedItems.filter(item => item !== null);
 
         // Return success even with errors, but include error details
         return NextResponse.json({
           success: true,
           synced,
+          items: validItems,
           errors: errors.length > 0 ? errors : undefined,
         });
       }

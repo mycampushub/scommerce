@@ -16,22 +16,52 @@ export async function GET(request: Request) {
   const env = await getEnv();
 
   try {
-    // Fetch categories from database
-    const categories = await CategoryRepository.findAllActive(env);
+    // Check if hierarchical data is requested
+    const url = new URL(request.url);
+    const hierarchical = url.searchParams.get('hierarchical') === 'true';
 
-    // Transform categories to match expected frontend format
-    const transformedCategories = categories.map(category => ({
-      id: category.id,
-      name: category.name,
-      slug: category.slug,
-      description: category.description,
-      image: category.image || '',
-    }));
+    let categories;
 
-    const response = successResponse(transformedCategories);
+    if (hierarchical) {
+      // Fetch hierarchical categories with children
+      categories = await CategoryRepository.getTree(env);
 
-    // Add caching headers for categories (semi-static - 10 minutes)
-    return addCacheHeaders(response, CachePresets.SEMI_STATIC);
+      // Transform to match expected frontend format
+      const transformedCategories = categories.map(category => ({
+        id: category.id,
+        name: category.name,
+        slug: category.slug,
+        description: category.description,
+        image: category.image || '',
+        children: category.children && category.children.length > 0
+          ? category.children.map(child => ({
+              id: child.id,
+              name: child.name,
+              slug: child.slug,
+              description: child.description,
+              image: child.image || '',
+            }))
+          : undefined,
+      }));
+
+      const response = successResponse(transformedCategories);
+      return addCacheHeaders(response, CachePresets.SEMI_STATIC);
+    } else {
+      // Fetch flat list of active categories
+      categories = await CategoryRepository.findAllActive(env);
+
+      // Transform categories to match expected frontend format
+      const transformedCategories = categories.map(category => ({
+        id: category.id,
+        name: category.name,
+        slug: category.slug,
+        description: category.description,
+        image: category.image || '',
+      }));
+
+      const response = successResponse(transformedCategories);
+      return addCacheHeaders(response, CachePresets.SEMI_STATIC);
+    }
   } catch (error) {
     console.error('Error fetching categories:', error);
     return errorResponse('Failed to fetch categories', 500);

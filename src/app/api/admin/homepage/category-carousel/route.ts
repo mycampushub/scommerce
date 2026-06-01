@@ -5,7 +5,7 @@ import { queryFirst, execute, generateId, now, parseJSON, stringifyJSON, boolToN
 import { getClientIp, rateLimit, createRateLimitResponse } from '@/lib/rate-limit'
 import { logAdminAction } from '@/lib/audit-logger'
 
-const SECTION_NAME = 'category_carousel'
+const SECTION_NAME = 'category-carousel'
 
 export async function GET(request: NextRequest) {
   // Verify admin authentication (admin or staff)

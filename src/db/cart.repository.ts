@@ -95,7 +95,7 @@ export class CartRepository {
    */
   static async updateQuantity(env: Env | null, id: string, quantity: number): Promise<CartItem | null> {
     const result = await retryOnVersionConflict(async () => {
-      return await updateCartItemQuantityWithLock(id, quantity);
+      return await updateCartItemQuantityWithLock(env, id, quantity);
     });
 
     if (!result.success) {
