@@ -105,17 +105,17 @@ export default function CheckoutPage() {
   const tax = subtotal * taxRate
   const total = getTotal()
   const [serverCartItems, setServerCartItems] = useState<any[]>([])
-  const [hasFetchedServerCart, setHasFetchedServerCart] = useState(false)
+  const [isInitialLoad, setIsInitialLoad] = useState(true) // Track initial load vs subsequent updates
   const [isFetchingServerCart, setIsFetchingServerCart] = useState(false)
 
 
   // Fetch cart from server for authenticated users
   useEffect(() => {
     const fetchServerCart = async () => {
-      if (user && !hasFetchedServerCart) {
+      if (user) {
         setIsFetchingServerCart(true)
         try {
-          // Fetch the server cart first
+          // Fetch the server cart
           const response = await fetch('/api/cart', {
             credentials: 'include',
           })
@@ -140,8 +140,8 @@ export default function CheckoutPage() {
             setServerCartItems(transformedItems)
             console.log('[Checkout] Loaded cart from server:', transformedItems.length, 'items')
           } else {
-            // Server cart is empty, sync local cart to server
-            if (items.length > 0) {
+            // Server cart is empty, sync local cart to server if initial load
+            if (items.length > 0 && isInitialLoad) {
               console.log('[Checkout] Server cart empty, syncing local cart:', items.length, 'items')
               const syncResponse = await fetch('/api/cart', {
                 method: 'POST',
@@ -187,29 +187,76 @@ export default function CheckoutPage() {
                 setServerCartItems(transformedItems)
                 console.log('[Checkout] Loaded cart from server after sync:', transformedItems.length, 'items')
               }
-            } else {
+            } else if (items.length === 0) {
               setServerCartItems([])
               console.log('[Checkout] Server cart empty and no local items')
+            } else {
+              // Not initial load but local items exist - sync them
+              console.log('[Checkout] Syncing local items to server (not initial load):', items.length, 'items')
+              const syncResponse = await fetch('/api/cart', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                  action: 'sync',
+                  items: items.map(item => ({
+                    id: item.id,
+                    productId: item.id,
+                    quantity: item.quantity,
+                    variantId: item.variantId,
+                    size: item.size,
+                    color: item.color,
+                    material: item.material,
+                  })),
+                }),
+              })
+              const syncData = await syncResponse.json() as any
+
+              // After sync, fetch the server cart again
+              const fetchAfterSync = await fetch('/api/cart', {
+                credentials: 'include',
+              })
+              const dataAfterSync = await fetchAfterSync.json() as any
+
+              if (dataAfterSync.success && dataAfterSync.items) {
+                const transformedItems = dataAfterSync.items.map((item: any) => ({
+                  id: item.id,
+                  name: item.name,
+                  price: item.price,
+                  originalPrice: item.originalPrice,
+                  image: item.image,
+                  variantId: item.variantId,
+                  variantSku: item.variantSku,
+                  size: item.size,
+                  color: item.color,
+                  material: item.material,
+                  quantity: item.quantity,
+                  slug: item.slug || item.product?.slug || '',
+                }))
+                setServerCartItems(transformedItems)
+                console.log('[Checkout] Loaded cart from server after sync:', transformedItems.length, 'items')
+              }
             }
           }
+          setIsInitialLoad(false)
         } catch (error) {
           console.error('[Checkout] Error fetching/syncing server cart:', error)
           // Fall back to local storage cart
           setServerCartItems(items)
+          setIsInitialLoad(false)
         } finally {
           setIsFetchingServerCart(false)
-          setHasFetchedServerCart(true)
         }
       } else if (!user) {
         // Not authenticated, use local storage and reset flag
         setServerCartItems(items)
-        setHasFetchedServerCart(false)
+        setIsInitialLoad(false)
         setIsFetchingServerCart(false)
       }
     }
 
     fetchServerCart()
-  }, [user, hasFetchedServerCart])
+  }, [user, items]) // Re-run when user or items change
 
 
   // Fetch site settings for tax rate and shipping threshold
@@ -592,11 +639,25 @@ export default function CheckoutPage() {
       }
       
       // Order created successfully
-      
-      // IMPORTANT: Clear cart AFTER successful order confirmation
+
+      // Clear cart AFTER successful order confirmation
       // This prevents cart from disappearing if order fails
       clearCart()
-      
+
+      // For logged-in users, also clear server cart
+      if (user) {
+        try {
+          await fetch('/api/cart', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ action: 'clear' }),
+          })
+        } catch (error) {
+          console.error('[Checkout] Error clearing server cart:', error)
+        }
+      }
+
       toast.success(result.message || 'Order placed successfully!')
       
       // Navigate to order confirmation page with order ID
@@ -620,11 +681,11 @@ export default function CheckoutPage() {
   }
 
   // Determine which items to use (server cart for logged-in users, local storage for guests)
-  // While fetching server cart, use local items to avoid showing empty cart temporarily
+  // For logged-in users with server cart items, use those; otherwise use local items
   const effectiveItems = user && !isFetchingServerCart && serverCartItems.length > 0 ? serverCartItems : items
 
   // Show loading state while fetching server cart for logged-in users
-  if (user && isFetchingServerCart && items.length === 0) {
+  if (user && isFetchingServerCart && items.length === 0 && serverCartItems.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
@@ -1129,7 +1190,7 @@ export default function CheckoutPage() {
                             }))
 
                             setServerCartItems(transformedItems)
-                            setHasFetchedServerCart(true)
+                            setIsInitialLoad(true)
                             console.log('[Checkout] Loaded server cart after login:', transformedItems.length, 'items')
                           } else {
                             setServerCartItems([])
@@ -1292,7 +1353,7 @@ export default function CheckoutPage() {
                             }))
 
                             setServerCartItems(transformedItems)
-                            setHasFetchedServerCart(true)
+                            setIsInitialLoad(true)
                             console.log('[Checkout] Loaded synced cart after signup:', transformedItems.length, 'items')
                           } else {
                             setServerCartItems([])

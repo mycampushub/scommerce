@@ -12,11 +12,20 @@ import { UserMenu } from '@/components/user-menu'
 import { Button } from '@/components/ui/button'
 import { useFocusTrap } from '@/hooks/use-focus-trap'
 
+interface Category {
+  id: string
+  name: string
+  slug: string
+  image: string
+  href: string
+}
+
 export function Header() {
   const pathname = usePathname()
   const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [wishlistCount, setWishlistCount] = useState(0)
+  const [categories, setCategories] = useState<Category[]>([])
   const { getItemCount } = useCartStore()
   const isHeaderVisible = useScrollDirection()
   const hasMounted = useHasMounted()
@@ -48,12 +57,45 @@ export function Header() {
     }
   }
 
-  React.useEffect(() => {
+  // Fetch categories for navigation
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch('/api/categories')
+      const data = await response.json() as any
+      if (data.success && Array.isArray(data.data)) {
+        const categoryList = data.data.map((cat: any) => ({
+          id: cat.id,
+          name: cat.name,
+          slug: cat.slug,
+          image: cat.image,
+          href: `/collections/${cat.slug}`
+        }))
+        setCategories(categoryList)
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error)
+      // Fallback to hardcoded categories if API fails
+      setCategories([
+        { id: '1', name: 'Sarees', slug: 'saree', image: '/images/categories/sarees.svg', href: '/collections/saree' },
+        { id: '2', name: 'Salwar Suits', slug: 'salwar', image: '/images/categories/salwar.svg', href: '/collections/salwar' },
+        { id: '3', name: 'Lehangas', slug: 'lehengas', image: '/images/categories/lehengas.svg', href: '/collections/lehengas' },
+        { id: '4', name: 'Kurtas', slug: 'kurtas', image: '/images/categories/kurtas.svg', href: '/collections/kurtas' },
+        { id: '5', name: 'Menswear', slug: 'menswear', image: '/images/categories/menswear.svg', href: '/collections/menswear' },
+      ])
+    }
+  }
+
+  // Fetch wishlist count and categories on mount
+  useEffect(() => {
     if (!loading && isAuthenticated && hasMounted) {
       fetchWishlistCount()
     } else if (!isAuthenticated && hasMounted) {
       // Clear wishlist count when user is not authenticated
       setWishlistCount(0)
+    }
+    // Always fetch categories for navigation
+    if (hasMounted) {
+      fetchCategories()
     }
   }, [isAuthenticated, hasMounted, loading])
 
@@ -118,46 +160,17 @@ export function Header() {
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-8">
-            <Link 
-              href="/collections/saree" 
-              className={`text-gray-700 hover:text-pink-600 transition-colors font-medium ${
-                pathname?.startsWith('/collections/saree') ? 'text-pink-600' : ''
-              }`}
-            >
-              Sarees
-            </Link>
-            <Link 
-              href="/collections/salwar" 
-              className={`text-gray-700 hover:text-pink-600 transition-colors font-medium ${
-                pathname?.startsWith('/collections/salwar') ? 'text-pink-600' : ''
-              }`}
-            >
-              Salwar Suits
-            </Link>
-            <Link 
-              href="/collections/lehengas" 
-              className={`text-gray-700 hover:text-pink-600 transition-colors font-medium ${
-                pathname?.startsWith('/collections/lehengas') ? 'text-pink-600' : ''
-              }`}
-            >
-              Lehangas
-            </Link>
-            <Link 
-              href="/collections/kurtas" 
-              className={`text-gray-700 hover:text-pink-600 transition-colors font-medium ${
-                pathname?.startsWith('/collections/kurtas') ? 'text-pink-600' : ''
-              }`}
-            >
-              Kurtas
-            </Link>
-            <Link 
-              href="/collections/menswear" 
-              className={`text-gray-700 hover:text-pink-600 transition-colors font-medium ${
-                pathname?.startsWith('/collections/menswear') ? 'text-pink-600' : ''
-              }`}
-            >
-              Menswear
-            </Link>
+            {categories.map((category, index) => (
+              <Link
+                key={category.id}
+                href={category.href}
+                className={`text-gray-700 hover:text-pink-600 transition-colors font-medium ${
+                  hasMounted && pathname?.startsWith(category.href) ? 'text-pink-600' : ''
+                }`}
+              >
+                {category.name}
+              </Link>
+            ))}
           </nav>
 
           {/* Right Icons */}
@@ -206,14 +219,21 @@ export function Header() {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div
-            ref={mobileMenuRef}
-            id="mobile-menu"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Navigation menu"
-            className="lg:hidden fixed inset-0 top-16 bg-white z-50 overflow-y-auto"
-          >
+          <>
+            {/* Backdrop overlay */}
+            <div
+              className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+              onClick={() => setMobileMenuOpen(false)}
+              aria-hidden="true"
+            />
+            <div
+              ref={mobileMenuRef}
+              id="mobile-menu"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Navigation menu"
+              className="lg:hidden fixed inset-0 top-16 bg-white z-[60] overflow-y-auto"
+            >
             <div className="container mx-auto px-4 py-6">
               {/* Close button */}
               <button
@@ -225,51 +245,18 @@ export function Header() {
               </button>
 
               <nav className="flex flex-col gap-4 pt-8" role="navigation" aria-label="Main navigation">
-                <Link
-                  href="/collections/saree"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`text-gray-700 hover:text-pink-600 transition-colors font-medium py-2 border-b border-gray-100 ${
-                    pathname?.startsWith('/collections/saree') ? 'text-pink-600' : ''
-                  }`}
-                >
-                  Sarees
-                </Link>
-                <Link
-                  href="/collections/salwar"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`text-gray-700 hover:text-pink-600 transition-colors font-medium py-2 border-b border-gray-100 ${
-                    pathname?.startsWith('/collections/salwar') ? 'text-pink-600' : ''
-                  }`}
-                >
-                  Salwar Suits
-                </Link>
-                <Link
-                  href="/collections/lehengas"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`text-gray-700 hover:text-pink-600 transition-colors font-medium py-2 border-b border-gray-100 ${
-                    pathname?.startsWith('/collections/lehengas') ? 'text-pink-600' : ''
-                  }`}
-                >
-                  Lehangas
-                </Link>
-                <Link
-                  href="/collections/kurtas"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`text-gray-700 hover:text-pink-600 transition-colors font-medium py-2 border-b border-gray-100 ${
-                    pathname?.startsWith('/collections/kurtas') ? 'text-pink-600' : ''
-                  }`}
-                >
-                  Kurtas
-                </Link>
-                <Link
-                  href="/collections/menswear"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`text-gray-700 hover:text-pink-600 transition-colors font-medium py-2 border-b border-gray-100 ${
-                    pathname?.startsWith('/collections/menswear') ? 'text-pink-600' : ''
-                  }`}
-                >
-                  Menswear
-                </Link>
+                {categories.map((category, index) => (
+                  <Link
+                    key={category.id}
+                    href={category.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`text-gray-700 hover:text-pink-600 transition-colors font-medium py-2 border-b border-gray-100 ${
+                      hasMounted && pathname?.startsWith(category.href) ? 'text-pink-600' : ''
+                    }`}
+                  >
+                    {category.name}
+                  </Link>
+                ))}
               </nav>
               <div className="flex items-center gap-6 mt-6 pt-6 border-t border-gray-200">
                 <button
@@ -337,7 +324,8 @@ export function Header() {
                 )}
               </div>
             </div>
-          </div>
+            </div>
+          </>
         )}
       </div>
     </header>

@@ -119,7 +119,17 @@ export const useCartStore = create<CartStore>()(
         }))
       },
 
-      clearCart: () => set({ items: [] }),
+      clearCart: () => {
+        set({ items: [] })
+        // Clear localStorage explicitly
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.removeItem('cart-storage')
+          } catch (error) {
+            console.warn('Error clearing cart from localStorage:', error)
+          }
+        }
+      },
 
       getItemCount: () => {
         return get().items.reduce((sum, item) => sum + item.quantity, 0)

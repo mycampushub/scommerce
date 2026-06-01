@@ -68,7 +68,11 @@ class PrismaPreparedStatement implements PreparedStatement {
       const result = await this.prisma.$queryRawUnsafe<T>(this.sql, ...this.params);
       return Array.isArray(result) && result.length > 0 ? result[0] : null;
     } catch (error) {
-      console.error('[PrismaPreparedStatement] first() error:', error);
+      console.error('[PrismaPreparedStatement] first() error:', {
+        sql: this.sql,
+        params: this.params,
+        error: error instanceof Error ? error.message : String(error)
+      });
       return null;
     }
   }
@@ -79,7 +83,11 @@ class PrismaPreparedStatement implements PreparedStatement {
       const result = await this.prisma.$queryRawUnsafe<T>(this.sql, ...this.params);
       return { results: Array.isArray(result) ? result : [] };
     } catch (error) {
-      console.error('[PrismaPreparedStatement] all() error:', error);
+      console.error('[PrismaPreparedStatement] all() error:', {
+        sql: this.sql,
+        params: this.params,
+        error: error instanceof Error ? error.message : String(error)
+      });
       return { results: [] };
     }
   }
@@ -91,7 +99,11 @@ class PrismaPreparedStatement implements PreparedStatement {
       return { meta: { changes: result as number }, error: undefined };
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
-      console.error('[PrismaPreparedStatement] run() error:', err);
+      console.error('[PrismaPreparedStatement] run() error:', {
+        sql: this.sql,
+        params: this.params,
+        error: err.message
+      });
       // Throw the error instead of returning it - this is consistent with D1 behavior
       throw err;
     }
@@ -102,12 +114,24 @@ class PrismaPreparedStatement implements PreparedStatement {
  * Get database instance - works with both D1 and Prisma
  */
 export function getDatabase(env: Env | null): Database | null {
-  // Try Cloudflare D1 first
+  // For local development, always use Prisma
+  // Check if we're in development and not in a real Cloudflare environment
+  if (process.env.NODE_ENV === 'development' && !(globalThis as any).__CLOUDFLARE_ENV__) {
+    try {
+      const prismaClient = getPrismaClient();
+      return new PrismaDatabase(prismaClient);
+    } catch (error) {
+      console.error('[unified-db] Error getting Prisma database in dev mode:', error);
+      return null;
+    }
+  }
+
+  // Try Cloudflare D1 first for production/Cloudflare environments
   if (env && env.DB) {
     return env.DB;
   }
 
-  // Fallback to Prisma for local development
+  // Fallback to Prisma
   try {
     const prismaClient = getPrismaClient();
     return new PrismaDatabase(prismaClient);

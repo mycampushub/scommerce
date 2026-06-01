@@ -127,6 +127,12 @@ export default function HomepageManagementPage() {
   // Category Carousel state
   const [categories, setCategories] = useState<any[]>([])
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([])
+  const [selectedCategoryGridIds, setSelectedCategoryGridIds] = useState<string[]>([])
+  const [categoryGridEnabled, setCategoryGridEnabled] = useState(true)
+  const [categoryGridHeading, setCategoryGridHeading] = useState('Shop by Category')
+  const [categoryGridDescription, setCategoryGridDescription] = useState('Explore our wide range of categories')
+  const [savingCategoryGrid, setSavingCategoryGrid] = useState(false)
+  
   const [categoryCarouselEnabled, setCategoryCarouselEnabled] = useState(true)
   const [categoryCarouselAutoScroll, setCategoryCarouselAutoScroll] = useState(true)
   const [categoryCarouselScrollInterval, setCategoryCarouselScrollInterval] = useState(4000)
@@ -265,6 +271,48 @@ export default function HomepageManagementPage() {
       }
     } catch (error) {
       console.error('Error fetching categories:', error)
+    }
+  }
+
+  const fetchCategoryGrid = async () => {
+    try {
+      const res = await fetch('/api/admin/homepage/category-grid')
+      const data = await res.json() as any
+      if (data.success) {
+        setSelectedCategoryGridIds(data.data.categoryIds || [])
+        setCategoryGridEnabled(data.data.isEnabled !== undefined ? data.data.isEnabled : true)
+        setCategoryGridHeading(data.data.heading || 'Shop by Category')
+        setCategoryGridDescription(data.data.description || 'Explore our wide range of categories')
+      }
+    } catch (error) {
+      console.error('Error fetching category grid settings:', error)
+    }
+  }
+
+  const handleSaveCategoryGrid = async () => {
+    setSavingCategoryGrid(true)
+    try {
+      const res = await fetch('/api/admin/homepage/category-grid', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          categoryIds: selectedCategoryGridIds,
+          isEnabled: categoryGridEnabled,
+          heading: categoryGridHeading,
+          description: categoryGridDescription
+        })
+      })
+      const data = await res.json() as any
+      if (data.success) {
+        toast.success('Category grid settings saved successfully')
+      } else {
+        toast.error(data.error || 'Failed to save category grid settings')
+      }
+    } catch (error) {
+      console.error('Error saving category grid settings:', error)
+      toast.error('Failed to save category grid settings')
+    } finally {
+      setSavingCategoryGrid(false)
     }
   }
 
@@ -715,6 +763,7 @@ export default function HomepageManagementPage() {
         await Promise.all([
           fetchMarquee(),
           fetchCategories(),
+          fetchCategoryGrid(),
           fetchCategoryCarousel(),
           fetchFeaturedProducts(),
           fetchMosaicGrid(),
@@ -1247,42 +1296,147 @@ export default function HomepageManagementPage() {
 
         {/* Categories Grid Tab */}
         <TabsContent value="categories" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold">Category Grid Settings</h2>
+            <Button onClick={handleSaveCategoryGrid} disabled={savingCategoryGrid}>
+              {savingCategoryGrid ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Settings
+                </>
+              )}
+            </Button>
+          </div>
+
           <Card>
             <CardHeader>
               <CardTitle>Category Grid Section</CardTitle>
               <CardDescription>
-                The category grid displays all active categories in a 4x2 grid layout on the homepage.
-                This section automatically shows all active categories and cannot be individually configured.
+                Select which categories to display on the homepage category grid. If no categories are selected, all active categories will be shown.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h3 className="font-semibold text-blue-900 mb-2">How it works:</h3>
-                  <ul className="text-sm text-blue-800 space-y-1">
-                    <li>• Displays all active categories automatically</li>
-                    <li>• Categories are shown in a 4x2 grid layout</li>
-                    <li>• Categories appear in their sort order</li>
-                    <li>• Clicking a category navigates to its collection page</li>
-                  </ul>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="category-grid-enabled" className="flex items-center gap-2">
+                    Enable Category Grid
+                    <Switch
+                      id="category-grid-enabled"
+                      checked={categoryGridEnabled}
+                      onCheckedChange={setCategoryGridEnabled}
+                    />
+                  </Label>
                 </div>
                 <div>
-                  <Label className="text-base font-semibold">Section Management</Label>
-                  <p className="text-sm text-gray-600 mt-1">
-                    To enable or disable this section, go to the <strong>Section Manager</strong> tab and toggle the "Categories" section.
-                  </p>
-                  <p className="text-sm text-gray-600 mt-1">
-                    To manage categories (add, edit, delete, or reorder), go to <strong>Admin → Categories</strong>.
-                  </p>
-                </div>
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                  <h3 className="font-semibold text-gray-900 mb-2">Difference from Category Carousel:</h3>
-                  <p className="text-sm text-gray-600 mb-2">
-                    <strong>Category Grid</strong> shows all categories at once in a static grid view, while
-                    <strong> Category Carousel</strong> rotates through selected categories one at a time and
-                    displays their products.
+                  <Label htmlFor="category-grid-heading">Heading</Label>
+                  <Input
+                    id="category-grid-heading"
+                    value={categoryGridHeading}
+                    onChange={(e) => setCategoryGridHeading(e.target.value)}
+                    placeholder="Shop by Category"
+                    className="mt-2"
+                    maxLength={200}
+                  />
+                  <p className="text-sm text-gray-500 mt-1">
+                    Section heading (max 200 characters)
                   </p>
                 </div>
+                <div>
+                  <Label htmlFor="category-grid-description">Description</Label>
+                  <Textarea
+                    id="category-grid-description"
+                    value={categoryGridDescription}
+                    onChange={(e) => setCategoryGridDescription(e.target.value)}
+                    placeholder="Explore our wide range of categories"
+                    rows={3}
+                    className="mt-2"
+                    maxLength={500}
+                  />
+                  <p className="text-sm text-gray-500 mt-1">
+                    Section description (max 500 characters)
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="category-grid-categories">Select Categories</Label>
+                <p className="text-sm text-gray-600 mt-1">
+                  Choose which categories to display in the category grid section. Leave empty to show all active categories.
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2 max-h-[400px] overflow-y-auto border rounded-lg p-2">
+                  {categories.length === 0 ? (
+                    <div className="col-span-2 md:col-span-3 text-center py-8">
+                      <Loader2 className="w-8 h-8 text-pink-600 animate-spin mx-auto" />
+                      <p className="text-sm text-gray-500 mt-2">Loading categories...</p>
+                    </div>
+                  ) : (
+                    categories.map((category: any) => (
+                      <label
+                        key={category.id}
+                        className={`flex items-center gap-3 p-3 rounded-lg border transition-color cursor-pointer hover:bg-gray-50 ${
+                          selectedCategoryGridIds.includes(category.id)
+                            ? 'bg-pink-100 border-pink-600'
+                            : 'border-gray-200 hover:border-pink-300'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedCategoryGridIds.includes(category.id)}
+                          onChange={(e) => {
+                            const checked = e.target.checked
+                            if (checked) {
+                              setSelectedCategoryGridIds([...selectedCategoryGridIds, category.id])
+                            } else {
+                              setSelectedCategoryGridIds(selectedCategoryGridIds.filter(id => id !== category.id))
+                            }
+                          }}
+                          className="sr-only"
+                        />
+                        <img
+                          src={category.image}
+                          alt={category.name}
+                          className="w-12 h-16 object-cover rounded-md flex-shrink-0"
+                        />
+                        <span className="text-sm font-medium text-gray-900 line-clamp-1">
+                          {category.name}
+                        </span>
+                      </label>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h3 className="font-semibold text-blue-900 mb-2">How it works:</h3>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li>• Select categories you want to display in the homepage category grid</li>
+                  <li>• Grid displays categories in a 4x2 layout</li>
+                  <li>• Categories appear in their sort order</li>
+                  <li>• Clicking a category navigates to its collection page</li>
+                </ul>
+              </div>
+
+              <div>
+                <Label className="text-base font-semibold">Section Management</Label>
+                <p className="text-sm text-gray-600 mt-1">
+                  To enable or disable this section, go to the <strong>Section Manager</strong> tab and toggle the "Categories" section.
+                </p>
+                <p className="text-sm text-gray-600 mt-1">
+                  To manage categories (add, edit, delete, or reorder), go to <strong>Admin → Categories</strong>.
+                </p>
+              </div>
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <h3 className="font-semibold text-gray-900 mb-2">Difference from Category Carousel:</h3>
+                <p className="text-sm text-gray-600 mb-2">
+                  <strong>Category Grid</strong> displays all categories at once in a static grid view, while
+                  <strong> Category Carousel</strong> rotates through selected categories one at a time and
+                  displays their products.
+                </p>
               </div>
             </CardContent>
           </Card>
