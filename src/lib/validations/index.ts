@@ -32,6 +32,8 @@ export const productSchema = z.object({
   images: z.array(z.string()).nullable().optional(), // Made nullable - products can be created without images initially
   stock: z.number().int().min(0, 'Stock must be a non-negative integer'),
   lowStockAlert: z.number().int().min(0).optional(),
+  reorderLevel: z.number().int().min(0).optional(),
+  reorderQty: z.number().int().min(0).optional(),
   isActive: z.boolean().optional(),
   isFeatured: z.boolean().optional(),
   hasVariants: z.boolean().optional(),
@@ -50,6 +52,9 @@ export const productSchema = z.object({
   color: z.union([z.literal(null), z.string()]).optional(),
   // Country of origin
   countryOfOrigin: z.union([z.literal(null), z.string()]).optional(),
+  // Multi-select variant system
+  availableSizes: z.array(z.string()).nullable().optional(),
+  availableColors: z.array(z.string()).nullable().optional(),
 });
 
 export const updateProductSchema = productSchema.partial();

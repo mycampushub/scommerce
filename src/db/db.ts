@@ -155,7 +155,7 @@ export async function count(
   }
 
   const result = await queryFirst<{ count: number }>(env, sql, ...queryParams);
-  return result?.count || 0;
+  return Number(result?.count || 0);
 }
 
 /**

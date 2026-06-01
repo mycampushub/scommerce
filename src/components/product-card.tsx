@@ -125,7 +125,7 @@ export const ProductCard = memo(function ProductCard({ product, wishlistProductI
         <PriceDisplay value={product.price} originalPrice={product.originalPrice} />
         <button
           onClick={handleAddToCart}
-          className={`${product.hasVariants ? 'bg-gray-600' : 'bg-pink-600'} text-white p-2 rounded-lg hover:bg-pink-700 transition-colors`}
+          className={`hidden md:flex ${product.hasVariants ? 'bg-gray-600' : 'bg-pink-600'} text-white p-2 rounded-lg hover:bg-pink-700 transition-colors`}
           aria-label={product.hasVariants ? 'View options' : 'Add to cart'}
           title={product.hasVariants ? 'View options' : 'Add to cart'}
         >

@@ -1160,10 +1160,10 @@ export default function HomepageManagementPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <div className="overflow-x-auto pb-2">
-          <TabsList className="inline-flex w-full flex-wrap justify-start gap-1 bg-transparent h-auto p-1">
+        <div className="bg-white border-b pb-2">
+          <TabsList className="inline-flex w-full flex-wrap justify-start gap-1.5 bg-transparent h-auto p-0 border-0">
             {/* First row of tabs */}
-            <div className="flex flex-wrap gap-1 w-full">
+            <div className="flex flex-wrap gap-1.5 w-full md:w-auto">
               <TabsTrigger value="section-manager" className="whitespace-nowrap px-3 py-2 text-sm data-[state=active]:bg-pink-600 data-[state=active]:text-white">Section Manager</TabsTrigger>
               <TabsTrigger value="marquee" className="whitespace-nowrap px-3 py-2 text-sm data-[state=active]:bg-pink-600 data-[state=active]:text-white">Marquee</TabsTrigger>
               <TabsTrigger value="categories" className="whitespace-nowrap px-3 py-2 text-sm data-[state=active]:bg-pink-600 data-[state=active]:text-white">Category Grid</TabsTrigger>
@@ -1172,7 +1172,7 @@ export default function HomepageManagementPage() {
               <TabsTrigger value="mosaic-grid" className="whitespace-nowrap px-3 py-2 text-sm data-[state=active]:bg-pink-600 data-[state=active]:text-white">Mosaic</TabsTrigger>
             </div>
             {/* Second row of tabs */}
-            <div className="flex flex-wrap gap-1 w-full mt-1">
+            <div className="flex flex-wrap gap-1.5 w-full md:w-auto md:ml-1.5">
               <TabsTrigger value="brands" className="whitespace-nowrap px-3 py-2 text-sm data-[state=active]:bg-pink-600 data-[state=active]:text-white">Brands</TabsTrigger>
               <TabsTrigger value="fullscreen-video" className="whitespace-nowrap px-3 py-2 text-sm data-[state=active]:bg-pink-600 data-[state=active]:text-white">Video</TabsTrigger>
               <TabsTrigger value="banners" className="whitespace-nowrap px-3 py-2 text-sm data-[state=active]:bg-pink-600 data-[state=active]:text-white">Banners</TabsTrigger>
