@@ -49,6 +49,7 @@ interface ProductResponse {
     id: string
     name: string
     stock?: number
+    isActive?: boolean
     variants?: Array<{
       id: string
       stock?: number
