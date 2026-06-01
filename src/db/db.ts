@@ -200,9 +200,11 @@ export function boolToNumber(value: boolean | number): number {
 
 /**
  * Convert number to boolean
+ * Handles both numeric and string "1"/"0" values
  */
-export function numberToBool(value: number | null | undefined): boolean {
-  return value === 1;
+export function numberToBool(value: number | string | null | undefined): boolean {
+  // Convert to string and check if it equals "1" (handles both "1" and 1)
+  return String(value) === '1';
 }
 
 /**

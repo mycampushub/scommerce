@@ -1161,19 +1161,25 @@ export default function HomepageManagementPage() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <div className="overflow-x-auto pb-2">
-          <TabsList className="inline-flex w-auto min-w-full grid-cols-none lg:grid lg:grid-cols-12 h-auto p-1">
-            <TabsTrigger value="section-manager" className="whitespace-nowrap px-3 py-2 text-sm">Section Manager</TabsTrigger>
-            <TabsTrigger value="marquee" className="whitespace-nowrap px-3 py-2 text-sm">Marquee</TabsTrigger>
-            <TabsTrigger value="categories" className="whitespace-nowrap px-3 py-2 text-sm">Category Grid</TabsTrigger>
-            <TabsTrigger value="category-carousel" className="whitespace-nowrap px-3 py-2 text-sm">Category Carousel</TabsTrigger>
-            <TabsTrigger value="featured-products" className="whitespace-nowrap px-3 py-2 text-sm">Featured</TabsTrigger>
-            <TabsTrigger value="mosaic-grid" className="whitespace-nowrap px-3 py-2 text-sm">Mosaic</TabsTrigger>
-            <TabsTrigger value="brands" className="whitespace-nowrap px-3 py-2 text-sm">Brands</TabsTrigger>
-            <TabsTrigger value="fullscreen-video" className="whitespace-nowrap px-3 py-2 text-sm">Video</TabsTrigger>
-            <TabsTrigger value="banners" className="whitespace-nowrap px-3 py-2 text-sm">Banners</TabsTrigger>
-            <TabsTrigger value="stories" className="whitespace-nowrap px-3 py-2 text-sm">Stories</TabsTrigger>
-            <TabsTrigger value="reels" className="whitespace-nowrap px-3 py-2 text-sm">Reels</TabsTrigger>
-            <TabsTrigger value="promotions" className="whitespace-nowrap px-3 py-2 text-sm">Promotions</TabsTrigger>
+          <TabsList className="inline-flex w-full flex-wrap justify-start gap-1 bg-transparent h-auto p-1">
+            {/* First row of tabs */}
+            <div className="flex flex-wrap gap-1 w-full">
+              <TabsTrigger value="section-manager" className="whitespace-nowrap px-3 py-2 text-sm data-[state=active]:bg-pink-600 data-[state=active]:text-white">Section Manager</TabsTrigger>
+              <TabsTrigger value="marquee" className="whitespace-nowrap px-3 py-2 text-sm data-[state=active]:bg-pink-600 data-[state=active]:text-white">Marquee</TabsTrigger>
+              <TabsTrigger value="categories" className="whitespace-nowrap px-3 py-2 text-sm data-[state=active]:bg-pink-600 data-[state=active]:text-white">Category Grid</TabsTrigger>
+              <TabsTrigger value="category-carousel" className="whitespace-nowrap px-3 py-2 text-sm data-[state=active]:bg-pink-600 data-[state=active]:text-white">Category Carousel</TabsTrigger>
+              <TabsTrigger value="featured-products" className="whitespace-nowrap px-3 py-2 text-sm data-[state=active]:bg-pink-600 data-[state=active]:text-white">Featured</TabsTrigger>
+              <TabsTrigger value="mosaic-grid" className="whitespace-nowrap px-3 py-2 text-sm data-[state=active]:bg-pink-600 data-[state=active]:text-white">Mosaic</TabsTrigger>
+            </div>
+            {/* Second row of tabs */}
+            <div className="flex flex-wrap gap-1 w-full mt-1">
+              <TabsTrigger value="brands" className="whitespace-nowrap px-3 py-2 text-sm data-[state=active]:bg-pink-600 data-[state=active]:text-white">Brands</TabsTrigger>
+              <TabsTrigger value="fullscreen-video" className="whitespace-nowrap px-3 py-2 text-sm data-[state=active]:bg-pink-600 data-[state=active]:text-white">Video</TabsTrigger>
+              <TabsTrigger value="banners" className="whitespace-nowrap px-3 py-2 text-sm data-[state=active]:bg-pink-600 data-[state=active]:text-white">Banners</TabsTrigger>
+              <TabsTrigger value="stories" className="whitespace-nowrap px-3 py-2 text-sm data-[state=active]:bg-pink-600 data-[state=active]:text-white">Stories</TabsTrigger>
+              <TabsTrigger value="reels" className="whitespace-nowrap px-3 py-2 text-sm data-[state=active]:bg-pink-600 data-[state=active]:text-white">Reels</TabsTrigger>
+              <TabsTrigger value="promotions" className="whitespace-nowrap px-3 py-2 text-sm data-[state=active]:bg-pink-600 data-[state=active]:text-white">Promotions</TabsTrigger>
+            </div>
           </TabsList>
         </div>
 

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { Search, ShoppingCart, Menu, Loader2, Heart, X, ChevronDown, ChevronRight } from 'lucide-react'
+import { Search, ShoppingCart, Menu, Loader2, Heart, X, ChevronDown, ChevronRight, User, LogOut, Settings, ShoppingBag } from 'lucide-react'
 import Link from 'next/link'
 import { useCartStore } from '@/lib/store/cart-store'
 import { useScrollDirection } from '@/hooks/use-scroll-direction'
@@ -389,13 +389,44 @@ export function Header() {
                     <span>Loading...</span>
                   </div>
                 ) : user ? (
-                  <Link
-                    href="/account/settings"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center gap-2 text-gray-700 hover:text-pink-600 transition-colors p-2"
-                  >
-                    <span className="text-sm font-medium">My Account</span>
-                  </Link>
+                  <>
+                    <Link
+                      href="/account/settings"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center gap-2 text-gray-700 hover:text-pink-600 transition-colors py-3 border-b border-gray-50"
+                    >
+                      <User className="w-5 h-5" />
+                      <span className="text-sm font-medium">My Account</span>
+                    </Link>
+                    <Link
+                      href="/account/orders"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center gap-2 text-gray-700 hover:text-pink-600 transition-colors py-3 border-b border-gray-50"
+                    >
+                      <ShoppingBag className="w-5 h-5" />
+                      <span className="text-sm font-medium">My Orders</span>
+                    </Link>
+                    {user?.role === 'admin' && (
+                      <Link
+                        href="/admin"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="flex items-center gap-2 text-gray-700 hover:text-pink-600 transition-colors py-3 border-b border-gray-50"
+                      >
+                        <Settings className="w-5 h-5" />
+                        <span className="text-sm font-medium">Admin Dashboard</span>
+                      </Link>
+                    )}
+                    <button
+                      onClick={() => {
+                        logout()
+                        setMobileMenuOpen(false)
+                      }}
+                      className="flex items-center gap-2 text-red-600 hover:text-red-700 transition-colors py-3 w-full text-left"
+                    >
+                      <LogOut className="w-5 h-5" />
+                      <span className="text-sm font-medium">Logout</span>
+                    </button>
+                  </>
                 ) : (
                   <Link
                     href="/login"

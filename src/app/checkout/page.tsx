@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { ShoppingBag, ArrowRight, Check, Trash2, Home as HomeIcon, Lock, CreditCard, Wallet, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -105,9 +105,7 @@ export default function CheckoutPage() {
   const tax = subtotal * taxRate
   const total = getTotal()
   const [serverCartItems, setServerCartItems] = useState<any[]>([])
-  const [isInitialLoad, setIsInitialLoad] = useState(true) // Track initial load vs subsequent updates
   const [isFetchingServerCart, setIsFetchingServerCart] = useState(false)
-
 
   // Fetch cart from server for authenticated users
   useEffect(() => {
@@ -140,8 +138,8 @@ export default function CheckoutPage() {
             setServerCartItems(transformedItems)
             console.log('[Checkout] Loaded cart from server:', transformedItems.length, 'items')
           } else {
-            // Server cart is empty, sync local cart to server if initial load
-            if (items.length > 0 && isInitialLoad) {
+            // Server cart is empty, sync local cart to server if available
+            if (items.length > 0) {
               console.log('[Checkout] Server cart empty, syncing local cart:', items.length, 'items')
               const syncResponse = await fetch('/api/cart', {
                 method: 'POST',
@@ -187,76 +185,27 @@ export default function CheckoutPage() {
                 setServerCartItems(transformedItems)
                 console.log('[Checkout] Loaded cart from server after sync:', transformedItems.length, 'items')
               }
-            } else if (items.length === 0) {
+            } else {
               setServerCartItems([])
               console.log('[Checkout] Server cart empty and no local items')
-            } else {
-              // Not initial load but local items exist - sync them
-              console.log('[Checkout] Syncing local items to server (not initial load):', items.length, 'items')
-              const syncResponse = await fetch('/api/cart', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({
-                  action: 'sync',
-                  items: items.map(item => ({
-                    id: item.id,
-                    productId: item.id,
-                    quantity: item.quantity,
-                    variantId: item.variantId,
-                    size: item.size,
-                    color: item.color,
-                    material: item.material,
-                  })),
-                }),
-              })
-              const syncData = await syncResponse.json() as any
-
-              // After sync, fetch the server cart again
-              const fetchAfterSync = await fetch('/api/cart', {
-                credentials: 'include',
-              })
-              const dataAfterSync = await fetchAfterSync.json() as any
-
-              if (dataAfterSync.success && dataAfterSync.items) {
-                const transformedItems = dataAfterSync.items.map((item: any) => ({
-                  id: item.id,
-                  name: item.name,
-                  price: item.price,
-                  originalPrice: item.originalPrice,
-                  image: item.image,
-                  variantId: item.variantId,
-                  variantSku: item.variantSku,
-                  size: item.size,
-                  color: item.color,
-                  material: item.material,
-                  quantity: item.quantity,
-                  slug: item.slug || item.product?.slug || '',
-                }))
-                setServerCartItems(transformedItems)
-                console.log('[Checkout] Loaded cart from server after sync:', transformedItems.length, 'items')
-              }
             }
           }
-          setIsInitialLoad(false)
         } catch (error) {
           console.error('[Checkout] Error fetching/syncing server cart:', error)
           // Fall back to local storage cart
           setServerCartItems(items)
-          setIsInitialLoad(false)
         } finally {
           setIsFetchingServerCart(false)
         }
-      } else if (!user) {
-        // Not authenticated, use local storage and reset flag
+      } else {
+        // Not authenticated, use local storage
         setServerCartItems(items)
-        setIsInitialLoad(false)
         setIsFetchingServerCart(false)
       }
     }
 
     fetchServerCart()
-  }, [user, items]) // Re-run when user or items change
+  }, [user]) // Only re-run when user changes
 
 
   // Fetch site settings for tax rate and shipping threshold
@@ -354,7 +303,8 @@ export default function CheckoutPage() {
 
         // Check if product is active
         // The API should return isActive as a boolean (via numberToBool)
-        const isActive = product.isActive !== false
+        // Use strict check to ensure we only allow active products
+        const isActive = product.isActive === true
 
         if (!isActive) {
           itemKeys[itemKey] = {
@@ -385,7 +335,8 @@ export default function CheckoutPage() {
 
               if (variant) {
                 // Check variant isActive (API should return as boolean)
-                const variantIsActive = variant.isActive !== false
+                // Use strict check to ensure we only allow active variants
+                const variantIsActive = variant.isActive === true
                 if (!variantIsActive) {
                   itemKeys[itemKey] = {
                     inStock: false,
@@ -456,7 +407,7 @@ export default function CheckoutPage() {
     }
   }
 
-  // Check stock status on mount
+  // Check stock status on mount and when cart changes
   useEffect(() => {
     const itemsToCheck = user && !isFetchingServerCart && serverCartItems.length > 0 ? serverCartItems : items
     if (itemsToCheck.length > 0) {
@@ -1190,7 +1141,6 @@ export default function CheckoutPage() {
                             }))
 
                             setServerCartItems(transformedItems)
-                            setIsInitialLoad(true)
                             console.log('[Checkout] Loaded server cart after login:', transformedItems.length, 'items')
                           } else {
                             setServerCartItems([])
@@ -1353,7 +1303,6 @@ export default function CheckoutPage() {
                             }))
 
                             setServerCartItems(transformedItems)
-                            setIsInitialLoad(true)
                             console.log('[Checkout] Loaded synced cart after signup:', transformedItems.length, 'items')
                           } else {
                             setServerCartItems([])

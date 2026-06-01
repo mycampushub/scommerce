@@ -25,6 +25,11 @@ interface DefaultSeo {
  */
 export async function getPageSeo(pagePath: string): Promise<SeoData | null> {
   try {
+    // Skip database queries during build time (when DATABASE_URL is not set)
+    if (typeof window !== 'undefined' || process.env.NEXT_PHASE === 'phase-production-build') {
+      return null
+    }
+
     const prisma = getPrisma()
     const seo = await prisma.page_seo.findUnique({
       where: { pagePath }
@@ -32,6 +37,10 @@ export async function getPageSeo(pagePath: string): Promise<SeoData | null> {
 
     return seo
   } catch (error) {
+    // Silently return null during build - this is expected
+    if (process.env.NEXT_PHASE === 'phase-production-build') {
+      return null
+    }
     console.error(`Error fetching SEO for ${pagePath}:`, error)
     return null
   }

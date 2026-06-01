@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Trash2, ShoppingBag, Plus, Minus, ArrowRight, Check } from 'lucide-react'
 import Link from 'next/link'
 import { useCartStore } from '@/lib/store/cart-store'
@@ -26,6 +26,7 @@ export default function CartPage() {
   const [items, setItems] = useState<ReturnType<typeof useCartStore.getState>['items']>([])
   const [loading, setLoading] = useState(!!user) // Only show loading for authenticated users
   const [isInitialLoad, setIsInitialLoad] = useState(true) // Track initial load vs subsequent updates
+  const prevItemCountRef = useRef(0) // Track previous item count to detect changes
 
   const updateQuantity = async (id: string, quantity: number, variantId?: string) => {
     if (quantity < 1) return
@@ -294,8 +295,12 @@ export default function CartPage() {
   // Sync local items to server when user is logged in
   // This ensures that items added while logged in are synced
   useEffect(() => {
+    const itemCount = localItems.length
+    const itemCountChanged = itemCount !== prevItemCountRef.current
+    prevItemCountRef.current = itemCount
+
     const syncToServer = async () => {
-      if (user && !isInitialLoad && !loading) {
+      if (user && !isInitialLoad && !loading && itemCountChanged) {
         // Only sync if we have local items that differ from server items
         // Compare by productId and variantId
         const serverItemIds = new Set(items.map(item => `${item.id}-${item.variantId || 'no-variant'}`))
@@ -376,7 +381,7 @@ export default function CartPage() {
     }, 500)
 
     return () => clearTimeout(timeoutId)
-  }, [user, localItems, isInitialLoad, loading, items])
+  }, [user, localItems.length, isInitialLoad, loading, items]) // Only depend on localItems.length, not localItems object
 
   // Fetch site settings for shipping thresholds
   useEffect(() => {
