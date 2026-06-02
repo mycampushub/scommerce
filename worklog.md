@@ -152,3 +152,205 @@ Stage Summary:
 - **Quick View:** Fully functional with variant support on all devices
 - **Add to Cart:** Working correctly on product detail pages and quick view modal
 - **Build Status:** Production build successful, no errors
+---
+Task ID: Comprehensive Product Investigation and Fixes
+Agent: Z.ai Code
+Task: Fix product creation errors, stock validation, cart issues, and variant management
+
+Work Log:
+- **Product Creation/Update Error Notification - FIXED:**
+  1. Modified `src/lib/validations/index.ts` productSchema
+  2. Made fields more flexible to accept string values for numeric fields (basePrice, stock)
+  3. Changed images from `z.array(z.string()).nullable().optional()` to `z.union([z.array(z.string()), z.literal(null)])`
+  4. Made all nullable fields properly accept both null and undefined
+  5. Added `.nullable()` to all optional union types
+  6. This fixes validation errors when API receives correct data but validation rejects it
+
+- **Stock Validation in Cart - FIXED:**
+  1. Modified `src/app/api/cart/route.ts` add action
+  2. Added check for user's existing cart quantity before stock reservation
+  3. Modified stock check to: `stockCheck.stock < (data.quantity + existingCartQuantity)`
+  4. Improved error message to show available stock, cart quantity, and total requested
+  5. Added `cartQuantity` to response for better user feedback
+  6. Modified `src/db/inventory-reservation.repository.ts` reserveStock function
+  7. Added `existingCartQuantity` parameter to account for user's existing cart
+  8. Updated stock check to exclude current user's existing reservations: `userId != ?`
+  9. Available stock calculation: `stockCheck.stock - reservedQuantity - existingCartQuantity`
+  10. This fixes "out of stock" errors when product actually has stock but user already has some in cart
+
+- **hasVariants Flag Sync - FIXED:**
+  1. Modified `src/app/api/admin/products/[id]/route.ts` PUT endpoint
+  2. Added `await ProductRepository.syncHasVariants(env, id)` after product update
+  3. Fetch final product with synced hasVariants flag: `const finalProduct = await ProductRepository.findById(env, id)`
+  4. Use finalProduct in response to return synced state
+  5. This fixes products showing as "Has Variants" when they have no variants, and vice versa
+
+- **Cart Items Vanishing Investigation - ANALYZED:**
+  1. Checked `src/app/api/cart/sync/route.ts` - merge logic is correct
+  2. Cart sync properly merges local cart with database cart
+  3. Items are matched by `${productId}-${variantId || 'no-variant'}` key
+  4. No clearing of existing database cart before sync
+  5. If issue persists, check cart state management on frontend (localStorage vs API)
+  6. The backend cart logic is sound and handles all edge cases properly
+
+- **Variant Display on Product List - ANALYZED:**
+  1. Product list API (`src/app/api/admin/products/route.ts`) includes hasVariants field
+  2. Admin products page (`src/app/admin/products/page.tsx`) displays variant badge
+  3. Badge shows "Has Variants" or "No Variants" based on hasVariants flag
+  4. HasVariants sync fixes ensure this is now accurate
+  5. Variant count not shown by design - only presence/absence indicator
+
+- **Data Consistency Improvements:**
+  1. Price sync: ProductRepository.update already handles price/basePrice sync (lines 209-218)
+  2. When updating price, both price and basePrice are kept in sync
+  3. Variant APIs already call syncHasVariants after create/delete operations
+  4. Product update now calls syncHasVariants to maintain consistency
+
+- **Validation Schema Robustness:**
+  1. Made categoryId more flexible: can be empty string which transforms to undefined
+  2. Stock accepts both number and parsed string values
+  3. All optional fields properly handle null/undefined/string cases
+  4. Prevents false validation errors while maintaining data integrity
+
+Stage Summary:
+- **Product Creation Errors Fixed:** Validation schema now properly handles all data types
+- **Stock Validation Fixed:** Cart stock check now accounts for user's existing cart quantity
+- **hasVariants Flag Fixed:** Automatically synced on product updates
+- **Backend Cart Logic Sound:** No vanishing cart items issue found in backend
+- **Variant Display Working:** Badge correctly shows variant status with synced flag
+- **Data Consistency:** Price fields properly synced, hasVariants flag maintained
+- **Code Quality:** All changes focused on simplicity and direct approaches
+- **No Breaking Changes:** All fixes maintain backward compatibility
+
+---
+---
+Task ID: Cart Items Vanishing Fix - Deep Investigation
+Agent: Z.ai Code
+Task: Fix cart items vanishing for logged-in users
+
+Work Log:
+- **ROOT CAUSE IDENTIFIED:**
+  1. Frontend uses Zustand store for cart (with localStorage persistence)
+  2. After login, Zustand store is cleared but never refilled with database cart
+  3. Header reads cart count from Zustand store
+  4. Cart page fetches from database but stores in local state, NOT Zustand store
+  5. Result: Cart appears empty with 0 count in header
+
+- **Files Created:**
+  1. `/home/z/my-project/src/hooks/use-cart-sync.ts` - New hook for cart synchronization
+     - Automatically loads database cart into Zustand store when user logs in
+     - Clears local cart when user logs out
+     - Syncs changes to server (debounced to avoid too many API calls)
+     - Prevents infinite loops with refs to track initialization state
+
+- **Files Modified:**
+  1. `/home/z/my-project/src/lib/store/cart-store.ts`
+     - Added `setItems` function to allow bulk updates
+     - Interface updated to include setItems method
+  
+  2. `/home/z/my-project/src/components/header.tsx`
+     - Added `useCartSync` hook import
+     - Added `useCartSync()` call inside Header component
+     - This ensures cart is synced whenever authentication changes
+  
+  3. `/home/z/my-project/src/app/cart/page.tsx`
+     - Added `setCartStoreItems` from Zustand store
+     - Updated `fetchServerCart` to sync items to Zustand store (lines 174, 223, 229, 278, 288)
+     - Updated `updateQuantity` to sync changes to Zustand store (line 63)
+     - Updated `removeItem` to sync changes to Zustand store (line 107)
+     - Updated sync effect to sync to Zustand store (line 378)
+
+- **How It Works Now:**
+  1. Guest user adds items → stored in Zustand store (localStorage)
+  2. User logs in → guest cart synced to database
+  3. Zustand store is cleared (old behavior)
+  4. NEW: Header calls `useCartSync()` which loads database cart into Zustand store
+  5. Cart page also syncs database cart to Zustand store when loaded
+  6. User sees their cart with correct count in header and cart page
+  7. Any changes (add/remove/update) are synced to both local state and Zustand store
+
+- **Why This Fixes the Issue:**
+  1. Zustand store is the source of truth for cart count in header
+  2. Database is the source of truth for logged-in users' cart
+  3. useCartSync bridges the gap by keeping them in sync
+  4. Header shows correct count because Zustand store is always updated
+  5. Cart page shows correct items because it fetches from database
+
+Stage Summary:
+- **Cart Items Vanishing FIXED:**
+  - ✅ useCartSync hook loads database cart into Zustand store on login
+  - ✅ Header shows correct cart count after login
+  - ✅ Cart page syncs items to Zustand store
+  - ✅ Changes (add/remove/update) properly synced to Zustand store
+  - ✅ Logout clears local cart as expected
+- **Implementation:**
+  - Created dedicated cart sync hook for clean separation of concerns
+  - Uses refs to prevent infinite loops
+  - Debounces server syncs to avoid API spam
+  - Simple, direct approach as requested
+- **Code Quality:** All changes focused on simplicity and direct approaches
+- **No Breaking Changes:** Existing cart logic preserved, only adds synchronization
+
+---
+---
+Task ID: Mobile Navigation Z-Index Fix
+Agent: Z.ai Code
+Task: Fix mobile navigation dropdown z-index layering issues
+
+Work Log:
+- **ROOT CAUSE IDENTIFIED:**
+  1. Header had z-40
+  2. Backdrop (overlay) had z-40 (SAME as header!)
+  3. Mobile menu had z-[60]
+  4. Mobile bottom nav had z-50
+  5. This created z-index conflicts where elements overlapped incorrectly
+
+- **THE PROBLEM:**
+  1. Header and backdrop both at z-40 → same stacking context
+  2. Mobile bottom nav at z-50 was above header (z-40)
+  3. Backdrop couldn't properly overlay content at the same z-index as header
+  4. Mobile menu items appeared "behind" other components
+
+- **Z-INDEX HIERARCHY BEFORE FIX:**
+  - Header: z-40
+  - Backdrop: z-40 (conflict!)
+  - Mobile Menu: z-[60]
+  - Mobile Bottom Nav: z-50 (above header!)
+
+- **Files Modified:**
+  1. `/home/z/my-project/src/components/header.tsx`
+     - Line 196: Changed header z-index from z-40 to z-50
+     - Line 274: Changed backdrop z-index from z-40 to z-[55]
+     - This creates proper layering: Header (50) < Backdrop (55) < Mobile Menu (60)
+  
+  2. `/home/z/my-project/src/components/mobile-bottom-nav.tsx`
+     - Line 25: Changed z-index from z-50 to z-40
+     - Ensures bottom nav is below header when both visible
+
+- **Z-INDEX HIERARCHY AFTER FIX:**
+  - Mobile Bottom Nav: z-40
+  - Header: z-50
+  - Backdrop (inside header context): z-[55]
+  - Mobile Menu (inside header context): z-[60]
+  - Toasts: z-[100]
+  - Dropdown Menus: z-50 (via portal, renders after header)
+
+- **WHY THIS FIXES THE ISSUE:**
+  1. Header is now above mobile bottom nav (z-50 > z-40)
+  2. Backdrop creates proper overlay at z-[55]
+  3. Mobile menu renders on top at z-[60]
+  4. All layering is correct, no conflicts
+  5. Dropdown menus and toasts remain at appropriate levels
+
+Stage Summary:
+- **Mobile Navigation Z-Index Fixed:**
+  - ✅ Header now at z-50 (above mobile bottom nav)
+  - ✅ Backdrop at z-[55] (proper overlay)
+  - ✅ Mobile menu at z-[60] (on top of everything)
+  - ✅ Mobile bottom nav at z-40 (below header)
+  - ✅ All dropdown items now visible
+  - ✅ Proper layering hierarchy established
+- **Code Quality:** Simple z-index adjustments, no complex changes
+- **No Breaking Changes:** Only visual layering fixes
+
+---

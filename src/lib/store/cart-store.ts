@@ -26,6 +26,7 @@ interface CartStore {
   removeItem: (id: string, variantId?: string) => void
   updateQuantity: (id: string, quantity: number, variantId?: string) => void
   clearCart: () => void
+  setItems: (items: CartItem[]) => void
   getItemCount: () => number
   getSubtotal: () => number
   getTotal: () => number
@@ -129,6 +130,10 @@ export const useCartStore = create<CartStore>()(
             console.warn('Error clearing cart from localStorage:', error)
           }
         }
+      },
+
+      setItems: (newItems) => {
+        set({ items: newItems })
       },
 
       getItemCount: () => {

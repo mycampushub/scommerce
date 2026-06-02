@@ -8,6 +8,7 @@ import { useCartStore } from '@/lib/store/cart-store'
 import { useScrollDirection } from '@/hooks/use-scroll-direction'
 import { useHasMounted } from '@/hooks/use-has-mounted'
 import { useAuth } from '@/hooks/use-auth'
+import { useCartSync } from '@/hooks/use-cart-sync'
 import { UserMenu } from '@/components/user-menu'
 import { Button } from '@/components/ui/button'
 import { useFocusTrap } from '@/hooks/use-focus-trap'
@@ -34,6 +35,9 @@ export function Header() {
   const { user, loading, logout, isAuthenticated } = useAuth()
   const mobileMenuRef = useRef<HTMLDivElement>(null)
   const { activate, deactivate, handleTabKey } = useFocusTrap()
+
+  // Sync cart from server for authenticated users
+  useCartSync()
 
   // Avoid hydration mismatch by only rendering cart count on client
   const cartCount = hasMounted ? getItemCount() : 0
@@ -189,7 +193,7 @@ export function Header() {
   }, [mobileMenuOpen, handleTabKey])
 
   return (
-    <header className={`bg-white shadow-sm z-40 transition-transform duration-300 ${
+    <header className={`bg-white shadow-sm z-50 transition-transform duration-300 ${
       isHeaderVisible ? 'translate-y-0' : '-translate-y-full'
     }`}>
       <div className="container mx-auto px-4">
@@ -267,7 +271,7 @@ export function Header() {
           <>
             {/* Backdrop overlay */}
             <div
-              className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+              className="fixed inset-0 bg-black/50 z-[55] lg:hidden"
               onClick={() => setMobileMenuOpen(false)}
               aria-hidden="true"
             />

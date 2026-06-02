@@ -25,36 +25,36 @@ export const productSchema = z.object({
   name: z.string().min(1, 'Product name is required'),
   slug: z.string().optional(), // Optional - will be auto-generated from name if not provided
   description: z.string().optional().nullable(), // Optional description
-  basePrice: z.number().positive('Price must be positive'),
-  comparePrice: z.union([z.literal(null), z.number().positive('Compare price must be positive')]).optional(),
-  costPrice: z.union([z.literal(null), z.number().min(0, 'Cost price must be non-negative')]).optional(),
-  categoryId: z.string().min(1, 'Category ID is required'),
-  images: z.array(z.string()).nullable().optional(), // Made nullable - products can be created without images initially
-  stock: z.number().int().min(0, 'Stock must be a non-negative integer'),
-  lowStockAlert: z.number().int().min(0).optional(),
-  reorderLevel: z.number().int().min(0).optional(),
-  reorderQty: z.number().int().min(0).optional(),
+  basePrice: z.number().positive('Price must be positive').or(z.string().transform(val => parseFloat(val)).refine(val => val > 0, 'Price must be positive')),
+  comparePrice: z.union([z.literal(null), z.number().positive('Compare price must be positive'), z.number().nonnegative()]).optional().nullable(),
+  costPrice: z.union([z.literal(null), z.number().min(0, 'Cost price must be non-negative'), z.number().nonnegative()]).optional().nullable(),
+  categoryId: z.string().min(1, 'Category ID is required'), // Required - must be non-empty string
+  images: z.union([z.array(z.string()), z.literal(null)]).optional(), // Made nullable - products can be created without images initially
+  stock: z.number().int().min(0, 'Stock must be a non-negative integer').or(z.string().transform(val => parseInt(val))),
+  lowStockAlert: z.number().int().min(0).optional().nullable(),
+  reorderLevel: z.number().int().min(0).optional().nullable(),
+  reorderQty: z.number().int().min(0).optional().nullable(),
   isActive: z.boolean().optional(),
   isFeatured: z.boolean().optional(),
   hasVariants: z.boolean().optional(),
   attributes: z.record(z.string(), z.unknown()).optional(),
   // Brand fields
-  brandId: z.union([z.literal(null), z.string()]).optional(),
-  brandName: z.union([z.literal(null), z.string()]).optional(),
-  brandLogo: z.union([z.literal(null), z.string()]).optional(),
+  brandId: z.union([z.literal(null), z.string()]).optional().nullable(),
+  brandName: z.union([z.literal(null), z.string()]).optional().nullable(),
+  brandLogo: z.union([z.literal(null), z.string()]).optional().nullable(),
   // Size system fields
   sizeType: z.enum(['unit', 'label']).nullable().optional(),
-  sizeValue: z.union([z.literal(null), z.number()]).optional(),
-  sizeUnit: z.union([z.literal(null), z.string()]).optional(),
-  sizeLabel: z.union([z.literal(null), z.string()]).optional(),
+  sizeValue: z.union([z.literal(null), z.number()]).optional().nullable(),
+  sizeUnit: z.union([z.literal(null), z.string()]).optional().nullable(),
+  sizeLabel: z.union([z.literal(null), z.string()]).optional().nullable(),
   // Material and color for single products
-  material: z.union([z.literal(null), z.string()]).optional(),
-  color: z.union([z.literal(null), z.string()]).optional(),
+  material: z.union([z.literal(null), z.string()]).optional().nullable(),
+  color: z.union([z.literal(null), z.string()]).optional().nullable(),
   // Country of origin
-  countryOfOrigin: z.union([z.literal(null), z.string()]).optional(),
+  countryOfOrigin: z.union([z.literal(null), z.string()]).optional().nullable(),
   // Multi-select variant system
-  availableSizes: z.array(z.string()).nullable().optional(),
-  availableColors: z.array(z.string()).nullable().optional(),
+  availableSizes: z.union([z.array(z.string()), z.literal(null)]).optional().nullable(),
+  availableColors: z.union([z.array(z.string()), z.literal(null)]).optional().nullable(),
 });
 
 export const updateProductSchema = productSchema.partial();

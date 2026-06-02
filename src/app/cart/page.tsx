@@ -21,6 +21,7 @@ export default function CartPage() {
   const localGetTotal = useCartStore(state => state.getTotal)
   const addItem = useCartStore(state => state.addItem)
   const clearCart = useCartStore(state => state.clearCart)
+  const setCartStoreItems = useCartStore(state => state.setItems)
 
   // For authenticated users, use server cart state; for guests, use local zustand store directly
   const [items, setItems] = useState<ReturnType<typeof useCartStore.getState>['items']>([])
@@ -47,18 +48,19 @@ export default function CartPage() {
         const data = await response.json() as any
         if (data.success) {
           // Update local state
-          setItems(prev =>
-            prev.map(item => {
-              if (variantId) {
-                return item.variantId === variantId
-                  ? { ...item, quantity }
-                  : item
-              }
-              return item.id === id && !item.variantId
+          const updatedItems = items.map(item => {
+            if (variantId) {
+              return item.variantId === variantId
                 ? { ...item, quantity }
                 : item
-            })
-          )
+            }
+            return item.id === id && !item.variantId
+              ? { ...item, quantity }
+              : item
+          })
+          setItems(updatedItems)
+          // Also sync to Zustand store for header cart count
+          setCartStoreItems(updatedItems)
         } else {
           throw new Error(data.error || 'Failed to update cart')
         }
@@ -94,14 +96,15 @@ export default function CartPage() {
         const data = await response.json() as any
         if (data.success) {
           // Update local state
-          setItems(prev =>
-            prev.filter(item => {
-              if (variantId) {
-                return !(item.variantId === variantId)
-              }
-              return !(item.id === id && !item.variantId)
-            })
-          )
+          const updatedItems = items.filter(item => {
+            if (variantId) {
+              return !(item.variantId === variantId)
+            }
+            return !(item.id === id && !item.variantId)
+          })
+          setItems(updatedItems)
+          // Also sync to Zustand store for header cart count
+          setCartStoreItems(updatedItems)
         } else {
           throw new Error(data.error || 'Failed to remove item')
         }
@@ -169,6 +172,8 @@ export default function CartPage() {
               slug: item.slug || item.product?.slug || '',
             }))
             setItems(transformedItems)
+            // Also sync to Zustand store for header cart count
+            setCartStoreItems(transformedItems)
             console.log('[Cart] Loaded cart from server:', transformedItems.length, 'items')
           } else {
             // Server cart is empty, check if we need to sync local cart
@@ -216,11 +221,14 @@ export default function CartPage() {
                   slug: item.slug || item.product?.slug || '',
                 }))
                 setItems(transformedItems)
+                // Also sync to Zustand store for header cart count
+                setCartStoreItems(transformedItems)
                 console.log('[Cart] Loaded cart from server after sync:', transformedItems.length, 'items')
               }
             } else if (localItems.length === 0) {
               // Both server and local are empty
               setItems([])
+              setCartStoreItems([])
               console.log('[Cart] Server cart empty and no local items')
             } else {
               // Not initial load and local items exist but server is empty
@@ -268,6 +276,8 @@ export default function CartPage() {
                   slug: item.slug || item.product?.slug || '',
                 }))
                 setItems(transformedItems)
+                // Also sync to Zustand store for header cart count
+                setCartStoreItems(transformedItems)
                 console.log('[Cart] Loaded cart from server after sync:', transformedItems.length, 'items')
               }
             }
@@ -277,6 +287,7 @@ export default function CartPage() {
           console.error('[Cart] Error fetching/syncing server cart:', error)
           // Fall back to local storage
           setItems(localItems)
+          setCartStoreItems(localItems)
           setIsInitialLoad(false)
         } finally {
           setLoading(false)
@@ -363,7 +374,9 @@ export default function CartPage() {
                 slug: item.slug || item.product?.slug || '',
               }))
               setItems(transformedItems)
-              console.log('[Cart] Updated cart after sync:', transformedItems.length, 'items')
+              // Also sync to Zustand store for header cart count
+              setCartStoreItems(transformedItems)
+              console.log('[Cart] Synced changed items to server:', transformedItems.length, 'items')
             }
           } catch (error) {
             console.error('[Cart] Error syncing to server:', error)

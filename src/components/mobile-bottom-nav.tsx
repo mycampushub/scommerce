@@ -22,7 +22,7 @@ export function MobileBottomNav() {
   return (
     <>
       {isVisible && (
-        <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden transition-transform duration-300">
+        <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden transition-transform duration-300">
           <div className="pb-safe px-2 py-2 bg-white border-t border-gray-200">
             <div className="max-w-md mx-auto">
               <div className="flex items-center justify-between gap-1">

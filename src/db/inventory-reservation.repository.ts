@@ -18,7 +18,10 @@ export async function reserveStock(env: Env | null, data: {
   userId: string;
   quantity: number;
   expiresAt: Date;
+  existingCartQuantity?: number; // User's existing cart quantity
 }): Promise<any | null> {
+  const existingCartQuantity = data.existingCartQuantity || 0;
+
   const result = await runTransactionWithRetry(async (db, commit, rollback) => {
     // Check if product/variant has enough stock WITHIN the transaction
     const stockCheckStmt = db.prepare(
@@ -28,25 +31,25 @@ export async function reserveStock(env: Env | null, data: {
     ).bind(data.variantId || data.productId);
     const stockCheck = await stockCheckStmt.first() as { stock: number } | null;
 
-    if (!stockCheck || stockCheck.stock < data.quantity) {
+    if (!stockCheck || stockCheck.stock < (data.quantity + existingCartQuantity)) {
       // Rollback and return null for insufficient stock
       return null;
     }
 
-    // Check existing reservations for this product/variant
+    // Check existing reservations for this product/variant (excluding current user's existing cart)
     const existingReservationsStmt = db.prepare(
       data.variantId
-        ? 'SELECT COALESCE(SUM(quantity), 0) as reserved FROM inventory_reservations WHERE variantId = ? AND expiresAt > ?'
-        : 'SELECT COALESCE(SUM(quantity), 0) as reserved FROM inventory_reservations WHERE productId = ? AND variantId IS NULL AND expiresAt > ?'
-    ).bind(data.variantId || data.productId, now());
+        ? 'SELECT COALESCE(SUM(quantity), 0) as reserved FROM inventory_reservations WHERE variantId = ? AND expiresAt > ? AND userId != ?'
+        : 'SELECT COALESCE(SUM(quantity), 0) as reserved FROM inventory_reservations WHERE productId = ? AND variantId IS NULL AND expiresAt > ? AND userId != ?'
+    ).bind(data.variantId || data.productId, now(), data.userId);
     const existingReservations = await existingReservationsStmt.first() as { reserved: number } | null;
     const reservedQuantity = existingReservations?.reserved || 0;
 
-    // Calculate available stock
-    const availableStock = stockCheck.stock - reservedQuantity;
+    // Calculate available stock (total stock - already reserved - user's existing cart)
+    const availableStock = stockCheck.stock - reservedQuantity - existingCartQuantity;
 
     if (availableStock < data.quantity) {
-      // Not enough available stock after considering reservations
+      // Not enough available stock after considering reservations and existing cart
       return null;
     }
 

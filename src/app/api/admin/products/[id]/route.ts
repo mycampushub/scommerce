@@ -109,6 +109,12 @@ export async function PUT(
       )
     }
 
+    // Sync hasVariants flag after update
+    await ProductRepository.syncHasVariants(env, id)
+
+    // Fetch updated product with synced hasVariants
+    const finalProduct = await ProductRepository.findById(env, id)
+
     // Log audit event
     const changes: string[] = []
     if (validatedData.name && validatedData.name !== existing.name) {
@@ -127,13 +133,13 @@ export async function PUT(
     await logAdminAction(env, request, admin.id, 'UPDATE', 'Product', id, details)
 
     let category: any = null
-    if (updated.categoryId) {
-      category = await CategoryRepository.findById(env, updated.categoryId)
+    if (finalProduct && finalProduct.categoryId) {
+      category = await CategoryRepository.findById(env, finalProduct.categoryId)
     }
 
     return NextResponse.json({
       success: true,
-      data: { ...updated, category },
+      data: { ...finalProduct, category },
     })
   } catch (error) {
     console.error('Error updating product:', error)

@@ -394,6 +394,15 @@ export async function POST(request: NextRequest) {
 
       console.log('[Products API] Final unique slug:', generatedSlug)
 
+      // Validate required categoryId
+      if (!validatedData.categoryId) {
+        console.error('[Products API] Category ID is required')
+        return NextResponse.json(
+          { success: false, error: 'Category ID is required' },
+          { status: 400 }
+        )
+      }
+
       // Convert null values to undefined for repository
       const productData = {
         ...validatedData,
@@ -412,6 +421,10 @@ export async function POST(request: NextRequest) {
         material: validatedData.material ?? undefined,
         color: validatedData.color ?? undefined,
         countryOfOrigin: validatedData.countryOfOrigin ?? undefined,
+        categoryId: validatedData.categoryId as string, // Ensure it's a string
+        lowStockAlert: validatedData.lowStockAlert ?? undefined,
+        reorderLevel: validatedData.reorderLevel ?? undefined,
+        reorderQty: validatedData.reorderQty ?? undefined,
       }
 
       console.log('[Products API] Creating product with data:', productData)

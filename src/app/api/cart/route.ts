@@ -237,6 +237,19 @@ export async function POST(request: NextRequest) {
         // Clean up expired reservations before adding
         await cleanupExpiredReservations(env);
 
+        // Check if user already has this item in cart
+        const existingCartItem = await queryFirst<{ id: string; quantity: number }>(
+          env,
+          'SELECT id, quantity FROM cart_items WHERE userId = ? AND productId = ? AND (variantId IS NULL OR variantId = ?) LIMIT 1',
+          userId,
+          item.productId,
+          item.variantId || null
+        );
+
+        const existingQuantity = existingCartItem?.quantity || 0;
+        const requestedQuantity = item.quantity || 1;
+        const totalQuantity = existingQuantity + requestedQuantity;
+
         // Reserve stock for 30 minutes
         const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
 
@@ -245,8 +258,9 @@ export async function POST(request: NextRequest) {
           variantId: item.variantId,
           productId: item.productId,
           userId,
-          quantity: item.quantity || 1,
+          quantity: requestedQuantity,
           expiresAt,
+          existingCartQuantity: existingQuantity,
         });
 
         if (!reservation) {
@@ -268,11 +282,17 @@ export async function POST(request: NextRequest) {
             ? `${stockCheckTyped.name}${stockCheckTyped.sku ? ` (${stockCheckTyped.sku})` : ''}`
             : 'Item';
 
+          const availableStock = stockCheck?.stock || 0;
+          const message = availableStock > 0
+            ? `Sorry, only ${availableStock} ${availableStock === 1 ? 'item' : 'items'} available in stock (you already have ${existingQuantity} in cart)`
+            : `Sorry, ${itemName} is out of stock`;
+
           return NextResponse.json(
             {
               success: false,
-              error: `Sorry, ${itemName} is out of stock or insufficient quantity available`,
-              stockAvailable: stockCheck?.stock || 0,
+              error: message,
+              stockAvailable: availableStock,
+              cartQuantity: existingQuantity,
             },
             { status: 409 }
           );
@@ -285,7 +305,7 @@ export async function POST(request: NextRequest) {
             userId,
             productId: item.productId,
             variantId: item.variantId,
-            quantity: item.quantity || 1,
+            quantity: requestedQuantity,
           });
         } catch (error) {
           // If cart add fails, release the reservation
