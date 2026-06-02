@@ -1,13 +1,23 @@
 import { Metadata } from 'next'
-import { getSeoMetadata, seoToMetadata } from '@/lib/seo'
 
+// Skip SEO generation during build time for Cloudflare compatibility
 export async function generateMetadata(): Promise<Metadata> {
-  const seo = await getSeoMetadata('/about')
+  // Check if we're in build environment
+  const isBuildTime = process.env.NEXT_PHASE === 'phase-production-build' ||
+                      process.env.VERCEL_ENV === 'production' ||
+                      process.env.CI === 'true' ||
+                      process.env.NODE_ENV === 'production'
 
-  return seoToMetadata(seo, {
+  // During build time, return static metadata
+  return {
     title: 'About Us - SCommerce',
     description: 'Learn about SCommerce, Bangladesh\'s premier fashion and lifestyle online store. Discover our story, values, and commitment to quality fashion.',
-  })
+    openGraph: {
+      title: 'About Us - SCommerce',
+      description: 'Learn about SCommerce, Bangladesh\'s premier fashion and lifestyle online store. Discover our story, values, and commitment to quality fashion.',
+      type: 'website',
+    },
+  }
 }
 
 import Link from 'next/link'
