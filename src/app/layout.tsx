@@ -28,6 +28,10 @@ const jetbrainsMono = JetBrains_Mono({
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://yourdomain.com";
 
+// Prevent prerendering for client components like the home page
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export const metadata: Metadata = {
   title: {
     default: "Modern E-commerce - Fashion & Lifestyle",
