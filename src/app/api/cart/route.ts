@@ -57,11 +57,24 @@ export async function GET(request: NextRequest) {
     const cookieToken = request.cookies.get('session')?.value;
     const token = extractTokenFromHeader(authHeader) || cookieToken;
 
+    console.log('[Cart GET] Authentication check:', {
+      hasAuthHeader: !!authHeader,
+      hasCookieToken: !!cookieToken,
+      hasToken: !!token
+    });
+
     // If user is authenticated, fetch from database
     if (token) {
       const payload = await verifyToken(token);
+      console.log('[Cart GET] Token verification:', {
+        verified: !!payload,
+        hasUserId: !!payload?.userId,
+        userId: payload?.userId
+      });
+
       if (payload && payload.userId) {
         const cartItems = await CartRepository.findByUserId(env, payload.userId);
+        console.log('[Cart GET] Cart items found:', cartItems.length, 'for user:', payload.userId);
 
         // Batch fetch all products to avoid N+1 queries
         const productIds = cartItems.map(item => item.productId);
@@ -196,8 +209,17 @@ export async function POST(request: NextRequest) {
     const cookieToken = request.cookies.get('session')?.value;
     const token = extractTokenFromHeader(authHeader) || cookieToken;
 
+    console.log('[Cart POST] Action:', action, {
+      hasAuthHeader: !!authHeader,
+      hasCookieToken: !!cookieToken,
+      hasToken: !!token,
+      hasItem: !!item,
+      itemsCount: items?.length || 0
+    });
+
     if (!token) {
       // Guest user - return success (cart stored in localStorage)
+      console.log('[Cart POST] Guest user, cart stored locally');
       return NextResponse.json({
         success: true,
         message: 'Cart stored locally',
@@ -206,7 +228,14 @@ export async function POST(request: NextRequest) {
     }
 
     const payload = await verifyToken(token);
+    console.log('[Cart POST] Token verification:', {
+      verified: !!payload,
+      hasUserId: !!payload?.userId,
+      userId: payload?.userId
+    });
+
     if (!payload || !payload.userId) {
+      console.error('[Cart POST] Invalid token', { payload });
       return NextResponse.json(
         { success: false, error: 'Invalid token' },
         { status: 401 }
@@ -214,6 +243,7 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = payload.userId;
+    console.log('[Cart POST] Processing action:', action, 'for user:', userId);
 
     // Handle different actions
     switch (action) {
@@ -439,11 +469,18 @@ export async function POST(request: NextRequest) {
       }
 
       case 'sync': {
+        console.log('[Cart POST] Sync action:', {
+          itemsLength: items?.length || 0,
+          userId
+        });
+
         // Sync all cart items from client to server
         if (!Array.isArray(items) || items.length === 0) {
           // Keep existing cart, don't clear it
           // Just fetch and return existing items
+          console.log('[Cart POST] No items to sync, fetching existing cart');
           const existingCartItems = await CartRepository.findByUserId(env, userId);
+          console.log('[Cart POST] Existing cart items:', existingCartItems.length);
 
           // Batch fetch all products to avoid N+1 queries
           const productIds = existingCartItems.map(item => item.productId);

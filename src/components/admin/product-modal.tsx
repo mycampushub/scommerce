@@ -1044,7 +1044,6 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
                             baseStock={parseInt(formData.stock) || 0}
                             material={material || undefined}
                             onGenerate={handleGenerateVariants}
-                            disabled={mode === 'add'}
                           />
                         </div>
                         </div>

@@ -147,6 +147,9 @@ export default function CartPage() {
     const fetchServerCart = async () => {
       // If user is authenticated, fetch cart from server
       if (user) {
+        console.log('[Cart Page] Fetching server cart for authenticated user:', user.id)
+        console.log('[Cart Page] Local items count:', localItems.length)
+        console.log('[Cart Page] isInitialLoad:', isInitialLoad)
         setLoading(true)
         try {
           // Fetch the server cart
@@ -154,6 +157,13 @@ export default function CartPage() {
             credentials: 'include',
           })
           const data = await response.json() as any
+
+          console.log('[Cart Page] Server cart response:', {
+            success: data.success,
+            itemsCount: data.items?.length || 0,
+            source: data.source,
+            items: data.items
+          })
 
           if (data.success && data.items && data.items.length > 0) {
             // Server has cart items, use them
