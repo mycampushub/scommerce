@@ -23,12 +23,20 @@ export class CartRepository {
    * Find specific cart item
    */
   static async findItem(env: Env | null, userId: string, productId: string, variantId?: string): Promise<CartItem | null> {
+    if (variantId) {
+      return queryFirst<CartItem>(
+        env,
+        'SELECT * FROM cart_items WHERE userId = ? AND productId = ? AND variantId = ? LIMIT 1',
+        userId,
+        productId,
+        variantId
+      );
+    }
     return queryFirst<CartItem>(
       env,
-      'SELECT * FROM cart_items WHERE userId = ? AND productId = ? AND (variantId = ? OR variantId IS NULL) LIMIT 1',
+      'SELECT * FROM cart_items WHERE userId = ? AND productId = ? AND variantId IS NULL LIMIT 1',
       userId,
-      productId,
-      variantId || null
+      productId
     );
   }
 
@@ -47,9 +55,13 @@ export class CartRepository {
     // Use transaction with retry to handle race conditions
     const result = await runTransactionWithRetry(async (db, commit, rollback) => {
       // Check if item already exists within the transaction
-      const existingStmt = db.prepare(
-        'SELECT * FROM cart_items WHERE userId = ? AND productId = ? AND (variantId = ? OR variantId IS NULL) LIMIT 1'
-      ).bind(data.userId, data.productId, data.variantId || null);
+      const existingStmt = data.variantId
+        ? db.prepare(
+            'SELECT * FROM cart_items WHERE userId = ? AND productId = ? AND variantId = ? LIMIT 1'
+          ).bind(data.userId, data.productId, data.variantId)
+        : db.prepare(
+            'SELECT * FROM cart_items WHERE userId = ? AND productId = ? AND variantId IS NULL LIMIT 1'
+          ).bind(data.userId, data.productId);
       const existing = await existingStmt.first() as CartItem | null;
 
       if (existing) {

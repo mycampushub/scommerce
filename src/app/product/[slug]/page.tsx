@@ -350,6 +350,14 @@ export default function ProductPage() {
   const currentComparePrice = selectedVariant ? selectedVariant.comparePrice : product?.comparePrice || null
   const currentStock = selectedVariant ? selectedVariant.stock : product?.stock || 0
 
+  // For variant products, hide stock info until variant is selected
+  // (variant products have 0 stock at product level)
+  const showStock = !hasVariants || (selectedVariant !== null)
+  const stockDisplayMessage = hasVariants && !selectedVariant
+    ? 'Select a variant to see stock'
+    : (currentStock > 0 ? `In Stock (${currentStock} available)` : 'Out of Stock')
+  const isStockLoading = hasVariants && loadingVariants
+
   // ENHANCED IMAGE LOGIC:
   // 1. If a variant is selected and has images, use those images
   // 2. If color is selected and color images exist for that color, use those
@@ -419,7 +427,7 @@ export default function ProductPage() {
         ? {
             id: product.id,
             slug: product.slug,
-            name: product.name,
+            name: selectedVariant!.name || product.name,
             price: selectedVariant!.price,
             originalPrice: selectedVariant!.comparePrice || product.comparePrice,
             image: (Array.isArray(selectedVariant!.images) && selectedVariant!.images.length > 0 ? selectedVariant!.images[0] : null) || (Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : product.image),
@@ -443,36 +451,8 @@ export default function ProductPage() {
             quantity,
           }
 
-      // Add to local cart store
+      // Add to local cart store (useCartSync handles server sync)
       addItem(cartItem)
-
-      // Sync to server for logged-in users
-      if (user) {
-        try {
-          const syncResponse = await fetch('/api/cart', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({
-              action: 'add',
-              item: {
-                productId: cartItem.id,
-                variantId: cartItem.variantId,
-                quantity: cartItem.quantity,
-                size: cartItem.size,
-                color: cartItem.color,
-              },
-            }),
-          })
-          const syncData = await syncResponse.json()
-          if (!syncData.success) {
-            console.error('[Product Page] Failed to sync cart to server:', syncData.error)
-            toast.warning('Added to cart but sync failed. Item may not appear in your cart.')
-          }
-        } catch (syncError) {
-          console.error('[Product Page] Error syncing cart to server:', syncError)
-        }
-      }
 
       toast.success('Added to cart successfully!')
     } finally {
@@ -738,17 +718,27 @@ export default function ProductPage() {
               </div>
 
               <div className="flex items-center gap-2">
-                {currentStock > 0 ? (
+                {isStockLoading ? (
                   <>
-                    <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                    <span className="text-green-600 font-medium">
-                      In Stock ({currentStock} available)
-                    </span>
+                    <Loader2 className="w-4 h-4 text-gray-400 animate-spin" />
+                    <span className="text-gray-400 font-medium">Checking stock...</span>
                   </>
+                ) : showStock ? (
+                  currentStock > 0 ? (
+                    <>
+                      <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                      <span className="text-green-600 font-medium">{stockDisplayMessage}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                      <span className="text-red-600 font-medium">{stockDisplayMessage}</span>
+                    </>
+                  )
                 ) : (
                   <>
-                    <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-                    <span className="text-red-600 font-medium">Out of Stock</span>
+                    <span className="w-2 h-2 bg-gray-300 rounded-full"></span>
+                    <span className="text-gray-500 font-medium">{stockDisplayMessage}</span>
                   </>
                 )}
               </div>
@@ -918,15 +908,16 @@ export default function ProductPage() {
                 <div className="flex flex-col sm:flex-row gap-4">
                   <button
                     onClick={handleAddToCart}
-                    disabled={currentStock <= 0 || (hasVariantsFromDb && !selectedVariant) || (hasVariantsFromAttributes && !selectedSize && !selectedColor) || addingToCart}
+                    disabled={(!showStock || currentStock <= 0) || (hasVariantsFromDb && !selectedVariant) || (hasVariantsFromAttributes && !selectedSize && !selectedColor) || addingToCart}
                     className={`min-h-[48px] flex-1 py-4 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2 ${
-                      currentStock <= 0 || (hasVariantsFromDb && !selectedVariant) || (hasVariantsFromAttributes && !selectedSize && !selectedColor) || addingToCart
+                      (!showStock || currentStock <= 0) && !hasVariants ? 'bg-gray-300 text-gray-500 cursor-not-allowed' :
+                      (hasVariantsFromDb && !selectedVariant) || (hasVariantsFromAttributes && !selectedSize && !selectedColor) || addingToCart
                         ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                         : 'bg-pink-600 text-white hover:bg-pink-700'
                     }`}
                   >
                     {addingToCart ? <Loader2 className="w-5 h-5 animate-spin" /> : <ShoppingCart className="w-5 h-5" />}
-                    {addingToCart ? 'Adding...' : (currentStock <= 0 ? 'Out of Stock' : hasVariantsFromDb && !selectedVariant ? 'Select a Variant' : hasVariantsFromAttributes && !selectedSize && !selectedColor ? 'Select Options' : 'Add to Cart')}
+                    {addingToCart ? 'Adding...' : (isStockLoading ? 'Loading...' : hasVariantsFromDb && !selectedVariant ? 'Select a Variant' : hasVariantsFromAttributes && !selectedSize && !selectedColor ? 'Select Options' : (!showStock || currentStock <= 0) ? 'Out of Stock' : 'Add to Cart')}
                   </button>
                   <button
                     onClick={() => {

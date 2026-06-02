@@ -83,26 +83,33 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
   const [loadingVariants, setLoadingVariants] = useState(false)
   const [addingToCart, setAddingToCart] = useState(false)
   const [isTogglingWishlist, setIsTogglingWishlist] = useState(false)
+  const [variantsError, setVariantsError] = useState(false)
   const { addItem } = useCartStore()
 
   // Process variants and selections
-  const hasVariants = product?.hasVariants && variants.length > 0
+  const hasVariants = product?.hasVariants || false
 
   // Fetch variants if not already loaded
   useEffect(() => {
     const fetchVariants = async () => {
       if (product?.hasVariants && (!product.variants || product.variants.length === 0)) {
         setLoadingVariants(true)
+        setVariantsError(false)
         try {
           const response = await fetch(`/api/products/${product.id}/variants`)
           if (response.ok) {
             const data = await response.json()
             if (data.success && data.data.variants) {
               setVariants(data.data.variants)
+            } else {
+              setVariantsError(true)
             }
+          } else {
+            setVariantsError(true)
           }
         } catch (error) {
           console.error('Error fetching variants:', error)
+          setVariantsError(true)
         } finally {
           setLoadingVariants(false)
         }
@@ -246,12 +253,14 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
     await new Promise(resolve => setTimeout(resolve, 300))
 
     try {
+      let cartItem: any
+
       // Use variant data if available
       if (hasVariants && selectedVariant) {
-        addItem({
+        cartItem = {
           id: product.id,
           slug: product.slug,
-          name: product.name,
+          name: selectedVariant.name || product.name,
           price: selectedVariant.price,
           originalPrice: selectedVariant.comparePrice || product.comparePrice || product.originalPrice,
           image: (selectedVariant.images && selectedVariant.images[0]) || product.images?.[0] || product.image,
@@ -261,9 +270,9 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
           color: selectedVariant.color,
           material: selectedVariant.material,
           quantity,
-        })
+        }
       } else {
-        addItem({
+        cartItem = {
           id: product.id,
           slug: product.slug,
           name: product.name,
@@ -271,7 +280,31 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
           originalPrice: product.comparePrice || product.originalPrice,
           image: product.images?.[0] || product.image,
           quantity,
+        }
+      }
+
+      // Add to local cart store
+      addItem(cartItem)
+
+      // Sync to server (harmless for guest users - API returns success)
+      try {
+        await fetch('/api/cart', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            action: 'add',
+            item: {
+              productId: cartItem.id,
+              variantId: cartItem.variantId,
+              quantity: cartItem.quantity,
+              size: cartItem.size,
+              color: cartItem.color,
+            },
+          }),
         })
+      } catch (syncError) {
+        console.error('[QuickView] Error syncing cart to server:', syncError)
       }
 
       toast.success('Added to cart successfully!')
@@ -496,6 +529,14 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
                   <div className="flex items-center justify-center py-6">
                     <Loader2 className="w-6 h-6 text-pink-600 animate-spin" />
                   </div>
+                ) : variantsError ? (
+                  <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+                    Failed to load variant options. Please open the product page to select variants.
+                  </div>
+                ) : variants.length === 0 ? (
+                  <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600">
+                    No variants available for this product.
+                  </div>
                 ) : (
                   <>
                     {/* Size Selection */}
@@ -595,15 +636,15 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={handleAddToCart}
-                  disabled={currentStock <= 0 || (hasVariants && !selectedVariant) || addingToCart}
+                  disabled={currentStock <= 0 || (hasVariants && !selectedVariant && !variantsError) || addingToCart || variantsError}
                   className={`h-12 flex-1 rounded-lg font-semibold text-sm transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2 ${
-                    currentStock <= 0 || (hasVariants && !selectedVariant) || addingToCart
+                    currentStock <= 0 || (hasVariants && !selectedVariant && !variantsError) || addingToCart || variantsError
                       ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       : 'bg-pink-600 text-white hover:bg-pink-700'
                   }`}
                 >
                   {addingToCart ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShoppingCart className="w-4 h-4" />}
-                  {addingToCart ? 'Adding...' : currentStock <= 0 ? 'Out of Stock' : hasVariants && !selectedVariant ? 'Select a Variant' : 'Add to Cart'}
+                  {addingToCart ? 'Adding...' : variantsError ? 'View Product Page' : currentStock <= 0 ? 'Out of Stock' : hasVariants && !selectedVariant ? 'Select a Variant' : 'Add to Cart'}
                 </button>
                 <button
                   onClick={handleToggleWishlist}

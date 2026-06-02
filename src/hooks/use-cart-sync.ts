@@ -74,10 +74,13 @@ export function useCartSync() {
             itemCount: transformedItems.length,
             userId: currentUserId,
           })
+        } else if (items.length === 0) {
+          // Both server and local carts are empty, nothing to do
+          console.log('[Cart Sync] Server cart is empty, local is also empty')
         } else {
-          // Server cart is empty, clear local store
-          setCartStoreItems([])
-          console.log('[Cart Sync] Server cart is empty, cleared local store')
+          // Server cart is empty but local has items
+          // Keep local items and let the sync-to-server effect upload them
+          console.log('[Cart Sync] Server cart is empty but local has', items.length, 'items, keeping local items')
         }
 
         isInitializedRef.current = true

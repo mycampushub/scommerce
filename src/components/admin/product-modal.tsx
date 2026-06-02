@@ -346,6 +346,7 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
             basePrice: parseFloat(formData.price) || 0,
             baseStock: parseInt(formData.stock) || 0,
             material: material || undefined,
+            productId,  // Pass explicitly for create mode
           })
         } catch (error: any) {
           // Don't fail the entire product creation if variant generation fails
@@ -354,7 +355,6 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
           toast({
             title: 'Warning',
             description: `Product created but variant generation failed: ${error.message || 'Unknown error'}. You can manually add variants later.`,
-            variant: 'destructive',
           })
         }
       }
@@ -567,8 +567,10 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
     basePrice: number
     baseStock: number
     material?: string
+    productId?: string  // Allow passing productId explicitly (for create mode)
   }) => {
-    if (!product) {
+    const targetProductId = data.productId || product?.id
+    if (!targetProductId) {
       toast({
         title: 'Error',
         description: 'Product ID is required for generating variants',
@@ -578,7 +580,7 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
     }
 
     try {
-      const result = await apiFetch<{success: boolean; error?: string}>(`/api/admin/products/${product.id}/generate-variants`, {
+      const result = await apiFetch<{success: boolean; error?: string}>(`/api/admin/products/${targetProductId}/generate-variants`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -594,7 +596,7 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
       })
 
       // Refresh variants
-      fetchProductVariants(product.id)
+      fetchProductVariants(targetProductId)
     } catch (error: any) {
       console.error('Error generating variants:', error)
       toast({

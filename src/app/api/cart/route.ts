@@ -238,13 +238,20 @@ export async function POST(request: NextRequest) {
         await cleanupExpiredReservations(env);
 
         // Check if user already has this item in cart
-        const existingCartItem = await queryFirst<{ id: string; quantity: number }>(
-          env,
-          'SELECT id, quantity FROM cart_items WHERE userId = ? AND productId = ? AND (variantId IS NULL OR variantId = ?) LIMIT 1',
-          userId,
-          item.productId,
-          item.variantId || null
-        );
+        const existingCartItem = item.variantId
+          ? await queryFirst<{ id: string; quantity: number }>(
+              env,
+              'SELECT id, quantity FROM cart_items WHERE userId = ? AND productId = ? AND variantId = ? LIMIT 1',
+              userId,
+              item.productId,
+              item.variantId
+            )
+          : await queryFirst<{ id: string; quantity: number }>(
+              env,
+              'SELECT id, quantity FROM cart_items WHERE userId = ? AND productId = ? AND variantId IS NULL LIMIT 1',
+              userId,
+              item.productId
+            );
 
         const existingQuantity = existingCartItem?.quantity || 0;
         const requestedQuantity = item.quantity || 1;
@@ -338,13 +345,20 @@ export async function POST(request: NextRequest) {
         }
 
         // Find the cart item
-        const existingItem = await queryFirst<{ id: string }>(
-          env,
-          'SELECT * FROM cart_items WHERE userId = ? AND productId = ? AND (variantId IS NULL OR variantId = ?) LIMIT 1',
-          userId,
-          item.productId!,
-          item.variantId || null
-        );
+        const existingItem = item.variantId
+          ? await queryFirst<{ id: string }>(
+              env,
+              'SELECT * FROM cart_items WHERE userId = ? AND productId = ? AND variantId = ? LIMIT 1',
+              userId,
+              item.productId!,
+              item.variantId
+            )
+          : await queryFirst<{ id: string }>(
+              env,
+              'SELECT * FROM cart_items WHERE userId = ? AND productId = ? AND variantId IS NULL LIMIT 1',
+              userId,
+              item.productId!
+            );
 
         if (!existingItem) {
           return NextResponse.json(
@@ -394,13 +408,20 @@ export async function POST(request: NextRequest) {
         }
 
         // Find the cart item
-        const existingItemRemove = await queryFirst<{ id: string }>(
-          env,
-          'SELECT * FROM cart_items WHERE userId = ? AND productId = ? AND (variantId IS NULL OR variantId = ?) LIMIT 1',
-          userId,
-          item.productId!,
-          item.variantId || null
-        );
+        const existingItemRemove = item.variantId
+          ? await queryFirst<{ id: string }>(
+              env,
+              'SELECT * FROM cart_items WHERE userId = ? AND productId = ? AND variantId = ? LIMIT 1',
+              userId,
+              item.productId!,
+              item.variantId
+            )
+          : await queryFirst<{ id: string }>(
+              env,
+              'SELECT * FROM cart_items WHERE userId = ? AND productId = ? AND variantId IS NULL LIMIT 1',
+              userId,
+              item.productId!
+            );
 
         if (!existingItemRemove) {
           return NextResponse.json(
@@ -520,6 +541,7 @@ export async function POST(request: NextRequest) {
 
         const errors: string[] = [];
         let synced = 0;
+        const syncedItemKeys: string[] = []; // Track synced items for cleanup on failure
 
         // Clean up expired reservations before sync
         await cleanupExpiredReservations(env);
@@ -572,26 +594,34 @@ export async function POST(request: NextRequest) {
             errors.push(`Item ${clientItem.id}: Only ${availableStock} available, adjusted from ${quantityToAdd}`);
           }
 
-          if (existingDbItem) {
-            // Item exists in database, update quantity
-            await CartRepository.updateQuantity(env, existingDbItem.id, finalQuantity);
-          } else {
-            // Item doesn't exist in database, add it
-            // Reserve stock
-            await reserveStock(env, {
-              variantId: clientItem.variantId,
-              productId: clientItem.id,
-              userId,
-              quantity: finalQuantity,
-              expiresAt: new Date(Date.now() + 30 * 60 * 1000),
-            });
+          try {
+            if (existingDbItem) {
+              // Item exists in database, update quantity
+              await CartRepository.updateQuantity(env, existingDbItem.id, finalQuantity);
+            } else {
+              // Item doesn't exist in database, add it
+              // Reserve stock
+              await reserveStock(env, {
+                variantId: clientItem.variantId,
+                productId: clientItem.id,
+                userId,
+                quantity: finalQuantity,
+                expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+              });
 
-            await CartRepository.addItem(env, {
-              userId,
-              productId: clientItem.id,
-              variantId: clientItem.variantId,
-              quantity: finalQuantity,
-            });
+              await CartRepository.addItem(env, {
+                userId,
+                productId: clientItem.id,
+                variantId: clientItem.variantId,
+                quantity: finalQuantity,
+              });
+            }
+          } catch (syncItemError) {
+            console.error(`[Cart Sync] Error syncing item ${clientItem.id}:`, syncItemError);
+            // Clean up any reservations created for this item
+            await releaseCartItemReservation(env, userId, clientItem.id, clientItem.variantId || null);
+            errors.push(`Item ${clientItem.id}: Failed to sync`);
+            continue;
           }
           synced++;
         }

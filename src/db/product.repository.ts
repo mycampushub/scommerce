@@ -103,6 +103,9 @@ export class ProductRepository {
     color?: string;
     // Country of origin
     countryOfOrigin?: string;
+    // Multi-size/color fields
+    availableSizes?: string[];
+    availableColors?: string[];
     // Inventory tracking fields
     totalPurchased?: number;
     totalSold?: number;
@@ -129,8 +132,8 @@ export class ProductRepository {
         `INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, discount, discountType,
        images, stock, lowStockAlert, reorderLevel, reorderQty, isActive, isFeatured, hasVariants, weight, dimensions, tags,
        createdAt, updatedAt, costPrice, brandId, brandName, brandLogo, sizeType, sizeValue, sizeUnit, sizeLabel,
-       material, color, countryOfOrigin, totalPurchased, totalSold, totalCost, averageCost, lastPurchaseAt, lastPurchaseCost)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       material, color, countryOfOrigin, availableSizes, availableColors, totalPurchased, totalSold, totalCost, averageCost, lastPurchaseAt, lastPurchaseCost)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       id,
       data.name,
       data.slug,
@@ -165,6 +168,8 @@ export class ProductRepository {
       data.material || null,
       data.color || null,
       data.countryOfOrigin || null,
+      data.availableSizes ? stringifyJSON(data.availableSizes) : null,
+      data.availableColors ? stringifyJSON(data.availableColors) : null,
       data.totalPurchased || 0,
       data.totalSold || 0,
       data.totalCost || 0,
@@ -308,6 +313,15 @@ export class ProductRepository {
     if (data.countryOfOrigin !== undefined) {
       updates.push('countryOfOrigin = ?');
       values.push(data.countryOfOrigin);
+    }
+    // Multi-size/color fields
+    if (data.availableSizes !== undefined) {
+      updates.push('availableSizes = ?');
+      values.push(data.availableSizes != null && data.availableSizes.length > 0 ? stringifyJSON(data.availableSizes) : null);
+    }
+    if (data.availableColors !== undefined) {
+      updates.push('availableColors = ?');
+      values.push(data.availableColors != null && data.availableColors.length > 0 ? stringifyJSON(data.availableColors) : null);
     }
     // Inventory tracking fields
     if (data.totalPurchased !== undefined) {

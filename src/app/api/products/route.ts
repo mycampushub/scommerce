@@ -68,12 +68,14 @@ export async function GET(request: Request) {
     // Build WHERE clause conditions
     const conditions: string[] = ['isActive = 1'];
     const params: unknown[] = [];
+    const whereParams: unknown[] = []; // Track WHERE-clause params separately
 
     // Filter by product IDs
     if (idList.length > 0) {
       const idPlaceholders = idList.map(() => '?').join(',');
       conditions.push(`id IN (${idPlaceholders})`);
       params.push(...idList);
+      whereParams.push(...idList);
     }
 
     // Filter by type
@@ -93,6 +95,7 @@ export async function GET(request: Request) {
       if (category) {
         conditions.push('categoryId = ?');
         params.push(category.id);
+        whereParams.push(category.id);
       } else {
         // Category not found, return empty results with standard format
         return NextResponse.json({
@@ -116,6 +119,7 @@ export async function GET(request: Request) {
     if (search) {
       conditions.push('(name LIKE ? OR description LIKE ?)');
       params.push(`%${search}%`, `%${search}%`);
+      whereParams.push(`%${search}%`, `%${search}%`);
     }
 
     // Filter by price range
@@ -123,12 +127,15 @@ export async function GET(request: Request) {
       if (minPrice !== undefined && maxPrice !== undefined) {
         conditions.push('basePrice >= ? AND basePrice <= ?');
         params.push(minPrice, maxPrice);
+        whereParams.push(minPrice, maxPrice);
       } else if (minPrice !== undefined) {
         conditions.push('basePrice >= ?');
         params.push(minPrice);
+        whereParams.push(minPrice);
       } else if (maxPrice !== undefined) {
         conditions.push('basePrice <= ?');
         params.push(maxPrice);
+        whereParams.push(maxPrice);
       }
     }
 
@@ -158,7 +165,7 @@ export async function GET(request: Request) {
     const totalCount = await count(
       env,
       `SELECT COUNT(*) as count FROM products ${whereClause}`,
-      ...params.filter((_, i) => i < conditions.length) // Only use params for WHERE clause
+      ...whereParams // Only use params for WHERE clause
     );
 
     // Fetch products from database with pagination

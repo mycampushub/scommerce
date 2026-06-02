@@ -425,6 +425,8 @@ export async function POST(request: NextRequest) {
         lowStockAlert: validatedData.lowStockAlert ?? undefined,
         reorderLevel: validatedData.reorderLevel ?? undefined,
         reorderQty: validatedData.reorderQty ?? undefined,
+        availableSizes: validatedData.availableSizes ?? undefined,
+        availableColors: validatedData.availableColors ?? undefined,
       }
 
       console.log('[Products API] Creating product with data:', productData)
