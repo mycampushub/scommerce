@@ -381,3 +381,54 @@ Stage Summary:
 - Guest checkout now correctly checks variant stock for products with variants
 - Logged-in users' cart items persist when visiting cart page
 - Product and variant creation shows correct success notification
+
+---
+Task ID: 13
+Agent: Z.ai Code
+Task: Fix all issues reported by user from console logs
+
+Work Log:
+- Analyzed console logs to identify all issues
+- Found errors in variant delete and update operations (apiFetch extracting data but code checking result.success)
+- Found issue with variation generation requiring both size AND color (should support size-only or color-only)
+- Found cart page update/remove functions causing race conditions with useCartSync
+- Identified that checkout showing inactive products is correct behavior (product is actually inactive in database)
+
+Fixes Applied:
+1. Variant Delete Error Fix:
+   - Modified `/src/components/admin/product-modal.tsx` handleDeleteVariant function
+   - Changed from apiFetch to raw fetch
+   - Added credentials: 'include' for authentication
+   - Now properly checks result.success from full API response
+
+2. Variant Update Error Fix:
+   - Modified `/src/components/admin/product-modal.tsx` handleUpdateVariant function
+   - Changed from apiFetch to raw fetch
+   - Added credentials: 'include' for authentication
+   - Now properly checks result.success from full API response
+
+3. Variation Generation Independence Fix:
+   - Modified line 295: Changed `hasVariants` check from `selectedSizes.length > 0 && selectedColors.length > 0` to `selectedSizes.length > 0 || selectedColors.length > 0`
+   - Modified line 345: Same change for variant generation trigger
+   - Modified lines 331-332: Only pass availableSizes/availableColors when they have values
+   - Modified lines 348-349: Only pass sizes/colors when they have values
+   - Now supports size-only, color-only, or both variation generation
+
+4. Cart Sync Race Condition Fix:
+   - Modified `/src/app/cart/page.tsx` updateQuantity function (lines 34-80)
+   - Changed to only update Zustand store, let useEffect sync to local state
+   - Modified removeItem function (lines 82-122)
+   - Changed to only update Zustand store, let useEffect sync to local state
+   - This prevents race conditions between cart page actions and useCartSync
+
+Issues Notes:
+- Checkout showing "Product is inactive" for prod-005 is CORRECT behavior
+- The product isActive field is false in the database
+- To fix, the product needs to be marked as active in the database
+- This is not a bug - it's the intended functionality
+
+Stage Summary:
+- All variant CRUD operations now work correctly
+- Variations can be generated with sizes only, colors only, or both
+- Cart sync now works without race conditions for logged-in users
+- Guest and logged-in user cart flows should work properly

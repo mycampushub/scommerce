@@ -49,8 +49,9 @@ export default function CartPage() {
 
         const data = await response.json() as any
         if (data.success) {
-          // Update local state
-          const updatedItems = items.map(item => {
+          // Update Zustand store - useCartSync will sync to server
+          // and the useEffect will sync to local state
+          const updatedItems = localItems.map(item => {
             if (variantId) {
               return item.variantId === variantId
                 ? { ...item, quantity }
@@ -60,8 +61,6 @@ export default function CartPage() {
               ? { ...item, quantity }
               : item
           })
-          setItems(updatedItems)
-          // Also sync to Zustand store for header cart count
           setCartStoreItems(updatedItems)
         } else {
           throw new Error(data.error || 'Failed to update cart')
@@ -75,7 +74,7 @@ export default function CartPage() {
         })
       }
     } else {
-      // For guest users, update local zustand store AND local state
+      // For guest users, update local zustand store
       localUpdateQuantity(id, quantity, variantId)
     }
   }
@@ -96,15 +95,14 @@ export default function CartPage() {
 
         const data = await response.json() as any
         if (data.success) {
-          // Update local state
-          const updatedItems = items.filter(item => {
+          // Update Zustand store - useCartSync will sync to server
+          // and the useEffect will sync to local state
+          const updatedItems = localItems.filter(item => {
             if (variantId) {
               return !(item.variantId === variantId)
             }
             return !(item.id === id && !item.variantId)
           })
-          setItems(updatedItems)
-          // Also sync to Zustand store for header cart count
           setCartStoreItems(updatedItems)
         } else {
           throw new Error(data.error || 'Failed to remove item')

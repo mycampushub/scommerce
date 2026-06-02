@@ -291,7 +291,8 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
 
     try {
       // Check if we have variants from multi-select system
-      const hasVariants = useMultiSelectSystem && selectedSizes.length > 0 && selectedColors.length > 0
+      // Support sizes-only, colors-only, or both
+      const hasVariants = useMultiSelectSystem && (selectedSizes.length > 0 || selectedColors.length > 0)
 
       console.log('[ProductModal] Creating product:', {
         hasVariants,
@@ -327,8 +328,8 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
           material: hasVariants ? null : (singleMaterial || null),
           color: hasVariants ? null : (singleColor || null),
           // Include available sizes and colors for multi-select system
-          availableSizes: useMultiSelectSystem ? selectedSizes : null,
-          availableColors: useMultiSelectSystem ? selectedColors.map(c => c.color) : null,
+          availableSizes: useMultiSelectSystem && selectedSizes.length > 0 ? selectedSizes : null,
+          availableColors: useMultiSelectSystem && selectedColors.length > 0 ? selectedColors.map(c => c.color) : null,
         }),
       })
 
@@ -341,11 +342,12 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
       const productId = result.data?.id || result.products?.id
 
       // Generate variants for multi-select system
-      if (useMultiSelectSystem && selectedSizes.length > 0 && selectedColors.length > 0 && productId) {
+      // Support sizes-only, colors-only, or both
+      if (useMultiSelectSystem && (selectedSizes.length > 0 || selectedColors.length > 0) && productId) {
         try {
           await handleGenerateVariants({
-            sizes: selectedSizes,
-            colors: selectedColors.map(c => c.color),
+            sizes: selectedSizes.length > 0 ? selectedSizes : [],
+            colors: selectedColors.length > 0 ? selectedColors.map(c => c.color) : [],
             basePrice: parseFloat(formData.price) || 0,
             baseStock: parseInt(formData.stock) || 0,
             material: material || undefined,
@@ -479,11 +481,12 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
 
     try {
       setIsUpdatingVariant(true)
-      const result = await apiFetch<{success: boolean; error?: string}>(
+      const response = await fetch(
         `/api/admin/products/${product.id}/variants/${editingVariant.id}`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({
             price: editVariantData.price || editingVariant.price,
             stock: editVariantData.stock !== undefined ? parseInt(editVariantData.stock.toString()) : editingVariant.stock,
@@ -493,6 +496,8 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
           }),
         }
       )
+
+      const result = await response.json() as any
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to update variant')
@@ -524,12 +529,16 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
     if (!confirm('Are you sure you want to delete this variant?')) return
 
     try {
-      const result = await apiFetch<{success: boolean; error?: string}>(
+      const response = await fetch(
         `/api/admin/products/${product.id}/variants/${variantId}`,
         {
           method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
         }
       )
+
+      const result = await response.json() as any
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to delete variant')
