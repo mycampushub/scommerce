@@ -10,6 +10,7 @@ import { Footer } from '@/components/footer'
 import { MobileBottomNav } from '@/components/mobile-bottom-nav'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/hooks/use-auth'
+import { useCartSync } from '@/hooks/use-cart-sync'
 import { PriceDisplay } from '@/components/price-display'
 
 export default function CartPage() {
@@ -19,15 +20,16 @@ export default function CartPage() {
   const localRemoveItem = useCartStore(state => state.removeItem)
   const localGetSubtotal = useCartStore(state => state.getSubtotal)
   const localGetTotal = useCartStore(state => state.getTotal)
-  const addItem = useCartStore(state => state.addItem)
   const clearCart = useCartStore(state => state.clearCart)
   const setCartStoreItems = useCartStore(state => state.setItems)
 
+  // Use the centralized cart sync hook
+  useCartSync()
+
   // For authenticated users, use server cart state; for guests, use local zustand store directly
   const [items, setItems] = useState<ReturnType<typeof useCartStore.getState>['items']>([])
-  const [loading, setLoading] = useState(!!user) // Only show loading for authenticated users
-  const [isInitialLoad, setIsInitialLoad] = useState(true) // Track initial load vs subsequent updates
-  const prevItemCountRef = useRef(0) // Track previous item count to detect changes
+  const [loading, setLoading] = useState(false)
+  const isMountedRef = useRef(false)
 
   const updateQuantity = async (id: string, quantity: number, variantId?: string) => {
     if (quantity < 1) return
@@ -75,7 +77,6 @@ export default function CartPage() {
     } else {
       // For guest users, update local zustand store AND local state
       localUpdateQuantity(id, quantity, variantId)
-      setItems(localItems) // Sync local state with updated store
     }
   }
 
@@ -117,9 +118,8 @@ export default function CartPage() {
         })
       }
     } else {
-      // For guest users, update local zustand store AND local state
+      // For guest users, update local zustand store
       localRemoveItem(id, variantId)
-      setItems(localItems) // Sync local state with updated store
     }
   }
 
@@ -142,269 +142,14 @@ export default function CartPage() {
   const [freeShippingThreshold, setFreeShippingThreshold] = useState(5000)
   const [baseShippingCost, setBaseShippingCost] = useState(150)
 
-  // Fetch cart from server for authenticated users
+  // Sync local items state with Zustand store
   useEffect(() => {
-    const fetchServerCart = async () => {
-      // If user is authenticated, fetch cart from server
-      if (user) {
-        console.log('[Cart Page] Fetching server cart for authenticated user:', user.id)
-        console.log('[Cart Page] Local items count:', localItems.length)
-        console.log('[Cart Page] isInitialLoad:', isInitialLoad)
-        setLoading(true)
-        try {
-          // Fetch the server cart
-          const response = await fetch('/api/cart', {
-            credentials: 'include',
-          })
-          const data = await response.json() as any
-
-          console.log('[Cart Page] Server cart response:', {
-            success: data.success,
-            itemsCount: data.items?.length || 0,
-            source: data.source,
-            items: data.items
-          })
-
-          if (data.success && data.items && data.items.length > 0) {
-            // Server has cart items, use them
-            const transformedItems = data.items.map((item: any) => ({
-              id: item.id,
-              name: item.name,
-              price: item.price,
-              originalPrice: item.originalPrice,
-              image: item.image,
-              variantId: item.variantId,
-              variantSku: item.variantSku,
-              size: item.size,
-              color: item.color,
-              material: item.material,
-              quantity: item.quantity,
-              slug: item.slug || item.product?.slug || '',
-            }))
-            setItems(transformedItems)
-            // Also sync to Zustand store for header cart count
-            setCartStoreItems(transformedItems)
-            console.log('[Cart] Loaded cart from server:', transformedItems.length, 'items')
-          } else {
-            // Server cart is empty, check if we need to sync local cart
-            if (localItems.length > 0 && isInitialLoad) {
-              console.log('[Cart] Server cart empty, syncing local cart:', localItems.length, 'items')
-              const syncResponse = await fetch('/api/cart', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({
-                  action: 'sync',
-                  items: localItems.map(item => ({
-                    id: item.id,
-                    productId: item.id,
-                    quantity: item.quantity,
-                    variantId: item.variantId,
-                    size: item.size,
-                    color: item.color,
-                    material: item.material,
-                  })),
-                }),
-              })
-              const syncData = await syncResponse.json() as any
-              console.log('[Cart] Sync result:', syncData)
-
-              // After sync, fetch the server cart again
-              const fetchAfterSync = await fetch('/api/cart', {
-                credentials: 'include',
-              })
-              const dataAfterSync = await fetchAfterSync.json() as any
-
-              if (dataAfterSync.success && dataAfterSync.items) {
-                const transformedItems = dataAfterSync.items.map((item: any) => ({
-                  id: item.id,
-                  name: item.name,
-                  price: item.price,
-                  originalPrice: item.originalPrice,
-                  image: item.image,
-                  variantId: item.variantId,
-                  variantSku: item.variantSku,
-                  size: item.size,
-                  color: item.color,
-                  material: item.material,
-                  quantity: item.quantity,
-                  slug: item.slug || item.product?.slug || '',
-                }))
-                setItems(transformedItems)
-                // Also sync to Zustand store for header cart count
-                setCartStoreItems(transformedItems)
-                console.log('[Cart] Loaded cart from server after sync:', transformedItems.length, 'items')
-              }
-            } else if (localItems.length === 0) {
-              // Both server and local are empty
-              setItems([])
-              setCartStoreItems([])
-              console.log('[Cart] Server cart empty and no local items')
-            } else {
-              // Not initial load and local items exist but server is empty
-              // This means user logged in but server cart got cleared
-              // Sync local items to server
-              console.log('[Cart] Syncing local items to server (not initial load):', localItems.length, 'items')
-              const syncResponse = await fetch('/api/cart', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({
-                  action: 'sync',
-                  items: localItems.map(item => ({
-                    id: item.id,
-                    productId: item.id,
-                    quantity: item.quantity,
-                    variantId: item.variantId,
-                    size: item.size,
-                    color: item.color,
-                    material: item.material,
-                  })),
-                }),
-              })
-              const syncData = await syncResponse.json() as any
-
-              // After sync, fetch the server cart again
-              const fetchAfterSync = await fetch('/api/cart', {
-                credentials: 'include',
-              })
-              const dataAfterSync = await fetchAfterSync.json() as any
-
-              if (dataAfterSync.success && dataAfterSync.items) {
-                const transformedItems = dataAfterSync.items.map((item: any) => ({
-                  id: item.id,
-                  name: item.name,
-                  price: item.price,
-                  originalPrice: item.originalPrice,
-                  image: item.image,
-                  variantId: item.variantId,
-                  variantSku: item.variantSku,
-                  size: item.size,
-                  color: item.color,
-                  material: item.material,
-                  quantity: item.quantity,
-                  slug: item.slug || item.product?.slug || '',
-                }))
-                setItems(transformedItems)
-                // Also sync to Zustand store for header cart count
-                setCartStoreItems(transformedItems)
-                console.log('[Cart] Loaded cart from server after sync:', transformedItems.length, 'items')
-              }
-            }
-          }
-          setIsInitialLoad(false)
-        } catch (error) {
-          console.error('[Cart] Error fetching/syncing server cart:', error)
-          // Fall back to local storage
-          setItems(localItems)
-          setCartStoreItems(localItems)
-          setIsInitialLoad(false)
-        } finally {
-          setLoading(false)
-        }
-      } else if (!user) {
-        // Not authenticated, use local zustand store directly
-        setItems(localItems)
-        setIsInitialLoad(false)
-        setLoading(false)
-      }
+    // Only set items on first mount to avoid flickering
+    if (!isMountedRef.current) {
+      setItems(localItems)
+      isMountedRef.current = true
     }
-
-    fetchServerCart()
-  }, [user]) // Only re-run when user changes, not on every localItems change
-
-  // Sync local items to server when user is logged in
-  // This ensures that items added while logged in are synced
-  useEffect(() => {
-    const itemCount = localItems.length
-    const itemCountChanged = itemCount !== prevItemCountRef.current
-    prevItemCountRef.current = itemCount
-
-    const syncToServer = async () => {
-      if (user && !isInitialLoad && !loading && itemCountChanged) {
-        // Only sync if we have local items that differ from server items
-        // Compare by productId and variantId
-        const serverItemIds = new Set(items.map(item => `${item.id}-${item.variantId || 'no-variant'}`))
-        const localItemIds = new Set(localItems.map(item => `${item.id}-${item.variantId || 'no-variant'}`))
-
-        // Check if items are different
-        const hasChanges = localItems.some(localItem => {
-          const localKey = `${localItem.id}-${localItem.variantId || 'no-variant'}`
-          if (!serverItemIds.has(localKey)) return true // New item in local
-
-          const serverItem = items.find(serverItem => `${serverItem.id}-${serverItem.variantId || 'no-variant'}` === localKey)
-          if (!serverItem) return true
-
-          // Check quantity
-          return serverItem.quantity !== localItem.quantity
-        })
-
-        if (hasChanges) {
-          console.log('[Cart] Syncing changed items to server:', localItems.length, 'items')
-          try {
-            const syncResponse = await fetch('/api/cart', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              credentials: 'include',
-              body: JSON.stringify({
-                action: 'sync',
-                items: localItems.map(item => ({
-                  id: item.id,
-                  productId: item.id,
-                  quantity: item.quantity,
-                  variantId: item.variantId,
-                  size: item.size,
-                  color: item.color,
-                  material: item.material,
-                })),
-              }),
-            })
-            const syncData = await syncResponse.json() as any
-            console.log('[Cart] Sync result:', syncData)
-
-            // After sync, fetch the server cart to update state
-            const fetchAfterSync = await fetch('/api/cart', {
-              credentials: 'include',
-            })
-            const dataAfterSync = await fetchAfterSync.json() as any
-
-            if (dataAfterSync.success && dataAfterSync.items) {
-              const transformedItems = dataAfterSync.items.map((item: any) => ({
-                id: item.id,
-                name: item.name,
-                price: item.price,
-                originalPrice: item.originalPrice,
-                image: item.image,
-                variantId: item.variantId,
-                variantSku: item.variantSku,
-                size: item.size,
-                color: item.color,
-                material: item.material,
-                quantity: item.quantity,
-                slug: item.slug || item.product?.slug || '',
-              }))
-              setItems(transformedItems)
-              // Also sync to Zustand store for header cart count
-              setCartStoreItems(transformedItems)
-              console.log('[Cart] Synced changed items to server:', transformedItems.length, 'items')
-            }
-          } catch (error) {
-            console.error('[Cart] Error syncing to server:', error)
-          }
-        }
-      } else if (!user) {
-        // Not authenticated, use local zustand store directly
-        setItems(localItems)
-      }
-    }
-
-    // Debounce the sync to avoid too many API calls
-    const timeoutId = setTimeout(() => {
-      syncToServer()
-    }, 500)
-
-    return () => clearTimeout(timeoutId)
-  }, [user, localItems.length, isInitialLoad, loading, items]) // Only depend on localItems.length, not localItems object
+  }, [localItems])
 
   // Fetch site settings for shipping thresholds
   useEffect(() => {

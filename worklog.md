@@ -253,3 +253,74 @@ Stage Summary:
 - Fixed missing package dependencies
 - Build now gets further but fails on home page prerendering
 - Need to fix home page structure to allow proper static generation
+---
+Task ID: 10
+Agent: Z.ai Code
+Task: Fix cart items vanishing for logged-in users visiting cart page
+
+Work Log:
+- Analyzed the cart sync architecture
+  - Header component uses `useCartSync()` hook to handle cart synchronization
+  - Cart page has its own separate cart fetching logic (NOT using useCartSync)
+  - These two separate mechanisms were conflicting with each other
+
+- Identified root cause:
+  - `useCartSync` hook (in Header) fetches server cart and syncs to Zustand store
+  - Cart page also fetches server cart independently
+  - Both read/write to Zustand store simultaneously
+  - Race condition causes items to be overwritten with empty state
+
+- How the bug manifested:
+  1. User logs in with local cart items
+  2. useCartSync fetches server cart (which is empty initially)
+  3. useCartSync tries to sync local items to server
+  4. Cart page mounts and also fetches server cart
+  5. Cart page's sync logic runs and conflicts with useCartSync
+  6. Items get lost in the conflict
+
+Fixes Applied:
+- Modified `/src/app/cart/page.tsx`:
+  - Added import for `useCartSync` hook
+  - Called `useCartSync()` to use centralized sync logic
+  - Removed duplicate cart fetching effect (lines 146-314)
+  - Removed duplicate sync effect (lines 316-407)
+  - Simplified to sync local items state with Zustand store only
+  - Now cart page relies on useCartSync for all server fetching/syncing
+
+- Result:
+  - Single source of truth for cart sync (useCartSync hook)
+  - Cart page no longer conflicts with hook
+  - Items will persist when logged-in users visit cart page
+
+Stage Summary:
+- Fixed cart items vanishing issue by removing duplicate sync logic
+- Cart page now uses centralized useCartSync hook
+- Single source of truth for cart synchronization
+---
+Task ID: 11
+Agent: Z.ai Code
+Task: Run build command and fix build errors
+
+Work Log:
+- Ran `bun run build` to check for build errors
+- Found errors: "Cannot find module for page: /account/addresses" and "/account/orders"
+- Both pages exist as client components with 'use client' directive
+- Root cause: Next.js was trying to collect page data from client components during build time
+
+Fix Applied:
+- Created `/src/app/account/layout.tsx` with `export const dynamic = 'force-dynamic'`
+- This prevents Next.js from trying to pre-render account pages at build time
+- Account pages are now marked as dynamic (ƒ - server-rendered on demand)
+
+Build Results:
+- Cleaned .next cache directory
+- Rebuild completed successfully (exit code: 0)
+- 95 pages generated
+- All routes compiled successfully
+- No TypeScript errors
+- No lint errors
+
+Stage Summary:
+- Build errors fixed by adding dynamic layout for account pages
+- App now builds successfully for production deployment
+- All 95 routes (pages + API routes) generated correctly

@@ -311,16 +311,15 @@ export default function CheckoutPage() {
           hasVariant: !!item.variantId
         })
 
-        // TEMPORARY FIX: Allow products with stock to be checked out even if inactive
-        // Only block if product is inactive AND has no stock
-        const shouldBlockCheckout = product.isActive === false && (product.stock || 0) <= 0;
+        // Block checkout if product is inactive (regardless of stock)
+        const shouldBlockCheckout = product.isActive === false;
 
         console.log('[Checkout Stock Check] Should block checkout:', {
           productId: item.id,
           isActive: product.isActive,
           stock: product.stock,
           shouldBlock: shouldBlockCheckout,
-          reason: shouldBlockCheckout ? 'Product inactive AND out of stock' : 'Product can be checked out'
+          reason: shouldBlockCheckout ? 'Product is inactive' : 'Product can be checked out'
         })
 
         if (shouldBlockCheckout) {
@@ -330,6 +329,20 @@ export default function CheckoutPage() {
             productExists: true,
             productActive: false,
             errorMessage: 'Product is no longer available'
+          }
+          continue
+        }
+
+        // Block if insufficient stock
+        const hasInsufficientStock = (product.stock || 0) < item.quantity;
+
+        if (hasInsufficientStock) {
+          itemKeys[itemKey] = {
+            inStock: false,
+            availableStock: product.stock || 0,
+            productExists: true,
+            productActive: true,
+            errorMessage: `Only ${product.stock || 0} items available`
           }
           continue
         }
@@ -351,9 +364,9 @@ export default function CheckoutPage() {
               const variant = variants.find((v: any) => v.id === item.variantId)
 
               if (variant) {
-                // TEMPORARY FIX: Allow variants with stock to be checked out even if inactive
+                // Block checkout if variant is inactive (regardless of stock)
                 variantStock = variant.stock || 0;
-                const shouldBlockVariant = variant.isActive === false && variantStock <= 0;
+                const shouldBlockVariant = variant.isActive === false;
 
                 console.log('[Checkout Stock Check] Variant data:', {
                   productId: item.id,
@@ -363,7 +376,7 @@ export default function CheckoutPage() {
                   stock: variantStock,
                   requestedQuantity: item.quantity,
                   shouldBlock: shouldBlockVariant,
-                  reason: shouldBlockVariant ? 'Variant inactive AND out of stock' : 'Variant can be checked out'
+                  reason: shouldBlockVariant ? 'Variant is inactive' : 'Variant can be checked out'
                 })
 
                 if (shouldBlockVariant) {
@@ -376,6 +389,19 @@ export default function CheckoutPage() {
                   }
                   continue
                 }
+
+                // Block if insufficient stock
+                if (variantStock < item.quantity) {
+                  itemKeys[itemKey] = {
+                    inStock: false,
+                    availableStock: variantStock,
+                    productExists: true,
+                    productActive: true,
+                    errorMessage: `Only ${variantStock} items available`
+                  }
+                  continue
+                }
+
                 foundVariant = true
               }
             }

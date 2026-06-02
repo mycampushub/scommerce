@@ -117,6 +117,8 @@ export async function GET(request: NextRequest) {
           color: string | null;
           material: string | null;
           productId: string;
+          price: number;
+          comparePrice: number | null;
         }>();
 
         if (variantIds.length > 0) {
@@ -128,9 +130,11 @@ export async function GET(request: NextRequest) {
             color: string | null;
             material: string | null;
             productId: string;
+            price: number;
+            comparePrice: number | null;
           }>(
             env,
-            `SELECT id, sku, size, color, material, productId FROM product_variants WHERE id IN (${placeholders})`,
+            `SELECT id, sku, size, color, material, productId, price, comparePrice FROM product_variants WHERE id IN (${placeholders})`,
             ...variantIds
           );
           variants.forEach(v => variantsMap.set(v.id, v));
@@ -145,12 +149,21 @@ export async function GET(request: NextRequest) {
           const parsedImages = parseJSON<string[]>(product.images);
           const images = Array.isArray(parsedImages) ? parsedImages : [];
 
+          // Get price from variant if available, otherwise from product
+          const itemPrice = variant 
+            ? (variant.comparePrice || variant.price) 
+            : (product.comparePrice || product.basePrice);
+          
+          const itemOriginalPrice = variant
+            ? (variant.price > (variant.comparePrice || 0) ? variant.price : undefined)
+            : (product.basePrice > (product.comparePrice || 0) ? product.basePrice : undefined);
+
           return {
             id: item.productId,
             slug: product.slug,
             name: product.name,
-            price: product.basePrice,
-            originalPrice: product.comparePrice,
+            price: itemPrice,
+            originalPrice: itemOriginalPrice,
             image: images[0] || '',
             quantity: item.quantity,
             variantId: item.variantId || undefined,
@@ -523,6 +536,8 @@ export async function POST(request: NextRequest) {
             color: string | null;
             material: string | null;
             productId: string;
+            price: number;
+            comparePrice: number | null;
           }>();
 
           if (variantIds.length > 0) {
@@ -534,9 +549,11 @@ export async function POST(request: NextRequest) {
               color: string | null;
               material: string | null;
               productId: string;
+              price: number;
+              comparePrice: number | null;
             }>(
               env,
-              `SELECT id, sku, size, color, material, productId FROM product_variants WHERE id IN (${placeholders})`,
+              `SELECT id, sku, size, color, material, productId, price, comparePrice FROM product_variants WHERE id IN (${placeholders})`,
               ...variantIds
             );
             variants.forEach(v => variantsMap.set(v.id, v));
@@ -551,12 +568,21 @@ export async function POST(request: NextRequest) {
             const parsedImages = parseJSON<string[]>(product.images);
             const images = Array.isArray(parsedImages) ? parsedImages : [];
 
+            // Get price from variant if available, otherwise from product
+            const itemPrice = variant 
+              ? (variant.comparePrice || variant.price) 
+              : (product.comparePrice || product.basePrice);
+            
+            const itemOriginalPrice = variant
+              ? (variant.price > (variant.comparePrice || 0) ? variant.price : undefined)
+              : (product.basePrice > (product.comparePrice || 0) ? product.basePrice : undefined);
+
             return {
               id: item.productId,
               slug: product.slug,
               name: product.name,
-              price: product.basePrice,
-              originalPrice: product.comparePrice,
+              price: itemPrice,
+              originalPrice: itemOriginalPrice,
               image: images[0] || '',
               quantity: item.quantity,
               variantId: item.variantId || undefined,
@@ -707,6 +733,8 @@ export async function POST(request: NextRequest) {
           color: string | null;
           material: string | null;
           productId: string;
+          price: number;
+          comparePrice: number | null;
         }>();
 
         if (variantIds.length > 0) {
@@ -718,9 +746,11 @@ export async function POST(request: NextRequest) {
             color: string | null;
             material: string | null;
             productId: string;
+            price: number;
+            comparePrice: number | null;
           }>(
             env,
-            `SELECT id, sku, size, color, material, productId FROM product_variants WHERE id IN (${placeholders})`,
+            `SELECT id, sku, size, color, material, productId, price, comparePrice FROM product_variants WHERE id IN (${placeholders})`,
             ...variantIds
           );
           variants.forEach(v => variantsMap.set(v.id, v));
@@ -735,12 +765,21 @@ export async function POST(request: NextRequest) {
           const parsedImages = parseJSON<string[]>(product.images);
           const images = Array.isArray(parsedImages) ? parsedImages : [];
 
+          // Get price from variant if available, otherwise from product
+          const itemPrice = variant 
+            ? (variant.comparePrice || variant.price) 
+            : (product.comparePrice || product.basePrice);
+          
+          const itemOriginalPrice = variant
+            ? (variant.price > (variant.comparePrice || 0) ? variant.price : undefined)
+            : (product.basePrice > (product.comparePrice || 0) ? product.basePrice : undefined);
+
           return {
             id: item.productId,
             slug: product.slug,
             name: product.name,
-            price: product.basePrice,
-            originalPrice: product.comparePrice,
+            price: itemPrice,
+            originalPrice: itemOriginalPrice,
             image: images[0] || '',
             quantity: item.quantity,
             variantId: item.variantId || undefined,
