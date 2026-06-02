@@ -144,11 +144,8 @@ export default function CartPage() {
 
   // Sync local items state with Zustand store
   useEffect(() => {
-    // Only set items on first mount to avoid flickering
-    if (!isMountedRef.current) {
-      setItems(localItems)
-      isMountedRef.current = true
-    }
+    // Always sync items from Zustand store to local state to keep them in sync
+    setItems(localItems)
   }, [localItems])
 
   // Fetch site settings for shipping thresholds

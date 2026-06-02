@@ -300,9 +300,10 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
         selectedColors: selectedColors.map(c => c.color),
       })
 
-      const result = await apiFetch<{success: boolean; data?: any; products?: any; error?: string}>('/api/admin/products', {
+      const response = await fetch('/api/admin/products', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           name: formData.name,
           slug: formData.slug || formData.name.toLowerCase().replace(/\s+/g, '-'),
@@ -330,6 +331,8 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
           availableColors: useMultiSelectSystem ? selectedColors.map(c => c.color) : null,
         }),
       })
+
+      const result = await response.json() as any
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to create product')
@@ -580,11 +583,14 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
     }
 
     try {
-      const result = await apiFetch<{success: boolean; error?: string}>(`/api/admin/products/${targetProductId}/generate-variants`, {
+      const response = await fetch(`/api/admin/products/${targetProductId}/generate-variants`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(data),
       })
+
+      const result = await response.json() as any
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to generate variants')

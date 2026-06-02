@@ -324,3 +324,60 @@ Stage Summary:
 - Build errors fixed by adding dynamic layout for account pages
 - App now builds successfully for production deployment
 - All 95 routes (pages + API routes) generated correctly
+
+---
+Task ID: 12
+Agent: Z.ai Code
+Task: Fix guest checkout out-of-stock bug, cart disappearing for logged-in users, and product/variant creation error notification
+
+Work Log:
+- Investigated guest checkout out-of-stock bug
+  - Found issue in `/src/app/checkout/page.tsx` at line 337
+  - Product stock check ran before variant stock check for items with variants
+  - For products with variants, product.stock is 0 - stock is tracked on variant level
+  - This caused false "out of stock" errors for guest users
+
+- Investigated logged-in user cart disappearing bug
+  - Found issue in `/src/app/cart/page.tsx` at lines 146-152
+  - useEffect only synced items on first mount (isMountedRef.current check)
+  - When useCartSync updated Zustand store with server cart, cart page didn't react
+  - Items disappeared from UI after logging in
+
+- Investigated product/variant creation error notification bug
+  - Found issue in `/src/components/admin/product-modal.tsx`
+  - Code used apiFetch which extracts response.data
+  - Then checked result.success which doesn't exist on extracted data
+  - This caused error notifications despite successful creation
+
+Fixes Applied:
+1. Guest checkout out-of-stock fix:
+   - Modified line 337-338 in `/src/app/checkout/page.tsx`
+   - Changed: `const hasInsufficientStock = (product.stock || 0) < item.quantity;`
+   - To: `const hasInsufficientStock = !item.variantId && (product.stock || 0) < item.quantity;`
+   - Skips product-level stock check when item has a variantId
+   - Variant stock is checked separately in the next block
+
+2. Cart disappearing fix:
+   - Modified lines 146-149 in `/src/app/cart/page.tsx`
+   - Removed isMountedRef.current check
+   - Changed to always sync items from Zustand store to local state
+   - Now cart page reacts to all changes in useCartSync
+
+3. Product/variant creation fix:
+   - Modified `/src/components/admin/product-modal.tsx`
+   - Changed product creation (lines 303-339) from apiFetch to raw fetch
+   - Changed variant generation (lines 586-597) from apiFetch to raw fetch
+   - Added credentials: 'include' for authentication
+   - Now result.success check works correctly
+
+Build Results:
+- Installed missing dependency: @ducanh2912/next-pwa
+- Build completed successfully
+- 95 pages generated
+- All routes compiled successfully
+
+Stage Summary:
+- All three bugs successfully fixed
+- Guest checkout now correctly checks variant stock for products with variants
+- Logged-in users' cart items persist when visiting cart page
+- Product and variant creation shows correct success notification

@@ -334,7 +334,8 @@ export default function CheckoutPage() {
         }
 
         // Block if insufficient stock
-        const hasInsufficientStock = (product.stock || 0) < item.quantity;
+        // Skip product-level stock check for items with variants (variant stock is checked below)
+        const hasInsufficientStock = !item.variantId && (product.stock || 0) < item.quantity;
 
         if (hasInsufficientStock) {
           itemKeys[itemKey] = {
