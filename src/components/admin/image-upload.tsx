@@ -23,7 +23,6 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { apiFetch } from '@/lib/api-client'
 import { GallerySelector } from '@/components/admin/gallery-selector'
 import { parseImages } from '@/lib/images'
 
@@ -189,10 +188,13 @@ export function ImageUpload({
         const formData = new FormData()
         formData.append('file', file)
 
-        const result = await apiFetch<{success: boolean; data: any; error?: string}>('/api/admin/upload', {
+        const response = await fetch('/api/admin/upload', {
           method: 'POST',
-          body: formData
+          body: formData,
+          credentials: 'include',
         })
+
+        const result = await response.json() as any
 
         if (result.success) {
           newImages.push({
@@ -235,9 +237,11 @@ export function ImageUpload({
     if (typeof imageToRemove === 'object' && imageToRemove.isNew) {
       try {
         // Pass the full URL path (e.g., /uploads/uuid.jpg)
-        await apiFetch(`/api/admin/upload?path=${encodeURIComponent(imageUrl)}`, {
+        const response = await fetch(`/api/admin/upload?path=${encodeURIComponent(imageUrl)}`, {
           method: 'DELETE',
+          credentials: 'include',
         })
+        await response.json()
       } catch (error) {
         console.error('Delete error:', error)
       }

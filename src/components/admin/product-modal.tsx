@@ -413,12 +413,12 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
     }
 
     try {
-      const result = await apiFetch<{success: boolean; error?: string}>(`/api/admin/products/${product.id}`, {
+      const response = await fetch(`/api/admin/products/${product.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'x-action': 'update',
         },
+        credentials: 'include',
         body: JSON.stringify({
           name: formData.name,
           slug: formData.slug,
@@ -445,6 +445,8 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
           availableColors: useMultiSelectSystem ? selectedColors.map(c => c.color) : null,
         }),
       })
+
+      const result = await response.json() as any
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to update product')

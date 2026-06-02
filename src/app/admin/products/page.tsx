@@ -52,6 +52,8 @@ import {
   TrendingDown,
   Loader2,
   RefreshCw,
+  Eye,
+  EyeOff,
 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PriceDisplay } from '@/components/price-display'
@@ -213,6 +215,41 @@ export default function ProductsPage() {
       })
     } finally {
       setDeletingProduct(null)
+    }
+  }
+
+  const toggleProductStatus = async (product: Product) => {
+    try {
+      const response = await fetch(`/api/admin/products/${product.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          isActive: !product.isActive,
+        }),
+      })
+
+      const result = await response.json() as any
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to update product')
+      }
+
+      toast({
+        title: 'Success',
+        description: `Product ${product.isActive ? 'deactivated' : 'activated'} successfully`,
+      })
+
+      fetchProducts()
+    } catch (err: any) {
+      console.error('Error updating product status:', err)
+      toast({
+        title: 'Error',
+        description: err.message || 'Failed to update product',
+        variant: 'destructive',
+      })
     }
   }
 
@@ -467,6 +504,19 @@ export default function ProductsPage() {
                             <DropdownMenuItem onClick={() => handleEditProduct(product)}>
                               <Edit className="h-4 w-4 mr-2" />
                               Edit Product
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => toggleProductStatus(product)}>
+                              {product.isActive ? (
+                                <>
+                                  <EyeOff className="h-4 w-4 mr-2" />
+                                  Deactivate
+                                </>
+                              ) : (
+                                <>
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  Activate
+                                </>
+                              )}
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <AlertDialog>

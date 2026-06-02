@@ -131,7 +131,7 @@ export function PWAInstallPrompt() {
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-pink-600 to-purple-600 text-white p-4 md:p-6 shadow-2xl">
+    <div className="fixed bottom-0 left-0 right-0 z-30 bg-gradient-to-r from-pink-600 to-purple-600 text-white p-4 md:p-6 shadow-2xl">
       <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 md:gap-4 flex-1">
           <div className="hidden sm:flex w-12 h-12 bg-white/20 rounded-lg items-center justify-center flex-shrink-0">

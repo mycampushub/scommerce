@@ -255,7 +255,7 @@ export function Header() {
             </Link>
             <UserMenu user={user} loading={loading} isAdmin={user?.role === 'admin'} onLogout={logout} />
             <button
-              className="lg:hidden min-h-[44px] min-w-[44px] p-2"
+              className="lg:hidden min-h-[44px] min-w-[44px] p-2 text-gray-700 hover:text-pink-600 transition-colors"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
               aria-expanded={mobileMenuOpen}
@@ -271,7 +271,7 @@ export function Header() {
           <>
             {/* Backdrop overlay */}
             <div
-              className="fixed inset-0 bg-black/50 z-[55] lg:hidden"
+              className="fixed inset-0 bg-black/50 z-[200] lg:hidden"
               onClick={() => setMobileMenuOpen(false)}
               aria-hidden="true"
             />
@@ -281,7 +281,7 @@ export function Header() {
               role="dialog"
               aria-modal="true"
               aria-label="Navigation menu"
-              className="lg:hidden fixed inset-0 top-16 bg-white z-[60] overflow-y-auto"
+              className="lg:hidden fixed inset-0 top-16 bg-white z-[210] overflow-y-auto"
             >
             <div className="container mx-auto px-4 py-6">
               {/* Close button */}
