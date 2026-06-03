@@ -91,7 +91,7 @@ export default function RootLayout({
         <OrganizationStructuredData
           siteName="Modern E-commerce"
           siteUrl={SITE_URL}
-          logo="/kre-logo.svg"
+          logo="/logo.svg"
           description="Modern e-commerce platform for fashion and lifestyle products"
         />
       </head>
