@@ -51,6 +51,59 @@ export class BrandRepository {
   }
 
   /**
+   * Find all brands with pagination
+   */
+  static async findAllPaginated(env: Env | null, options?: {
+    activeOnly?: boolean;
+    featuredOnly?: boolean;
+    includeProductCount?: boolean;
+  }, limit: number = 20, offset: number = 0): Promise<(Brand & { productCount?: number })[]> {
+    const { activeOnly = false, featuredOnly = false, includeProductCount = false } = options || {};
+
+    const conditions: string[] = [];
+    const params: unknown[] = [];
+
+    if (activeOnly) {
+      conditions.push('isActive = ?');
+      params.push(1);
+    }
+    if (featuredOnly) {
+      conditions.push('featured = ?');
+      params.push(1);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const brands = await queryAll<Brand>(
+      env,
+      `SELECT * FROM brands ${whereClause} ORDER BY sortOrder ASC, name ASC LIMIT ? OFFSET ?`,
+      ...params,
+      limit,
+      offset
+    );
+
+    if (includeProductCount && brands.length > 0) {
+      const brandsWithCount = await Promise.all(
+        brands.map(async (brand) => {
+          const productCount = await count(
+            env,
+            'products',
+            'WHERE brandId = ?',
+            brand.id
+          );
+          return {
+            ...brand,
+            productCount,
+          };
+        })
+      );
+      return brandsWithCount;
+    }
+
+    return brands;
+  }
+
+  /**
    * Find all brands
    */
   static async findAll(env: Env | null, options?: {
@@ -73,11 +126,56 @@ export class BrandRepository {
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-    
+
     const brands = await queryAll<Brand>(
       env,
       `SELECT * FROM brands ${whereClause} ORDER BY sortOrder ASC, name ASC`,
       ...params
+    );
+
+    if (includeProductCount && brands.length > 0) {
+      const brandsWithCount = await Promise.all(
+        brands.map(async (brand) => {
+          const productCount = await count(
+            env,
+            'products',
+            'WHERE brandId = ?',
+            brand.id
+          );
+          return {
+            ...brand,
+            productCount,
+          };
+        })
+      );
+      return brandsWithCount;
+    }
+
+    return brands;
+  }
+
+  /**
+   * Search brands with pagination
+   */
+  static async searchPaginated(env: Env | null, query: string, activeOnly: boolean = false, featuredOnly: boolean = false, includeProductCount: boolean = false, limit: number = 20, offset: number = 0): Promise<(Brand & { productCount?: number })[]> {
+    const conditions: string[] = ['(name LIKE ? OR slug LIKE ?)'];
+    const params: unknown[] = [`%${query}%`, `%${query.toLowerCase()}%`];
+
+    if (activeOnly) {
+      conditions.push('isActive = ?');
+      params.push(1);
+    }
+    if (featuredOnly) {
+      conditions.push('featured = ?');
+      params.push(1);
+    }
+
+    const brands = await queryAll<Brand>(
+      env,
+      `SELECT * FROM brands WHERE ${conditions.join(' AND ')} ORDER BY sortOrder ASC, name ASC LIMIT ? OFFSET ?`,
+      ...params,
+      limit,
+      offset
     );
 
     if (includeProductCount && brands.length > 0) {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useDebounce } from '@/hooks/use-debounce'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -62,7 +62,7 @@ import {
   ChevronDown
 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useAdminOrders, useUpdateOrderStatus, useExportOrders, type Order } from '@/hooks/use-admin-orders'
+import { useAdminOrdersInfinite, useUpdateOrderStatus, useExportOrders, type Order } from '@/hooks/use-admin-orders'
 import { format, addDays, subDays } from 'date-fns'
 import { cn } from '@/lib/utils'
 
@@ -97,6 +97,10 @@ export default function OrdersPage() {
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false)
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
 
+  // Intersection Observer ref
+  const observerRef = useRef<IntersectionObserver | null>(null)
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
+
   // Order details modal
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
@@ -109,7 +113,7 @@ export default function OrdersPage() {
   const [trackingStatus, setTrackingStatus] = useState('')
   const [estimatedDeliveryDate, setEstimatedDeliveryDate] = useState('')
 
-  // Fetch orders using React Query
+  // Fetch orders using React Query infinite scroll
   const filters = {
     status: statusFilter === 'all' ? undefined : statusFilter,
     search: debouncedSearchTerm || undefined,
@@ -117,13 +121,63 @@ export default function OrdersPage() {
     dateTo: dateTo ? dateTo.toISOString() : undefined,
   }
   
-  const { data: orders = [], isLoading, refetch } = useAdminOrders(filters) as { data: Order[], isLoading: boolean, refetch: () => void }
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    refetch
+  } = useAdminOrdersInfinite(filters)
+
+  const orders = data?.pages.flatMap(page => page.data) || []
+
+  // Total count from first page
+  const total = data?.pages[0]?.pagination?.totalCount || 0
 
   // Update order status mutation
   const { mutate: updateOrderStatus } = useUpdateOrderStatus()
 
   // Export orders
   const { export: exportOrders } = useExportOrders()
+
+  // Load more when sentinel comes into view
+  const loadMore = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage && !isLoading) {
+      fetchNextPage()
+    }
+  }, [hasNextPage, isFetchingNextPage, isLoading, fetchNextPage])
+
+  // Setup IntersectionObserver
+  useEffect(() => {
+    if (observerRef.current) {
+      observerRef.current.disconnect()
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage) {
+          loadMore()
+        }
+      },
+      {
+        rootMargin: '100px',
+        threshold: 0.1
+      }
+    )
+
+    if (sentinelRef.current) {
+      observer.observe(sentinelRef.current)
+    }
+
+    observerRef.current = observer
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect()
+      }
+    }
+  }, [sentinelRef, hasNextPage, isFetchingNextPage, isLoading, loadMore])
 
   const openDetailsModal = (order: Order) => {
     setSelectedOrder(order)
@@ -438,7 +492,7 @@ export default function OrdersPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
+          {isLoading && orders.length === 0 ? (
             <div className="space-y-4">
               {[...Array(8)].map((_, i) => (
                 <div key={i} className="flex items-center gap-4 p-4 border-b">
@@ -551,8 +605,27 @@ export default function OrdersPage() {
                     </TableRow>
                   ))}
                 </TableBody>
+                {isFetchingNextPage && (
+                  <TableBody>
+                    <TableRow>
+                      <TableCell colSpan={8}>
+                        <div className="flex items-center justify-center py-4">
+                          <Loader2 className="h-6 w-6 animate-spin text-violet-600" />
+                          <span className="ml-2 text-sm text-gray-500">Loading more orders...</span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                )}
+                <TableBody>
+                  <TableRow>
+                    <TableCell colSpan={8}>
+                      <div ref={sentinelRef} className="h-4" />
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
               </Table>
-              </div>
+            </div>
           )}
         </CardContent>
       </Card>
