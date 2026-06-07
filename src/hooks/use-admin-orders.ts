@@ -1,59 +1,13 @@
 'use client'
 
-import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/hooks/use-toast'
 import type { Order, OrderFilters, OrderItem } from './use-orders'
 
 // Re-export Order type for convenience
 export type { Order, OrderFilters, OrderItem }
 
-// Fetch admin orders with pagination
-export async function fetchAdminOrdersPage({ pageParam = 1, filters }: { 
-  pageParam?: number
-  filters?: OrderFilters 
-}): Promise<{
-  data: Order[]
-  pagination: {
-    page: number
-    limit: number
-    totalCount: number
-    totalPages: number
-    hasNextPage: boolean
-    hasPrevPage: boolean
-  }
-}> {
-  const params = new URLSearchParams()
-  params.append('page', pageParam.toString())
-  params.append('limit', '20')
-  
-  if (filters?.status) {
-    params.append('status', filters.status)
-  }
-  
-  if (filters?.search) {
-    params.append('search', filters.search)
-  }
-
-  if (filters?.dateFrom) {
-    params.append('dateFrom', filters.dateFrom)
-  }
-
-  if (filters?.dateTo) {
-    params.append('dateTo', filters.dateTo)
-  }
-
-  const url = `/api/admin/orders${params.toString() ? '?' + params.toString() : ''}`
-  const response = await fetch(url)
-  
-  if (!response.ok) {
-    throw new Error('Failed to fetch orders')
-  }
-  
-  const result = await response.json() as any
-  return result
-}
-
-// Fetch admin orders with filters (legacy for compatibility)
+// Fetch admin orders with filters
 export async function fetchAdminOrders(filters?: OrderFilters): Promise<Order[]> {
   const params = new URLSearchParams()
   
@@ -84,27 +38,7 @@ export async function fetchAdminOrders(filters?: OrderFilters): Promise<Order[]>
   return result.data || []
 }
 
-// Custom hook to fetch admin orders with infinite scroll
-export function useAdminOrdersInfinite(filters?: OrderFilters) {
-  const { toast } = useToast()
-
-  return useInfiniteQuery({
-    queryKey: ['admin-orders', filters],
-    queryFn: ({ pageParam = 1 }) => fetchAdminOrdersPage({ pageParam, filters }),
-    getNextPageParam: (lastPage) => {
-      if (lastPage.pagination?.hasNextPage) {
-        return lastPage.pagination.page + 1
-      }
-      return undefined
-    },
-    initialPageParam: 1,
-    meta: {
-      errorMessage: 'Failed to load orders',
-    },
-  })
-}
-
-// Custom hook to fetch admin orders (legacy for backward compatibility)
+// Custom hook to fetch admin orders
 export function useAdminOrders(filters?: OrderFilters) {
   const { toast } = useToast()
 

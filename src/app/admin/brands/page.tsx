@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { useDebounce } from '@/hooks/use-debounce'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -90,16 +90,6 @@ export default function BrandsPage() {
   const [brands, setBrands] = useState<Brand[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const debouncedSearchTerm = useDebounce(searchTerm, 500)
-
-  // Pagination state
-  const [page, setPage] = useState(1)
-  const [hasMore, setHasMore] = useState(true)
-  const [isLoadingMore, setIsLoadingMore] = useState(false)
-  const [total, setTotal] = useState(0)
-
-  // Intersection Observer ref
-  const observerRef = useRef<IntersectionObserver | null>(null)
-  const sentinelRef = useRef<HTMLDivElement | null>(null)
 
   // Add modal state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
@@ -235,16 +225,10 @@ export default function BrandsPage() {
     }
   }
 
-  const fetchBrands = async (pageNum: number = 1, append: boolean = false) => {
-    if (append && isLoadingMore) return
-
+  const fetchBrands = async () => {
     try {
-      if (!append) setLoading(true)
-      else setIsLoadingMore(true)
-
+      setLoading(true)
       const params = new URLSearchParams()
-      params.append('page', pageNum.toString())
-      params.append('limit', '20')
       if (debouncedSearchTerm) params.append('search', debouncedSearchTerm)
       params.append('includeProductCount', 'true')
 
@@ -255,17 +239,7 @@ export default function BrandsPage() {
         throw new Error(result.error || 'Failed to fetch brands')
       }
 
-      if (append) {
-        setBrands(prev => [...prev, ...(result.data || [])])
-      } else {
-        setBrands(result.data || [])
-      }
-
-      if (result.pagination) {
-        setHasMore(result.pagination.hasNextPage)
-        setTotal(result.pagination.totalCount)
-        setPage(pageNum)
-      }
+      setBrands(result.data || [])
     } catch (err: any) {
       setError(err.message)
       console.error('Error fetching brands:', err)
@@ -275,57 +249,21 @@ export default function BrandsPage() {
         variant: 'destructive',
       })
     } finally {
-      if (!append) setLoading(false)
-      else setIsLoadingMore(false)
+      setLoading(false)
     }
   }
 
-  // Load more data when sentinel is visible
-  const loadMore = useCallback(() => {
-    if (hasMore && !isLoadingMore && !loading) {
-      fetchBrands(page + 1, true)
-    }
-  }, [hasMore, isLoadingMore, loading, page])
-
-  // Setup IntersectionObserver
   useEffect(() => {
-    if (observerRef.current) {
-      observerRef.current.disconnect()
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore) {
-          loadMore()
-        }
-      },
-      {
-        rootMargin: '100px',
-        threshold: 0.1
-      }
-    )
-
-    if (sentinelRef.current) {
-      observer.observe(sentinelRef.current)
-    }
-
-    observerRef.current = observer
-
-    return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect()
-      }
-    }
-  }, [sentinelRef, hasMore, isLoadingMore, loading, loadMore])
-
-  useEffect(() => {
-    fetchBrands(1, false)
+    fetchBrands()
   }, [])
 
   useEffect(() => {
-    // Reset to page 1 when search changes
-    fetchBrands(1, false)
+    fetchBrands()
   }, [debouncedSearchTerm])
+
+  const handleSearch = () => {
+    fetchBrands()
+  }
 
   const handleCreateBrand = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -388,7 +326,7 @@ export default function BrandsPage() {
         sortOrder: 0,
       })
       setAddFormErrors({})
-      fetchBrands(1, false)
+      fetchBrands()
     } catch (err: any) {
       console.error('Error creating brand:', err)
       toast({
@@ -469,7 +407,7 @@ export default function BrandsPage() {
 
       setIsEditModalOpen(false)
       setEditFormErrors({})
-      fetchBrands(1, false)
+      fetchBrands()
     } catch (err: any) {
       console.error('Error updating brand:', err)
       toast({
@@ -505,7 +443,7 @@ export default function BrandsPage() {
         description: `Brand ${brand.isActive ? 'deactivated' : 'activated'} successfully`,
       })
 
-      fetchBrands(1, false)
+      fetchBrands()
     } catch (err: any) {
       console.error('Error updating brand:', err)
       toast({
@@ -539,7 +477,7 @@ export default function BrandsPage() {
         description: `Brand ${brand.featured ? 'removed from featured' : 'marked as featured'}`,
       })
 
-      fetchBrands(1, false)
+      fetchBrands()
     } catch (err: any) {
       console.error('Error updating brand:', err)
       toast({
@@ -571,7 +509,7 @@ export default function BrandsPage() {
       })
 
       setDeleteBrandId(null)
-      fetchBrands(1, false)
+      fetchBrands()
     } catch (err: any) {
       console.error('Error deleting brand:', err)
       toast({
@@ -685,16 +623,10 @@ export default function BrandsPage() {
                 className="pl-10"
               />
             </div>
-            <Button variant="outline" onClick={() => fetchBrands(1, false)} disabled={loading}>
+            <Button variant="outline" onClick={fetchBrands} disabled={loading}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             </Button>
           </div>
-          {total > 0 && (
-            <div className="text-xs text-gray-500">
-              Showing {brands.length} of {total} brands
-              {!hasMore && brands.length < total && <span className="ml-2"> (all loaded)</span>}
-            </div>
-          )}
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -707,9 +639,9 @@ export default function BrandsPage() {
               <p className="text-gray-500">No brands found</p>
             </div>
           ) : (
-            <div className="max-h-[600px] overflow-y-auto">
+            <div className="w-full overflow-x-auto -mx-4 px-4">
               <Table>
-                <TableHeader className="sticky top-0 bg-white z-10">
+                <TableHeader>
                   <TableRow className="bg-gray-50 hover:bg-gray-50">
                     <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[220px]">Brand</TableHead>
                     <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[180px]">Slug</TableHead>
@@ -884,25 +816,6 @@ export default function BrandsPage() {
                       </TableCell>
                     </TableRow>
                   ))}
-                </TableBody>
-                {isLoadingMore && (
-                  <TableBody>
-                    <TableRow>
-                      <TableCell colSpan={7}>
-                        <div className="flex items-center justify-center py-4">
-                          <Loader2 className="h-6 w-6 animate-spin text-violet-600" />
-                          <span className="ml-2 text-sm text-gray-500">Loading more brands...</span>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                )}
-                <TableBody>
-                  <TableRow>
-                    <TableCell colSpan={7}>
-                      <div ref={sentinelRef} className="h-4" />
-                    </TableCell>
-                  </TableRow>
                 </TableBody>
               </Table>
             </div>

@@ -4,7 +4,6 @@ import { verifyAdminAuth } from '@/lib/admin-auth';
 import { getEnv } from '@/lib/cloudflare';
 import { brandSchema } from '@/lib/validations';
 import { logAdminAction } from '@/lib/audit-logger';
-import { queryFirst } from '@/db/db';
 
 // GET /api/admin/brands - List all brands
 export async function GET(request: NextRequest) {
@@ -21,68 +20,29 @@ export async function GET(request: NextRequest) {
     const activeOnly = searchParams.get('activeOnly') === 'true';
     const featuredOnly = searchParams.get('featuredOnly') === 'true';
     const includeProductCount = searchParams.get('includeProductCount') === 'true';
-    const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
-    const limit = Math.min(100, Math.max(10, parseInt(searchParams.get('limit') || '20')));
-    const offset = (page - 1) * limit;
+    const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
 
-    // Get total count for pagination
-    let totalCount = 0;
-    if (search) {
-      const searchPattern = `%${search}%`;
-      const countConditions = ['(name LIKE ? OR slug LIKE ?)'];
-      const countParams: any[] = [searchPattern, searchPattern];
-      if (activeOnly) {
-        countConditions.push('isActive = 1');
-      }
-      if (featuredOnly) {
-        countConditions.push('featured = 1');
-      }
-      const countWhere = countConditions.length > 0 ? `WHERE ${countConditions.join(' AND ')}` : '';
-      const countResult = await queryFirst<{ count: number }>(
-        env,
-        `SELECT COUNT(*) as count FROM brands ${countWhere}`,
-        ...countParams
-      );
-      totalCount = countResult?.count || 0;
-    } else {
-      const countConditions: string[] = [];
-      const countParams: any[] = [];
-      if (activeOnly) countConditions.push('isActive = 1');
-      if (featuredOnly) countConditions.push('featured = 1');
-      const countWhere = countConditions.length > 0 ? `WHERE ${countConditions.join(' AND ')}` : '';
-      const countResult = await queryFirst<{ count: number }>(
-        env,
-        `SELECT COUNT(*) as count FROM brands ${countWhere}`,
-        ...countParams
-      );
-      totalCount = countResult?.count || 0;
-    }
-
-    const totalPages = Math.ceil(totalCount / limit);
-
-    let brands: any[] = [];
+    let brands;
 
     if (search) {
-      brands = await BrandRepository.searchPaginated(env, search, activeOnly, featuredOnly, includeProductCount, limit, offset);
+      brands = await BrandRepository.search(env, search, activeOnly);
     } else {
-      brands = await BrandRepository.findAllPaginated(env, {
+      brands = await BrandRepository.findAll(env, {
         activeOnly,
         featuredOnly,
         includeProductCount,
-      }, limit, offset);
+      });
+    }
+
+    // Apply limit if specified
+    if (limit && limit > 0 && brands.length > limit) {
+      brands = brands.slice(0, limit);
     }
 
     return NextResponse.json({
       success: true,
       data: brands,
-      pagination: {
-        page,
-        limit,
-        totalCount,
-        totalPages,
-        hasNextPage: page < totalPages,
-        hasPrevPage: page > 1,
-      },
+      count: brands.length,
     });
   } catch (error) {
     console.error('[Brands API] Error fetching brands:', error);

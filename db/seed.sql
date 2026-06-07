@@ -1,7 +1,9 @@
--- Seed Data for Beauty & Personal Care E-commerce Platform
--- Updated with comprehensive categories and brands (all inactive by default)
+-- Seed Data for SCommerce E-commerce Platform
+-- Run this after schema.sql to populate initial data
+-- Note: Uses camelCase column names to match database schema
 
 -- Clear existing data in correct order (child tables first, then parent tables)
+-- This is needed because INSERT OR REPLACE fails with foreign key constraints
 DELETE FROM order_items;
 DELETE FROM product_reviews;
 DELETE FROM inventory_reservations;
@@ -39,13 +41,13 @@ DELETE FROM users;
 INSERT OR REPLACE INTO site_settings (id, siteName, currency, currencySymbol, taxRate, freeShippingThreshold, baseShippingCost, contactEmail, contactPhone, createdAt, updatedAt)
 VALUES (
   'default-settings',
-  'Beauty & Personal Care',
+  'SCommerce',
   'BDT',
   '৳',
-  0.15,
+  0.18,
   5000,
   150,
-  'info@beautystore.com',
+  'info@scommerce.com',
   '+8801700000000',
   datetime('now'),
   datetime('now')
@@ -55,7 +57,7 @@ VALUES (
 INSERT OR REPLACE INTO users (id, email, name, password, role, emailVerified, createdAt, updatedAt)
 VALUES (
   'admin-001',
-  'admin@beautystore.com',
+  'admin@scommerce.com',
   'Admin User',
   'pbkdf2$100000$245cfd1a81687a32a2c548503b960472c1ca4092a3ca9c059b9f6d047fe70884$19674afc0599cdfe8e9fc3e9ce3d498b02cf29133e4c88f266553bd7c7e5ac7d11f993e5dca14ab2207b5d23a491b935f3b24855a7d21e927b9d222c5b479733',
   'admin',
@@ -68,7 +70,7 @@ VALUES (
 INSERT OR REPLACE INTO users (id, email, name, password, role, emailVerified, phone, createdAt, updatedAt)
 VALUES (
   'user-001',
-  'user@beautystore.com',
+  'user@scommerce.com',
   'Demo User',
   'pbkdf2$100000$3f8b7a2e1c9d4a6f8e2b3c5d7a9e1f4c6b8d0a2e4f6a8b0c2d4e6f8a0b2c4d6$8a7c5d3e1f9b2a4c6d8e0f2a4b6c8d0e2f4a6b8c0d2e4f6a8b0c2d4e6f8a0b2c4',
   'user',
@@ -78,544 +80,242 @@ VALUES (
   datetime('now')
 );
 
--- Insert Categories (Parent and Subcategories) - All INACTIVE by default
-INSERT OR REPLACE INTO categories (id, name, slug, description, parentId, isActive, sortOrder, createdAt, updatedAt) VALUES
-('cat-skincare', 'Skincare', 'skincare', 'Complete range of skincare products', NULL, 0, 1, datetime('now'), datetime('now')),
-('cat-makeup', 'Makeup', 'makeup', 'Complete range of makeup products', NULL, 0, 2, datetime('now'), datetime('now')),
-('cat-hair-care', 'Hair Care', 'hair-care', 'Complete range of hair care products', NULL, 0, 3, datetime('now'), datetime('now')),
-('cat-body-care', 'Body Care', 'body-care', 'Complete range of body care products', NULL, 0, 4, datetime('now'), datetime('now')),
-('cat-personal-care', 'Personal Care', 'personal-care', 'Personal care products for daily hygiene and wellness', NULL, 0, 5, datetime('now'), datetime('now')),
-('cat-baby-care', 'Baby Care', 'baby-care', 'Complete range of baby care products', NULL, 0, 6, datetime('now'), datetime('now')),
-('cat-mom-care', 'Mom Care', 'mom-care', 'Complete range of mom care products', NULL, 0, 7, datetime('now'), datetime('now')),
-('cat-beauty-tools', 'Beauty Tools', 'beauty-tools', 'Beauty tools and accessories for makeup application', NULL, 0, 8, datetime('now'), datetime('now')),
-('cat-oral-care', 'Oral Care', 'oral-care', 'Oral care products for healthy teeth and gums', NULL, 0, 9, datetime('now'), datetime('now')),
-('cat-bath-shower', 'Bath & Shower', 'bath-shower', 'Bath and shower products for a relaxing experience', NULL, 0, 10, datetime('now'), datetime('now')),
-('cat-sun-care', 'Sun Care', 'sun-care', 'Sun protection products for all skin types', NULL, 0, 11, datetime('now'), datetime('now')),
-('cat-home-care', 'Home Care', 'home-care', 'Home care products for a clean and healthy environment', NULL, 0, 12, datetime('now'), datetime('now')),
-('cat-k-beauty', 'K-Beauty', 'k-beauty', 'Korean beauty products and skincare essentials', NULL, 0, 13, datetime('now'), datetime('now')),
-('cat-face-wash', 'Face Wash', 'face-wash', 'Premium face wash products', 'cat-skincare', 0, 1, datetime('now'), datetime('now')),
-('cat-cleanser', 'Cleanser', 'cleanser', 'Premium cleanser products', 'cat-skincare', 0, 2, datetime('now'), datetime('now')),
-('cat-cleansing-oil', 'Cleansing Oil', 'cleansing-oil', 'Premium cleansing oil products', 'cat-skincare', 0, 3, datetime('now'), datetime('now')),
-('cat-cleansing-balm', 'Cleansing Balm', 'cleansing-balm', 'Premium cleansing balm products', 'cat-skincare', 0, 4, datetime('now'), datetime('now')),
-('cat-micellar-water', 'Micellar Water', 'micellar-water', 'Premium micellar water products', 'cat-skincare', 0, 5, datetime('now'), datetime('now')),
-('cat-toner', 'Toner', 'toner', 'Premium toner products', 'cat-skincare', 0, 6, datetime('now'), datetime('now')),
-('cat-toner-pads', 'Toner Pads', 'toner-pads', 'Premium toner pads products', 'cat-skincare', 0, 7, datetime('now'), datetime('now')),
-('cat-essence', 'Essence', 'essence', 'Premium essence products', 'cat-skincare', 0, 8, datetime('now'), datetime('now')),
-('cat-ampoule', 'Ampoule', 'ampoule', 'Premium ampoule products', 'cat-skincare', 0, 9, datetime('now'), datetime('now')),
-('cat-serum', 'Serum', 'serum', 'Premium serum products', 'cat-skincare', 0, 10, datetime('now'), datetime('now')),
-('cat-face-oil', 'Face Oil', 'face-oil', 'Premium face oil products', 'cat-skincare', 0, 11, datetime('now'), datetime('now')),
-('cat-moisturizer', 'Moisturizer', 'moisturizer', 'Premium moisturizer products', 'cat-skincare', 0, 12, datetime('now'), datetime('now')),
-('cat-day-cream', 'Day Cream', 'day-cream', 'Premium day cream products', 'cat-skincare', 0, 13, datetime('now'), datetime('now')),
-('cat-night-cream', 'Night Cream', 'night-cream', 'Premium night cream products', 'cat-skincare', 0, 14, datetime('now'), datetime('now')),
-('cat-day-night-cream', 'Day & Night Cream', 'day-night-cream', 'Premium day & night cream products', 'cat-skincare', 0, 15, datetime('now'), datetime('now')),
-('cat-gel-cream', 'Gel Cream', 'gel-cream', 'Premium gel cream products', 'cat-skincare', 0, 16, datetime('now'), datetime('now')),
-('cat-sleeping-mask', 'Sleeping Mask', 'sleeping-mask', 'Premium sleeping mask products', 'cat-skincare', 0, 17, datetime('now'), datetime('now')),
-('cat-sheet-mask', 'Sheet Mask', 'sheet-mask', 'Premium sheet mask products', 'cat-skincare', 0, 18, datetime('now'), datetime('now')),
-('cat-clay-mask', 'Clay Mask', 'clay-mask', 'Premium clay mask products', 'cat-skincare', 0, 19, datetime('now'), datetime('now')),
-('cat-wash-off-mask', 'Wash Off Mask', 'wash-off-mask', 'Premium wash off mask products', 'cat-skincare', 0, 20, datetime('now'), datetime('now')),
-('cat-face-pack', 'Face Pack', 'face-pack', 'Premium face pack products', 'cat-skincare', 0, 21, datetime('now'), datetime('now')),
-('cat-face-scrub', 'Face Scrub', 'face-scrub', 'Premium face scrub products', 'cat-skincare', 0, 22, datetime('now'), datetime('now')),
-('cat-exfoliator', 'Exfoliator', 'exfoliator', 'Premium exfoliator products', 'cat-skincare', 0, 23, datetime('now'), datetime('now')),
-('cat-peeling-solution', 'Peeling Solution', 'peeling-solution', 'Premium peeling solution products', 'cat-skincare', 0, 24, datetime('now'), datetime('now')),
-('cat-eye-cream', 'Eye Cream', 'eye-cream', 'Premium eye cream products', 'cat-skincare', 0, 25, datetime('now'), datetime('now')),
-('cat-eye-gel', 'Eye Gel', 'eye-gel', 'Premium eye gel products', 'cat-skincare', 0, 26, datetime('now'), datetime('now')),
-('cat-eye-patch', 'Eye Patch', 'eye-patch', 'Premium eye patch products', 'cat-skincare', 0, 27, datetime('now'), datetime('now')),
-('cat-lip-balm', 'Lip Balm', 'lip-balm', 'Premium lip balm products', 'cat-skincare', 0, 28, datetime('now'), datetime('now')),
-('cat-lip-oil', 'Lip Oil', 'lip-oil', 'Premium lip oil products', 'cat-skincare', 0, 29, datetime('now'), datetime('now')),
-('cat-lip-mask', 'Lip Mask', 'lip-mask', 'Premium lip mask products', 'cat-skincare', 0, 30, datetime('now'), datetime('now')),
-('cat-lip-scrub', 'Lip Scrub', 'lip-scrub', 'Premium lip scrub products', 'cat-skincare', 0, 31, datetime('now'), datetime('now')),
-('cat-sunscreen', 'Sunscreen', 'sunscreen', 'Premium sunscreen products', 'cat-skincare', 0, 32, datetime('now'), datetime('now')),
-('cat-sun-stick', 'Sun Stick', 'sun-stick', 'Premium sun stick products', 'cat-skincare', 0, 33, datetime('now'), datetime('now')),
-('cat-facial-wipes', 'Facial Wipes', 'facial-wipes', 'Premium facial wipes products', 'cat-skincare', 0, 34, datetime('now'), datetime('now')),
-('cat-pimple-patches', 'Pimple Patches', 'pimple-patches', 'Premium pimple patches products', 'cat-skincare', 0, 35, datetime('now'), datetime('now')),
-('cat-blemish-treatment', 'Blemish Treatment', 'blemish-treatment', 'Premium blemish treatment products', 'cat-skincare', 0, 36, datetime('now'), datetime('now')),
-('cat-spot-treatment', 'Spot Treatment', 'spot-treatment', 'Premium spot treatment products', 'cat-skincare', 0, 37, datetime('now'), datetime('now')),
-('cat-facial-kit', 'Facial Kit', 'facial-kit', 'Premium facial kit products', 'cat-skincare', 0, 38, datetime('now'), datetime('now')),
-('cat-makeup-remover', 'Makeup Remover', 'makeup-remover', 'Premium makeup remover products', 'cat-skincare', 0, 39, datetime('now'), datetime('now')),
-('cat-primer', 'Primer', 'primer', 'Premium primer products', 'cat-makeup', 0, 40, datetime('now'), datetime('now')),
-('cat-foundation', 'Foundation', 'foundation', 'Premium foundation products', 'cat-makeup', 0, 41, datetime('now'), datetime('now')),
-('cat-bb-cream', 'BB Cream', 'bb-cream', 'Premium bb cream products', 'cat-makeup', 0, 42, datetime('now'), datetime('now')),
-('cat-cc-cream', 'CC Cream', 'cc-cream', 'Premium cc cream products', 'cat-makeup', 0, 43, datetime('now'), datetime('now')),
-('cat-concealer', 'Concealer', 'concealer', 'Premium concealer products', 'cat-makeup', 0, 44, datetime('now'), datetime('now')),
-('cat-color-corrector', 'Color Corrector', 'color-corrector', 'Premium color corrector products', 'cat-makeup', 0, 45, datetime('now'), datetime('now')),
-('cat-compact-powder', 'Compact Powder', 'compact-powder', 'Premium compact powder products', 'cat-makeup', 0, 46, datetime('now'), datetime('now')),
-('cat-pressed-powder', 'Pressed Powder', 'pressed-powder', 'Premium pressed powder products', 'cat-makeup', 0, 47, datetime('now'), datetime('now')),
-('cat-loose-powder', 'Loose Powder', 'loose-powder', 'Premium loose powder products', 'cat-makeup', 0, 48, datetime('now'), datetime('now')),
-('cat-setting-powder', 'Setting Powder', 'setting-powder', 'Premium setting powder products', 'cat-makeup', 0, 49, datetime('now'), datetime('now')),
-('cat-setting-spray', 'Setting Spray', 'setting-spray', 'Premium setting spray products', 'cat-makeup', 0, 50, datetime('now'), datetime('now')),
-('cat-blush', 'Blush', 'blush', 'Premium blush products', 'cat-makeup', 0, 51, datetime('now'), datetime('now')),
-('cat-bronzer', 'Bronzer', 'bronzer', 'Premium bronzer products', 'cat-makeup', 0, 52, datetime('now'), datetime('now')),
-('cat-contour', 'Contour', 'contour', 'Premium contour products', 'cat-makeup', 0, 53, datetime('now'), datetime('now')),
-('cat-highlighter', 'Highlighter', 'highlighter', 'Premium highlighter products', 'cat-makeup', 0, 54, datetime('now'), datetime('now')),
-('cat-face-palette', 'Face Palette', 'face-palette', 'Premium face palette products', 'cat-makeup', 0, 55, datetime('now'), datetime('now')),
-('cat-eyeshadow', 'Eyeshadow', 'eyeshadow', 'Premium eyeshadow products', 'cat-makeup', 0, 56, datetime('now'), datetime('now')),
-('cat-eye-primer', 'Eye Primer', 'eye-primer', 'Premium eye primer products', 'cat-makeup', 0, 57, datetime('now'), datetime('now')),
-('cat-mascara', 'Mascara', 'mascara', 'Premium mascara products', 'cat-makeup', 0, 58, datetime('now'), datetime('now')),
-('cat-eyeliner', 'Eyeliner', 'eyeliner', 'Premium eyeliner products', 'cat-makeup', 0, 59, datetime('now'), datetime('now')),
-('cat-kajal', 'Kajal', 'kajal', 'Premium kajal products', 'cat-makeup', 0, 60, datetime('now'), datetime('now')),
-('cat-eyebrow-pencil', 'Eyebrow Pencil', 'eyebrow-pencil', 'Premium eyebrow pencil products', 'cat-makeup', 0, 61, datetime('now'), datetime('now')),
-('cat-eyebrow-gel', 'Eyebrow Gel', 'eyebrow-gel', 'Premium eyebrow gel products', 'cat-makeup', 0, 62, datetime('now'), datetime('now')),
-('cat-eyebrow-powder', 'Eyebrow Powder', 'eyebrow-powder', 'Premium eyebrow powder products', 'cat-makeup', 0, 63, datetime('now'), datetime('now')),
-('cat-false-eyelashes', 'False Eyelashes', 'false-eyelashes', 'Premium false eyelashes products', 'cat-makeup', 0, 64, datetime('now'), datetime('now')),
-('cat-lipstick', 'Lipstick', 'lipstick', 'Premium lipstick products', 'cat-makeup', 0, 65, datetime('now'), datetime('now')),
-('cat-liquid-lipstick', 'Liquid Lipstick', 'liquid-lipstick', 'Premium liquid lipstick products', 'cat-makeup', 0, 66, datetime('now'), datetime('now')),
-('cat-lip-tint', 'Lip Tint', 'lip-tint', 'Premium lip tint products', 'cat-makeup', 0, 67, datetime('now'), datetime('now')),
-('cat-lip-gloss', 'Lip Gloss', 'lip-gloss', 'Premium lip gloss products', 'cat-makeup', 0, 68, datetime('now'), datetime('now')),
-('cat-lip-liner', 'Lip Liner', 'lip-liner', 'Premium lip liner products', 'cat-makeup', 0, 69, datetime('now'), datetime('now')),
-('cat-lip-crayon', 'Lip Crayon', 'lip-crayon', 'Premium lip crayon products', 'cat-makeup', 0, 70, datetime('now'), datetime('now')),
-('cat-lip-plumper', 'Lip Plumper', 'lip-plumper', 'Premium lip plumper products', 'cat-makeup', 0, 71, datetime('now'), datetime('now')),
-('cat-nail-polish', 'Nail Polish', 'nail-polish', 'Premium nail polish products', 'cat-makeup', 0, 72, datetime('now'), datetime('now')),
-('cat-nail-care', 'Nail Care', 'nail-care', 'Premium nail care products', 'cat-makeup', 0, 73, datetime('now'), datetime('now')),
-('cat-nail-polish-remover', 'Nail Polish Remover', 'nail-polish-remover', 'Premium nail polish remover products', 'cat-makeup', 0, 74, datetime('now'), datetime('now')),
-('cat-shampoo', 'Shampoo', 'shampoo', 'Premium shampoo products', 'cat-hair-care', 0, 75, datetime('now'), datetime('now')),
-('cat-conditioner', 'Conditioner', 'conditioner', 'Premium conditioner products', 'cat-hair-care', 0, 76, datetime('now'), datetime('now')),
-('cat-hair-oil', 'Hair Oil', 'hair-oil', 'Premium hair oil products', 'cat-hair-care', 0, 77, datetime('now'), datetime('now')),
-('cat-hair-serum', 'Hair Serum', 'hair-serum', 'Premium hair serum products', 'cat-hair-care', 0, 78, datetime('now'), datetime('now')),
-('cat-hair-mask', 'Hair Mask', 'hair-mask', 'Premium hair mask products', 'cat-hair-care', 0, 79, datetime('now'), datetime('now')),
-('cat-hair-cream', 'Hair Cream', 'hair-cream', 'Premium hair cream products', 'cat-hair-care', 0, 80, datetime('now'), datetime('now')),
-('cat-scalp-treatment', 'Scalp Treatment', 'scalp-treatment', 'Premium scalp treatment products', 'cat-hair-care', 0, 81, datetime('now'), datetime('now')),
-('cat-hair-tonic', 'Hair Tonic', 'hair-tonic', 'Premium hair tonic products', 'cat-hair-care', 0, 82, datetime('now'), datetime('now')),
-('cat-hair-color', 'Hair Color', 'hair-color', 'Premium hair color products', 'cat-hair-care', 0, 83, datetime('now'), datetime('now')),
-('cat-hair-styling-gel', 'Hair Styling Gel', 'hair-styling-gel', 'Premium hair styling gel products', 'cat-hair-care', 0, 84, datetime('now'), datetime('now')),
-('cat-hair-wax', 'Hair Wax', 'hair-wax', 'Premium hair wax products', 'cat-hair-care', 0, 85, datetime('now'), datetime('now')),
-('cat-hair-spray', 'Hair Spray', 'hair-spray', 'Premium hair spray products', 'cat-hair-care', 0, 86, datetime('now'), datetime('now')),
-('cat-hair-mousse', 'Hair Mousse', 'hair-mousse', 'Premium hair mousse products', 'cat-hair-care', 0, 87, datetime('now'), datetime('now')),
-('cat-heat-protectant', 'Heat Protectant', 'heat-protectant', 'Premium heat protectant products', 'cat-hair-care', 0, 88, datetime('now'), datetime('now')),
-('cat-hair-growth-treatment', 'Hair Growth Treatment', 'hair-growth-treatment', 'Premium hair growth treatment products', 'cat-hair-care', 0, 89, datetime('now'), datetime('now')),
-('cat-dandruff-treatment', 'Dandruff Treatment', 'dandruff-treatment', 'Premium dandruff treatment products', 'cat-hair-care', 0, 90, datetime('now'), datetime('now')),
-('cat-body-wash', 'Body Wash', 'body-wash', 'Premium body wash products', 'cat-body-care', 0, 91, datetime('now'), datetime('now')),
-('cat-shower-gel', 'Shower Gel', 'shower-gel', 'Premium shower gel products', 'cat-body-care', 0, 92, datetime('now'), datetime('now')),
-('cat-soap', 'Soap', 'soap', 'Premium soap products', 'cat-body-care', 0, 93, datetime('now'), datetime('now')),
-('cat-body-scrub', 'Body Scrub', 'body-scrub', 'Premium body scrub products', 'cat-body-care', 0, 94, datetime('now'), datetime('now')),
-('cat-body-lotion', 'Body Lotion', 'body-lotion', 'Premium body lotion products', 'cat-body-care', 0, 95, datetime('now'), datetime('now')),
-('cat-body-cream', 'Body Cream', 'body-cream', 'Premium body cream products', 'cat-body-care', 0, 96, datetime('now'), datetime('now')),
-('cat-body-butter', 'Body Butter', 'body-butter', 'Premium body butter products', 'cat-body-care', 0, 97, datetime('now'), datetime('now')),
-('cat-body-oil', 'Body Oil', 'body-oil', 'Premium body oil products', 'cat-body-care', 0, 98, datetime('now'), datetime('now')),
-('cat-body-mist', 'Body Mist', 'body-mist', 'Premium body mist products', 'cat-body-care', 0, 99, datetime('now'), datetime('now')),
-('cat-deodorant', 'Deodorant', 'deodorant', 'Premium deodorant products', 'cat-body-care', 0, 100, datetime('now'), datetime('now')),
-('cat-roll-on', 'Roll On', 'roll-on', 'Premium roll on products', 'cat-body-care', 0, 101, datetime('now'), datetime('now')),
-('cat-talcum-powder', 'Talcum Powder', 'talcum-powder', 'Premium talcum powder products', 'cat-body-care', 0, 102, datetime('now'), datetime('now')),
-('cat-hand-cream', 'Hand Cream', 'hand-cream', 'Premium hand cream products', 'cat-body-care', 0, 103, datetime('now'), datetime('now')),
-('cat-foot-cream', 'Foot Cream', 'foot-cream', 'Premium foot cream products', 'cat-body-care', 0, 104, datetime('now'), datetime('now')),
-('cat-hand-wash', 'Hand Wash', 'hand-wash', 'Premium hand wash products', 'cat-body-care', 0, 105, datetime('now'), datetime('now')),
-('cat-hand-sanitizer', 'Hand Sanitizer', 'hand-sanitizer', 'Premium hand sanitizer products', 'cat-body-care', 0, 106, datetime('now'), datetime('now')),
-('cat-intimate-wash', 'Intimate Wash', 'intimate-wash', 'Premium intimate wash products', 'cat-body-care', 0, 107, datetime('now'), datetime('now')),
-('cat-stretch-mark-cream', 'Stretch Mark Cream', 'stretch-mark-cream', 'Premium stretch mark cream products', 'cat-body-care', 0, 108, datetime('now'), datetime('now')),
-('cat-baby-lotion', 'Baby Lotion', 'baby-lotion', 'Premium baby lotion products', 'cat-baby-care', 0, 109, datetime('now'), datetime('now')),
-('cat-baby-cream', 'Baby Cream', 'baby-cream', 'Premium baby cream products', 'cat-baby-care', 0, 110, datetime('now'), datetime('now')),
-('cat-baby-moisturizer', 'Baby Moisturizer', 'baby-moisturizer', 'Premium baby moisturizer products', 'cat-baby-care', 0, 111, datetime('now'), datetime('now')),
-('cat-baby-sunscreen', 'Baby Sunscreen', 'baby-sunscreen', 'Premium baby sunscreen products', 'cat-baby-care', 0, 112, datetime('now'), datetime('now')),
-('cat-baby-oil', 'Baby Oil', 'baby-oil', 'Premium baby oil products', 'cat-baby-care', 0, 113, datetime('now'), datetime('now')),
-('cat-baby-powder', 'Baby Powder', 'baby-powder', 'Premium baby powder products', 'cat-baby-care', 0, 114, datetime('now'), datetime('now')),
-('cat-baby-shampoo', 'Baby Shampoo', 'baby-shampoo', 'Premium baby shampoo products', 'cat-baby-care', 0, 115, datetime('now'), datetime('now')),
-('cat-baby-wash', 'Baby Wash', 'baby-wash', 'Premium baby wash products', 'cat-baby-care', 0, 116, datetime('now'), datetime('now')),
-('cat-baby-soap', 'Baby Soap', 'baby-soap', 'Premium baby soap products', 'cat-baby-care', 0, 117, datetime('now'), datetime('now')),
-('cat-baby-wipes', 'Baby Wipes', 'baby-wipes', 'Premium baby wipes products', 'cat-baby-care', 0, 118, datetime('now'), datetime('now')),
-('cat-diaper-rash-cream', 'Diaper Rash Cream', 'diaper-rash-cream', 'Premium diaper rash cream products', 'cat-baby-care', 0, 119, datetime('now'), datetime('now')),
-('cat-baby-lip-balm', 'Baby Lip Balm', 'baby-lip-balm', 'Premium baby lip balm products', 'cat-baby-care', 0, 120, datetime('now'), datetime('now')),
-('cat-baby-toothpaste', 'Baby Toothpaste', 'baby-toothpaste', 'Premium baby toothpaste products', 'cat-baby-care', 0, 121, datetime('now'), datetime('now')),
-('cat-baby-toothbrush', 'Baby Toothbrush', 'baby-toothbrush', 'Premium baby toothbrush products', 'cat-baby-care', 0, 122, datetime('now'), datetime('now')),
-('cat-mosquito-repellent', 'Mosquito Repellent', 'mosquito-repellent', 'Premium mosquito repellent products', 'cat-baby-care', 0, 123, datetime('now'), datetime('now')),
-('cat-baby-food', 'Baby Food', 'baby-food', 'Premium baby food products', 'cat-baby-care', 0, 124, datetime('now'), datetime('now')),
-('cat-baby-formula', 'Baby Formula', 'baby-formula', 'Premium baby formula products', 'cat-baby-care', 0, 125, datetime('now'), datetime('now')),
-('cat-baby-diaper', 'Baby Diaper', 'baby-diaper', 'Premium baby diaper products', 'cat-baby-care', 0, 126, datetime('now'), datetime('now')),
-('cat-feeding-bottle', 'Feeding Bottle', 'feeding-bottle', 'Premium feeding bottle products', 'cat-baby-care', 0, 127, datetime('now'), datetime('now')),
-('cat-feeding-nipple', 'Feeding Nipple', 'feeding-nipple', 'Premium feeding nipple products', 'cat-baby-care', 0, 128, datetime('now'), datetime('now')),
-('cat-bottle-cleaner', 'Bottle Cleaner', 'bottle-cleaner', 'Premium bottle cleaner products', 'cat-baby-care', 0, 129, datetime('now'), datetime('now')),
-('cat-bottle-brush', 'Bottle Brush', 'bottle-brush', 'Premium bottle brush products', 'cat-baby-care', 0, 130, datetime('now'), datetime('now')),
-('cat-bottle-warmer', 'Bottle Warmer', 'bottle-warmer', 'Premium bottle warmer products', 'cat-baby-care', 0, 131, datetime('now'), datetime('now')),
-('cat-maternity-care', 'Maternity Care', 'maternity-care', 'Premium maternity care products', 'cat-mom-care', 0, 132, datetime('now'), datetime('now')),
-('cat-breast-care', 'Breast Care', 'breast-care', 'Premium breast care products', 'cat-mom-care', 0, 133, datetime('now'), datetime('now')),
-('cat-nipple-cream', 'Nipple Cream', 'nipple-cream', 'Premium nipple cream products', 'cat-mom-care', 0, 134, datetime('now'), datetime('now')),
-('cat-stretch-mark-care', 'Stretch Mark Care', 'stretch-mark-care', 'Premium stretch mark care products', 'cat-mom-care', 0, 135, datetime('now'), datetime('now')),
-('cat-postpartum-care', 'Postpartum Care', 'postpartum-care', 'Premium postpartum care products', 'cat-mom-care', 0, 136, datetime('now'), datetime('now')),
-('cat-feminine-wash', 'Feminine Wash', 'feminine-wash', 'Premium feminine wash products', 'cat-mom-care', 0, 137, datetime('now'), datetime('now')),
-('cat-sanitary-napkin', 'Sanitary Napkin', 'sanitary-napkin', 'Premium sanitary napkin products', 'cat-mom-care', 0, 138, datetime('now'), datetime('now')),
-('cat-panty-liners', 'Panty Liners', 'panty-liners', 'Premium panty liners products', 'cat-mom-care', 0, 139, datetime('now'), datetime('now'))
-;
+-- Insert Categories
+INSERT OR REPLACE INTO categories (id, name, slug, description, isActive, sortOrder, createdAt, updatedAt) VALUES
+('cat-saree', 'Sarees', 'saree', 'Beautiful traditional sarees for every occasion', 1, 1, datetime('now'), datetime('now')),
+('cat-salwar', 'Salwar Suits', 'salwar', 'Elegant salwar suits for modern women', 1, 2, datetime('now'), datetime('now')),
+('cat-lehengas', 'Lehengas', 'lehengas', 'Stunning lehengas for special occasions', 1, 3, datetime('now'), datetime('now')),
+('cat-kurtas', 'Kurtas', 'kurtas', 'Comfortable and stylish kurtas', 1, 4, datetime('now'), datetime('now')),
+('cat-menswear', 'Menswear', 'menswear', 'Trendy menswear collection', 1, 5, datetime('now'), datetime('now')),
+('cat-gowns', 'Gowns', 'gowns', 'Elegant gowns for formal events', 1, 6, datetime('now'), datetime('now')),
+('cat-tops', 'Tops', 'tops', 'Casual and formal tops', 1, 7, datetime('now'), datetime('now')),
+('cat-accessories', 'Accessories', 'accessories', 'Fashion accessories to complete your look', 1, 8, datetime('now'), datetime('now'));
 
--- Insert Brands (all INACTIVE by default) - Removed local brands from Bangladesh
+-- Insert Brands
 INSERT OR REPLACE INTO brands (id, name, slug, logo, description, country, isActive, featured, sortOrder, createdAt, updatedAt) VALUES
-('brand-001', '3W Clinic', '3w-clinic', NULL, '3W Clinic beauty products', NULL, 0, 0, 1, datetime('now'), datetime('now')),
-('brand-003', 'Abib', 'abib', NULL, 'Abib beauty products', NULL, 0, 0, 2, datetime('now'), datetime('now')),
-('brand-004', 'Absolute New York', 'absolute-new-york', NULL, 'Absolute New York beauty products', NULL, 0, 0, 3, datetime('now'), datetime('now')),
-('brand-005', 'Acwell', 'acwell', NULL, 'Acwell beauty products', NULL, 0, 0, 4, datetime('now'), datetime('now')),
-('brand-006', 'Adidas', 'adidas', NULL, 'Adidas beauty products', NULL, 0, 0, 5, datetime('now'), datetime('now')),
-('brand-007', 'Aestura', 'aestura', NULL, 'Aestura beauty products', NULL, 0, 0, 6, datetime('now'), datetime('now')),
-('brand-008', 'Alberto Balsam', 'alberto-balsam', NULL, 'Alberto Balsam beauty products', NULL, 0, 0, 7, datetime('now'), datetime('now')),
-('brand-009', 'Alfredo Feemas', 'alfredo-feemas', NULL, 'Alfredo Feemas beauty products', NULL, 0, 0, 8, datetime('now'), datetime('now')),
-('brand-010', 'Alix Avien', 'alix-avien', NULL, 'Alix Avien beauty products', NULL, 0, 0, 9, datetime('now'), datetime('now')),
-('brand-011', 'Alpecin', 'alpecin', NULL, 'Alpecin beauty products', NULL, 0, 0, 10, datetime('now'), datetime('now')),
-('brand-013', 'Anovia', 'anovia', NULL, 'Anovia beauty products', NULL, 0, 0, 11, datetime('now'), datetime('now')),
-('brand-014', 'Anua', 'anua', NULL, 'Anua beauty products', NULL, 0, 0, 12, datetime('now'), datetime('now')),
-('brand-015', 'APLB', 'aplb', NULL, 'APLB beauty products', NULL, 0, 0, 13, datetime('now'), datetime('now')),
-('brand-016', 'Aquafresh', 'aquafresh', NULL, 'Aquafresh beauty products', NULL, 0, 0, 14, datetime('now'), datetime('now')),
-('brand-017', 'Aquaphor', 'aquaphor', NULL, 'Aquaphor beauty products', NULL, 0, 0, 15, datetime('now'), datetime('now')),
-('brand-018', 'Aqualogica', 'aqualogica', NULL, 'Aqualogica beauty products', NULL, 0, 0, 16, datetime('now'), datetime('now')),
-('brand-019', 'Arencia', 'arencia', NULL, 'Arencia beauty products', NULL, 0, 0, 17, datetime('now'), datetime('now')),
-('brand-020', 'Aromatica', 'aromatica', NULL, 'Aromatica beauty products', NULL, 0, 0, 18, datetime('now'), datetime('now')),
-('brand-021', 'aromer.', 'aromer', NULL, 'aromer. beauty products', NULL, 0, 0, 19, datetime('now'), datetime('now')),
-('brand-022', 'ASDA', 'asda', NULL, 'ASDA beauty products', NULL, 0, 0, 20, datetime('now'), datetime('now')),
-('brand-023', 'Aveeno', 'aveeno', NULL, 'Aveeno beauty products', NULL, 0, 0, 21, datetime('now'), datetime('now')),
-('brand-024', 'Avene', 'avene', NULL, 'Avene beauty products', NULL, 0, 0, 22, datetime('now'), datetime('now')),
-('brand-025', 'Avent', 'avent', NULL, 'Avent beauty products', NULL, 0, 0, 23, datetime('now'), datetime('now')),
-('brand-026', 'AXIS-Y', 'axis-y', NULL, 'AXIS-Y beauty products', NULL, 0, 0, 24, datetime('now'), datetime('now')),
-('brand-027', 'B.Tech', 'btech', NULL, 'B.Tech beauty products', NULL, 0, 0, 25, datetime('now'), datetime('now')),
-('brand-028', 'Babi Mild', 'babi-mild', NULL, 'Babi Mild beauty products', NULL, 0, 0, 26, datetime('now'), datetime('now')),
-('brand-029', 'Babe Laboratorios', 'babe-laboratorios', NULL, 'Babe Laboratorios beauty products', NULL, 0, 0, 27, datetime('now'), datetime('now')),
-('brand-031', 'Bajaj', 'bajaj', NULL, 'Bajaj beauty products', NULL, 0, 0, 28, datetime('now'), datetime('now')),
-('brand-032', 'Baby Dove', 'baby-dove', NULL, 'Baby Dove beauty products', NULL, 0, 0, 29, datetime('now'), datetime('now')),
-('brand-033', 'Baby Soft', 'baby-soft', NULL, 'Baby Soft beauty products', NULL, 0, 0, 30, datetime('now'), datetime('now')),
-('brand-034', 'Banila Co', 'banila-co', NULL, 'Banila Co beauty products', NULL, 0, 0, 31, datetime('now'), datetime('now')),
-('brand-035', 'Barbie', 'barbie', NULL, 'Barbie beauty products', NULL, 0, 0, 32, datetime('now'), datetime('now')),
-('brand-036', 'Bea You', 'bea-you', NULL, 'Bea You beauty products', NULL, 0, 0, 33, datetime('now'), datetime('now')),
-('brand-037', 'Beaute', 'beaute', NULL, 'Beaute beauty products', NULL, 0, 0, 34, datetime('now'), datetime('now')),
-('brand-038', 'Beaumyr', 'beaumyr', NULL, 'Beaumyr beauty products', NULL, 0, 0, 35, datetime('now'), datetime('now')),
-('brand-039', 'Beboy', 'beboy', NULL, 'Beboy beauty products', NULL, 0, 0, 36, datetime('now'), datetime('now')),
-('brand-040', 'Bee My Rose', 'bee-my-rose', NULL, 'Bee My Rose beauty products', NULL, 0, 0, 37, datetime('now'), datetime('now')),
-('brand-041', 'Bellavita', 'bellavita', NULL, 'Bellavita beauty products', NULL, 0, 0, 38, datetime('now'), datetime('now')),
-('brand-042', 'Bellflower', 'bellflower', NULL, 'Bellflower beauty products', NULL, 0, 0, 39, datetime('now'), datetime('now')),
-('brand-043', 'Benefit', 'benefit', NULL, 'Benefit beauty products', NULL, 0, 0, 40, datetime('now'), datetime('now')),
-('brand-044', 'Beauti4me', 'beauti4me', NULL, 'Beauti4me beauty products', NULL, 0, 0, 41, datetime('now'), datetime('now')),
-('brand-045', 'Beauty Care', 'beauty-care', NULL, 'Beauty Care beauty products', NULL, 0, 0, 42, datetime('now'), datetime('now')),
-('brand-046', 'Beauty Formulas', 'beauty-formulas', NULL, 'Beauty Formulas beauty products', NULL, 0, 0, 43, datetime('now'), datetime('now')),
-('brand-047', 'Beauty Glazed', 'beauty-glazed', NULL, 'Beauty Glazed beauty products', NULL, 0, 0, 44, datetime('now'), datetime('now')),
-('brand-048', 'Beauty of Joseon', 'beauty-of-joseon', NULL, 'Beauty of Joseon beauty products', NULL, 0, 0, 45, datetime('now'), datetime('now')),
-('brand-049', 'Bing', 'bing', NULL, 'Bing beauty products', NULL, 0, 0, 46, datetime('now'), datetime('now')),
-('brand-050', 'BioAqua', 'bioaqua', NULL, 'BioAqua beauty products', NULL, 0, 0, 47, datetime('now'), datetime('now')),
-('brand-051', 'Bioderma', 'bioderma', NULL, 'Bioderma beauty products', NULL, 0, 0, 48, datetime('now'), datetime('now')),
-('brand-052', 'Biotique', 'biotique', NULL, 'Biotique beauty products', NULL, 0, 0, 49, datetime('now'), datetime('now')),
-('brand-053', 'BOB', 'bob', NULL, 'BOB beauty products', NULL, 0, 0, 50, datetime('now'), datetime('now')),
-('brand-054', 'BOOM DE AH DAH', 'boom-de-ah-dah', NULL, 'BOOM DE AH DAH beauty products', NULL, 0, 0, 51, datetime('now'), datetime('now')),
-('brand-055', 'Boots', 'boots', NULL, 'Boots beauty products', NULL, 0, 0, 52, datetime('now'), datetime('now')),
-('brand-056', 'BSB Square', 'bsb-square', NULL, 'BSB Square beauty products', NULL, 0, 0, 53, datetime('now'), datetime('now')),
-('brand-057', 'Calvin Klein', 'calvin-klein', NULL, 'Calvin Klein beauty products', NULL, 0, 0, 54, datetime('now'), datetime('now')),
-('brand-058', 'Care:nel', 'carenel', NULL, 'Care:nel beauty products', NULL, 0, 0, 55, datetime('now'), datetime('now')),
-('brand-059', 'Caring Hair Expert', 'caring-hair-expert', NULL, 'Caring Hair Expert beauty products', NULL, 0, 0, 56, datetime('now'), datetime('now')),
-('brand-060', 'Cathy Doll', 'cathy-doll', NULL, 'Cathy Doll beauty products', NULL, 0, 0, 57, datetime('now'), datetime('now')),
-('brand-061', 'Cavotin', 'cavotin', NULL, 'Cavotin beauty products', NULL, 0, 0, 58, datetime('now'), datetime('now')),
-('brand-062', 'Celimax', 'celimax', NULL, 'Celimax beauty products', NULL, 0, 0, 59, datetime('now'), datetime('now')),
-('brand-063', 'CeraVe', 'cerave', NULL, 'CeraVe beauty products', NULL, 0, 0, 60, datetime('now'), datetime('now')),
-('brand-064', 'Cetaphil', 'cetaphil', NULL, 'Cetaphil beauty products', NULL, 0, 0, 61, datetime('now'), datetime('now')),
-('brand-065', 'Chemist at Play', 'chemist-at-play', NULL, 'Chemist at Play beauty products', NULL, 0, 0, 62, datetime('now'), datetime('now')),
-('brand-066', 'Chik', 'chik', NULL, 'Chik beauty products', NULL, 0, 0, 63, datetime('now'), datetime('now')),
-('brand-067', 'Christian Dean', 'christian-dean', NULL, 'Christian Dean beauty products', NULL, 0, 0, 64, datetime('now'), datetime('now')),
-('brand-068', 'Claraline', 'claraline', NULL, 'Claraline beauty products', NULL, 0, 0, 65, datetime('now'), datetime('now')),
-('brand-069', 'Clariss', 'clariss', NULL, 'Clariss beauty products', NULL, 0, 0, 66, datetime('now'), datetime('now')),
-('brand-070', 'Clean & Clear', 'clean-clear', NULL, 'Clean & Clear beauty products', NULL, 0, 0, 67, datetime('now'), datetime('now')),
-('brand-071', 'Clear', 'clear', NULL, 'Clear beauty products', NULL, 0, 0, 68, datetime('now'), datetime('now')),
-('brand-072', 'Clinic Plus', 'clinic-plus', NULL, 'Clinic Plus beauty products', NULL, 0, 0, 69, datetime('now'), datetime('now')),
-('brand-073', 'Clinique', 'clinique', NULL, 'Clinique beauty products', NULL, 0, 0, 70, datetime('now'), datetime('now')),
-('brand-074', 'CloseUp', 'closeup', NULL, 'CloseUp beauty products', NULL, 0, 0, 71, datetime('now'), datetime('now')),
-('brand-075', 'Colgate', 'colgate', NULL, 'Colgate beauty products', NULL, 0, 0, 72, datetime('now'), datetime('now')),
-('brand-076', 'Cos De Baha', 'cos-de-baha', NULL, 'Cos De Baha beauty products', NULL, 0, 0, 73, datetime('now'), datetime('now')),
-('brand-077', 'Cosmo', 'cosmo', NULL, 'Cosmo beauty products', NULL, 0, 0, 74, datetime('now'), datetime('now')),
-('brand-078', 'Cosrx', 'cosrx', NULL, 'Cosrx beauty products', NULL, 0, 0, 75, datetime('now'), datetime('now')),
-('brand-079', 'Creightons', 'creightons', NULL, 'Creightons beauty products', NULL, 0, 0, 76, datetime('now'), datetime('now')),
-('brand-080', 'Creme 21', 'creme-21', NULL, 'Creme 21 beauty products', NULL, 0, 0, 77, datetime('now'), datetime('now')),
-('brand-081', 'Cs Beauty', 'cs-beauty', NULL, 'Cs Beauty beauty products', NULL, 0, 0, 78, datetime('now'), datetime('now')),
-('brand-082', 'DABO', 'dabo', NULL, 'DABO beauty products', NULL, 0, 0, 79, datetime('now'), datetime('now')),
-('brand-086', 'Deconstruct', 'deconstruct', NULL, 'Deconstruct beauty products', NULL, 0, 0, 80, datetime('now'), datetime('now')),
-('brand-087', 'Deep Fresh', 'deep-fresh', NULL, 'Deep Fresh beauty products', NULL, 0, 0, 81, datetime('now'), datetime('now')),
-('brand-088', 'Dermadew', 'dermadew', NULL, 'Dermadew beauty products', NULL, 0, 0, 82, datetime('now'), datetime('now')),
-('brand-089', 'Dettol', 'dettol', NULL, 'Dettol beauty products', NULL, 0, 0, 83, datetime('now'), datetime('now')),
-('brand-090', 'Disney', 'disney', NULL, 'Disney beauty products', NULL, 0, 0, 84, datetime('now'), datetime('now')),
-('brand-091', 'Divas Secret', 'divas-secret', NULL, 'Divas Secret beauty products', NULL, 0, 0, 85, datetime('now'), datetime('now')),
-('brand-092', 'Dot & Key', 'dot-key', NULL, 'Dot & Key beauty products', NULL, 0, 0, 86, datetime('now'), datetime('now')),
-('brand-093', 'Dove', 'dove', NULL, 'Dove beauty products', NULL, 0, 0, 87, datetime('now'), datetime('now')),
-('brand-094', 'Dr. Althea', 'dr-althea', NULL, 'Dr. Althea beauty products', NULL, 0, 0, 88, datetime('now'), datetime('now')),
-('brand-095', 'Dr. C Tuna', 'dr-c-tuna', NULL, 'Dr. C Tuna beauty products', NULL, 0, 0, 89, datetime('now'), datetime('now')),
-('brand-096', 'Dr. Clinic', 'dr-clinic', NULL, 'Dr. Clinic beauty products', NULL, 0, 0, 90, datetime('now'), datetime('now')),
-('brand-097', 'Dr. Rashel', 'dr-rashel', NULL, 'Dr. Rashel beauty products', NULL, 0, 0, 91, datetime('now'), datetime('now')),
-('brand-098', 'DrBrown''s', 'drbrowns', NULL, 'DrBrown''s beauty products', NULL, 0, 0, 92, datetime('now'), datetime('now')),
-('brand-099', 'Durex', 'durex', NULL, 'Durex beauty products', NULL, 0, 0, 93, datetime('now'), datetime('now')),
-('brand-100', 'EKEL', 'ekel', NULL, 'EKEL beauty products', NULL, 0, 0, 94, datetime('now'), datetime('now')),
-('brand-101', 'EMBLA', 'embla', NULL, 'EMBLA beauty products', NULL, 0, 0, 95, datetime('now'), datetime('now')),
-('brand-105', 'Enough', 'enough', NULL, 'Enough beauty products', NULL, 0, 0, 96, datetime('now'), datetime('now')),
-('brand-106', 'ENSO Skin', 'enso-skin', NULL, 'ENSO Skin beauty products', NULL, 0, 0, 97, datetime('now'), datetime('now')),
-('brand-107', 'EQQUALBERRY', 'eqqualberry', NULL, 'EQQUALBERRY beauty products', NULL, 0, 0, 98, datetime('now'), datetime('now')),
-('brand-108', 'Eshumi', 'eshumi', NULL, 'Eshumi beauty products', NULL, 0, 0, 99, datetime('now'), datetime('now')),
-('brand-109', 'Eucerin', 'eucerin', NULL, 'Eucerin beauty products', NULL, 0, 0, 100, datetime('now'), datetime('now')),
-('brand-110', 'EVERGLOW', 'everglow', NULL, 'EVERGLOW beauty products', NULL, 0, 0, 101, datetime('now'), datetime('now')),
-('brand-111', 'Fa', 'fa', NULL, 'Fa beauty products', NULL, 0, 0, 102, datetime('now'), datetime('now')),
-('brand-112', 'Face Facts', 'face-facts', NULL, 'Face Facts beauty products', NULL, 0, 0, 103, datetime('now'), datetime('now')),
-('brand-113', 'Fadeout', 'fadeout', NULL, 'Fadeout beauty products', NULL, 0, 0, 104, datetime('now'), datetime('now')),
-('brand-114', 'Farm Stay', 'farm-stay', NULL, 'Farm Stay beauty products', NULL, 0, 0, 105, datetime('now'), datetime('now')),
-('brand-115', 'Farmasi', 'farmasi', NULL, 'Farmasi beauty products', NULL, 0, 0, 106, datetime('now'), datetime('now')),
-('brand-116', 'Farlin', 'farlin', NULL, 'Farlin beauty products', NULL, 0, 0, 107, datetime('now'), datetime('now')),
-('brand-117', 'Fenyi', 'fenyi', NULL, 'Fenyi beauty products', NULL, 0, 0, 108, datetime('now'), datetime('now')),
-('brand-118', 'Fenty Beauty', 'fenty-beauty', NULL, 'Fenty Beauty beauty products', NULL, 0, 0, 109, datetime('now'), datetime('now')),
-('brand-119', 'Finesse', 'finesse', NULL, 'Finesse beauty products', NULL, 0, 0, 110, datetime('now'), datetime('now')),
-('brand-120', 'Firefly', 'firefly', NULL, 'Firefly beauty products', NULL, 0, 0, 111, datetime('now'), datetime('now')),
-('brand-121', 'Flormar', 'flormar', NULL, 'Flormar beauty products', NULL, 0, 0, 112, datetime('now'), datetime('now')),
-('brand-122', 'Focallure', 'focallure', NULL, 'Focallure beauty products', NULL, 0, 0, 113, datetime('now'), datetime('now')),
-('brand-123', 'Follow Me', 'follow-me', NULL, 'Follow Me beauty products', NULL, 0, 0, 114, datetime('now'), datetime('now')),
-('brand-124', 'Freedom', 'freedom', NULL, 'Freedom beauty products', NULL, 0, 0, 115, datetime('now'), datetime('now')),
-('brand-125', 'Fruiser', 'fruiser', NULL, 'Fruiser beauty products', NULL, 0, 0, 116, datetime('now'), datetime('now')),
-('brand-126', 'Garnier', 'garnier', NULL, 'Garnier beauty products', NULL, 0, 0, 117, datetime('now'), datetime('now')),
-('brand-127', 'GATSBY', 'gatsby', NULL, 'GATSBY beauty products', NULL, 0, 0, 118, datetime('now'), datetime('now')),
-('brand-128', 'Gerber', 'gerber', NULL, 'Gerber beauty products', NULL, 0, 0, 119, datetime('now'), datetime('now')),
-('brand-129', 'GFORS', 'gfors', NULL, 'GFORS beauty products', NULL, 0, 0, 120, datetime('now'), datetime('now')),
-('brand-131', 'Glow Recipe', 'glow-recipe', NULL, 'Glow Recipe beauty products', NULL, 0, 0, 121, datetime('now'), datetime('now')),
-('brand-132', 'Goodal', 'goodal', NULL, 'Goodal beauty products', NULL, 0, 0, 122, datetime('now'), datetime('now')),
-('brand-133', 'Gosia', 'gosia', NULL, 'Gosia beauty products', NULL, 0, 0, 123, datetime('now'), datetime('now')),
-('brand-134', 'Got2b', 'got2b', NULL, 'Got2b beauty products', NULL, 0, 0, 124, datetime('now'), datetime('now')),
-('brand-135', 'Gul Ahmed', 'gul-ahmed', NULL, 'Gul Ahmed beauty products', NULL, 0, 0, 125, datetime('now'), datetime('now')),
-('brand-136', 'Hada Labo', 'hada-labo', NULL, 'Hada Labo beauty products', NULL, 0, 0, 126, datetime('now'), datetime('now')),
-('brand-137', 'Hair Expert', 'hair-expert', NULL, 'Hair Expert beauty products', NULL, 0, 0, 127, datetime('now'), datetime('now')),
-('brand-138', 'Hanaka', 'hanaka', NULL, 'Hanaka beauty products', NULL, 0, 0, 128, datetime('now'), datetime('now')),
-('brand-139', 'Hashtag', 'hashtag', NULL, 'Hashtag beauty products', NULL, 0, 0, 129, datetime('now'), datetime('now')),
-('brand-140', 'Heimish', 'heimish', NULL, 'Heimish beauty products', NULL, 0, 0, 130, datetime('now'), datetime('now')),
-('brand-141', 'Hello Bubble', 'hello-bubble', NULL, 'Hello Bubble beauty products', NULL, 0, 0, 131, datetime('now'), datetime('now')),
-('brand-142', 'Herborist', 'herborist', NULL, 'Herborist beauty products', NULL, 0, 0, 132, datetime('now'), datetime('now')),
-('brand-143', 'Herbal Essences', 'herbal-essences', NULL, 'Herbal Essences beauty products', NULL, 0, 0, 133, datetime('now'), datetime('now')),
-('brand-144', 'Himalaya', 'himalaya', NULL, 'Himalaya beauty products', NULL, 0, 0, 134, datetime('now'), datetime('now')),
-('brand-145', 'Honest', 'honest', NULL, 'Honest beauty products', NULL, 0, 0, 135, datetime('now'), datetime('now')),
-('brand-146', 'Huxley', 'huxley', NULL, 'Huxley beauty products', NULL, 0, 0, 136, datetime('now'), datetime('now')),
-('brand-147', 'I.m from', 'i-m-from', NULL, 'I.m from beauty products', NULL, 0, 0, 137, datetime('now'), datetime('now')),
-('brand-148', 'Idol Makeup', 'idol-makeup', NULL, 'Idol Makeup beauty products', NULL, 0, 0, 138, datetime('now'), datetime('now')),
-('brand-149', 'Idun Minerals', 'idun-minerals', NULL, 'Idun Minerals beauty products', NULL, 0, 0, 139, datetime('now'), datetime('now')),
-('brand-150', 'Incellderm', 'incellderm', NULL, 'Incellderm beauty products', NULL, 0, 0, 140, datetime('now'), datetime('now')),
-('brand-151', 'Innisfree', 'innisfree', NULL, 'Innisfree beauty products', NULL, 0, 0, 141, datetime('now'), datetime('now')),
-('brand-152', 'Iope', 'iope', NULL, 'Iope beauty products', NULL, 0, 0, 142, datetime('now'), datetime('now')),
-('brand-153', 'Isntree', 'isntree', NULL, 'Isntree beauty products', NULL, 0, 0, 143, datetime('now'), datetime('now')),
-('brand-154', 'Its Skin', 'its-skin', NULL, 'Its Skin beauty products', NULL, 0, 0, 144, datetime('now'), datetime('now')),
-('brand-155', 'Ivy', 'ivy', NULL, 'Ivy beauty products', NULL, 0, 0, 145, datetime('now'), datetime('now')),
-('brand-156', 'Jade', 'jade', NULL, 'Jade beauty products', NULL, 0, 0, 146, datetime('now'), datetime('now')),
-('brand-157', 'Jane Iredale', 'jane-iredale', NULL, 'Jane Iredale beauty products', NULL, 0, 0, 147, datetime('now'), datetime('now')),
-('brand-158', 'Jart+', 'jart-plus', NULL, 'Jart+ beauty products', NULL, 0, 0, 148, datetime('now'), datetime('now')),
-('brand-159', 'Jayjun', 'jayjun', NULL, 'Jayjun beauty products', NULL, 0, 0, 149, datetime('now'), datetime('now')),
-('brand-160', 'Jenny House', 'jenny-house', NULL, 'Jenny House beauty products', NULL, 0, 0, 150, datetime('now'), datetime('now')),
-('brand-161', 'Jeju', 'jeju', NULL, 'Jeju beauty products', NULL, 0, 0, 151, datetime('now'), datetime('now')),
-('brand-162', 'Jmsolution', 'jmsolution', NULL, 'Jmsolution beauty products', NULL, 0, 0, 152, datetime('now'), datetime('now')),
-('brand-163', 'Joanna', 'joanna', NULL, 'Joanna beauty products', NULL, 0, 0, 153, datetime('now'), datetime('now')),
-('brand-164', 'Johnson''s', 'johnsons', NULL, 'Johnson''s beauty products', NULL, 0, 0, 154, datetime('now'), datetime('now')),
-('brand-165', 'Jovees', 'jovees', NULL, 'Jovees beauty products', NULL, 0, 0, 155, datetime('now'), datetime('now')),
-('brand-166', 'Just For You', 'just-for-you', NULL, 'Just For You beauty products', NULL, 0, 0, 156, datetime('now'), datetime('now')),
-('brand-167', 'Kahlua', 'kahlua', NULL, 'Kahlua beauty products', NULL, 0, 0, 157, datetime('now'), datetime('now')),
-('brand-168', 'Kajaria', 'kajaria', NULL, 'Kajaria beauty products', NULL, 0, 0, 158, datetime('now'), datetime('now')),
-('brand-169', 'Kao', 'kao', NULL, 'Kao beauty products', NULL, 0, 0, 159, datetime('now'), datetime('now')),
-('brand-170', 'Kashmir', 'kashmir', NULL, 'Kashmir beauty products', NULL, 0, 0, 160, datetime('now'), datetime('now')),
-('brand-171', 'Kiehl''s', 'kiehls', NULL, 'Kiehl''s beauty products', NULL, 0, 0, 161, datetime('now'), datetime('now')),
-('brand-172', 'Kiko Milano', 'kiko-milano', NULL, 'Kiko Milano beauty products', NULL, 0, 0, 162, datetime('now'), datetime('now')),
-('brand-173', 'Klairs', 'klairs', NULL, 'Klairs beauty products', NULL, 0, 0, 163, datetime('now'), datetime('now')),
-('brand-174', 'Kneipp', 'kneipp', NULL, 'Kneipp beauty products', NULL, 0, 0, 164, datetime('now'), datetime('now')),
-('brand-175', 'Koelf', 'koelf', NULL, 'Koelf beauty products', NULL, 0, 0, 165, datetime('now'), datetime('now')),
-('brand-176', 'Konad', 'konad', NULL, 'Konad beauty products', NULL, 0, 0, 166, datetime('now'), datetime('now')),
-('brand-177', 'Korres', 'korres', NULL, 'Korres beauty products', NULL, 0, 0, 167, datetime('now'), datetime('now')),
-('brand-178', 'Kose', 'kose', NULL, 'Kose beauty products', NULL, 0, 0, 168, datetime('now'), datetime('now')),
-('brand-179', 'Kryolan', 'kryolan', NULL, 'Kryolan beauty products', NULL, 0, 0, 169, datetime('now'), datetime('now')),
-('brand-180', 'L''OCCITANE', 'loccitane', NULL, 'L''OCCITANE beauty products', NULL, 0, 0, 170, datetime('now'), datetime('now')),
-('brand-181', 'L''Oreal', 'loreal', NULL, 'L''Oreal beauty products', NULL, 0, 0, 171, datetime('now'), datetime('now')),
-('brand-182', 'Labello', 'labello', NULL, 'Labello beauty products', NULL, 0, 0, 172, datetime('now'), datetime('now')),
-('brand-183', 'La Roche-Posay', 'la-roche-posay', NULL, 'La Roche-Posay beauty products', NULL, 0, 0, 173, datetime('now'), datetime('now')),
-('brand-184', 'Lancome', 'lancome', NULL, 'Lancome beauty products', NULL, 0, 0, 174, datetime('now'), datetime('now')),
-('brand-185', 'Lanolips', 'lanolips', NULL, 'Lanolips beauty products', NULL, 0, 0, 175, datetime('now'), datetime('now')),
-('brand-186', 'Laura Mercier', 'laura-mercier', NULL, 'Laura Mercier beauty products', NULL, 0, 0, 176, datetime('now'), datetime('now')),
-('brand-187', 'Le Petit Marseillais', 'le-petit-marseillais', NULL, 'Le Petit Marseillais beauty products', NULL, 0, 0, 177, datetime('now'), datetime('now')),
-('brand-188', 'Lederle', 'lederle', NULL, 'Lederle beauty products', NULL, 0, 0, 178, datetime('now'), datetime('now')),
-('brand-189', 'Lepon', 'lepon', NULL, 'Lepon beauty products', NULL, 0, 0, 179, datetime('now'), datetime('now')),
-('brand-190', 'Lierac', 'lierac', NULL, 'Lierac beauty products', NULL, 0, 0, 180, datetime('now'), datetime('now')),
-('brand-191', 'Lily Angel', 'lily-angel', NULL, 'Lily Angel beauty products', NULL, 0, 0, 181, datetime('now'), datetime('now')),
-('brand-192', 'Line Friends', 'line-friends', NULL, 'Line Friends beauty products', NULL, 0, 0, 182, datetime('now'), datetime('now')),
-('brand-193', 'Lioele', 'lioele', NULL, 'Lioele beauty products', NULL, 0, 0, 183, datetime('now'), datetime('now')),
-('brand-194', 'LIPSTICK QUEEN', 'lipstick-queen', NULL, 'LIPSTICK QUEEN beauty products', NULL, 0, 0, 184, datetime('now'), datetime('now')),
-('brand-195', 'Lir', 'lir', NULL, 'Lir beauty products', NULL, 0, 0, 185, datetime('now'), datetime('now')),
-('brand-196', 'Lush', 'lush', NULL, 'Lush beauty products', NULL, 0, 0, 186, datetime('now'), datetime('now')),
-('brand-197', 'MAC', 'mac', NULL, 'MAC beauty products', NULL, 0, 0, 187, datetime('now'), datetime('now')),
-('brand-198', 'Madagascar', 'madagascar', NULL, 'Madagascar beauty products', NULL, 0, 0, 188, datetime('now'), datetime('now')),
-('brand-199', 'Magic', 'magic', NULL, 'Magic beauty products', NULL, 0, 0, 189, datetime('now'), datetime('now')),
-('brand-200', 'Ma Provence', 'ma-provence', NULL, 'Ma Provence beauty products', NULL, 0, 0, 190, datetime('now'), datetime('now')),
-('brand-201', 'Ma:nyo', 'manyo', NULL, 'Ma:nyo beauty products', NULL, 0, 0, 191, datetime('now'), datetime('now')),
-('brand-202', 'Mamonde', 'mamonde', NULL, 'Mamonde beauty products', NULL, 0, 0, 192, datetime('now'), datetime('now')),
-('brand-203', 'Mare', 'mare', NULL, 'Mare beauty products', NULL, 0, 0, 193, datetime('now'), datetime('now')),
-('brand-204', 'Marlowe', 'marlowe', NULL, 'Marlowe beauty products', NULL, 0, 0, 194, datetime('now'), datetime('now')),
-('brand-205', 'Mary Kay', 'mary-kay', NULL, 'Mary Kay beauty products', NULL, 0, 0, 195, datetime('now'), datetime('now')),
-('brand-206', 'Masstige', 'masstige', NULL, 'Masstige beauty products', NULL, 0, 0, 196, datetime('now'), datetime('now')),
-('brand-207', 'Max Factor', 'max-factor', NULL, 'Max Factor beauty products', NULL, 0, 0, 197, datetime('now'), datetime('now')),
-('brand-208', 'Maybelline', 'maybelline', NULL, 'Maybelline beauty products', NULL, 0, 0, 198, datetime('now'), datetime('now')),
-('brand-209', 'Mediheal', 'mediheal', NULL, 'Mediheal beauty products', NULL, 0, 0, 199, datetime('now'), datetime('now')),
-('brand-210', 'Men''s Biore', 'mens-biore', NULL, 'Men''s Biore beauty products', NULL, 0, 0, 200, datetime('now'), datetime('now')),
-('brand-211', 'Mentholatum', 'mentholatum', NULL, 'Mentholatum beauty products', NULL, 0, 0, 201, datetime('now'), datetime('now')),
-('brand-212', 'Merlot', 'merlot', NULL, 'Merlot beauty products', NULL, 0, 0, 202, datetime('now'), datetime('now')),
-('brand-213', 'Mi-Young', 'mi-young', NULL, 'Mi-Young beauty products', NULL, 0, 0, 203, datetime('now'), datetime('now')),
-('brand-214', 'Miche Bloomin''', 'miche-bloomin', NULL, 'Miche Bloomin'' beauty products', NULL, 0, 0, 204, datetime('now'), datetime('now')),
-('brand-215', 'Mizon', 'mizon', NULL, 'Mizon beauty products', NULL, 0, 0, 205, datetime('now'), datetime('now')),
-('brand-216', 'Moart', 'moart', NULL, 'Moart beauty products', NULL, 0, 0, 206, datetime('now'), datetime('now')),
-('brand-217', 'Monu', 'monu', NULL, 'Monu beauty products', NULL, 0, 0, 207, datetime('now'), datetime('now')),
-('brand-218', 'Moringa', 'moringa', NULL, 'Moringa beauty products', NULL, 0, 0, 208, datetime('now'), datetime('now')),
-('brand-219', 'Morris', 'morris', NULL, 'Morris beauty products', NULL, 0, 0, 209, datetime('now'), datetime('now')),
-('brand-220', 'Moss', 'moss', NULL, 'Moss beauty products', NULL, 0, 0, 210, datetime('now'), datetime('now')),
-('brand-221', 'Mugwort', 'mugwort', NULL, 'Mugwort beauty products', NULL, 0, 0, 211, datetime('now'), datetime('now')),
-('brand-222', 'Mukun', 'mukun', NULL, 'Mukun beauty products', NULL, 0, 0, 212, datetime('now'), datetime('now')),
-('brand-223', 'Murad', 'murad', NULL, 'Murad beauty products', NULL, 0, 0, 213, datetime('now'), datetime('now')),
-('brand-224', 'Murdock', 'murdock', NULL, 'Murdock beauty products', NULL, 0, 0, 214, datetime('now'), datetime('now')),
-('brand-225', 'Muscletech', 'muscletech', NULL, 'Muscletech beauty products', NULL, 0, 0, 215, datetime('now'), datetime('now')),
-('brand-226', 'Mustela', 'mustela', NULL, 'Mustela beauty products', NULL, 0, 0, 216, datetime('now'), datetime('now')),
-('brand-227', 'N.A.', 'na', NULL, 'N.A. beauty products', NULL, 0, 0, 217, datetime('now'), datetime('now')),
-('brand-228', 'Narciso Rodriguez', 'narciso-rodriguez', NULL, 'Narciso Rodriguez beauty products', NULL, 0, 0, 218, datetime('now'), datetime('now')),
-('brand-229', 'Nature Republic', 'nature-republic', NULL, 'Nature Republic beauty products', NULL, 0, 0, 219, datetime('now'), datetime('now')),
-('brand-230', 'Naturium', 'naturium', NULL, 'Naturium beauty products', NULL, 0, 0, 220, datetime('now'), datetime('now')),
-('brand-231', 'Neewer', 'neewer', NULL, 'Neewer beauty products', NULL, 0, 0, 221, datetime('now'), datetime('now')),
-('brand-232', 'Nectar', 'nectar', NULL, 'Nectar beauty products', NULL, 0, 0, 222, datetime('now'), datetime('now')),
-('brand-233', 'NeoGen', 'neogen', NULL, 'NeoGen beauty products', NULL, 0, 0, 223, datetime('now'), datetime('now')),
-('brand-234', 'Neutrogena', 'neutrogena', NULL, 'Neutrogena beauty products', NULL, 0, 0, 224, datetime('now'), datetime('now')),
-('brand-235', 'Nexcare', 'nexcare', NULL, 'Nexcare beauty products', NULL, 0, 0, 225, datetime('now'), datetime('now')),
-('brand-236', 'Nivea', 'nivea', NULL, 'Nivea beauty products', NULL, 0, 0, 226, datetime('now'), datetime('now')),
-('brand-237', 'No Worries', 'no-worries', NULL, 'No Worries beauty products', NULL, 0, 0, 227, datetime('now'), datetime('now')),
-('brand-238', 'Noodle & Boo', 'noodle-boo', NULL, 'Noodle & Boo beauty products', NULL, 0, 0, 228, datetime('now'), datetime('now')),
-('brand-239', 'Nuxe', 'nuxe', NULL, 'Nuxe beauty products', NULL, 0, 0, 229, datetime('now'), datetime('now')),
-('brand-240', 'Nyx', 'nyx', NULL, 'Nyx beauty products', NULL, 0, 0, 230, datetime('now'), datetime('now')),
-('brand-241', 'O.TWO.O', 'o-two-o', NULL, 'O.TWO.O beauty products', NULL, 0, 0, 231, datetime('now'), datetime('now')),
-('brand-242', 'Olay', 'olay', NULL, 'Olay beauty products', NULL, 0, 0, 232, datetime('now'), datetime('now')),
-('brand-243', 'Omorfee', 'omorfee', NULL, 'Omorfee beauty products', NULL, 0, 0, 233, datetime('now'), datetime('now')),
-('brand-244', 'One Thing', 'one-thing', NULL, 'One Thing beauty products', NULL, 0, 0, 234, datetime('now'), datetime('now')),
-('brand-245', 'Organic Shop', 'organic-shop', NULL, 'Organic Shop beauty products', NULL, 0, 0, 235, datetime('now'), datetime('now')),
-('brand-246', 'Organique', 'organique', NULL, 'Organique beauty products', NULL, 0, 0, 236, datetime('now'), datetime('now')),
-('brand-247', 'Origins', 'origins', NULL, 'Origins beauty products', NULL, 0, 0, 237, datetime('now'), datetime('now')),
-('brand-248', 'Oriflame', 'oriflame', NULL, 'Oriflame beauty products', NULL, 0, 0, 238, datetime('now'), datetime('now')),
-('brand-249', 'Palmer''s', 'palmers', NULL, 'Palmer''s beauty products', NULL, 0, 0, 239, datetime('now'), datetime('now')),
-('brand-250', 'Panasonic', 'panasonic', NULL, 'Panasonic beauty products', NULL, 0, 0, 240, datetime('now'), datetime('now')),
-('brand-251', 'Pantene', 'pantene', NULL, 'Pantene beauty products', NULL, 0, 0, 241, datetime('now'), datetime('now')),
-('brand-252', 'Papaya', 'papaya', NULL, 'Papaya beauty products', NULL, 0, 0, 242, datetime('now'), datetime('now')),
-('brand-253', 'Parrs', 'parrs', NULL, 'Parrs beauty products', NULL, 0, 0, 243, datetime('now'), datetime('now')),
-('brand-254', 'Paul Mitchell', 'paul-mitchell', NULL, 'Paul Mitchell beauty products', NULL, 0, 0, 244, datetime('now'), datetime('now')),
-('brand-255', 'Peau', 'peau', NULL, 'Peau beauty products', NULL, 0, 0, 245, datetime('now'), datetime('now')),
-('brand-256', 'Pearlessa', 'pearlessa', NULL, 'Pearlessa beauty products', NULL, 0, 0, 246, datetime('now'), datetime('now')),
-('brand-257', 'Pears', 'pears', NULL, 'Pears beauty products', NULL, 0, 0, 247, datetime('now'), datetime('now')),
-('brand-258', 'Pecado', 'pecado', NULL, 'Pecado beauty products', NULL, 0, 0, 248, datetime('now'), datetime('now')),
-('brand-259', 'Pedi', 'pedi', NULL, 'Pedi beauty products', NULL, 0, 0, 249, datetime('now'), datetime('now')),
-('brand-260', 'Peking', 'peking', NULL, 'Peking beauty products', NULL, 0, 0, 250, datetime('now'), datetime('now')),
-('brand-261', 'Pentax', 'pentax', NULL, 'Pentax beauty products', NULL, 0, 0, 251, datetime('now'), datetime('now')),
-('brand-262', 'Pete', 'pete', NULL, 'Pete beauty products', NULL, 0, 0, 252, datetime('now'), datetime('now')),
-('brand-263', 'Pformula', 'pformula', NULL, 'Pformula beauty products', NULL, 0, 0, 253, datetime('now'), datetime('now')),
-('brand-264', 'Pharmaceris', 'pharmaceris', NULL, 'Pharmaceris beauty products', NULL, 0, 0, 254, datetime('now'), datetime('now')),
-('brand-265', 'Philips', 'philips', NULL, 'Philips beauty products', NULL, 0, 0, 255, datetime('now'), datetime('now')),
-('brand-266', 'Pierre Fabre', 'pierre-fabre', NULL, 'Pierre Fabre beauty products', NULL, 0, 0, 256, datetime('now'), datetime('now')),
-('brand-267', 'Pioderm', 'pioderm', NULL, 'Pioderm beauty products', NULL, 0, 0, 257, datetime('now'), datetime('now')),
-('brand-268', 'Pole', 'pole', NULL, 'Pole beauty products', NULL, 0, 0, 258, datetime('now'), datetime('now')),
-('brand-269', 'Prada', 'prada', NULL, 'Prada beauty products', NULL, 0, 0, 259, datetime('now'), datetime('now')),
-('brand-270', 'Proactiv', 'proactiv', NULL, 'Proactiv beauty products', NULL, 0, 0, 260, datetime('now'), datetime('now')),
-('brand-271', 'Purederm', 'purederm', NULL, 'Purederm beauty products', NULL, 0, 0, 261, datetime('now'), datetime('now')),
-('brand-272', 'Purex', 'purex', NULL, 'Purex beauty products', NULL, 0, 0, 262, datetime('now'), datetime('now')),
-('brand-273', 'Pyunkang Yul', 'pyunkang-yul', NULL, 'Pyunkang Yul beauty products', NULL, 0, 0, 263, datetime('now'), datetime('now')),
-('brand-274', 'QY', 'qy', NULL, 'QY beauty products', NULL, 0, 0, 264, datetime('now'), datetime('now')),
-('brand-275', 'R.C.M', 'rcm', NULL, 'R.C.M beauty products', NULL, 0, 0, 265, datetime('now'), datetime('now')),
-('brand-276', 'Radical', 'radical', NULL, 'Radical beauty products', NULL, 0, 0, 266, datetime('now'), datetime('now')),
-('brand-277', 'Rawganique', 'rawganique', NULL, 'Rawganique beauty products', NULL, 0, 0, 267, datetime('now'), datetime('now')),
-('brand-278', 'Real Techniques', 'real-techniques', NULL, 'Real Techniques beauty products', NULL, 0, 0, 268, datetime('now'), datetime('now')),
-('brand-279', 'Reckitt', 'reckitt', NULL, 'Reckitt beauty products', NULL, 0, 0, 269, datetime('now'), datetime('now')),
-('brand-280', 'Red Earth', 'red-earth', NULL, 'Red Earth beauty products', NULL, 0, 0, 270, datetime('now'), datetime('now')),
-('brand-281', 'Ren', 'ren', NULL, 'Ren beauty products', NULL, 0, 0, 271, datetime('now'), datetime('now')),
-('brand-282', 'Revlon', 'revlon', NULL, 'Revlon beauty products', NULL, 0, 0, 272, datetime('now'), datetime('now')),
-('brand-283', 'Rimmel', 'rimmel', NULL, 'Rimmel beauty products', NULL, 0, 0, 273, datetime('now'), datetime('now')),
-('brand-284', 'Ring', 'ring', NULL, 'Ring beauty products', NULL, 0, 0, 274, datetime('now'), datetime('now')),
-('brand-285', 'Rio', 'rio', NULL, 'Rio beauty products', NULL, 0, 0, 275, datetime('now'), datetime('now')),
-('brand-286', 'Rirye', 'rirye', NULL, 'Rirye beauty products', NULL, 0, 0, 276, datetime('now'), datetime('now')),
-('brand-287', 'RoC', 'roc', NULL, 'RoC beauty products', NULL, 0, 0, 277, datetime('now'), datetime('now')),
-('brand-288', 'Rose of roses', 'rose-of-roses', NULL, 'Rose of roses beauty products', NULL, 0, 0, 278, datetime('now'), datetime('now')),
-('brand-289', 'Rosewind', 'rosewind', NULL, 'Rosewind beauty products', NULL, 0, 0, 279, datetime('now'), datetime('now')),
-('brand-290', 'Rosewood', 'rosewood', NULL, 'Rosewood beauty products', NULL, 0, 0, 280, datetime('now'), datetime('now')),
-('brand-291', 'Ruben', 'ruben', NULL, 'Ruben beauty products', NULL, 0, 0, 281, datetime('now'), datetime('now')),
-('brand-292', 'Sephora', 'sephora', NULL, 'Sephora beauty products', NULL, 0, 0, 282, datetime('now'), datetime('now')),
-('brand-293', 'Shangpree', 'shangpree', NULL, 'Shangpree beauty products', NULL, 0, 0, 283, datetime('now'), datetime('now')),
-('brand-294', 'Shiseido', 'shiseido', NULL, 'Shiseido beauty products', NULL, 0, 0, 284, datetime('now'), datetime('now')),
-('brand-295', 'Shizen', 'shizen', NULL, 'Shizen beauty products', NULL, 0, 0, 285, datetime('now'), datetime('now')),
-('brand-296', 'Shower To Shower', 'shower-to-shower', NULL, 'Shower To Shower beauty products', NULL, 0, 0, 286, datetime('now'), datetime('now')),
-('brand-297', 'Sirona', 'sirona', NULL, 'Sirona beauty products', NULL, 0, 0, 287, datetime('now'), datetime('now')),
-('brand-298', 'Skin1004', 'skin1004', NULL, 'Skin1004 beauty products', NULL, 0, 0, 288, datetime('now'), datetime('now')),
-('brand-299', 'Skin79', 'skin79', NULL, 'Skin79 beauty products', NULL, 0, 0, 289, datetime('now'), datetime('now')),
-('brand-300', 'SkinFood', 'skinfood', NULL, 'SkinFood beauty products', NULL, 0, 0, 290, datetime('now'), datetime('now')),
-('brand-301', 'SkinMiso', 'skinmiso', NULL, 'SkinMiso beauty products', NULL, 0, 0, 291, datetime('now'), datetime('now')),
-('brand-302', 'Slurp', 'slurp', NULL, 'Slurp beauty products', NULL, 0, 0, 292, datetime('now'), datetime('now')),
-('brand-303', 'Slyz', 'slyz', NULL, 'Slyz beauty products', NULL, 0, 0, 293, datetime('now'), datetime('now')),
-('brand-304', 'Smashbox', 'smashbox', NULL, 'Smashbox beauty products', NULL, 0, 0, 294, datetime('now'), datetime('now')),
-('brand-305', 'Soft Skin', 'soft-skin', NULL, 'Soft Skin beauty products', NULL, 0, 0, 295, datetime('now'), datetime('now')),
-('brand-306', 'Solgar', 'solgar', NULL, 'Solgar beauty products', NULL, 0, 0, 296, datetime('now'), datetime('now')),
-('brand-307', 'Somang', 'somang', NULL, 'Somang beauty products', NULL, 0, 0, 297, datetime('now'), datetime('now')),
-('brand-308', 'SOS', 'sos', NULL, 'SOS beauty products', NULL, 0, 0, 298, datetime('now'), datetime('now')),
-('brand-309', 'Soul', 'soul', NULL, 'Soul beauty products', NULL, 0, 0, 299, datetime('now'), datetime('now')),
-('brand-310', 'Spa', 'spa', NULL, 'Spa beauty products', NULL, 0, 0, 300, datetime('now'), datetime('now')),
-('brand-311', 'Specialist', 'specialist', NULL, 'Specialist beauty products', NULL, 0, 0, 301, datetime('now'), datetime('now')),
-('brand-312', 'Spirited Away', 'spirited-away', NULL, 'Spirited Away beauty products', NULL, 0, 0, 302, datetime('now'), datetime('now')),
-('brand-313', 'St. Ives', 'st-ives', NULL, 'St. Ives beauty products', NULL, 0, 0, 303, datetime('now'), datetime('now')),
-('brand-314', 'Stagem', 'stagem', NULL, 'Stagem beauty products', NULL, 0, 0, 304, datetime('now'), datetime('now')),
-('brand-315', 'Stayfree', 'stayfree', NULL, 'Stayfree beauty products', NULL, 0, 0, 305, datetime('now'), datetime('now')),
-('brand-316', 'Steblanc', 'steblanc', NULL, 'Steblanc beauty products', NULL, 0, 0, 306, datetime('now'), datetime('now')),
-('brand-317', 'Stiefel', 'stiefel', NULL, 'Stiefel beauty products', NULL, 0, 0, 307, datetime('now'), datetime('now')),
-('brand-318', 'Stridex', 'stridex', NULL, 'Stridex beauty products', NULL, 0, 0, 308, datetime('now'), datetime('now')),
-('brand-319', 'Style Bae', 'style-bae', NULL, 'Style Bae beauty products', NULL, 0, 0, 309, datetime('now'), datetime('now')),
-('brand-320', 'Sugar Bear', 'sugar-bear', NULL, 'Sugar Bear beauty products', NULL, 0, 0, 310, datetime('now'), datetime('now')),
-('brand-321', 'Sun', 'sun', NULL, 'Sun beauty products', NULL, 0, 0, 311, datetime('now'), datetime('now')),
-('brand-322', 'Sunseeker', 'sunseeker', NULL, 'Sunseeker beauty products', NULL, 0, 0, 312, datetime('now'), datetime('now')),
-('brand-323', 'Supersmile', 'supersmile', NULL, 'Supersmile beauty products', NULL, 0, 0, 313, datetime('now'), datetime('now')),
-('brand-324', 'Swiss Arabian', 'swiss-arabian', NULL, 'Swiss Arabian beauty products', NULL, 0, 0, 314, datetime('now'), datetime('now')),
-('brand-325', 'Swiss', 'swiss', NULL, 'Swiss beauty products', NULL, 0, 0, 315, datetime('now'), datetime('now')),
-('brand-326', 'Sylvia', 'sylvia', NULL, 'Sylvia beauty products', NULL, 0, 0, 316, datetime('now'), datetime('now')),
-('brand-327', 'Tamburins', 'tamburins', NULL, 'Tamburins beauty products', NULL, 0, 0, 317, datetime('now'), datetime('now')),
-('brand-328', 'Taraji', 'taraji', NULL, 'Taraji beauty products', NULL, 0, 0, 318, datetime('now'), datetime('now')),
-('brand-329', 'Tata Harper', 'tata-harper', NULL, 'Tata Harper beauty products', NULL, 0, 0, 319, datetime('now'), datetime('now')),
-('brand-330', 'Ted Baker', 'ted-baker', NULL, 'Ted Baker beauty products', NULL, 0, 0, 320, datetime('now'), datetime('now')),
-('brand-331', 'Teoxane', 'teoxane', NULL, 'Teoxane beauty products', NULL, 0, 0, 321, datetime('now'), datetime('now')),
-('brand-332', 'Teresa', 'teresa', NULL, 'Teresa beauty products', NULL, 0, 0, 322, datetime('now'), datetime('now')),
-('brand-333', 'Thayers', 'thayers', NULL, 'Thayers beauty products', NULL, 0, 0, 323, datetime('now'), datetime('now')),
-('brand-334', 'The Body Shop', 'the-body-shop', NULL, 'The Body Shop beauty products', NULL, 0, 0, 324, datetime('now'), datetime('now')),
-('brand-335', 'The Ordinary', 'the-ordinary', NULL, 'The Ordinary beauty products', NULL, 0, 0, 325, datetime('now'), datetime('now')),
-('brand-336', 'The Saem', 'the-saem', NULL, 'The Saem beauty products', NULL, 0, 0, 326, datetime('now'), datetime('now')),
-('brand-337', 'Think Again', 'think-again', NULL, 'Think Again beauty products', NULL, 0, 0, 327, datetime('now'), datetime('now')),
-('brand-338', 'Thompson', 'thompson', NULL, 'Thompson beauty products', NULL, 0, 0, 328, datetime('now'), datetime('now')),
-('brand-339', 'Tiffany', 'tiffany', NULL, 'Tiffany beauty products', NULL, 0, 0, 329, datetime('now'), datetime('now')),
-('brand-340', 'Tiffany&Co', 'tiffany-co', NULL, 'Tiffany&Co beauty products', NULL, 0, 0, 330, datetime('now'), datetime('now')),
-('brand-341', 'Timeless', 'timeless', NULL, 'Timeless beauty products', NULL, 0, 0, 331, datetime('now'), datetime('now')),
-('brand-342', 'Tonymoly', 'tonymoly', NULL, 'Tonymoly beauty products', NULL, 0, 0, 332, datetime('now'), datetime('now')),
-('brand-343', 'Too Cool For School', 'too-cool-for-school', NULL, 'Too Cool For School beauty products', NULL, 0, 0, 333, datetime('now'), datetime('now')),
-('brand-344', 'Tree Hut', 'tree-hut', NULL, 'Tree Hut beauty products', NULL, 0, 0, 334, datetime('now'), datetime('now')),
-('brand-345', 'Treehut', 'treehut', NULL, 'Treehut beauty products', NULL, 0, 0, 335, datetime('now'), datetime('now')),
-('brand-346', 'Trilogy', 'trilogy', NULL, 'Trilogy beauty products', NULL, 0, 0, 336, datetime('now'), datetime('now')),
-('brand-347', 'Trisa', 'trisa', NULL, 'Trisa beauty products', NULL, 0, 0, 337, datetime('now'), datetime('now')),
-('brand-348', 'Tropical Holistic', 'tropical-holistic', NULL, 'Tropical Holistic beauty products', NULL, 0, 0, 338, datetime('now'), datetime('now')),
-('brand-349', 'Truefitt & Hill', 'truefitt-hill', NULL, 'Truefitt & Hill beauty products', NULL, 0, 0, 339, datetime('now'), datetime('now')),
-('brand-350', 'Tusa', 'tusa', NULL, 'Tusa beauty products', NULL, 0, 0, 340, datetime('now'), datetime('now')),
-('brand-351', 'Uriage', 'uriage', NULL, 'Uriage beauty products', NULL, 0, 0, 341, datetime('now'), datetime('now')),
-('brand-352', 'Vancre', 'vancre', NULL, 'Vancre beauty products', NULL, 0, 0, 342, datetime('now'), datetime('now')),
-('brand-353', 'Vant 36.5', 'vant-36-5', NULL, 'Vant 36.5 beauty products', NULL, 0, 0, 343, datetime('now'), datetime('now')),
-('brand-354', 'Vaseline', 'vaseline', NULL, 'Vaseline beauty products', NULL, 0, 0, 344, datetime('now'), datetime('now')),
-('brand-355', 'Velvet', 'velvet', NULL, 'Velvet beauty products', NULL, 0, 0, 345, datetime('now'), datetime('now')),
-('brand-356', 'Vichy', 'vichy', NULL, 'Vichy beauty products', NULL, 0, 0, 346, datetime('now'), datetime('now')),
-('brand-357', 'Victoria''s Secret', 'victorias-secret', NULL, 'Victoria''s Secret beauty products', NULL, 0, 0, 347, datetime('now'), datetime('now')),
-('brand-358', 'Vidal', 'vidal', NULL, 'Vidal beauty products', NULL, 0, 0, 348, datetime('now'), datetime('now')),
-('brand-359', 'Vince', 'vince', NULL, 'Vince beauty products', NULL, 0, 0, 349, datetime('now'), datetime('now')),
-('brand-360', 'Voodoo', 'voodoo', NULL, 'Voodoo beauty products', NULL, 0, 0, 350, datetime('now'), datetime('now')),
-('brand-361', 'VS Sassoon', 'vs-sassoon', NULL, 'VS Sassoon beauty products', NULL, 0, 0, 351, datetime('now'), datetime('now')),
-('brand-362', 'Vt', 'vt', NULL, 'Vt beauty products', NULL, 0, 0, 352, datetime('now'), datetime('now')),
-('brand-363', 'W.Dressroom', 'w-dressroom', NULL, 'W.Dressroom beauty products', NULL, 0, 0, 353, datetime('now'), datetime('now')),
-('brand-364', 'W7', 'w7', NULL, 'W7 beauty products', NULL, 0, 0, 354, datetime('now'), datetime('now')),
-('brand-365', 'Walgreens', 'walgreens', NULL, 'Walgreens beauty products', NULL, 0, 0, 355, datetime('now'), datetime('now')),
-('brand-366', 'Wella', 'wella', NULL, 'Wella beauty products', NULL, 0, 0, 356, datetime('now'), datetime('now')),
-('brand-367', 'Wet n Wild', 'wet-n-wild', NULL, 'Wet n Wild beauty products', NULL, 0, 0, 357, datetime('now'), datetime('now')),
-('brand-368', 'Whoo', 'whoo', NULL, 'Whoo beauty products', NULL, 0, 0, 358, datetime('now'), datetime('now')),
-('brand-369', 'Wib', 'wib', NULL, 'Wib beauty products', NULL, 0, 0, 359, datetime('now'), datetime('now')),
-('brand-370', 'Will', 'will', NULL, 'Will beauty products', NULL, 0, 0, 360, datetime('now'), datetime('now')),
-('brand-371', 'Winky Lux', 'winky-lux', NULL, 'Winky Lux beauty products', NULL, 0, 0, 361, datetime('now'), datetime('now')),
-('brand-372', 'Wish', 'wish', NULL, 'Wish beauty products', NULL, 0, 0, 362, datetime('now'), datetime('now')),
-('brand-373', 'Wonjin', 'wonjin', NULL, 'Wonjin beauty products', NULL, 0, 0, 363, datetime('now'), datetime('now')),
-('brand-374', 'Woodspice', 'woodspice', NULL, 'Woodspice beauty products', NULL, 0, 0, 364, datetime('now'), datetime('now')),
-('brand-375', 'Wowskin', 'wowskin', NULL, 'Wowskin beauty products', NULL, 0, 0, 365, datetime('now'), datetime('now')),
-('brand-376', 'Xpel', 'xpel', NULL, 'Xpel beauty products', NULL, 0, 0, 366, datetime('now'), datetime('now')),
-('brand-377', 'Y.R', 'yr', NULL, 'Y.R beauty products', NULL, 0, 0, 367, datetime('now'), datetime('now')),
-('brand-378', 'Yadah', 'yadah', NULL, 'Yadah beauty products', NULL, 0, 0, 368, datetime('now'), datetime('now')),
-('brand-379', 'Yes To', 'yes-to', NULL, 'Yes To beauty products', NULL, 0, 0, 369, datetime('now'), datetime('now')),
-('brand-380', 'Yves Rocher', 'yves-rocher', NULL, 'Yves Rocher beauty products', NULL, 0, 0, 370, datetime('now'), datetime('now')),
-('brand-381', 'Yves Saint Laurent', 'yves-saint-laurent', NULL, 'Yves Saint Laurent beauty products', NULL, 0, 0, 371, datetime('now'), datetime('now')),
-('brand-382', 'Zego', 'zego', NULL, 'Zego beauty products', NULL, 0, 0, 372, datetime('now'), datetime('now')),
-('brand-383', 'Zelens', 'zelens', NULL, 'Zelens beauty products', NULL, 0, 0, 373, datetime('now'), datetime('now')),
-('brand-384', 'Ziaja', 'ziaja', NULL, 'Ziaja beauty products', NULL, 0, 0, 374, datetime('now'), datetime('now')),
-('brand-385', 'Zoeva', 'zoeva', NULL, 'Zoeva beauty products', NULL, 0, 0, 375, datetime('now'), datetime('now'))
-;
+('brand-001', 'Luxury Sarees', 'luxury-sarees', 'https://example.com/logos/luxury-sarees.png', 'Premium quality silk sarees', 'India', 1, 1, 1, datetime('now'), datetime('now')),
+('brand-002', 'Modern Fashion', 'modern-fashion', 'https://example.com/logos/modern-fashion.png', 'Contemporary ethnic wear', 'Bangladesh', 1, 1, 2, datetime('now'), datetime('now')),
+('brand-003', 'Elegant Style', 'elegant-style', 'https://example.com/logos/elegant-style.png', 'Traditional with modern touch', 'Pakistan', 1, 0, 3, datetime('now'), datetime('now')),
+('brand-004', 'Royal Collection', 'royal-collection', 'https://example.com/logos/royal-collection.png', 'Luxury bridal wear', 'India', 1, 1, 4, datetime('now'), datetime('now')),
+('brand-005', 'Trendy Threads', 'trendy-threads', 'https://example.com/logos/trendy-threads.png', 'Modern casual wear', 'Bangladesh', 1, 0, 5, datetime('now'), datetime('now')),
+('brand-006', 'Heritage Wear', 'heritage-wear', 'https://example.com/logos/heritage-wear.png', 'Traditional craftsmanship', 'India', 1, 1, 6, datetime('now'), datetime('now')),
+('brand-007', 'Urban Chic', 'urban-chic', 'https://example.com/logos/urban-chic.png', 'City fashion collection', 'Pakistan', 1, 0, 7, datetime('now'), datetime('now')),
+('brand-008', 'Classic Cut', 'classic-cut', 'https://example.com/logos/classic-cut.png', 'Timeless designs', 'India', 1, 1, 8, datetime('now'), datetime('now'));
+
+-- Insert Comprehensive Products - Sarees
+INSERT OR REPLACE INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, images, stock, isActive, isFeatured, hasVariants, brandId, brandName, material, color, availableSizes, availableColors, createdAt, updatedAt) VALUES
+-- Sarees
+('prod-001', 'Silk Saree - Royal Blue', 'silk-saree-royal-blue', 'Pure silk saree with intricate golden embroidery. Perfect for weddings and special occasions.', 'cat-saree', 3500, 3500, 4500, '["https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=800", "https://images.unsplash.com/photo-1610030469668-98e550d6193d?w=800"]', 50, 1, 1, 0, 'brand-001', 'Luxury Sarees', 'Silk', 'Blue', '["6m", "6.5m"]', '["Blue", "Gold"]', datetime('now'), datetime('now')),
+
+('prod-002', 'Banarasi Silk Saree', 'banarasi-silk-saree', 'Authentic Banarasi silk saree with zari work. Handwoven masterpiece.', 'cat-saree', 12000, 12000, 15000, '["https://images.unsplash.com/photo-1610030469669-8e9d4f8f8e9e?w=800"]', 30, 1, 1, 0, 'brand-001', 'Luxury Sarees', 'Silk', 'Red', '["6m"]', '["Red", "Maroon"]', datetime('now'), datetime('now')),
+
+('prod-003', 'Cotton Handloom Saree', 'cotton-handloom-saree', 'Handwoven cotton saree with tribal prints. Comfortable daily wear.', 'cat-saree', 1500, 1500, 2000, '["https://images.unsplash.com/photo-1610030469678-98e550d6193f?w=800"]', 100, 1, 1, 0, 'brand-006', 'Heritage Wear', 'Cotton', 'Multi', '["6m", "6.5m"]', '["Multi", "Blue"]', datetime('now'), datetime('now')),
+
+('prod-004', 'Chiffon Saree', 'chiffon-saree', 'Lightweight chiffon saree with digital prints. Perfect for parties.', 'cat-saree', 2800, 2800, 3500, '["https://images.unsplash.com/photo-1610030469676-98e550d6193f?w=800"]', 45, 1, 1, 0, 'brand-002', 'Modern Fashion', 'Chiffon', 'Pink', '["6m"]', '["Pink", "Purple"]', datetime('now'), datetime('now')),
+
+('prod-005', 'Kanjivaram Silk Saree', 'kanjivaram-silk-saree', 'Traditional Kanjivaram silk with temple border. Bridal collection.', 'cat-saree', 25000, 25000, 30000, '["https://images.unsplash.com/photo-1610030469675-98e550d6193f?w=800"]', 15, 1, 1, 0, 'brand-001', 'Luxury Sarees', 'Silk', 'Maroon', '["6m", "6.5m"]', '["Maroon", "Gold"]', datetime('now'), datetime('now')),
+
+('prod-006', 'Georgette Saree', 'georgette-saree', 'Flowy georgette saree with embroidery. Contemporary design.', 'cat-saree', 3200, 3200, 4000, '["https://images.unsplash.com/photo-1610030469674-98e550d6193f?w=800"]', 40, 1, 0, 0, 'brand-002', 'Modern Fashion', 'Georgette', 'Green', '["6m"]', '["Green", "Teal"]', datetime('now'), datetime('now')),
+
+('prod-007', 'Tussar Silk Saree', 'tussar-silk-saree', 'Natural Tussar silk with minimal work. Elegant simplicity.', 'cat-saree', 5500, 5500, 7000, '["https://images.unsplash.com/photo-1610030469673-98e550d6193f?w=800"]', 25, 1, 1, 0, 'brand-006', 'Heritage Wear', 'Silk', 'Beige', '["6m", "6.5m"]', '["Beige", "Cream"]', datetime('now'), datetime('now')),
+
+('prod-008', 'Patola Silk Saree', 'patola-silk-saree', 'Gujarati Patola silk with double ikat. Handcrafted luxury.', 'cat-saree', 18000, 18000, 22000, '["https://images.unsplash.com/photo-1610030469672-98e550d6193f?w=800"]', 20, 1, 1, 0, 'brand-001', 'Luxury Sarees', 'Silk', 'Multi', '["6m"]', '["Multi", "Red"]', datetime('now'), datetime('now')),
+
+-- Salwar Suits
+('prod-009', 'Cotton Salwar Suit', 'cotton-salwar-suit', 'Comfortable cotton salwar suit with embroidery. Daily wear essential.', 'cat-salwar', 1800, 1800, 2200, '["https://images.unsplash.com/photo-1583391733958-3750e0ff4e8b?w=800"]', 30, 1, 1, 0, 'brand-002', 'Modern Fashion', 'Cotton', 'Green', '["S", "M", "L", "XL"]', '["Green", "Pink"]', datetime('now'), datetime('now')),
+
+('prod-010', 'Anarkali Suit', 'anarkali-suit', 'Floor-length Anarkali with heavy embroidery. Festive wear.', 'cat-salwar', 4500, 4500, 5500, '["https://images.unsplash.com/photo-1583391733957-3750e0ff4e8b?w=800"]', 25, 1, 1, 0, 'brand-003', 'Elegant Style', 'Georgette', 'Navy', '["S", "M", "L"]', '["Navy", "Black"]', datetime('now'), datetime('now')),
+
+('prod-011', 'Palazzo Suit', 'palazzo-suit', 'Stylish palazzo suit with digital print. Modern silhouette.', 'cat-salwar', 2500, 2500, 3000, '["https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=800"]', 40, 1, 0, 0, 'brand-002', 'Modern Fashion', 'Rayon', 'Yellow', '["S", "M", "L", "XL", "XXL"]', '["Yellow", "Orange"]', datetime('now'), datetime('now')),
+
+('prod-012', 'Sharara Suit', 'sharara-suit', 'Traditional sharara with mirror work. Wedding wear.', 'cat-salwar', 6000, 6000, 7500, '["https://images.unsplash.com/photo-1583391733955-3750e0ff4e8b?w=800"]', 20, 1, 1, 0, 'brand-003', 'Elegant Style', 'Silk', 'Maroon', '["S", "M", "L"]', '["Maroon", "Gold"]', datetime('now'), datetime('now')),
+
+('prod-013', 'Churidar Suit', 'churidar-suit', 'Classic churidar kurta set. Timeless elegance.', 'cat-salwar', 2200, 2200, 2800, '["https://images.unsplash.com/photo-1583391733954-3750e0ff4e8b?w=800"]', 35, 1, 0, 0, 'brand-005', 'Trendy Threads', 'Cotton', 'White', '["S", "M", "L", "XL"]', '["White", "Blue"]', datetime('now'), datetime('now')),
+
+('prod-014', 'Pant Style Suit', 'pant-style-suit', 'Contemporary pant style suit. Office wear appropriate.', 'cat-salwar', 2800, 2800, 3500, '["https://images.unsplash.com/photo-1583391733953-3750e0ff4e8b?w=800"]', 30, 1, 1, 0, 'brand-002', 'Modern Fashion', 'Cotton Blend', 'Grey', '["S", "M", "L", "XL"]', '["Grey", "Black"]', datetime('now'), datetime('now')),
+
+-- Lehengas
+('prod-015', 'Bridal Lehenga', 'bridal-lehenga', 'Heavy work bridal lehenga with dupatta. Perfect for weddings.', 'cat-lehengas', 15000, 15000, 18000, '["https://images.unsplash.com/photo-1610030469679-98e550d6193f?w=800"]', 15, 1, 1, 0, 'brand-004', 'Royal Collection', 'Velvet', 'Red', '["S", "M", "L"]', '["Red", "Maroon"]', datetime('now'), datetime('now')),
+
+('prod-016', 'Designer Lehenga', 'designer-lehenga', 'Contemporary designer lehenga. Fashion-forward design.', 'cat-lehengas', 8500, 8500, 10000, '["https://images.unsplash.com/photo-1610030469678-98e550d6193f?w=800"]', 20, 1, 1, 0, 'brand-007', 'Urban Chic', 'Net', 'Pink', '["S", "M", "L"]', '["Pink", "Peach"]', datetime('now'), datetime('now')),
+
+('prod-017', 'Sharara Lehenga', 'sharara-lehenga', 'Sharara style lehenga with heavy border. Festive wear.', 'cat-lehengas', 7500, 7500, 9000, '["https://images.unsplash.com/photo-1610030469677-98e550d6193f?w=800"]', 25, 1, 0, 0, 'brand-003', 'Elegant Style', 'Silk Blend', 'Teal', '["S", "M", "L"]', '["Teal", "Sea Green"]', datetime('now'), datetime('now')),
+
+('prod-018', 'Ghagra Lehenga', 'ghagra-lehenga', 'Traditional ghagra choli. Classic Indian wear.', 'cat-lehengas', 5500, 5500, 7000, '["https://images.unsplash.com/photo-1610030469676-98e550d6193f?w=800"]', 30, 1, 1, 0, 'brand-006', 'Heritage Wear', 'Cotton', 'Yellow', '["S", "M", "L", "XL"]', '["Yellow", "Orange"]', datetime('now'), datetime('now')),
+
+('prod-019', 'Jacket Lehenga', 'jacket-lehenga', 'Lehenga with long jacket overlay. Modern fusion.', 'cat-lehengas', 12000, 12000, 15000, '["https://images.unsplash.com/photo-1610030469675-98e550d6193f?w=800"]', 18, 1, 1, 0, 'brand-007', 'Urban Chic', 'Velvet', 'Black', '["S", "M", "L"]', '["Black", "Navy"]', datetime('now'), datetime('now')),
+
+-- Kurtas
+('prod-020', 'Cotton Kurta', 'cotton-kurta', 'Casual cotton kurta for everyday wear. Comfortable fit.', 'cat-kurtas', 800, 800, 1000, '["https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=800"]', 100, 1, 1, 0, 'brand-002', 'Modern Fashion', 'Cotton', 'White', '["S", "M", "L", "XL", "XXL"]', '["White", "Blue", "Grey"]', datetime('now'), datetime('now')),
+
+('prod-021', 'Silk Kurta', 'silk-kurta', 'Elegant silk kurta with minimal work. Party wear.', 'cat-kurtas', 2200, 2200, 2800, '["https://images.unsplash.com/photo-1594938298604-c8148c4dae35?w=800"]', 50, 1, 1, 0, 'brand-008', 'Classic Cut', 'Silk', 'Maroon', '["S", "M", "L", "XL"]', '["Maroon", "Black", "Navy"]', datetime('now'), datetime('now')),
+
+('prod-022', 'Pathani Suit', 'pathani-suit', 'Classic Pathani kurta pajama set. Traditional comfort.', 'cat-kurtas', 1500, 1500, 2000, '["https://images.unsplash.com/photo-1594938298605-c8148c4dae35?w=800"]', 60, 1, 0, 0, 'brand-005', 'Trendy Threads', 'Cotton', 'Black', '["S", "M", "L", "XL", "XXL"]', '["Black", "White", "Grey"]', datetime('now'), datetime('now')),
+
+('prod-023', 'Short Kurta', 'short-kurta', 'Trendy short kurta with print. Modern style.', 'cat-kurtas', 950, 950, 1200, '["https://images.unsplash.com/photo-1594938298606-c8148c4dae35?w=800"]', 80, 1, 0, 0, 'brand-002', 'Modern Fashion', 'Cotton Blend', 'Multi', '["S", "M", "L", "XL"]', '["Multi", "Blue"]', datetime('now'), datetime('now')),
+
+('prod-024', 'Embroidered Kurta', 'embroidered-kurta', 'Kurta with thread embroidery. Festive collection.', 'cat-kurtas', 2800, 2800, 3500, '["https://images.unsplash.com/photo-1594938298607-c8148c4dae35?w=800"]', 45, 1, 1, 0, 'brand-008', 'Classic Cut', 'Cotton Silk', 'Cream', '["S", "M", "L", "XL"]', '["Cream", "White"]', datetime('now'), datetime('now')),
+
+('prod-025', 'Nehru Collar Kurta', 'nehru-collar-kurta', 'Formal kurta with Nehru collar. Perfect for occasions.', 'cat-kurtas', 1800, 1800, 2200, '["https://images.unsplash.com/photo-1594938298608-c8148c4dae35?w=800"]', 55, 1, 0, 0, 'brand-005', 'Trendy Threads', 'Linen', 'Beige', '["S", "M", "L", "XL"]', '["Beige", "White"]', datetime('now'), datetime('now')),
+
+-- Menswear
+('prod-026', 'Formal Shirt', 'formal-shirt', 'Premium cotton formal shirt. Office essential.', 'cat-menswear', 1200, 1200, 1500, '["https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=800"]', 75, 1, 0, 0, 'brand-003', 'Elegant Style', 'Cotton', 'White', '["S", "M", "L", "XL", "XXL"]', '["White", "Light Blue"]', datetime('now'), datetime('now')),
+
+('prod-027', 'Casual Shirt', 'casual-shirt', 'Relaxed fit casual shirt. Weekend vibes.', 'cat-menswear', 900, 900, 1200, '["https://images.unsplash.com/photo-1596755094515-f87e34085b2c?w=800"]', 80, 1, 0, 0, 'brand-005', 'Trendy Threads', 'Cotton', 'Blue', '["S", "M", "L", "XL", "XXL"]', '["Blue", "Green", "Red"]', datetime('now'), datetime('now')),
+
+('prod-028', 'Polo T-Shirt', 'polo-tshirt', 'Classic polo t-shirt. Versatile style.', 'cat-menswear', 750, 750, 950, '["https://images.unsplash.com/photo-1625910513413-5fc0ec78d0d5?w=800"]', 100, 1, 1, 0, 'brand-002', 'Modern Fashion', 'Cotton Pique', 'Navy', '["S", "M", "L", "XL", "XXL"]', '["Navy", "Black", "White", "Grey"]', datetime('now'), datetime('now')),
+
+('prod-029', 'Blazer', 'blazer', 'Formal blazer for special occasions. Premium quality.', 'cat-menswear', 4500, 4500, 6000, '["https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800"]', 30, 1, 1, 0, 'brand-008', 'Classic Cut', 'Polyester Blend', 'Black', '["S", "M", "L", "XL"]', '["Black", "Navy", "Grey"]', datetime('now'), datetime('now')),
+
+('prod-030', 'Denim Jeans', 'denim-jeans', 'Classic fit denim jeans. Everyday essential.', 'cat-menswear', 1800, 1800, 2200, '["https://images.unsplash.com/photo-1542272604-787c3835535d?w=800"]', 90, 1, 0, 0, 'brand-005', 'Trendy Threads', 'Denim', 'Blue', '["28", "30", "32", "34", "36", "38"]', '["Blue", "Black"]', datetime('now'), datetime('now')),
+
+('prod-031', 'Chinos', 'chinos', 'Comfortable chinos pants. Smart casual wear.', 'cat-menswear', 1500, 1500, 1800, '["https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=800"]', 85, 1, 0, 0, 'brand-007', 'Urban Chic', 'Cotton', 'Beige', '["28", "30", "32", "34", "36"]', '["Beige", "Khaki", "Olive"]', datetime('now'), datetime('now')),
+
+('prod-032', 'Waistcoat', 'waistcoat', 'Formal waistcoat for occasions. Classic style.', 'cat-menswear', 2200, 2200, 2800, '["https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?w=800"]', 40, 1, 1, 0, 'brand-008', 'Classic Cut', 'Silk Blend', 'Maroon', '["S", "M", "L", "XL"]', '["Maroon", "Black", "Gold"]', datetime('now'), datetime('now')),
+
+-- Gowns
+('prod-033', 'Evening Gown', 'evening-gown', 'Elegant evening gown for parties. Sophisticated design.', 'cat-gowns', 8000, 8000, 10000, '["https://images.unsplash.com/photo-1566174053879-31528523f8ae?w=800"]', 20, 1, 1, 0, 'brand-004', 'Royal Collection', 'Silk', 'Black', '["S", "M", "L"]', '["Black", "Navy"]', datetime('now'), datetime('now')),
+
+('prod-034', 'Cocktail Dress', 'cocktail-dress', 'Stylish cocktail dress for social events.', 'cat-gowns', 5500, 5500, 7000, '["https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800"]', 25, 1, 1, 0, 'brand-007', 'Urban Chic', 'Georgette', 'Red', '["S", "M", "L", "XL"]', '["Red", "Black", "Emerald"]', datetime('now'), datetime('now')),
+
+('prod-035', 'Maxi Dress', 'maxi-dress', 'Flowy maxi dress for casual outings.', 'cat-gowns', 3200, 3200, 4000, '["https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=800"]', 35, 1, 0, 0, 'brand-002', 'Modern Fashion', 'Cotton', 'Floral', '["S", "M", "L", "XL"]', '["Floral", "Blue", "Pink"]', datetime('now'), datetime('now')),
+
+('prod-036', 'Party Gown', 'party-gown', 'Glamorous party gown with sequins. Eye-catching design.', 'cat-gowns', 9500, 9500, 12000, '["https://images.unsplash.com/photo-1566174053879-31528523f8ae?w=800"]', 15, 1, 1, 0, 'brand-004', 'Royal Collection', 'Net', 'Gold', '["S", "M", "L"]', '["Gold", "Silver", "Rose Gold"]', datetime('now'), datetime('now')),
+
+('prod-037', 'Summer Dress', 'summer-dress', 'Lightweight summer dress. Beach ready.', 'cat-gowns', 2800, 2800, 3500, '["https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=800"]', 40, 1, 0, 0, 'brand-002', 'Modern Fashion', 'Rayon', 'Yellow', '["S", "M", "L", "XL", "XXL"]', '["Yellow", "Orange", "White"]', datetime('now'), datetime('now')),
+
+('prod-038', 'Wrap Dress', 'wrap-dress', 'Flattering wrap dress. Versatile style.', 'cat-gowns', 3800, 3800, 4800, '["https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800"]', 30, 1, 1, 0, 'brand-007', 'Urban Chic', 'Cotton Blend', 'Teal', '["S", "M", "L", "XL"]', '["Teal", "Navy", "Black"]', datetime('now'), datetime('now')),
+
+-- Tops
+('prod-039', 'Casual Top', 'casual-top', 'Comfortable casual top. Everyday wear.', 'cat-tops', 600, 600, 800, '["https://images.unsplash.com/photo-1564257631407-4deb1f99d992?w=800"]', 80, 1, 0, 0, 'brand-002', 'Modern Fashion', 'Cotton', 'Pink', '["S", "M", "L", "XL"]', '["Pink", "Yellow", "White"]', datetime('now'), datetime('now')),
+
+('prod-040', 'Crop Top', 'crop-top', 'Trendy crop top. Modern fashion.', 'cat-tops', 450, 450, 600, '["https://images.unsplash.com/photo-1564257631407-4deb1f99d992?w=800"]', 100, 1, 0, 0, 'brand-005', 'Trendy Threads', 'Cotton', 'Black', '["S", "M", "L", "XL"]', '["Black", "White", "Red"]', datetime('now'), datetime('now')),
+
+('prod-041', 'Peplum Top', 'peplum-top', 'Elegant peplum top. Flattering silhouette.', 'cat-tops', 750, 750, 950, '["https://images.unsplash.com/photo-1564257631407-4deb1f99d992?w=800"]', 70, 1, 1, 0, 'brand-007', 'Urban Chic', 'Georgette', 'Navy', '["S", "M", "L", "XL"]', '["Navy", "Maroon", "Green"]', datetime('now'), datetime('now')),
+
+('prod-042', 'Off-Shoulder Top', 'off-shoulder-top', 'Stylish off-shoulder top. Party ready.', 'cat-tops', 850, 850, 1100, '["https://images.unsplash.com/photo-1564257631407-4deb1f99d992?w=800"]', 60, 1, 1, 0, 'brand-002', 'Modern Fashion', 'Chiffon', 'Red', '["S", "M", "L", "XL"]', '["Red", "Black", "White"]', datetime('now'), datetime('now')),
+
+('prod-043', 'Tunics Top', 'tunics-top', 'Comfortable tunic top. Versatile style.', 'cat-tops', 650, 650, 850, '["https://images.unsplash.com/photo-1564257631407-4deb1f99d992?w=800"]', 90, 1, 0, 0, 'brand-005', 'Trendy Threads', 'Rayon', 'Blue', '["S", "M", "L", "XL", "XXL"]', '["Blue", "Green", "Yellow"]', datetime('now'), datetime('now')),
+
+('prod-044', 'Blouse', 'blouse', 'Classic blouse for formal wear.', 'cat-tops', 950, 950, 1200, '["https://images.unsplash.com/photo-1564257631407-4deb1f99d992?w=800"]', 65, 1, 1, 0, 'brand-008', 'Classic Cut', 'Cotton', 'White', '["S", "M", "L", "XL"]', '["White", "Light Blue", "Pink"]', datetime('now'), datetime('now')),
+
+-- Accessories
+('prod-045', 'Designer Handbag', 'designer-handbag', 'Elegant designer handbag. Premium quality.', 'cat-accessories', 3500, 3500, 4500, '["https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800"]', 40, 1, 1, 0, 'brand-004', 'Royal Collection', 'Leather', 'Brown', '["One Size"]', '["Brown", "Black", "Tan"]', datetime('now'), datetime('now')),
+
+('prod-046', 'Statement Earrings', 'statement-earrings', 'Eye-catching statement earrings. Party essential.', 'cat-accessories', 850, 850, 1100, '["https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=800"]', 80, 1, 1, 0, 'brand-007', 'Urban Chic', 'Metal', 'Gold', '["One Size"]', '["Gold", "Silver", "Rose Gold"]', datetime('now'), datetime('now')),
+
+('prod-047', 'Silk Scarf', 'silk-scarf', 'Luxurious silk scarf. Elegant accessory.', 'cat-accessories', 650, 650, 850, '["https://images.unsplash.com/photo-1601924994987-69e26d50dc26?w=800"]', 100, 1, 0, 0, 'brand-001', 'Luxury Sarees', 'Silk', 'Multi', '["One Size"]', '["Multi", "Solid"]', datetime('now'), datetime('now')),
+
+('prod-048', 'Leather Belt', 'leather-belt', 'Classic leather belt. Essential accessory.', 'cat-accessories', 450, 450, 600, '["https://images.unsplash.com/photo-1624222247344-550fb60583dc?w=800"]', 120, 1, 0, 0, 'brand-008', 'Classic Cut', 'Leather', 'Black', '["S", "M", "L"]', '["Black", "Brown"]', datetime('now'), datetime('now')),
+
+('prod-049', 'Clutch Bag', 'clutch-bag', 'Stylish clutch bag for parties.', 'cat-accessories', 1200, 1200, 1500, '["https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800"]', 50, 1, 1, 0, 'brand-004', 'Royal Collection', 'Velvet', 'Red', '["One Size"]', '["Red", "Black", "Gold"]', datetime('now'), datetime('now')),
+
+('prod-050', 'Bangles Set', 'bangles-set', 'Traditional bangles set. Complete ethnic look.', 'cat-accessories', 550, 550, 700, '["https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=800"]', 90, 1, 0, 0, 'brand-006', 'Heritage Wear', 'Metal', 'Gold', '["One Size"]', '["Gold", "Silver"]', datetime('now'), datetime('now')),
+
+('prod-051', 'Necklace', 'necklace', 'Elegant necklace for special occasions.', 'cat-accessories', 1800, 1800, 2200, '["https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=800"]', 55, 1, 1, 0, 'brand-004', 'Royal Collection', 'Gold Plated', 'Gold', '["One Size"]', '["Gold", "Rose Gold"]', datetime('now'), datetime('now')),
+
+('prod-052', 'Sunglasses', 'sunglasses', 'Stylish sunglasses. UV protection.', 'cat-accessories', 950, 950, 1200, '["https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=800"]', 70, 1, 0, 0, 'brand-007', 'Urban Chic', 'Plastic', 'Black', '["One Size"]', '["Black", "Brown", "Tortoise"]', datetime('now'), datetime('now'));
+
+-- Insert Sample Product Variants for key products
+INSERT OR REPLACE INTO product_variants (id, productId, sku, name, price, stock, size, color, isActive, isDefault, costPrice, createdAt, updatedAt) VALUES
+-- Saree Variants
+('var-001-1', 'prod-001', 'SAREE-BLUE-6M', 'Silk Saree - 6m', 3500, 25, '6m', 'Blue', 1, 1, 2500, datetime('now'), datetime('now')),
+('var-001-2', 'prod-001', 'SAREE-BLUE-6.5M', 'Silk Saree - 6.5m', 3600, 25, '6.5m', 'Blue', 1, 0, 2600, datetime('now'), datetime('now')),
+-- Salwar Suit Variants
+('var-009-1', 'prod-009', 'SALWAR-GREEN-S', 'Cotton Salwar - Small', 1800, 10, 'S', 'Green', 1, 0, 1200, datetime('now'), datetime('now')),
+('var-009-2', 'prod-009', 'SALWAR-GREEN-M', 'Cotton Salwar - Medium', 1800, 10, 'M', 'Green', 1, 1, 1200, datetime('now'), datetime('now')),
+('var-009-3', 'prod-009', 'SALWAR-GREEN-L', 'Cotton Salwar - Large', 1800, 10, 'L', 'Green', 1, 0, 1200, datetime('now'), datetime('now')),
+('var-009-4', 'prod-009', 'SALWAR-PINK-S', 'Cotton Salwar - Pink Small', 1800, 8, 'S', 'Pink', 1, 0, 1200, datetime('now'), datetime('now')),
+('var-009-5', 'prod-009', 'SALWAR-PINK-M', 'Cotton Salwar - Pink Medium', 1800, 8, 'M', 'Pink', 1, 0, 1200, datetime('now'), datetime('now')),
+-- Lehenga Variants
+('var-015-1', 'prod-015', 'LEHENGA-RED-S', 'Bridal Lehenga - Small', 15000, 5, 'S', 'Red', 1, 0, 10000, datetime('now'), datetime('now')),
+('var-015-2', 'prod-015', 'LEHENGA-RED-M', 'Bridal Lehenga - Medium', 15000, 5, 'M', 'Red', 1, 1, 10000, datetime('now'), datetime('now')),
+('var-015-3', 'prod-015', 'LEHENGA-RED-L', 'Bridal Lehenga - Large', 15000, 5, 'L', 'Red', 1, 0, 10000, datetime('now'), datetime('now')),
+('var-015-4', 'prod-015', 'LEHENGA-MAROON-M', 'Bridal Lehenga - Maroon Medium', 15000, 5, 'M', 'Maroon', 1, 0, 10000, datetime('now'), datetime('now')),
+-- Kurta Variants
+('var-020-1', 'prod-020', 'KURTA-WHITE-S', 'Cotton Kurta - White Small', 800, 20, 'S', 'White', 1, 0, 500, datetime('now'), datetime('now')),
+('var-020-2', 'prod-020', 'KURTA-WHITE-M', 'Cotton Kurta - White Medium', 800, 20, 'M', 'White', 1, 1, 500, datetime('now'), datetime('now')),
+('var-020-3', 'prod-020', 'KURTA-WHITE-L', 'Cotton Kurta - White Large', 800, 20, 'L', 'White', 1, 0, 500, datetime('now'), datetime('now')),
+('var-020-4', 'prod-020', 'KURTA-BLUE-M', 'Cotton Kurta - Blue Medium', 800, 18, 'M', 'Blue', 1, 0, 500, datetime('now'), datetime('now')),
+('var-020-5', 'prod-020', 'KURTA-GREY-L', 'Cotton Kurta - Grey Large', 800, 18, 'L', 'Grey', 1, 0, 500, datetime('now'), datetime('now')),
+-- Menswear Variants
+('var-026-1', 'prod-026', 'SHIRT-WHITE-S', 'Formal Shirt - White Small', 1200, 15, 'S', 'White', 1, 0, 700, datetime('now'), datetime('now')),
+('var-026-2', 'prod-026', 'SHIRT-WHITE-M', 'Formal Shirt - White Medium', 1200, 15, 'M', 'White', 1, 1, 700, datetime('now'), datetime('now')),
+('var-026-3', 'prod-026', 'SHIRT-WHITE-L', 'Formal Shirt - White Large', 1200, 15, 'L', 'White', 1, 0, 700, datetime('now'), datetime('now')),
+('var-026-4', 'prod-026', 'SHIRT-LBLUE-M', 'Formal Shirt - Light Blue Medium', 1200, 15, 'M', 'Light Blue', 1, 0, 700, datetime('now'), datetime('now')),
+('var-026-5', 'prod-026', 'SHIRT-WHITE-XL', 'Formal Shirt - White XL', 1200, 15, 'XL', 'White', 1, 0, 700, datetime('now'), datetime('now')),
+-- Jeans Variants
+('var-030-1', 'prod-030', 'JEANS-BLUE-30', 'Denim Jeans - 30 inch', 1800, 15, '30', 'Blue', 1, 0, 1000, datetime('now'), datetime('now')),
+('var-030-2', 'prod-030', 'JEANS-BLUE-32', 'Denim Jeans - 32 inch', 1800, 15, '32', 'Blue', 1, 1, 1000, datetime('now'), datetime('now')),
+('var-030-3', 'prod-030', 'JEANS-BLUE-34', 'Denim Jeans - 34 inch', 1800, 15, '34', 'Blue', 1, 0, 1000, datetime('now'), datetime('now')),
+('var-030-4', 'prod-030', 'JEANS-BLUE-36', 'Denim Jeans - 36 inch', 1800, 15, '36', 'Blue', 1, 0, 1000, datetime('now'), datetime('now')),
+('var-030-5', 'prod-030', 'JEANS-BLACK-32', 'Denim Jeans - Black 32', 1800, 15, '32', 'Black', 1, 0, 1000, datetime('now'), datetime('now')),
+-- Top Variants
+('var-039-1', 'prod-039', 'TOP-PINK-S', 'Casual Top - Pink Small', 600, 20, 'S', 'Pink', 1, 0, 350, datetime('now'), datetime('now')),
+('var-039-2', 'prod-039', 'TOP-PINK-M', 'Casual Top - Pink Medium', 600, 20, 'M', 'Pink', 1, 1, 350, datetime('now'), datetime('now')),
+('var-039-3', 'prod-039', 'TOP-PINK-L', 'Casual Top - Pink Large', 600, 20, 'L', 'Pink', 1, 0, 350, datetime('now'), datetime('now')),
+('var-039-4', 'prod-039', 'TOP-YELLOW-M', 'Casual Top - Yellow Medium', 600, 18, 'M', 'Yellow', 1, 0, 350, datetime('now'), datetime('now')),
+('var-039-5', 'prod-039', 'TOP-WHITE-L', 'Casual Top - White Large', 600, 18, 'L', 'White', 1, 0, 350, datetime('now'), datetime('now'));
+
+-- Insert Banners
+INSERT OR REPLACE INTO banners (id, title, description, image, mobileImage, buttonText, buttonLink, isActive, `order`, createdAt, updatedAt) VALUES
+('banner-001', 'New Collection', 'Explore our latest arrivals', 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1600', 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800', 'Shop Now', '/shop', 1, 1, datetime('now'), datetime('now')),
+('banner-002', 'Special Offers', 'Up to 50% off on selected items', 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600', 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800', 'View Deals', '/shop?sale=true', 1, 2, datetime('now'), datetime('now')),
+('banner-003', 'Free Shipping', 'Free shipping on orders over ৳5000', 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1600', 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800', 'Learn More', '/shipping', 1, 3, datetime('now'), datetime('now'));
+
+-- Insert Reels
+INSERT OR REPLACE INTO reels (id, title, thumbnail, videoUrl, productIds, isActive, `order`, createdAt, updatedAt) VALUES
+('reel-001', 'Summer Collection', 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600', 'https://example.com/reel-1.mp4', '["prod-001", "prod-009", "prod-020"]', 1, 1, datetime('now'), datetime('now')),
+('reel-002', 'Bridal Special', 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600', 'https://example.com/reel-2.mp4', '["prod-015", "prod-016", "prod-019"]', 1, 2, datetime('now'), datetime('now')),
+('reel-003', 'Casual Wear', 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600', 'https://example.com/reel-3.mp4', '["prod-020", "prod-026", "prod-030"]', 1, 3, datetime('now'), datetime('now')),
+('reel-004', 'Festival Season', 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600', 'https://example.com/reel-4.mp4', '["prod-002", "prod-010", "prod-012"]', 1, 4, datetime('now'), datetime('now')),
+('reel-005', 'Accessories', 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600', 'https://example.com/reel-5.mp4', '["prod-045", "prod-046", "prod-051"]', 1, 5, datetime('now'), datetime('now'));
+
+-- Insert Stories
+INSERT OR REPLACE INTO stories (id, title, thumbnail, images, isActive, `order`, createdAt, updatedAt) VALUES
+('story-001', 'New Arrivals', 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=400', '["https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600", "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600"]', 1, 1, datetime('now'), datetime('now')),
+('story-002', 'Trending Now', 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400', '["https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600", "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600"]', 1, 2, datetime('now'), datetime('now')),
+('story-003', 'Best Sellers', 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=400', '["https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600", "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600"]', 1, 3, datetime('now'), datetime('now')),
+('story-004', 'Saree Collection', 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=400', '["https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=600", "https://images.unsplash.com/photo-1610030469668-98e550d6193d?w=600"]', 1, 4, datetime('now'), datetime('now')),
+('story-005', 'Menswear', 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=400', '["https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=600", "https://images.unsplash.com/photo-1625910513413-5fc0ec78d0d5?w=600"]', 1, 5, datetime('now'), datetime('now'));
+
+-- Insert Homepage Settings
+INSERT OR REPLACE INTO homepage_settings (id, sectionName, isEnabled, autoPlay, displayLimit, settings, createdAt, updatedAt) VALUES
+('hero-enabled', 'hero', 1, 5000, 5, NULL, datetime('now'), datetime('now')),
+('brands-enabled', 'brands', 1, 5000, 10, '{"brandIds": ["brand-001", "brand-002", "brand-003", "brand-004", "brand-005", "brand-006", "brand-007", "brand-008"], "autoScroll": true, "scrollInterval": 4000, "heading": "Featured Brands", "description": "Discover top brands in our collection"}', datetime('now'), datetime('now')),
+('featured-products-enabled', 'featured_products', 1, 3000, 10, '{"productIds": [], "heading": "Featured Products", "description": "Discover our handpicked selection of top products"}', datetime('now'), datetime('now')),
+('reels-enabled', 'reels', 1, 3000, 10, NULL, datetime('now'), datetime('now')),
+('category-carousel-enabled', 'category-carousel', 1, 4000, 8, '{"categoryIds": [], "heading": "Shop by Category", "description": "Explore our wide range of categories"}', datetime('now'), datetime('now')),
+('stories-enabled', 'stories', 1, 4000, 5, NULL, datetime('now'), datetime('now')),
+('marquee-enabled', 'marquee', 1, 0, 1, '{"text": "", "heading": "Special Offers", "description": "Don''t miss out on our amazing deals"}', datetime('now'), datetime('now')),
+('mosaic-grid-enabled', 'mosaic_grid', 1, 0, 6, '{"productIds": [], "heading": "Shop the Look", "description": "Explore our curated collection of trending styles"}', datetime('now'), datetime('now')),
+('fullscreen-video-enabled', 'fullscreen-video', 1, 0, NULL, '{"videoUrl": "", "heading": "Featured Video", "description": "Experience our exclusive video content"}', datetime('now'), datetime('now')),
+('section-manager-enabled', 'section-manager', 1, 0, NULL, '{"sections": [{"id": "fullscreen-video", "name": "Fullscreen Video", "order": 1, "enabled": true}, {"id": "hero-slider", "name": "Hero Carousel", "order": 2, "enabled": true}, {"id": "marquee", "name": "Marquee Banner", "order": 3, "enabled": true}, {"id": "categories", "name": "Categories", "order": 4, "enabled": true}, {"id": "category-carousel", "name": "Category Carousel", "order": 5, "enabled": true}, {"id": "brands", "name": "Brand Carousel", "order": 6, "enabled": true}, {"id": "featured-products", "name": "Featured Products", "order": 7, "enabled": true}, {"id": "mosaic-grid", "name": "Mosaic Grid", "order": 8, "enabled": true}, {"id": "video-reels", "name": "Video Reels", "order": 9, "enabled": true}, {"id": "promotions", "name": "Promotions", "order": 10, "enabled": true}, {"id": "stories", "name": "Stories", "order": 11, "enabled": true}]}', datetime('now'), datetime('now'));
+
+-- Insert Promotions
+INSERT OR REPLACE INTO promotions (id, title, description, image, ctaText, ctaLink, promoCode, discountType, discountValue, minOrderAmount, isActive, `order`, createdAt, updatedAt) VALUES
+('promo-001', 'First Order Discount', 'Get 10% off on your first order', 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600', 'Use Code FIRST10', '/shop', 'FIRST10', 'percentage', 10, 1000, 1, 1, datetime('now'), datetime('now')),
+('promo-002', 'Summer Sale', 'Flat ৳500 off on orders above ৳3000', 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600', 'Use Code SUMMER500', '/shop', 'SUMMER500', 'fixed', 500, 3000, 1, 2, datetime('now'), datetime('now')),
+('promo-003', 'Festival Special', 'Extra 15% off on ethnic wear', 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600', 'Shop Festival Collection', '/shop?category=saree', 'FESTIVAL15', 'percentage', 15, 2000, 1, 3, datetime('now'), datetime('now'));
+
+-- Insert Page SEO
+INSERT OR REPLACE INTO page_seo (id, pagePath, pageTitle, metaTitle, metaDescription, keywords, ogTitle, ogDescription, isActive, createdAt, updatedAt) VALUES
+('seo-home', '/', 'SCommerce - Your Fashion Destination', 'SCommerce - Best Ethnic Wear Collection', 'Shop the latest collection of sarees, salwar suits, lehengas, kurtas, and more at SCommerce. Free shipping on orders over ৳5000.', 'sarees, salwar suits, lehengas, kurtas, ethnic wear, fashion, online shopping, Bangladesh', 'SCommerce - Premium Ethnic Wear', 'Discover premium ethnic wear at SCommerce. Quality fashion at best prices.', 1, datetime('now'), datetime('now')),
+('seo-shop', '/shop', 'Shop - SCommerce', 'Shop All Products - SCommerce', 'Browse our complete collection of ethnic wear and fashion items for men and women.', 'shop, products, online shopping, fashion store', 'Shop Fashion at SCommerce', 'Find your perfect style from our extensive collection.', 1, datetime('now'), datetime('now')),
+('seo-about', '/about', 'About Us - SCommerce', 'About SCommerce', 'Learn about SCommerce and our commitment to quality fashion and customer satisfaction.', 'about us, company, fashion, ecommerce', 'About SCommerce', 'Your trusted destination for premium ethnic wear and fashion.', 1, datetime('now'), datetime('now')),
+('seo-contact', '/contact', 'Contact Us - SCommerce', 'Contact SCommerce', 'Get in touch with us for any queries, support, or feedback.', 'contact, support, help, customer service', 'Contact SCommerce', 'We are here to help. Reach out to us anytime.', 1, datetime('now'), datetime('now'));
+
+-- Insert Default Suppliers
+INSERT OR REPLACE INTO suppliers (id, code, name, email, phone, city, country, isActive, createdAt, updatedAt) VALUES
+('sup-001', 'SUP001', 'Fashion Hub Ltd', 'contact@fashionhub.com', '+8801700000001', 'Dhaka', 'Bangladesh', 1, datetime('now'), datetime('now')),
+('sup-002', 'SUP002', 'Textile World', 'info@textileworld.com', '+8801700000002', 'Chittagong', 'Bangladesh', 1, datetime('now'), datetime('now')),
+('sup-003', 'SUP003', 'Premium Fabrics', 'sales@premiumfabrics.com', '+8801700000003', 'Dhaka', 'Bangladesh', 1, datetime('now'), datetime('now')),
+('sup-004', 'SUP004', 'Silk Mills', 'orders@silkmills.com', '+919876543210', 'Varanasi', 'India', 1, datetime('now'), datetime('now')),
+('sup-005', 'SUP005', 'Cotton Exports', 'trade@cottonexports.com', '+919876543211', 'Mumbai', 'India', 1, datetime('now'), datetime('now'));
 
 -- Insert Default Email Service
 INSERT OR REPLACE INTO email_services (id, name, provider, fromEmail, fromName, isActive, isDefault, createdAt, updatedAt) VALUES
-('email-default', 'Default SMTP', 'custom', 'noreply@beautystore.com', 'Beauty & Personal Care', 1, 1, datetime('now'), datetime('now'));
+('email-default', 'Default SMTP', 'custom', 'noreply@scommerce.com', 'SCommerce', 1, 1, datetime('now'), datetime('now'));
 
 -- Insert Default Payment Gateway
 INSERT OR REPLACE INTO payment_gateways (id, name, provider, isActive, isDefault, createdAt, updatedAt) VALUES
@@ -625,25 +325,21 @@ INSERT OR REPLACE INTO payment_gateways (id, name, provider, isActive, isDefault
 INSERT OR REPLACE INTO shipping_carriers (id, name, provider, isActive, isDefault, createdAt, updatedAt) VALUES
 ('shipping-default', 'Standard Delivery', 'custom', 1, 1, datetime('now'), datetime('now'));
 
--- Insert Banners
-INSERT OR REPLACE INTO banners (id, title, description, image, mobileImage, buttonText, buttonLink, isActive, `order`, createdAt, updatedAt) VALUES
-('banner-001', 'New Collection', 'Explore our latest arrivals', 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=1600', 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=800', 'Shop Now', '/shop', 1, 1, datetime('now'), datetime('now')),
-('banner-002', 'Special Offers', 'Up to 50% off on selected items', 'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=1600', 'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=800', 'View Deals', '/shop?sale=true', 1, 2, datetime('now'), datetime('now')),
-('banner-003', 'Free Shipping', 'Free shipping on orders over ৳5000', 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=1600', 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=800', 'Learn More', '/shipping', 1, 3, datetime('now'), datetime('now'));
+-- Insert Sample Orders
+INSERT OR REPLACE INTO orders (id, orderNumber, userId, customerName, customerEmail, customerPhone, shippingAddress, billingAddress, city, district, division, subtotal, shipping, tax, discount, total, status, paymentStatus, paymentMethod, createdAt, updatedAt) VALUES
+('order-001', 'ORD-2024001', 'user-001', 'Demo User', 'user@scommerce.com', '+8801800000000', 'House 123, Road 5, Dhanmondi', 'House 123, Road 5, Dhanmondi', 'Dhaka', 'Dhaka', 'Dhaka', 4500, 150, 810, 0, 5460, 'DELIVERED', 'PAID', 'COD', datetime('now', '-5 days'), datetime('now')),
+('order-002', 'ORD-2024002', 'user-001', 'Demo User', 'user@scommerce.com', '+8801800000000', 'House 123, Road 5, Dhanmondi', 'House 123, Road 5, Dhanmondi', 'Dhaka', 'Dhaka', 'Dhaka', 2800, 150, 504, 280, 3174, 'PROCESSING', 'PENDING', 'COD', datetime('now', '-1 day'), datetime('now'));
 
--- Insert Homepage Settings
-INSERT OR REPLACE INTO homepage_settings (id, sectionName, isEnabled, autoPlay, displayLimit, settings, createdAt, updatedAt) VALUES
-('hero-enabled', 'hero', 1, 5000, 5, NULL, datetime('now'), datetime('now')),
-('brands-enabled', 'brands', 1, 5000, 10, '{"brandIds": [], "autoScroll": true, "scrollInterval": 4000, "heading": "Featured Brands", "description": "Discover top beauty brands"}', datetime('now'), datetime('now')),
-('featured-products-enabled', 'featured_products', 1, 3000, 10, '{"productIds": [], "heading": "Featured Products", "description": "Discover our handpicked selection"}', datetime('now'), datetime('now')),
-('category-carousel-enabled', 'category-carousel', 1, 4000, 8, '{"categoryIds": [], "heading": "Shop by Category", "description": "Explore our wide range"}', datetime('now'), datetime('now'));
+-- Insert Sample Order Items
+INSERT OR REPLACE INTO order_items (id, orderId, productId, variantId, quantity, price, productName, productImage, variantSku, variantSize, variantColor, createdAt) VALUES
+('order-item-001', 'order-001', 'prod-001', 'var-001-1', 1, 3500, 'Silk Saree - Royal Blue', '["https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=800"]', 'SAREE-BLUE-6M', '6m', 'Blue', datetime('now')),
+('order-item-002', 'order-001', 'prod-009', 'var-009-2', 1, 1000, 'Cotton Salwar Suit', '["https://images.unsplash.com/photo-1583391733958-3750e0ff4e8b?w=800"]', 'SALWAR-GREEN-M', 'M', 'Green', datetime('now')),
+('order-item-003', 'order-002', 'prod-020', 'var-020-2', 2, 800, 'Cotton Kurta', '["https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=800"]', 'KURTA-WHITE-M', 'M', 'White', datetime('now')),
+('order-item-004', 'order-002', 'prod-026', 'var-026-2', 1, 1200, 'Formal Shirt', '["https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=800"]', 'SHIRT-WHITE-M', 'M', 'White', datetime('now'));
 
--- Insert Promotions
-INSERT OR REPLACE INTO promotions (id, title, description, image, ctaText, ctaLink, promoCode, discountType, discountValue, minOrderAmount, isActive, `order`, createdAt, updatedAt) VALUES
-('promo-001', 'First Order Discount', 'Get 10% off on your first order', 'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=600', 'Use Code FIRST10', '/shop', 'FIRST10', 'percentage', 10, 1000, 1, 1, datetime('now'), datetime('now')),
-('promo-002', 'Summer Sale', 'Flat ৳500 off on orders above ৳3000', 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=600', 'Use Code SUMMER500', '/shop', 'SUMMER500', 'fixed', 500, 3000, 1, 2, datetime('now'), datetime('now'));
-
--- Insert Page SEO
-INSERT OR REPLACE INTO page_seo (id, pagePath, pageTitle, metaTitle, metaDescription, keywords, ogTitle, ogDescription, isActive, createdAt, updatedAt) VALUES
-('seo-home', '/', 'Beauty & Personal Care', 'Beauty & Personal Care Store', 'Shop the best beauty and personal care products at great prices.', 'beauty, skincare, makeup, personal care, cosmetics, online shopping, Bangladesh', 'Beauty & Personal Care Store', 'Your one-stop shop for all beauty needs.', 1, datetime('now'), datetime('now')),
-('seo-shop', '/shop', 'Shop - Beauty Store', 'Shop All Products', 'Browse our complete collection of beauty and personal care products.', 'shop, products, beauty, cosmetics', 'Shop Beauty Products', 'Find your perfect beauty products here.', 1, datetime('now'), datetime('now'));
+-- Insert Sample Reviews
+INSERT OR REPLACE INTO product_reviews (id, productId, userId, userName, rating, title, comment, isVerified, isApproved, createdAt, updatedAt) VALUES
+('review-001', 'prod-001', 'user-001', 'Demo User', 5, 'Beautiful saree!', 'The silk saree exceeded my expectations. The quality is amazing and it looks even better in person.', 1, 1, datetime('now', '-3 days'), datetime('now')),
+('review-002', 'prod-009', 'user-001', 'Demo User', 4, 'Comfortable and stylish', 'Great salwar suit for daily wear. Comfortable fabric and nice embroidery work.', 1, 1, datetime('now', '-3 days'), datetime('now')),
+('review-003', 'prod-020', 'user-001', 'Demo User', 5, 'Perfect fit', 'The kurta fits perfectly and the fabric is very comfortable. Will buy again!', 1, 1, datetime('now', '-2 days'), datetime('now')),
+('review-004', 'prod-015', 'user-001', 'Demo User', 5, 'Stunning bridal lehenga', 'Absolutely beautiful lehenga! The embroidery work is intricate and the color is rich.', 1, 1, datetime('now', '-1 day'), datetime('now'));

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -85,16 +85,6 @@ export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-
-  // Pagination state
-  const [page, setPage] = useState(1)
-  const [hasMore, setHasMore] = useState(true)
-  const [isLoadingMore, setIsLoadingMore] = useState(false)
-  const [total, setTotal] = useState(0)
-
-  // Intersection Observer ref
-  const observerRef = useRef<IntersectionObserver | null>(null)
-  const sentinelRef = useRef<HTMLDivElement | null>(null)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
@@ -119,33 +109,17 @@ export default function CustomersPage() {
     isVIP: false,
   })
 
-  const fetchCustomers = async (pageNum: number = 1, append: boolean = false) => {
-    if (append && isLoadingMore) return
-
+  const fetchCustomers = async () => {
     try {
-      if (!append) setLoading(true)
-      else setIsLoadingMore(true)
-
+      setLoading(true)
       const params = new URLSearchParams()
-      params.append('page', pageNum.toString())
-      params.append('limit', '20')
       if (statusFilter !== 'all') params.append('status', statusFilter)
 
       const response = await fetch(`/api/admin/customers?${params.toString()}`)
       const result = await response.json() as any
 
       if (result.success) {
-        if (append) {
-          setCustomers(prev => [...prev, ...(Array.isArray(result.data) ? result.data : [])])
-        } else {
-          setCustomers(Array.isArray(result.data) ? result.data : [])
-        }
-
-        if (result.pagination) {
-          setHasMore(result.pagination.hasNextPage)
-          setTotal(result.pagination.totalCount)
-          setPage(pageNum)
-        }
+        setCustomers(Array.isArray(result.data) ? result.data : [])
       } else {
         throw new Error(result.error || 'Failed to fetch customers')
       }
@@ -158,54 +132,13 @@ export default function CustomersPage() {
         variant: 'destructive',
       })
     } finally {
-      if (!append) setLoading(false)
-      else setIsLoadingMore(false)
+      setLoading(false)
     }
   }
 
-  const loadMore = useCallback(() => {
-    if (hasMore && !isLoadingMore && !loading) {
-      fetchCustomers(page + 1, true)
-    }
-  }, [hasMore, isLoadingMore, loading, page])
-
   useEffect(() => {
-    if (observerRef.current) {
-      observerRef.current.disconnect()
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore) {
-          loadMore()
-        }
-      },
-      {
-        rootMargin: '100px',
-        threshold: 0.1
-      }
-    )
-
-    if (sentinelRef.current) {
-      observer.observe(sentinelRef.current)
-    }
-
-    observerRef.current = observer
-
-    return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect()
-      }
-    }
-  }, [sentinelRef, hasMore, isLoadingMore, loading, loadMore])
-
-  useEffect(() => {
-    fetchCustomers(1, false)
+    fetchCustomers()
   }, [])
-
-  useEffect(() => {
-    fetchCustomers(1, false)
-  }, [statusFilter])
 
   const openAddModal = () => {
     setAddFormData({
@@ -273,7 +206,7 @@ export default function CustomersPage() {
           phone: '',
           address: '',
         })
-        fetchCustomers(1, false)
+        fetchCustomers()
       } else {
         throw new Error(result.error || 'Failed to create customer')
       }
@@ -311,7 +244,7 @@ export default function CustomersPage() {
           description: 'Customer updated successfully',
         })
         setIsEditModalOpen(false)
-        fetchCustomers(1, false)
+        fetchCustomers()
       } else {
         throw new Error(result.error || 'Failed to update customer')
       }
@@ -346,7 +279,7 @@ export default function CustomersPage() {
           title: 'Success',
           description: customer.isVIP ? 'VIP status removed' : 'Customer marked as VIP',
         })
-        fetchCustomers(1, false)
+        fetchCustomers()
       } else {
         toast({
           title: 'Error',
@@ -387,7 +320,7 @@ export default function CustomersPage() {
           title: 'Success',
           description: `${customer.name} has been banned`,
         })
-        fetchCustomers(1, false)
+        fetchCustomers()
       } else {
         toast({
           title: 'Error',
@@ -424,7 +357,7 @@ export default function CustomersPage() {
           title: 'Success',
           description: `${customer.name} has been unbanned`,
         })
-        fetchCustomers(1, false)
+        fetchCustomers()
       } else {
         toast({
           title: 'Error',
@@ -459,7 +392,7 @@ export default function CustomersPage() {
           title: 'Success',
           description: 'Customer deleted successfully',
         })
-        fetchCustomers(1, false)
+        fetchCustomers()
       } else {
         toast({
           title: 'Error',
@@ -641,21 +574,15 @@ export default function CustomersPage() {
                 <SelectItem value="banned">Banned</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" onClick={() => fetchCustomers(1, false)} disabled={loading}>
+            <Button variant="outline" onClick={fetchCustomers} disabled={loading}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             </Button>
           </div>
-          {total > 0 && (
-            <div className="text-xs text-gray-500">
-              Showing {customers.length} of {total} customers
-              {!hasMore && customers.length < total && <span className="ml-2"> (all loaded)</span>}
-            </div>
-          )}
         </CardHeader>
         <CardContent>
-          <div className="max-h-[600px] overflow-y-auto">
+          <div className="w-full overflow-x-auto -mx-4 px-4">
             <Table>
-              <TableHeader className="sticky top-0 bg-white z-10">
+              <TableHeader>
                 <TableRow className="bg-gray-50 hover:bg-gray-50">
                   <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[200px]">Customer</TableHead>
                   <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[250px]">Contact</TableHead>
@@ -818,28 +745,9 @@ export default function CustomersPage() {
                       </TableCell>
                     </TableRow>
                   ))}
-                </TableBody>
-                {isLoadingMore && (
-                  <TableBody>
-                    <TableRow>
-                      <TableCell colSpan={9}>
-                        <div className="flex items-center justify-center py-4">
-                          <Loader2 className="h-6 w-6 animate-spin text-violet-600" />
-                          <span className="ml-2 text-sm text-gray-500">Loading more customers...</span>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                )}
-                <TableBody>
-                  <TableRow>
-                    <TableCell colSpan={9}>
-                      <div ref={sentinelRef} className="h-4" />
-                    </TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </div>
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
