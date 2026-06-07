@@ -59,6 +59,7 @@ import {
   LayoutGrid,
 } from 'lucide-react'
 import { GallerySelector } from '@/components/admin/gallery-selector'
+import { ImageUpload } from '@/components/admin/image-upload'
 import { CategoryTree, buildCategoryTree, CategoryNode } from '@/components/admin/category-tree'
 import {
   Select,
@@ -123,11 +124,6 @@ export default function CategoriesPage() {
   const [deleteCategoryId, setDeleteCategoryId] = useState<string | null>(null)
   const [deletingCategory, setDeletingCategory] = useState<string | null>(null)
 
-  // Image upload state
-  const [uploading, setUploading] = useState(false)
-  const [addImagePreview, setAddImagePreview] = useState<string | null>(null)
-  const [editImagePreview, setEditImagePreview] = useState<string | null>(null)
-
   // Loading states for form submissions
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -152,23 +148,65 @@ export default function CategoriesPage() {
   }
 
   // Validate form data
-  const validateForm = (formData: typeof addFormData, isEditMode: boolean = false): boolean => {
+  const validateForm = (formData: typeof addFormData, isEditMode: boolean = false, categoryId?: string): boolean => {
     const errors: Record<string, string> = {}
 
+    // Name validation
     if (!formData.name.trim()) {
       errors.name = 'Category name is required'
     } else if (formData.name.length < 2) {
       errors.name = 'Category name must be at least 2 characters'
+    } else if (formData.name.length > 100) {
+      errors.name = 'Category name must be less than 100 characters'
     }
 
+    // Slug validation
     if (!formData.slug.trim()) {
       errors.slug = 'Slug is required'
     } else if (!/^[a-z0-9-]+$/.test(formData.slug)) {
       errors.slug = 'Slug can only contain lowercase letters, numbers, and hyphens'
+    } else if (formData.slug.startsWith('-') || formData.slug.endsWith('-')) {
+      errors.slug = 'Slug cannot start or end with a hyphen'
+    } else if (formData.slug.includes('--')) {
+      errors.slug = 'Slug cannot contain consecutive hyphens'
+    } else if (formData.slug.length < 2) {
+      errors.slug = 'Slug must be at least 2 characters'
+    } else if (formData.slug.length > 100) {
+      errors.slug = 'Slug must be less than 100 characters'
+    } else if (!isEditMode) {
+      // Check for duplicate slugs when creating new category
+      const duplicateSlug = categories.find(c => c.slug === formData.slug)
+      if (duplicateSlug) {
+        errors.slug = 'This slug is already in use. Please choose a different one.'
+      }
+    } else if (isEditMode && categoryId) {
+      // Check for duplicate slugs when editing (exclude current category)
+      const duplicateSlug = categories.find(c => c.slug === formData.slug && c.id !== categoryId)
+      if (duplicateSlug) {
+        errors.slug = 'This slug is already in use by another category. Please choose a different one.'
+      }
     }
 
+    // Parent category validation
+    if (formData.parentId && formData.parentId !== 'none') {
+      const parentExists = categories.find(c => c.id === formData.parentId)
+      if (!parentExists) {
+        errors.parentId = 'Selected parent category does not exist'
+      } else if (isEditMode && categoryId && formData.parentId === categoryId) {
+        errors.parentId = 'A category cannot be its own parent'
+      }
+    }
+
+    // Description validation
     if (formData.description && formData.description.length > 500) {
-      errors.description = 'Description must be less than 500 characters'
+      errors.description = `Description must be less than 500 characters (currently ${formData.description.length})`
+    }
+
+    // Sort order validation
+    if (formData.sortOrder < 0) {
+      errors.sortOrder = 'Sort order must be a positive number'
+    } else if (formData.sortOrder > 9999) {
+      errors.sortOrder = 'Sort order must be less than 10000'
     }
 
     if (isEditMode) {
@@ -263,7 +301,6 @@ export default function CategoriesPage() {
 
       setIsAddModalOpen(false)
       setAddFormData({ name: '', slug: '', description: '', image: '', isActive: true, parentId: 'none', sortOrder: 0 })
-      setAddImagePreview(null)
       setAddFormErrors({})
       fetchCategories()
     } catch (err: any) {
@@ -289,7 +326,6 @@ export default function CategoriesPage() {
       parentId: category.parentId || 'none',
       sortOrder: category.sortOrder,
     })
-    setEditImagePreview(category.image || null)
     setEditFormErrors({})
     setIsEditModalOpen(true)
   }
@@ -299,7 +335,7 @@ export default function CategoriesPage() {
     if (!editingCategory) return
 
     // Validate form before submitting
-    if (!validateForm(editFormData, true)) {
+    if (!validateForm(editFormData, true, editingCategory.id)) {
       toast({
         title: 'Validation Error',
         description: 'Please fix the errors before submitting',
@@ -338,7 +374,6 @@ export default function CategoriesPage() {
       })
 
       setIsEditModalOpen(false)
-      setEditImagePreview(null)
       setEditFormErrors({})
       fetchCategories()
     } catch (err: any) {
@@ -421,59 +456,7 @@ export default function CategoriesPage() {
     }
   }
 
-  const handleImageUpload = async (file: File, isEditMode: boolean = false) => {
-    try {
-      setUploading(true)
 
-      const formData = new FormData()
-      formData.append('file', file)
-
-      const response = await fetch('/api/admin/upload', {
-        method: 'POST',
-        body: formData,
-      })
-
-      const result = await response.json() as any
-
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to upload image')
-      }
-
-      const imageUrl = result.data.url
-
-      if (isEditMode) {
-        setEditFormData({ ...editFormData, image: imageUrl })
-        setEditImagePreview(imageUrl)
-      } else {
-        setAddFormData({ ...addFormData, image: imageUrl })
-        setAddImagePreview(imageUrl)
-      }
-
-      toast({
-        title: 'Success',
-        description: 'Image uploaded successfully',
-      })
-    } catch (err: any) {
-      console.error('Error uploading image:', err)
-      toast({
-        title: 'Error',
-        description: err.message || 'Failed to upload image',
-        variant: 'destructive',
-      })
-    } finally {
-      setUploading(false)
-    }
-  }
-
-  const handleImageRemove = (isEditMode: boolean = false) => {
-    if (isEditMode) {
-      setEditFormData({ ...editFormData, image: '' })
-      setEditImagePreview(null)
-    } else {
-      setAddFormData({ ...addFormData, image: '' })
-      setAddImagePreview(null)
-    }
-  }
 
   const handleTreeAdd = (parentId?: string) => {
     setAddFormData({
@@ -485,7 +468,6 @@ export default function CategoriesPage() {
       parentId: parentId || '',
       sortOrder: 0,
     })
-    setAddImagePreview(null)
     setAddFormErrors({})
     setIsAddModalOpen(true)
   }
@@ -794,34 +776,71 @@ export default function CategoriesPage() {
           </DialogHeader>
           <form onSubmit={handleCreateCategory} className="space-y-4 py-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Category Name *</label>
+              <label className="text-sm font-medium flex items-center gap-1">
+                Category Name
+                <span className="text-red-500" aria-label="required">*</span>
+              </label>
               <Input
                 value={addFormData.name}
                 onChange={(e) => handleNameChange(e.target.value, false)}
-                className={addFormErrors.name ? 'border-red-500' : ''}
+                className={addFormErrors.name ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}
+                placeholder="Enter category name (e.g., Electronics)"
+                aria-invalid={!!addFormErrors.name}
+                aria-describedby={addFormErrors.name ? 'name-error' : undefined}
               />
               {addFormErrors.name && (
-                <p className="text-sm text-red-600">{addFormErrors.name}</p>
+                <p id="name-error" className="text-sm text-red-600 font-medium flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  {addFormErrors.name}
+                </p>
               )}
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Slug *</label>
-              <Input
-                value={addFormData.slug}
-                onChange={(e) => setAddFormData({ ...addFormData, slug: e.target.value })}
-                className={addFormErrors.slug ? 'border-red-500' : ''}
-              />
+              <label className="text-sm font-medium flex items-center gap-1">
+                Slug
+                <span className="text-red-500" aria-label="required">*</span>
+              </label>
+              <div className="relative">
+                <Input
+                  value={addFormData.slug}
+                  onChange={(e) => setAddFormData({ ...addFormData, slug: e.target.value })}
+                  className={addFormErrors.slug ? 'border-red-500 focus:border-red-500 focus:ring-red-500 pr-8' : 'pr-8'}
+                  placeholder="e.g., electronics (URL-friendly)"
+                  aria-invalid={!!addFormErrors.slug}
+                  aria-describedby={addFormErrors.slug ? 'slug-error' : 'slug-hint'}
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <svg className={`w-4 h-4 ${addFormErrors.slug ? 'text-red-500' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                </div>
+              </div>
+              {!addFormErrors.slug && (
+                <p id="slug-hint" className="text-xs text-gray-500">
+                  URL-friendly identifier. Only lowercase letters, numbers, and hyphens allowed.
+                </p>
+              )}
               {addFormErrors.slug && (
-                <p className="text-sm text-red-600">{addFormErrors.slug}</p>
+                <p id="slug-error" className="text-sm text-red-600 font-medium flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  {addFormErrors.slug}
+                </p>
               )}
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Parent Category (Optional)</label>
+              <label className="text-sm font-medium flex items-center gap-1">
+                Parent Category
+                <span className="text-xs text-gray-400 font-normal">(Optional)</span>
+              </label>
               <Select
                 value={addFormData.parentId}
                 onValueChange={(value) => setAddFormData({ ...addFormData, parentId: value })}
               >
-                <SelectTrigger>
+                <SelectTrigger className={addFormErrors.parentId ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}>
                   <SelectValue placeholder="No parent (root category)" />
                 </SelectTrigger>
                 <SelectContent>
@@ -834,80 +853,87 @@ export default function CategoriesPage() {
                     ))}
                 </SelectContent>
               </Select>
+              {addFormErrors.parentId && (
+                <p className="text-sm text-red-600 font-medium flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  {addFormErrors.parentId}
+                </p>
+              )}
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Sort Order</label>
+              <label className="text-sm font-medium flex items-center gap-1">
+                Sort Order
+                <span className="text-xs text-gray-400 font-normal">(Optional)</span>
+              </label>
               <Input
                 type="number"
                 value={addFormData.sortOrder}
                 onChange={(e) => setAddFormData({ ...addFormData, sortOrder: parseInt(e.target.value) || 0 })}
                 min="0"
+                max="9999"
+                className={addFormErrors.sortOrder ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}
+                placeholder="0"
+                aria-invalid={!!addFormErrors.sortOrder}
+                aria-describedby={addFormErrors.sortOrder ? 'sortorder-error' : 'sortorder-hint'}
               />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Description</label>
-              <Input
-                value={addFormData.description}
-                onChange={(e) => setAddFormData({ ...addFormData, description: e.target.value })}
-                className={addFormErrors.description ? 'border-red-500' : ''}
-              />
-              {addFormErrors.description && (
-                <p className="text-sm text-red-600">{addFormErrors.description}</p>
+              {!addFormErrors.sortOrder && (
+                <p id="sortorder-hint" className="text-xs text-gray-500">
+                  Lower numbers appear first in the list
+                </p>
+              )}
+              {addFormErrors.sortOrder && (
+                <p id="sortorder-error" className="text-sm text-red-600 font-medium flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  {addFormErrors.sortOrder}
+                </p>
               )}
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Category Image</label>
-              <div className="space-y-2">
-                {addImagePreview ? (
-                  <div className="relative w-full h-48 rounded-lg overflow-hidden border border-gray-200">
-                    <img
-                      src={addImagePreview}
-                      alt="Category preview"
-                      className="w-full h-full object-cover"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleImageRemove(false)}
-                      className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors"
-                      disabled={uploading}
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex gap-2">
-                    <GallerySelector
-                      onSelect={(url) => {
-                        setAddFormData({ ...addFormData, image: url })
-                        setAddImagePreview(url)
-                      }}
-                      category="category"
-                      className="flex-1"
-                    />
-                    <div className="relative w-full h-48 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center hover:border-violet-500 transition-colors">
-                      <input
-                        type="file"
-                        id="addCategoryImage"
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0]
-                          if (file) handleImageUpload(file, false)
-                        }}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        disabled={uploading}
-                      />
-                      <div className="text-center p-4">
-                        <p className="text-sm text-gray-600 mb-1">
-                          {uploading ? 'Uploading...' : 'Or upload new'}
-                        </p>
-                        <p className="text-xs text-gray-400">
-                          PNG, JPG, GIF, WebP (max 5MB)
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+              <label className="text-sm font-medium flex items-center justify-between">
+                <span className="flex items-center gap-1">
+                  Description
+                  <span className="text-xs text-gray-400 font-normal">(Optional)</span>
+                </span>
+                {addFormData.description && (
+                  <span className={`text-xs ${addFormData.description.length > 500 ? 'text-red-500' : 'text-gray-400'}`}>
+                    {addFormData.description.length}/500
+                  </span>
                 )}
-              </div>
+              </label>
+              <Input
+                value={addFormData.description}
+                onChange={(e) => setAddFormData({ ...addFormData, description: e.target.value })}
+                className={addFormErrors.description ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}
+                placeholder="Brief description of this category"
+                maxLength={500}
+                aria-invalid={!!addFormErrors.description}
+                aria-describedby={addFormErrors.description ? 'description-error' : undefined}
+              />
+              {addFormErrors.description && (
+                <p id="description-error" className="text-sm text-red-600 font-medium flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  {addFormErrors.description}
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium flex items-center gap-1">
+                Category Image
+                <span className="text-xs text-gray-400 font-normal">(Optional)</span>
+              </label>
+              <ImageUpload
+                images={addFormData.image ? [addFormData.image] : []}
+                onImagesChange={(urls) => {
+                  setAddFormData({ ...addFormData, image: urls[0] || '' })
+                }}
+                maxImages={1}
+              />
             </div>
             <div className="flex items-center gap-2">
               <input
@@ -943,34 +969,71 @@ export default function CategoriesPage() {
           </DialogHeader>
           <form onSubmit={handleUpdateCategory} className="space-y-4 py-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Category Name *</label>
+              <label className="text-sm font-medium flex items-center gap-1">
+                Category Name
+                <span className="text-red-500" aria-label="required">*</span>
+              </label>
               <Input
                 value={editFormData.name}
                 onChange={(e) => handleNameChange(e.target.value, true)}
-                className={editFormErrors.name ? 'border-red-500' : ''}
+                className={editFormErrors.name ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}
+                placeholder="Enter category name (e.g., Electronics)"
+                aria-invalid={!!editFormErrors.name}
+                aria-describedby={editFormErrors.name ? 'edit-name-error' : undefined}
               />
               {editFormErrors.name && (
-                <p className="text-sm text-red-600">{editFormErrors.name}</p>
+                <p id="edit-name-error" className="text-sm text-red-600 font-medium flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  {editFormErrors.name}
+                </p>
               )}
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Slug *</label>
-              <Input
-                value={editFormData.slug}
-                onChange={(e) => setEditFormData({ ...editFormData, slug: e.target.value })}
-                className={editFormErrors.slug ? 'border-red-500' : ''}
-              />
+              <label className="text-sm font-medium flex items-center gap-1">
+                Slug
+                <span className="text-red-500" aria-label="required">*</span>
+              </label>
+              <div className="relative">
+                <Input
+                  value={editFormData.slug}
+                  onChange={(e) => setEditFormData({ ...editFormData, slug: e.target.value })}
+                  className={editFormErrors.slug ? 'border-red-500 focus:border-red-500 focus:ring-red-500 pr-8' : 'pr-8'}
+                  placeholder="e.g., electronics (URL-friendly)"
+                  aria-invalid={!!editFormErrors.slug}
+                  aria-describedby={editFormErrors.slug ? 'edit-slug-error' : 'edit-slug-hint'}
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <svg className={`w-4 h-4 ${editFormErrors.slug ? 'text-red-500' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                </div>
+              </div>
+              {!editFormErrors.slug && (
+                <p id="edit-slug-hint" className="text-xs text-gray-500">
+                  URL-friendly identifier. Only lowercase letters, numbers, and hyphens allowed.
+                </p>
+              )}
               {editFormErrors.slug && (
-                <p className="text-sm text-red-600">{editFormErrors.slug}</p>
+                <p id="edit-slug-error" className="text-sm text-red-600 font-medium flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  {editFormErrors.slug}
+                </p>
               )}
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Parent Category (Optional)</label>
+              <label className="text-sm font-medium flex items-center gap-1">
+                Parent Category
+                <span className="text-xs text-gray-400 font-normal">(Optional)</span>
+              </label>
               <Select
                 value={editFormData.parentId}
                 onValueChange={(value) => setEditFormData({ ...editFormData, parentId: value })}
               >
-                <SelectTrigger>
+                <SelectTrigger className={editFormErrors.parentId ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}>
                   <SelectValue placeholder="No parent (root category)" />
                 </SelectTrigger>
                 <SelectContent>
@@ -984,80 +1047,87 @@ export default function CategoriesPage() {
                     ))}
                 </SelectContent>
               </Select>
+              {editFormErrors.parentId && (
+                <p className="text-sm text-red-600 font-medium flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  {editFormErrors.parentId}
+                </p>
+              )}
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Sort Order</label>
+              <label className="text-sm font-medium flex items-center gap-1">
+                Sort Order
+                <span className="text-xs text-gray-400 font-normal">(Optional)</span>
+              </label>
               <Input
                 type="number"
                 value={editFormData.sortOrder}
                 onChange={(e) => setEditFormData({ ...editFormData, sortOrder: parseInt(e.target.value) || 0 })}
                 min="0"
+                max="9999"
+                className={editFormErrors.sortOrder ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}
+                placeholder="0"
+                aria-invalid={!!editFormErrors.sortOrder}
+                aria-describedby={editFormErrors.sortOrder ? 'edit-sortorder-error' : 'edit-sortorder-hint'}
               />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Description</label>
-              <Input
-                value={editFormData.description}
-                onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
-                className={editFormErrors.description ? 'border-red-500' : ''}
-              />
-              {editFormErrors.description && (
-                <p className="text-sm text-red-600">{editFormErrors.description}</p>
+              {!editFormErrors.sortOrder && (
+                <p id="edit-sortorder-hint" className="text-xs text-gray-500">
+                  Lower numbers appear first in the list
+                </p>
+              )}
+              {editFormErrors.sortOrder && (
+                <p id="edit-sortorder-error" className="text-sm text-red-600 font-medium flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  {editFormErrors.sortOrder}
+                </p>
               )}
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Category Image</label>
-              <div className="space-y-2">
-                {editImagePreview ? (
-                  <div className="relative w-full h-48 rounded-lg overflow-hidden border border-gray-200">
-                    <img
-                      src={editImagePreview}
-                      alt="Category preview"
-                      className="w-full h-full object-cover"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleImageRemove(true)}
-                      className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors"
-                      disabled={uploading}
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex gap-2">
-                    <GallerySelector
-                      onSelect={(url) => {
-                        setEditFormData({ ...editFormData, image: url })
-                        setEditImagePreview(url)
-                      }}
-                      category="category"
-                      className="flex-1"
-                    />
-                    <div className="relative w-full h-48 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center hover:border-violet-500 transition-colors">
-                      <input
-                        type="file"
-                        id="editCategoryImage"
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0]
-                          if (file) handleImageUpload(file, true)
-                        }}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        disabled={uploading}
-                      />
-                      <div className="text-center p-4">
-                        <p className="text-sm text-gray-600 mb-1">
-                          {uploading ? 'Uploading...' : 'Or upload new'}
-                        </p>
-                        <p className="text-xs text-gray-400">
-                          PNG, JPG, GIF, WebP (max 5MB)
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+              <label className="text-sm font-medium flex items-center justify-between">
+                <span className="flex items-center gap-1">
+                  Description
+                  <span className="text-xs text-gray-400 font-normal">(Optional)</span>
+                </span>
+                {editFormData.description && (
+                  <span className={`text-xs ${editFormData.description.length > 500 ? 'text-red-500' : 'text-gray-400'}`}>
+                    {editFormData.description.length}/500
+                  </span>
                 )}
-              </div>
+              </label>
+              <Input
+                value={editFormData.description}
+                onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                className={editFormErrors.description ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}
+                placeholder="Brief description of this category"
+                maxLength={500}
+                aria-invalid={!!editFormErrors.description}
+                aria-describedby={editFormErrors.description ? 'edit-description-error' : undefined}
+              />
+              {editFormErrors.description && (
+                <p id="edit-description-error" className="text-sm text-red-600 font-medium flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  {editFormErrors.description}
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium flex items-center gap-1">
+                Category Image
+                <span className="text-xs text-gray-400 font-normal">(Optional)</span>
+              </label>
+              <ImageUpload
+                images={editFormData.image ? [editFormData.image] : []}
+                onImagesChange={(urls) => {
+                  setEditFormData({ ...editFormData, image: urls[0] || '' })
+                }}
+                maxImages={1}
+              />
             </div>
             <div className="flex items-center gap-2">
               <input

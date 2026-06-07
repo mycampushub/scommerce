@@ -58,6 +58,7 @@ import {
   Globe,
 } from 'lucide-react'
 import { GallerySelector } from '@/components/admin/gallery-selector'
+import { ImageUpload } from '@/components/admin/image-upload'
 import {
   Select,
   SelectContent,
@@ -125,11 +126,6 @@ export default function BrandsPage() {
   const [deleteBrandId, setDeleteBrandId] = useState<string | null>(null)
   const [deletingBrand, setDeletingBrand] = useState<string | null>(null)
 
-  // Image upload state
-  const [uploading, setUploading] = useState(false)
-  const [addImagePreview, setAddImagePreview] = useState<string | null>(null)
-  const [editImagePreview, setEditImagePreview] = useState<string | null>(null)
-
   // Loading states for form submissions
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -157,24 +153,43 @@ export default function BrandsPage() {
   const validateForm = (formData: typeof addFormData, isEditMode: boolean = false): boolean => {
     const errors: Record<string, string> = {}
 
+    // Name validation
     if (!formData.name.trim()) {
       errors.name = 'Brand name is required'
     } else if (formData.name.length < 2) {
       errors.name = 'Brand name must be at least 2 characters'
+    } else if (formData.name.length > 100) {
+      errors.name = 'Brand name must be less than 100 characters'
     }
 
+    // Slug validation
     if (!formData.slug.trim()) {
       errors.slug = 'Slug is required'
     } else if (!/^[a-z0-9-]+$/.test(formData.slug)) {
-      errors.slug = 'Slug can only contain lowercase letters, numbers, and hyphens'
+      errors.slug = 'Slug can only contain lowercase letters, numbers, and hyphens (e.g., "my-brand")'
+    } else if (formData.slug.startsWith('-') || formData.slug.endsWith('-')) {
+      errors.slug = 'Slug cannot start or end with a hyphen'
+    } else if (formData.slug.includes('--')) {
+      errors.slug = 'Slug cannot contain consecutive hyphens'
     }
 
+    // Description validation
     if (formData.description && formData.description.length > 500) {
       errors.description = 'Description must be less than 500 characters'
     }
 
-    if (formData.website && formData.website.trim() !== '' && !isValidUrl(formData.website)) {
-      errors.website = 'Please enter a valid URL'
+    // Website URL validation
+    if (formData.website && formData.website.trim() !== '') {
+      if (!isValidUrl(formData.website)) {
+        errors.website = 'Please enter a valid URL (e.g., "https://example.com")'
+      }
+    }
+
+    // Sort order validation
+    if (formData.sortOrder < 0) {
+      errors.sortOrder = 'Sort order must be a non-negative number'
+    } else if (formData.sortOrder > 9999) {
+      errors.sortOrder = 'Sort order must be less than 10000'
     }
 
     if (isEditMode) {
@@ -189,7 +204,11 @@ export default function BrandsPage() {
   const isValidUrl = (url: string): boolean => {
     if (!url || url.trim() === '') return true
     try {
-      new URL(url)
+      const urlObj = new URL(url)
+      // Must be http or https protocol
+      if (!['http:', 'https:'].includes(urlObj.protocol)) {
+        return false
+      }
       return true
     } catch {
       return false
@@ -272,6 +291,10 @@ export default function BrandsPage() {
       const result = await response.json() as any
 
       if (!result.success) {
+        // Handle duplicate slug specifically
+        if (response.status === 409 || result.error?.toLowerCase().includes('already exists')) {
+          setAddFormErrors({ slug: result.error || 'A brand with this slug already exists' })
+        }
         throw new Error(result.error || 'Failed to create brand')
       }
 
@@ -292,7 +315,6 @@ export default function BrandsPage() {
         featured: false,
         sortOrder: 0,
       })
-      setAddImagePreview(null)
       setAddFormErrors({})
       fetchBrands()
     } catch (err: any) {
@@ -320,7 +342,6 @@ export default function BrandsPage() {
       featured: brand.featured,
       sortOrder: brand.sortOrder,
     })
-    setEditImagePreview(brand.logo || null)
     setEditFormErrors({})
     setIsEditModalOpen(true)
   }
@@ -362,6 +383,10 @@ export default function BrandsPage() {
       const result = await response.json() as any
 
       if (!result.success) {
+        // Handle duplicate slug specifically
+        if (response.status === 409 || result.error?.toLowerCase().includes('already exists')) {
+          setEditFormErrors({ slug: result.error || 'A brand with this slug already exists' })
+        }
         throw new Error(result.error || 'Failed to update brand')
       }
 
@@ -371,7 +396,6 @@ export default function BrandsPage() {
       })
 
       setIsEditModalOpen(false)
-      setEditImagePreview(null)
       setEditFormErrors({})
       fetchBrands()
     } catch (err: any) {
@@ -488,59 +512,7 @@ export default function BrandsPage() {
     }
   }
 
-  const handleImageUpload = async (file: File, isEditMode: boolean = false) => {
-    try {
-      setUploading(true)
 
-      const formData = new FormData()
-      formData.append('file', file)
-
-      const response = await fetch('/api/admin/upload', {
-        method: 'POST',
-        body: formData,
-      })
-
-      const result = await response.json() as any
-
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to upload image')
-      }
-
-      const imageUrl = result.data.url
-
-      if (isEditMode) {
-        setEditFormData({ ...editFormData, logo: imageUrl })
-        setEditImagePreview(imageUrl)
-      } else {
-        setAddFormData({ ...addFormData, logo: imageUrl })
-        setAddImagePreview(imageUrl)
-      }
-
-      toast({
-        title: 'Success',
-        description: 'Image uploaded successfully',
-      })
-    } catch (err: any) {
-      console.error('Error uploading image:', err)
-      toast({
-        title: 'Error',
-        description: err.message || 'Failed to upload image',
-        variant: 'destructive',
-      })
-    } finally {
-      setUploading(false)
-    }
-  }
-
-  const handleImageRemove = (isEditMode: boolean = false) => {
-    if (isEditMode) {
-      setEditFormData({ ...editFormData, logo: '' })
-      setEditImagePreview(null)
-    } else {
-      setAddFormData({ ...addFormData, logo: '' })
-      setAddImagePreview(null)
-    }
-  }
 
   const stats = brands.reduce(
     (acc, brand) => {
@@ -866,9 +838,15 @@ export default function BrandsPage() {
                 value={addFormData.slug}
                 onChange={(e) => setAddFormData({ ...addFormData, slug: e.target.value })}
                 className={addFormErrors.slug ? 'border-red-500' : ''}
+                placeholder="e.g., my-brand"
               />
               {addFormErrors.slug && (
                 <p className="text-sm text-red-600">{addFormErrors.slug}</p>
+              )}
+              {!addFormErrors.slug && (
+                <p className="text-xs text-gray-500">
+                  URL-friendly version of the brand name. Auto-generated from name.
+                </p>
               )}
             </div>
             <div className="space-y-2">
@@ -913,6 +891,11 @@ export default function BrandsPage() {
               {addFormErrors.description && (
                 <p className="text-sm text-red-600">{addFormErrors.description}</p>
               )}
+              {!addFormErrors.description && addFormData.description && (
+                <p className="text-xs text-gray-500">
+                  {addFormData.description.length} / 500 characters
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Sort Order</label>
@@ -921,61 +904,21 @@ export default function BrandsPage() {
                 value={addFormData.sortOrder}
                 onChange={(e) => setAddFormData({ ...addFormData, sortOrder: parseInt(e.target.value) || 0 })}
                 min="0"
+                className={addFormErrors.sortOrder ? 'border-red-500' : ''}
               />
+              {addFormErrors.sortOrder && (
+                <p className="text-sm text-red-600">{addFormErrors.sortOrder}</p>
+              )}
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Brand Logo</label>
-              <div className="space-y-2">
-                {addImagePreview ? (
-                  <div className="relative w-full h-48 rounded-lg overflow-hidden border border-gray-200">
-                    <img
-                      src={addImagePreview}
-                      alt="Brand preview"
-                      className="w-full h-full object-cover"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleImageRemove(false)}
-                      className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors"
-                      disabled={uploading}
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex gap-2">
-                    <GallerySelector
-                      onSelect={(url) => {
-                        setAddFormData({ ...addFormData, logo: url })
-                        setAddImagePreview(url)
-                      }}
-                      category="brand"
-                      className="flex-1"
-                    />
-                    <div className="relative w-full h-48 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center hover:border-violet-500 transition-colors">
-                      <input
-                        type="file"
-                        id="addBrandImage"
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0]
-                          if (file) handleImageUpload(file, false)
-                        }}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        disabled={uploading}
-                      />
-                      <div className="text-center p-4">
-                        <p className="text-sm text-gray-600 mb-1">
-                          {uploading ? 'Uploading...' : 'Or upload new'}
-                        </p>
-                        <p className="text-xs text-gray-400">
-                          PNG, JPG, GIF, WebP (max 5MB)
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+              <ImageUpload
+                images={addFormData.logo ? [addFormData.logo] : []}
+                onImagesChange={(urls) => {
+                  setAddFormData({ ...addFormData, logo: urls[0] || '' })
+                }}
+                maxImages={1}
+              />
             </div>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
@@ -1038,9 +981,15 @@ export default function BrandsPage() {
                 value={editFormData.slug}
                 onChange={(e) => setEditFormData({ ...editFormData, slug: e.target.value })}
                 className={editFormErrors.slug ? 'border-red-500' : ''}
+                placeholder="e.g., my-brand"
               />
               {editFormErrors.slug && (
                 <p className="text-sm text-red-600">{editFormErrors.slug}</p>
+              )}
+              {!editFormErrors.slug && (
+                <p className="text-xs text-gray-500">
+                  URL-friendly version of the brand name. Auto-generated from name.
+                </p>
               )}
             </div>
             <div className="space-y-2">
@@ -1085,6 +1034,11 @@ export default function BrandsPage() {
               {editFormErrors.description && (
                 <p className="text-sm text-red-600">{editFormErrors.description}</p>
               )}
+              {!editFormErrors.description && editFormData.description && (
+                <p className="text-xs text-gray-500">
+                  {editFormData.description.length} / 500 characters
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Sort Order</label>
@@ -1093,61 +1047,21 @@ export default function BrandsPage() {
                 value={editFormData.sortOrder}
                 onChange={(e) => setEditFormData({ ...editFormData, sortOrder: parseInt(e.target.value) || 0 })}
                 min="0"
+                className={editFormErrors.sortOrder ? 'border-red-500' : ''}
               />
+              {editFormErrors.sortOrder && (
+                <p className="text-sm text-red-600">{editFormErrors.sortOrder}</p>
+              )}
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Brand Logo</label>
-              <div className="space-y-2">
-                {editImagePreview ? (
-                  <div className="relative w-full h-48 rounded-lg overflow-hidden border border-gray-200">
-                    <img
-                      src={editImagePreview}
-                      alt="Brand preview"
-                      className="w-full h-full object-cover"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleImageRemove(true)}
-                      className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors"
-                      disabled={uploading}
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex gap-2">
-                    <GallerySelector
-                      onSelect={(url) => {
-                        setEditFormData({ ...editFormData, logo: url })
-                        setEditImagePreview(url)
-                      }}
-                      category="brand"
-                      className="flex-1"
-                    />
-                    <div className="relative w-full h-48 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center hover:border-violet-500 transition-colors">
-                      <input
-                        type="file"
-                        id="editBrandImage"
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0]
-                          if (file) handleImageUpload(file, true)
-                        }}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        disabled={uploading}
-                      />
-                      <div className="text-center p-4">
-                        <p className="text-sm text-gray-600 mb-1">
-                          {uploading ? 'Uploading...' : 'Or upload new'}
-                        </p>
-                        <p className="text-xs text-gray-400">
-                          PNG, JPG, GIF, WebP (max 5MB)
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+              <ImageUpload
+                images={editFormData.logo ? [editFormData.logo] : []}
+                onImagesChange={(urls) => {
+                  setEditFormData({ ...editFormData, logo: urls[0] || '' })
+                }}
+                maxImages={1}
+              />
             </div>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">

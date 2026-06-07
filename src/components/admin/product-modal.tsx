@@ -100,6 +100,10 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
   const [editingVariant, setEditingVariant] = useState<ProductVariant | null>(null)
   const [editVariantData, setEditVariantData] = useState<Partial<ProductVariant>>({})
   const [isUpdatingVariant, setIsUpdatingVariant] = useState(false)
+  
+  // Validation errors state
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [variantErrors, setVariantErrors] = useState<Record<string, string>>({})
 
   // Multi-select system state
   const [useMultiSelectSystem, setUseMultiSelectSystem] = useState(false)
@@ -217,6 +221,8 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
         sizeLabel: '',
       })
       setVariants([])
+      setErrors({})
+      setVariantErrors({})
       // Reset multi-select state
       setSelectedSizes([])
       setSelectedColors([])
@@ -261,29 +267,99 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
   }
 
   const handleCreateProduct = async () => {
+    // Clear previous errors
+    setErrors({})
+    
     // Validation: Check required fields
+    const newErrors: Record<string, string> = {}
+    
+    // Product Name validation
     if (!formData.name || formData.name.trim() === '') {
-      toast({
-        title: 'Error',
-        description: 'Product name is required',
-        variant: 'destructive',
-      })
-      return
+      newErrors.name = 'Product name is required'
+    } else if (formData.name.trim().length < 3) {
+      newErrors.name = 'Product name must be at least 3 characters'
+    } else if (formData.name.trim().length > 200) {
+      newErrors.name = 'Product name cannot exceed 200 characters'
     }
 
+    // Category validation
     if (!formData.categoryId || formData.categoryId.trim() === '') {
-      toast({
-        title: 'Error',
-        description: 'Please select a category',
-        variant: 'destructive',
-      })
-      return
+      newErrors.categoryId = 'Please select a category'
     }
 
-    if (!formData.price || parseFloat(formData.price) <= 0) {
+    // Price validation
+    if (!formData.price || formData.price.trim() === '') {
+      newErrors.price = 'Price is required'
+    } else if (isNaN(parseFloat(formData.price))) {
+      newErrors.price = 'Please enter a valid price'
+    } else if (parseFloat(formData.price) <= 0) {
+      newErrors.price = 'Price must be greater than 0'
+    } else if (parseFloat(formData.price) > 999999.99) {
+      newErrors.price = 'Price cannot exceed 999,999.99'
+    }
+
+    // Description validation (optional but with guidelines)
+    if (formData.description && formData.description.trim().length > 5000) {
+      newErrors.description = 'Description cannot exceed 5000 characters'
+    }
+
+    // Compare price validation (optional but validated if provided)
+    if (formData.comparePrice && formData.comparePrice.trim() !== '') {
+      const comparePriceVal = parseFloat(formData.comparePrice)
+      if (isNaN(comparePriceVal)) {
+        newErrors.comparePrice = 'Please enter a valid compare price'
+      } else if (comparePriceVal < 0) {
+        newErrors.comparePrice = 'Compare price cannot be negative'
+      } else if (comparePriceVal > 0 && parseFloat(formData.price) >= comparePriceVal) {
+        newErrors.comparePrice = 'Compare price must be greater than regular price'
+      } else if (comparePriceVal > 999999.99) {
+        newErrors.comparePrice = 'Compare price cannot exceed 999,999.99'
+      }
+    }
+
+    // Cost price validation (optional but validated if provided)
+    if (formData.costPrice && formData.costPrice.trim() !== '') {
+      const costPriceVal = parseFloat(formData.costPrice)
+      if (isNaN(costPriceVal)) {
+        newErrors.costPrice = 'Please enter a valid cost price'
+      } else if (costPriceVal < 0) {
+        newErrors.costPrice = 'Cost price cannot be negative'
+      } else if (costPriceVal > 999999.99) {
+        newErrors.costPrice = 'Cost price cannot exceed 999,999.99'
+      }
+    }
+
+    // Stock validation (for products without variants)
+    const hasVariants = useMultiSelectSystem && (selectedSizes.length > 0 || selectedColors.length > 0)
+    if (!hasVariants) {
+      if (formData.stock === '' || formData.stock.trim() === '') {
+        newErrors.stock = 'Stock is required for products without variants'
+      } else if (isNaN(parseInt(formData.stock))) {
+        newErrors.stock = 'Please enter a valid stock quantity'
+      } else if (parseInt(formData.stock) < 0) {
+        newErrors.stock = 'Stock cannot be negative'
+      } else if (parseInt(formData.stock) > 999999) {
+        newErrors.stock = 'Stock cannot exceed 999,999'
+      }
+    }
+
+    // Slug validation (if provided)
+    if (formData.slug && formData.slug.trim() !== '') {
+      const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+      if (!slugPattern.test(formData.slug)) {
+        newErrors.slug = 'Slug must contain only lowercase letters, numbers, and hyphens'
+      } else if (formData.slug.length > 200) {
+        newErrors.slug = 'Slug cannot exceed 200 characters'
+      }
+    }
+
+    // If there are errors, show them and stop
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      const firstError = Object.values(newErrors)[0]
       toast({
-        title: 'Error',
-        description: 'Please enter a valid price',
+        title: 'Validation Error',
+        description: firstError || 'Please fix the errors before submitting',
         variant: 'destructive',
       })
       return
@@ -384,29 +460,98 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
   const handleUpdateProduct = async () => {
     if (!product) return
 
+    // Clear previous errors
+    setErrors({})
+
     // Validation: Check required fields
+    const newErrors: Record<string, string> = {}
+
+    // Product Name validation
     if (!formData.name || formData.name.trim() === '') {
-      toast({
-        title: 'Error',
-        description: 'Product name is required',
-        variant: 'destructive',
-      })
-      return
+      newErrors.name = 'Product name is required'
+    } else if (formData.name.trim().length < 3) {
+      newErrors.name = 'Product name must be at least 3 characters'
+    } else if (formData.name.trim().length > 200) {
+      newErrors.name = 'Product name cannot exceed 200 characters'
     }
 
+    // Category validation
     if (!formData.categoryId || formData.categoryId.trim() === '') {
-      toast({
-        title: 'Error',
-        description: 'Please select a category',
-        variant: 'destructive',
-      })
-      return
+      newErrors.categoryId = 'Please select a category'
     }
 
-    if (!formData.price || parseFloat(formData.price) <= 0) {
+    // Price validation
+    if (!formData.price || formData.price.trim() === '') {
+      newErrors.price = 'Price is required'
+    } else if (isNaN(parseFloat(formData.price))) {
+      newErrors.price = 'Please enter a valid price'
+    } else if (parseFloat(formData.price) <= 0) {
+      newErrors.price = 'Price must be greater than 0'
+    } else if (parseFloat(formData.price) > 999999.99) {
+      newErrors.price = 'Price cannot exceed 999,999.99'
+    }
+
+    // Description validation (optional but with guidelines)
+    if (formData.description && formData.description.trim().length > 5000) {
+      newErrors.description = 'Description cannot exceed 5000 characters'
+    }
+
+    // Compare price validation (optional but validated if provided)
+    if (formData.comparePrice && formData.comparePrice.trim() !== '') {
+      const comparePriceVal = parseFloat(formData.comparePrice)
+      if (isNaN(comparePriceVal)) {
+        newErrors.comparePrice = 'Please enter a valid compare price'
+      } else if (comparePriceVal < 0) {
+        newErrors.comparePrice = 'Compare price cannot be negative'
+      } else if (comparePriceVal > 0 && parseFloat(formData.price) >= comparePriceVal) {
+        newErrors.comparePrice = 'Compare price must be greater than regular price'
+      } else if (comparePriceVal > 999999.99) {
+        newErrors.comparePrice = 'Compare price cannot exceed 999,999.99'
+      }
+    }
+
+    // Cost price validation (optional but validated if provided)
+    if (formData.costPrice && formData.costPrice.trim() !== '') {
+      const costPriceVal = parseFloat(formData.costPrice)
+      if (isNaN(costPriceVal)) {
+        newErrors.costPrice = 'Please enter a valid cost price'
+      } else if (costPriceVal < 0) {
+        newErrors.costPrice = 'Cost price cannot be negative'
+      } else if (costPriceVal > 999999.99) {
+        newErrors.costPrice = 'Cost price cannot exceed 999,999.99'
+      }
+    }
+
+    // Stock validation (for products without variants)
+    if (variants.length === 0) {
+      if (formData.stock === '' || formData.stock.trim() === '') {
+        newErrors.stock = 'Stock is required for products without variants'
+      } else if (isNaN(parseInt(formData.stock))) {
+        newErrors.stock = 'Please enter a valid stock quantity'
+      } else if (parseInt(formData.stock) < 0) {
+        newErrors.stock = 'Stock cannot be negative'
+      } else if (parseInt(formData.stock) > 999999) {
+        newErrors.stock = 'Stock cannot exceed 999,999'
+      }
+    }
+
+    // Slug validation (if provided)
+    if (formData.slug && formData.slug.trim() !== '') {
+      const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+      if (!slugPattern.test(formData.slug)) {
+        newErrors.slug = 'Slug must contain only lowercase letters, numbers, and hyphens'
+      } else if (formData.slug.length > 200) {
+        newErrors.slug = 'Slug cannot exceed 200 characters'
+      }
+    }
+
+    // If there are errors, show them and stop
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      const firstError = Object.values(newErrors)[0]
       toast({
-        title: 'Error',
-        description: 'Please enter a valid price',
+        title: 'Validation Error',
+        description: firstError || 'Please fix the errors before submitting',
         variant: 'destructive',
       })
       return
@@ -480,6 +625,48 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
 
   const handleUpdateVariant = async () => {
     if (!editingVariant || !product) return
+
+    // Clear previous variant errors
+    setVariantErrors({})
+
+    // Validate variant fields
+    const newVariantErrors: Record<string, string> = {}
+
+    // Price validation - required field for variants
+    if (editVariantData.price === undefined || editVariantData.price === null) {
+      newVariantErrors.price = 'Variant price is required'
+    } else if (isNaN(editVariantData.price)) {
+      newVariantErrors.price = 'Please enter a valid price'
+    } else if (editVariantData.price <= 0) {
+      newVariantErrors.price = 'Price must be greater than 0'
+    } else if (editVariantData.price > 999999.99) {
+      newVariantErrors.price = 'Price cannot exceed 999,999.99'
+    }
+
+    // Stock validation - required field for variants
+    if (editVariantData.stock === undefined || editVariantData.stock === null) {
+      newVariantErrors.stock = 'Variant stock is required'
+    } else if (isNaN(editVariantData.stock)) {
+      newVariantErrors.stock = 'Please enter a valid stock quantity'
+    } else if (editVariantData.stock < 0) {
+      newVariantErrors.stock = 'Stock cannot be negative'
+    } else if (!Number.isInteger(editVariantData.stock)) {
+      newVariantErrors.stock = 'Stock must be a whole number'
+    } else if (editVariantData.stock > 999999) {
+      newVariantErrors.stock = 'Stock cannot exceed 999,999'
+    }
+
+    // If there are errors, show them and stop
+    if (Object.keys(newVariantErrors).length > 0) {
+      setVariantErrors(newVariantErrors)
+      const firstError = Object.values(newVariantErrors)[0]
+      toast({
+        title: 'Validation Error',
+        description: firstError || 'Please fix the variant errors',
+        variant: 'destructive',
+      })
+      return
+    }
 
     try {
       setIsUpdatingVariant(true)
@@ -645,36 +832,68 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Product Name *</Label>
+                  <Label htmlFor="name" className={errors.name ? 'text-destructive' : ''}>
+                    Product Name <span className="text-destructive">*</span>
+                  </Label>
                   <Input
                     id="name"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, name: e.target.value })
+                      if (errors.name) setErrors({ ...errors, name: '' })
+                    }}
                     placeholder="Enter product name"
-                    required
+                    className={errors.name ? 'border-destructive' : ''}
                   />
+                  {errors.name && (
+                    <p className="text-sm text-destructive mt-1">{errors.name}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="slug">Slug</Label>
+                  <Label htmlFor="slug" className={errors.slug ? 'text-destructive' : ''}>
+                    Slug (Optional)
+                  </Label>
                   <Input
                     id="slug"
                     value={formData.slug}
-                    onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') })
+                      if (errors.slug) setErrors({ ...errors, slug: '' })
+                    }}
                     placeholder="product-slug"
+                    className={errors.slug ? 'border-destructive' : ''}
                   />
+                  {errors.slug && (
+                    <p className="text-sm text-destructive mt-1">{errors.slug}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Leave empty to auto-generate from product name
+                  </p>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description" className={errors.description ? 'text-destructive' : ''}>
+                  Description <span className="text-muted-foreground text-xs ml-2">(Optional)</span>
+                </Label>
                 <Textarea
                   id="description"
                   value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, description: e.target.value })
+                    if (errors.description) setErrors({ ...errors, description: '' })
+                  }}
                   placeholder="Enter product description"
                   rows={3}
+                  className={errors.description ? 'border-destructive' : ''}
                 />
+                {errors.description && (
+                  <p className="text-sm text-destructive mt-1">{errors.description}</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Max 5000 characters. {formData.description?.length || 0}/5000
+                </p>
               </div>
             </div>
 
@@ -684,43 +903,75 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="price">Price *</Label>
+                  <Label htmlFor="price" className={errors.price ? 'text-destructive' : ''}>
+                    Price <span className="text-destructive">*</span>
+                  </Label>
                   <Input
                     id="price"
                     type="number"
                     step="0.01"
                     min="0"
                     value={formData.price}
-                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, price: e.target.value })
+                      if (errors.price) setErrors({ ...errors, price: '' })
+                    }}
                     placeholder="0.00"
-                    required
+                    className={errors.price ? 'border-destructive' : ''}
                   />
+                  {errors.price && (
+                    <p className="text-sm text-destructive mt-1">{errors.price}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="comparePrice">Compare Price</Label>
+                  <Label htmlFor="comparePrice" className={errors.comparePrice ? 'text-destructive' : ''}>
+                    Compare Price (Optional)
+                  </Label>
                   <Input
                     id="comparePrice"
                     type="number"
                     step="0.01"
                     min="0"
                     value={formData.comparePrice}
-                    onChange={(e) => setFormData({ ...formData, comparePrice: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, comparePrice: e.target.value })
+                      if (errors.comparePrice) setErrors({ ...errors, comparePrice: '' })
+                    }}
                     placeholder="0.00"
+                    className={errors.comparePrice ? 'border-destructive' : ''}
                   />
+                  {errors.comparePrice && (
+                    <p className="text-sm text-destructive mt-1">{errors.comparePrice}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Must be greater than selling price
+                  </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="costPrice">Cost Price</Label>
+                  <Label htmlFor="costPrice" className={errors.costPrice ? 'text-destructive' : ''}>
+                    Cost Price (Optional)
+                  </Label>
                   <Input
                     id="costPrice"
                     type="number"
                     step="0.01"
                     min="0"
                     value={formData.costPrice}
-                    onChange={(e) => setFormData({ ...formData, costPrice: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, costPrice: e.target.value })
+                      if (errors.costPrice) setErrors({ ...errors, costPrice: '' })
+                    }}
                     placeholder="0.00"
+                    className={errors.costPrice ? 'border-destructive' : ''}
                   />
+                  {errors.costPrice && (
+                    <p className="text-sm text-destructive mt-1">{errors.costPrice}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Max value: 999,999.99
+                  </p>
                 </div>
               </div>
             </div>
@@ -731,13 +982,17 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="category">Category *</Label>
+                  <Label htmlFor="category" className={errors.categoryId ? 'text-destructive' : ''}>
+                    Category <span className="text-destructive">*</span>
+                  </Label>
                   <Select
                     value={formData.categoryId}
-                    onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
-                    required
+                    onValueChange={(value) => {
+                      setFormData({ ...formData, categoryId: value })
+                      if (errors.categoryId) setErrors({ ...errors, categoryId: '' })
+                    }}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className={errors.categoryId ? 'border-destructive' : ''}>
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
@@ -748,6 +1003,9 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
                       ))}
                     </SelectContent>
                   </Select>
+                  {errors.categoryId && (
+                    <p className="text-sm text-destructive mt-1">{errors.categoryId}</p>
+                  )}
                 </div>
 
                 <div>
@@ -762,6 +1020,7 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
                       })
                     }
                   />
+                  <p className="text-xs text-muted-foreground mt-2">Optional</p>
                 </div>
               </div>
 
@@ -770,6 +1029,7 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
                   value={formData.countryOfOrigin}
                   onChange={(value) => setFormData({ ...formData, countryOfOrigin: value })}
                 />
+                <p className="text-xs text-muted-foreground mt-2">Optional</p>
               </div>
             </div>
 
@@ -872,28 +1132,44 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
                           <div className="border-t pt-3 mt-3 space-y-3">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                               <div>
-                                <Label>Price</Label>
+                                <Label className={variantErrors.price ? 'text-destructive' : ''}>
+                                  Price <span className="text-destructive">*</span>
+                                </Label>
                                 <Input
                                   type="number"
                                   step="0.01"
+                                  min="0"
                                   value={editVariantData.price || ''}
-                                  onChange={(e) =>
+                                  onChange={(e) => {
                                     setEditVariantData({ ...editVariantData, price: parseFloat(e.target.value) })
-                                  }
+                                    if (variantErrors.price) setVariantErrors({ ...variantErrors, price: '' })
+                                  }}
+                                  className={variantErrors.price ? 'border-destructive' : ''}
                                 />
+                                {variantErrors.price && (
+                                  <p className="text-sm text-destructive mt-1">{variantErrors.price}</p>
+                                )}
                               </div>
                               <div>
-                                <Label>Stock</Label>
+                                <Label className={variantErrors.stock ? 'text-destructive' : ''}>
+                                  Stock <span className="text-destructive">*</span>
+                                </Label>
                                 <Input
                                   type="number"
+                                  min="0"
                                   value={editVariantData.stock ?? ''}
-                                  onChange={(e) =>
+                                  onChange={(e) => {
                                     setEditVariantData({ ...editVariantData, stock: parseInt(e.target.value) })
-                                  }
+                                    if (variantErrors.stock) setVariantErrors({ ...variantErrors, stock: '' })
+                                  }}
+                                  className={variantErrors.stock ? 'border-destructive' : ''}
                                 />
+                                {variantErrors.stock && (
+                                  <p className="text-sm text-destructive mt-1">{variantErrors.stock}</p>
+                                )}
                               </div>
                               <div>
-                                <Label>Color</Label>
+                                <Label>Color (Optional)</Label>
                                 <Input
                                   placeholder="Red, Blue, etc."
                                   value={editVariantData.color || ''}
@@ -903,7 +1179,7 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
                                 />
                               </div>
                               <div>
-                                <Label>Material</Label>
+                                <Label>Material (Optional)</Label>
                                 <Input
                                   placeholder="Cotton, Silk, etc."
                                   value={editVariantData.material || ''}
@@ -916,7 +1192,7 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
                             
                             {/* Variant Images Section */}
                             <div>
-                              <Label>Variant Images</Label>
+                              <Label>Variant Images (Optional)</Label>
                               <ImageUpload
                                 images={editVariantData.images || []}
                                 onImagesChange={(images) =>
@@ -1071,13 +1347,16 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
               </div>
             </div>
 
-            {/* Images */}
+            {/* Product Images */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Product Images</h3>
               <ImageUpload
                 images={formData.images}
                 onImagesChange={(images) => setFormData({ ...formData, images })}
               />
+              <p className="text-xs text-muted-foreground">
+                Upload product images or select from gallery. (Optional but recommended)
+              </p>
             </div>
 
             {/* Stock & Size - Only visible if no variants and not using multi-select system */}
@@ -1087,15 +1366,27 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="stock">Stock Quantity</Label>
+                    <Label htmlFor="stock" className={errors.stock ? 'text-destructive' : ''}>
+                      Stock Quantity <span className="text-destructive">*</span>
+                    </Label>
                     <Input
                       id="stock"
                       type="number"
                       min="0"
                       value={formData.stock}
-                      onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+                      onChange={(e) => {
+                        setFormData({ ...formData, stock: e.target.value })
+                        if (errors.stock) setErrors({ ...errors, stock: '' })
+                      }}
                       placeholder="0"
+                      className={errors.stock ? 'border-destructive' : ''}
                     />
+                    {errors.stock && (
+                      <p className="text-sm text-destructive mt-1">{errors.stock}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Must be a non-negative integer
+                    </p>
                   </div>
                 </div>
 

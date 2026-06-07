@@ -82,6 +82,7 @@ export default function CouponsPage() {
     isActive: true,
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
   // Fetch promotions (only coupons)
   const fetchPromotions = async () => {
@@ -108,7 +109,7 @@ export default function CouponsPage() {
         console.log('[CouponsPage] Parsed promotionsList:', promotionsList)
 
         // Filter only coupons (type === 'coupon' or type === undefined with promoCode)
-        const couponsOnly = promotionsList.filter(p => 
+        const couponsOnly = promotionsList.filter(p =>
           p.type === 'coupon' || (p.promoCode && p.promoCode.length > 0)
         )
 
@@ -190,6 +191,7 @@ export default function CouponsPage() {
       conditions: '',
       isActive: true,
     })
+    setErrors({})
     setEditingPromotion(null)
   }
 
@@ -250,39 +252,84 @@ export default function CouponsPage() {
     }
   }
 
+  // Client-side validation function
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {}
+
+    // Title is required
+    if (!formData.title.trim()) {
+      newErrors.title = 'Title is required'
+    }
+
+    // Promo code is required
+    if (!formData.promoCode.trim()) {
+      newErrors.promoCode = 'Promo code is required'
+    } else if (!/^[A-Z0-9]+$/.test(formData.promoCode)) {
+      newErrors.promoCode = 'Promo code must contain only uppercase letters and numbers'
+    }
+
+    // Discount value must be valid
+    if (formData.discountValue <= 0) {
+      newErrors.discountValue = 'Discount value must be greater than 0'
+    } else if (formData.discountType === 'percentage' && formData.discountValue > 100) {
+      newErrors.discountValue = 'Percentage discount cannot exceed 100%'
+    }
+
+    // Date validation
+    if (formData.startDate && formData.endDate) {
+      const start = new Date(formData.startDate)
+      const end = new Date(formData.endDate)
+      if (start >= end) {
+        newErrors.endDate = 'End date must be after start date'
+      }
+    }
+
+    // Min/max order amount validation
+    if (formData.minOrderAmount < 0) {
+      newErrors.minOrderAmount = 'Minimum order amount cannot be negative'
+    }
+
+    if (formData.maxDiscountAmount < 0) {
+      newErrors.maxDiscountAmount = 'Maximum discount amount cannot be negative'
+    }
+
+    // Usage limits validation
+    if (formData.usageLimit < 0) {
+      newErrors.usageLimit = 'Usage limit cannot be negative'
+    }
+
+    if (formData.userLimit < 0) {
+      newErrors.userLimit = 'User limit cannot be negative'
+    }
+
+    // Conditions JSON validation (if provided)
+    if (formData.conditions.trim()) {
+      try {
+        JSON.parse(formData.conditions)
+      } catch {
+        newErrors.conditions = 'Invalid JSON format for conditions'
+      }
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    // Validate form before submitting
+    if (!validateForm()) {
+      toast({
+        variant: 'destructive',
+        title: 'Validation Error',
+        description: 'Please fix all errors before submitting',
+      })
+      return
+    }
+
+    setIsSubmitting(true)
     try {
-      setIsSubmitting(true)
-      // Validate form data before sending
-      if (!formData.title.trim()) {
-        toast({
-          variant: 'destructive',
-          title: 'Validation Error',
-          description: 'Title is required',
-        })
-        return
-      }
-
-      if (!formData.promoCode.trim()) {
-        toast({
-          variant: 'destructive',
-          title: 'Validation Error',
-          description: 'Promo code is required',
-        })
-        return
-      }
-
-      if (formData.discountValue <= 0) {
-        toast({
-          variant: 'destructive',
-          title: 'Validation Error',
-          description: 'Discount value must be greater than 0',
-        })
-        return
-      }
-
       const url = editingPromotion
         ? `/api/admin/promotions/${editingPromotion.id}`
         : '/api/admin/promotions'
@@ -298,29 +345,41 @@ export default function CouponsPage() {
         body: JSON.stringify(formData),
       })
 
+      // Check if server returned validation errors
+      if (!response.ok) {
+        const responseData = await response.json()
+        // Handle duplicate code error specifically
+        if (response.status === 409) {
+          setErrors({
+            promoCode: responseData.details || responseData.error || 'This promo code already exists'
+          })
+          throw new Error(responseData.error || 'Duplicate promo code')
+        }
+        throw new Error(responseData.error || responseData.details || 'Failed to save promotion')
+      }
+
       const responseData = await response.json()
       console.log('[CouponsPage] Response:', response.status, responseData)
 
-      if (response.ok) {
-        toast({
-          title: 'Success',
-          description: editingPromotion
-            ? 'Promotion updated successfully'
-            : 'Promotion created successfully',
-        })
-        setDialogOpen(false)
-        resetForm()
-        fetchPromotions()
-      } else {
-        throw new Error(responseData.error || responseData.details || 'Failed to save promotion')
-      }
+      toast({
+        title: 'Success',
+        description: editingPromotion
+          ? 'Promotion updated successfully'
+          : 'Promotion created successfully',
+      })
+      setDialogOpen(false)
+      resetForm()
+      fetchPromotions()
     } catch (error: any) {
       console.error('[CouponsPage] Error saving promotion:', error)
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: error.message || 'Failed to save promotion',
-      })
+      // Only show toast if it's not a validation error (those are already shown inline)
+      if (!error.message?.includes('Duplicate promo code')) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: error.message || 'Failed to save promotion',
+        })
+      }
     } finally {
       setIsSubmitting(false)
     }
@@ -421,20 +480,40 @@ export default function CouponsPage() {
                     <Input
                       id="title"
                       value={formData.title}
-                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      onChange={(e) => {
+                        setFormData({ ...formData, title: e.target.value })
+                        // Clear error when user starts typing
+                        if (errors.title) setErrors(prev => ({ ...prev, title: '' }))
+                      }}
                       placeholder="e.g., Summer Sale 2024"
                       required
+                      className={errors.title ? 'border-red-500' : ''}
                     />
+                    {errors.title && (
+                      <p className="text-sm text-red-500">{errors.title}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="promoCode">Promo Code *</Label>
                     <Input
                       id="promoCode"
                       value={formData.promoCode}
-                      onChange={(e) => setFormData({ ...formData, promoCode: e.target.value.toUpperCase() })}
+                      onChange={(e) => {
+                        const value = e.target.value.toUpperCase()
+                        setFormData({ ...formData, promoCode: value })
+                        // Clear error when user starts typing
+                        if (errors.promoCode) setErrors(prev => ({ ...prev, promoCode: '' }))
+                      }}
                       placeholder="e.g., SUMMER2024"
                       required
+                      className={errors.promoCode ? 'border-red-500' : ''}
                     />
+                    {errors.promoCode && (
+                      <p className="text-sm text-red-500">{errors.promoCode}</p>
+                    )}
+                    <p className="text-xs text-gray-500">
+                      Only uppercase letters and numbers allowed
+                    </p>
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -460,9 +539,11 @@ export default function CouponsPage() {
                     <Label htmlFor="discountType">Discount Type *</Label>
                     <Select
                       value={formData.discountType}
-                      onValueChange={(value: 'percentage' | 'fixed') =>
+                      onValueChange={(value: 'percentage' | 'fixed') => {
                         setFormData({ ...formData, discountType: value })
-                      }
+                        // Clear discount value error when changing type
+                        if (errors.discountValue) setErrors(prev => ({ ...prev, discountValue: '' }))
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -480,17 +561,30 @@ export default function CouponsPage() {
                     <Input
                       id="discountValue"
                       type="number"
-                      min="0"
+                      min={formData.discountType === 'percentage' ? '1' : '0.01'}
+                      max={formData.discountType === 'percentage' ? '100' : undefined}
                       step={formData.discountType === 'percentage' ? '1' : '0.01'}
                       value={formData.discountValue}
-                      onChange={(e) =>
-                        setFormData({ ...formData, discountValue: parseFloat(e.target.value) || 0 })
-                      }
+                      onChange={(e) => {
+                        const value = parseFloat(e.target.value) || 0
+                        setFormData({ ...formData, discountValue: value })
+                        // Clear error when user starts typing
+                        if (errors.discountValue) setErrors(prev => ({ ...prev, discountValue: '' }))
+                      }}
                       placeholder={
                         formData.discountType === 'percentage' ? 'e.g., 20' : 'e.g., 500'
                       }
                       required
+                      className={errors.discountValue ? 'border-red-500' : ''}
                     />
+                    {errors.discountValue && (
+                      <p className="text-sm text-red-500">{errors.discountValue}</p>
+                    )}
+                    <p className="text-xs text-gray-500">
+                      {formData.discountType === 'percentage'
+                        ? 'Enter a value between 1 and 100'
+                        : 'Enter the discount amount in currency'}
+                    </p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -502,11 +596,18 @@ export default function CouponsPage() {
                       min="0"
                       step="0.01"
                       value={formData.minOrderAmount}
-                      onChange={(e) =>
-                        setFormData({ ...formData, minOrderAmount: parseFloat(e.target.value) || 0 })
-                      }
+                      onChange={(e) => {
+                        const value = parseFloat(e.target.value) || 0
+                        setFormData({ ...formData, minOrderAmount: value < 0 ? 0 : value })
+                        // Clear error when user starts typing
+                        if (errors.minOrderAmount) setErrors(prev => ({ ...prev, minOrderAmount: '' }))
+                      }}
                       placeholder="e.g., 1000"
+                      className={errors.minOrderAmount ? 'border-red-500' : ''}
                     />
+                    {errors.minOrderAmount && (
+                      <p className="text-sm text-red-500">{errors.minOrderAmount}</p>
+                    )}
                     <p className="text-xs text-gray-500">
                       Minimum cart value required to apply this coupon
                     </p>
@@ -519,11 +620,18 @@ export default function CouponsPage() {
                       min="0"
                       step="0.01"
                       value={formData.maxDiscountAmount}
-                      onChange={(e) =>
-                        setFormData({ ...formData, maxDiscountAmount: parseFloat(e.target.value) || 0 })
-                      }
+                      onChange={(e) => {
+                        const value = parseFloat(e.target.value) || 0
+                        setFormData({ ...formData, maxDiscountAmount: value < 0 ? 0 : value })
+                        // Clear error when user starts typing
+                        if (errors.maxDiscountAmount) setErrors(prev => ({ ...prev, maxDiscountAmount: '' }))
+                      }}
                       placeholder="e.g., 2000"
+                      className={errors.maxDiscountAmount ? 'border-red-500' : ''}
                     />
+                    {errors.maxDiscountAmount && (
+                      <p className="text-sm text-red-500">{errors.maxDiscountAmount}</p>
+                    )}
                     <p className="text-xs text-gray-500">
                       Cap the maximum discount value (0 for no limit)
                     </p>
@@ -544,7 +652,11 @@ export default function CouponsPage() {
                       id="startDate"
                       type="datetime-local"
                       value={formData.startDate}
-                      onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                      onChange={(e) => {
+                        setFormData({ ...formData, startDate: e.target.value })
+                        // Clear end date error when changing start date
+                        if (errors.endDate) setErrors(prev => ({ ...prev, endDate: '' }))
+                      }}
                     />
                     <p className="text-xs text-gray-500">
                       Leave empty to start immediately
@@ -556,8 +668,16 @@ export default function CouponsPage() {
                       id="endDate"
                       type="datetime-local"
                       value={formData.endDate}
-                      onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                      onChange={(e) => {
+                        setFormData({ ...formData, endDate: e.target.value })
+                        // Clear error when user starts typing
+                        if (errors.endDate) setErrors(prev => ({ ...prev, endDate: '' }))
+                      }}
+                      className={errors.endDate ? 'border-red-500' : ''}
                     />
+                    {errors.endDate && (
+                      <p className="text-sm text-red-500">{errors.endDate}</p>
+                    )}
                     <p className="text-xs text-gray-500">
                       Leave empty for no expiration
                     </p>
@@ -579,11 +699,18 @@ export default function CouponsPage() {
                       type="number"
                       min="0"
                       value={formData.usageLimit}
-                      onChange={(e) =>
-                        setFormData({ ...formData, usageLimit: parseInt(e.target.value) || 0 })
-                      }
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value) || 0
+                        setFormData({ ...formData, usageLimit: value < 0 ? 0 : value })
+                        // Clear error when user starts typing
+                        if (errors.usageLimit) setErrors(prev => ({ ...prev, usageLimit: '' }))
+                      }}
                       placeholder="e.g., 100"
+                      className={errors.usageLimit ? 'border-red-500' : ''}
                     />
+                    {errors.usageLimit && (
+                      <p className="text-sm text-red-500">{errors.usageLimit}</p>
+                    )}
                     <p className="text-xs text-gray-500">
                       Maximum times this coupon can be used (0 for unlimited)
                     </p>
@@ -595,11 +722,18 @@ export default function CouponsPage() {
                       type="number"
                       min="0"
                       value={formData.userLimit}
-                      onChange={(e) =>
-                        setFormData({ ...formData, userLimit: parseInt(e.target.value) || 0 })
-                      }
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value) || 0
+                        setFormData({ ...formData, userLimit: value < 0 ? 0 : value })
+                        // Clear error when user starts typing
+                        if (errors.userLimit) setErrors(prev => ({ ...prev, userLimit: '' }))
+                      }}
                       placeholder="e.g., 1"
+                      className={errors.userLimit ? 'border-red-500' : ''}
                     />
+                    {errors.userLimit && (
+                      <p className="text-sm text-red-500">{errors.userLimit}</p>
+                    )}
                     <p className="text-xs text-gray-500">
                       Maximum times each user can use this coupon (0 for unlimited)
                     </p>
@@ -703,10 +837,18 @@ export default function CouponsPage() {
                   <Textarea
                     id="conditions"
                     value={formData.conditions}
-                    onChange={(e) => setFormData({ ...formData, conditions: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, conditions: e.target.value })
+                      // Clear error when user starts typing
+                      if (errors.conditions) setErrors(prev => ({ ...prev, conditions: '' }))
+                    }}
                     placeholder='{"newCustomersOnly": true, "minimumQuantity": 2}'
                     rows={4}
+                    className={errors.conditions ? 'border-red-500' : ''}
                   />
+                  {errors.conditions && (
+                    <p className="text-sm text-red-500">{errors.conditions}</p>
+                  )}
                   <p className="text-xs text-gray-500">
                     Advanced conditions as JSON (e.g., new customers only, minimum quantity)
                   </p>

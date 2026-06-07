@@ -4,6 +4,7 @@ import { verifyAdminAuth } from '@/lib/admin-auth';
 import { getEnv } from '@/lib/cloudflare';
 import { updateBrandSchema } from '@/lib/validations';
 import { logAdminAction } from '@/lib/audit-logger';
+import { boolToNumber } from '@/db/db';
 
 // GET /api/admin/brands/[id] - Get single brand
 export async function GET(
@@ -108,8 +109,8 @@ export async function PUT(
     if (validatedData.website !== undefined) updateData.website = validatedData.website;
     if (validatedData.description !== undefined) updateData.description = validatedData.description;
     if (validatedData.country !== undefined) updateData.country = validatedData.country;
-    if (validatedData.isActive !== undefined) updateData.isActive = validatedData.isActive ? 1 : 0;
-    if (validatedData.featured !== undefined) updateData.featured = validatedData.featured ? 1 : 0;
+    if (validatedData.isActive !== undefined) updateData.isActive = boolToNumber(validatedData.isActive);
+    if (validatedData.featured !== undefined) updateData.featured = boolToNumber(validatedData.featured);
     if (validatedData.sortOrder !== undefined) updateData.sortOrder = validatedData.sortOrder;
 
     const updatedBrand = await BrandRepository.update(env, id, updateData);

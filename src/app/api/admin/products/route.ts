@@ -165,66 +165,102 @@ export async function POST(request: NextRequest) {
 
       console.log('[Products API] Creating product from multipart form data')
 
-      // Validate required fields manually for multipart
+      // Extract form fields for validation
       const name = formData.get('name') as string
       const slug = formData.get('slug') as string
       const description = formData.get('description') as string | null
-      const basePrice = formData.get('price') as string
+      const basePrice = formData.get('basePrice') as string
       const comparePrice = formData.get('comparePrice') as string | null
-      const categoryId = formData.get('categoryId') as string | null
+      const costPrice = formData.get('costPrice') as string | null
+      const categoryId = formData.get('categoryId') as string
       const stock = formData.get('stock') as string
       const lowStockAlert = formData.get('lowStockAlert') as string | null
+      const reorderLevel = formData.get('reorderLevel') as string | null
+      const reorderQty = formData.get('reorderQty') as string | null
       const isActive = formData.get('isActive') === 'true'
       const isFeatured = formData.get('isFeatured') === 'true'
+      const hasVariants = formData.get('hasVariants') === 'true'
+      const brandId = formData.get('brandId') as string | null
+      const brandName = formData.get('brandName') as string | null
+      const brandLogo = formData.get('brandLogo') as string | null
+      const sizeType = formData.get('sizeType') as 'unit' | 'label' | null
+      const sizeValue = formData.get('sizeValue') as string | null
+      const sizeUnit = formData.get('sizeUnit') as string | null
+      const sizeLabel = formData.get('sizeLabel') as string | null
+      const material = formData.get('material') as string | null
+      const color = formData.get('color') as string | null
+      const countryOfOrigin = formData.get('countryOfOrigin') as string | null
+      const availableSizesStr = formData.get('availableSizes') as string | null
+      const availableColorsStr = formData.get('availableColors') as string | null
 
-      // Manual validation for multipart
-      if (!name || name.trim().length === 0) {
-        console.error('[Products API] Product name is required')
+      // Parse array fields
+      let availableSizes: string[] | null = null
+      let availableColors: string[] | null = null
+      if (availableSizesStr) {
+        try {
+          availableSizes = JSON.parse(availableSizesStr)
+        } catch (e) {
+          console.error('[Products API] Failed to parse availableSizes:', e)
+        }
+      }
+      if (availableColorsStr) {
+        try {
+          availableColors = JSON.parse(availableColorsStr)
+        } catch (e) {
+          console.error('[Products API] Failed to parse availableColors:', e)
+        }
+      }
+
+      // Build data object for validation (mimicking the JSON structure)
+      const productData: any = {
+        name,
+        slug: slug || undefined,
+        description: description || undefined,
+        basePrice: parseFloat(basePrice),
+        comparePrice: comparePrice ? parseFloat(comparePrice) : undefined,
+        costPrice: costPrice ? parseFloat(costPrice) : undefined,
+        categoryId,
+        stock: parseInt(stock),
+        lowStockAlert: lowStockAlert ? parseInt(lowStockAlert) : undefined,
+        reorderLevel: reorderLevel ? parseInt(reorderLevel) : undefined,
+        reorderQty: reorderQty ? parseInt(reorderQty) : undefined,
+        isActive,
+        isFeatured,
+        hasVariants,
+        brandId: brandId || undefined,
+        brandName: brandName || undefined,
+        brandLogo: brandLogo || undefined,
+        sizeType: sizeType || undefined,
+        sizeValue: sizeValue ? parseFloat(sizeValue) : undefined,
+        sizeUnit: sizeUnit || undefined,
+        sizeLabel: sizeLabel || undefined,
+        material: material || undefined,
+        color: color || undefined,
+        countryOfOrigin: countryOfOrigin || undefined,
+        availableSizes,
+        availableColors,
+      }
+
+      // Validate using Zod schema (same as JSON endpoint)
+      const validation = productSchema.safeParse(productData)
+      if (!validation.success) {
+        console.error('[Products API] Validation failed:', validation.error.issues)
         return NextResponse.json(
-          { success: false, error: 'Product name is required' },
+          { success: false, error: validation.error.issues[0].message, details: validation.error.issues },
           { status: 400 }
         )
       }
 
+      const validatedData = validation.data
+      console.log('[Products API] Validated data:', validatedData)
+
       // Auto-generate slug from name if not provided
-      let finalSlug = slug
-      if (!slug || slug.trim().length === 0) {
-        finalSlug = createSlug(name)
+      let finalSlug = validatedData.slug
+      if (!finalSlug || finalSlug.trim().length === 0) {
+        finalSlug = createSlug(validatedData.name)
       }
 
       console.log('[Products API] Generated slug from name:', finalSlug)
-
-      if (!description || description.trim().length === 0) {
-        console.error('[Products API] Description is required')
-        return NextResponse.json(
-          { success: false, error: 'Description is required' },
-          { status: 400 }
-        )
-      }
-      const costPrice = formData.get('costPrice') as string | null
-      const price = parseFloat(basePrice)
-      if (isNaN(price) || price <= 0) {
-        console.error('[Products API] Invalid price:', basePrice)
-        return NextResponse.json(
-          { success: false, error: 'Price must be a positive number' },
-          { status: 400 }
-        )
-      }
-      if (!categoryId) {
-        console.error('[Products API] Category ID is required')
-        return NextResponse.json(
-          { success: false, error: 'Category ID is required' },
-          { status: 400 }
-        )
-      }
-      const stockNum = parseInt(stock)
-      if (isNaN(stockNum) || stockNum < 0) {
-        console.error('[Products API] Invalid stock:', stock)
-        return NextResponse.json(
-          { success: false, error: 'Stock must be a non-negative integer' },
-          { status: 400 }
-        )
-      }
 
       // Validate slug format
       if (!isValidSlug(finalSlug)) {
@@ -298,19 +334,33 @@ export async function POST(request: NextRequest) {
       console.log('[Products API] Creating product with images:', images)
 
       const product = await ProductRepository.create(env, {
-        name,
+        name: validatedData.name,
         slug: generatedSlug,
-        description: description || undefined,
-        categoryId: categoryId || '',
-        basePrice: parseFloat(basePrice),
-        comparePrice: comparePrice ? parseFloat(comparePrice) : undefined,
-        costPrice: costPrice ? parseFloat(costPrice) : undefined,
+        description: validatedData.description || undefined,
+        categoryId: validatedData.categoryId,
+        basePrice: validatedData.basePrice,
+        comparePrice: validatedData.comparePrice ?? undefined,
+        costPrice: validatedData.costPrice ?? undefined,
         images,
-        stock: parseInt(stock),
-        lowStockAlert: lowStockAlert ? parseInt(lowStockAlert) : undefined,
-        isActive,
-        isFeatured,
-        hasVariants: false,
+        stock: validatedData.stock,
+        lowStockAlert: validatedData.lowStockAlert ?? undefined,
+        reorderLevel: validatedData.reorderLevel ?? undefined,
+        reorderQty: validatedData.reorderQty ?? undefined,
+        isActive: validatedData.isActive,
+        isFeatured: validatedData.isFeatured,
+        hasVariants: validatedData.hasVariants,
+        brandId: validatedData.brandId || undefined,
+        brandName: validatedData.brandName || undefined,
+        brandLogo: validatedData.brandLogo || undefined,
+        sizeType: validatedData.sizeType || undefined,
+        sizeValue: validatedData.sizeValue || undefined,
+        sizeUnit: validatedData.sizeUnit || undefined,
+        sizeLabel: validatedData.sizeLabel || undefined,
+        material: validatedData.material || undefined,
+        color: validatedData.color || undefined,
+        countryOfOrigin: validatedData.countryOfOrigin || undefined,
+        availableSizes: validatedData.availableSizes ?? undefined,
+        availableColors: validatedData.availableColors ?? undefined,
       })
 
       if (!product) {

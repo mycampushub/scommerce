@@ -54,8 +54,19 @@ interface Promotion {
   title: string
   description?: string
   image: string
+  type?: string
+  promoCode?: string
+  discountType?: 'percentage' | 'fixed'
+  discountValue?: number
+  minOrderAmount?: number
+  maxDiscountAmount?: number
+  startDate?: string
+  endDate?: string
   ctaText?: string
   ctaLink?: string
+  usageLimit?: number
+  userLimit?: number
+  conditions?: string
   isActive: boolean
   order: number
 }
@@ -230,9 +241,22 @@ export default function HomepageManagementPage() {
     title: '',
     description: '',
     image: '',
+    type: 'banner',
+    promoCode: '',
+    discountType: 'percentage' as 'percentage' | 'fixed',
+    discountValue: '',
+    minOrderAmount: '',
+    maxDiscountAmount: '',
+    startDate: '',
+    endDate: '',
     ctaText: '',
-    ctaLink: ''
+    ctaLink: '',
+    usageLimit: '',
+    userLimit: '',
+    conditions: ''
   })
+  
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
 
   // Settings state
   const [settings, setSettings] = useState<Record<string, HomepageSetting>>({})
@@ -1008,8 +1032,99 @@ export default function HomepageManagementPage() {
     }
   }
 
+  // Validation helper function
+  const validatePromotionForm = (): boolean => {
+    const errors: Record<string, string> = {}
+    
+    // Title is required
+    if (!promotionForm.title || promotionForm.title.trim().length === 0) {
+      errors.title = 'Promotion title is required'
+    } else if (promotionForm.title.trim().length < 2) {
+      errors.title = 'Title must be at least 2 characters'
+    }
+    
+    // Promo code validation (if provided)
+    if (promotionForm.promoCode && promotionForm.promoCode.trim().length > 0) {
+      const promoCode = promotionForm.promoCode.trim()
+      if (!/^[A-Z0-9-]+$/.test(promoCode)) {
+        errors.promoCode = 'Promo code can only contain letters, numbers, and hyphens'
+      } else if (promoCode.length < 3) {
+        errors.promoCode = 'Promo code must be at least 3 characters'
+      } else if (promoCode.length > 50) {
+        errors.promoCode = 'Promo code must be less than 50 characters'
+      }
+    }
+    
+    // Discount value validation (if provided)
+    if (promotionForm.discountValue && promotionForm.discountValue.trim().length > 0) {
+      const value = parseFloat(promotionForm.discountValue)
+      if (isNaN(value) || value < 0) {
+        errors.discountValue = 'Discount value must be a positive number'
+      } else if (promotionForm.discountType === 'percentage' && value > 100) {
+        errors.discountValue = 'Percentage discount cannot exceed 100%'
+      }
+    }
+    
+    // Min order amount validation
+    if (promotionForm.minOrderAmount && promotionForm.minOrderAmount.trim().length > 0) {
+      const value = parseFloat(promotionForm.minOrderAmount)
+      if (isNaN(value) || value < 0) {
+        errors.minOrderAmount = 'Minimum order amount must be a positive number'
+      }
+    }
+    
+    // Max discount amount validation
+    if (promotionForm.maxDiscountAmount && promotionForm.maxDiscountAmount.trim().length > 0) {
+      const value = parseFloat(promotionForm.maxDiscountAmount)
+      if (isNaN(value) || value < 0) {
+        errors.maxDiscountAmount = 'Maximum discount amount must be a positive number'
+      }
+    }
+    
+    // Usage limit validation
+    if (promotionForm.usageLimit && promotionForm.usageLimit.trim().length > 0) {
+      const value = parseInt(promotionForm.usageLimit, 10)
+      if (isNaN(value) || value < 0) {
+        errors.usageLimit = 'Usage limit must be a positive number'
+      }
+    }
+    
+    // User limit validation
+    if (promotionForm.userLimit && promotionForm.userLimit.trim().length > 0) {
+      const value = parseInt(promotionForm.userLimit, 10)
+      if (isNaN(value) || value < 0) {
+        errors.userLimit = 'User limit must be a positive number'
+      }
+    }
+    
+    // Date validation
+    if (promotionForm.startDate && promotionForm.endDate) {
+      const startDate = new Date(promotionForm.startDate)
+      const endDate = new Date(promotionForm.endDate)
+      if (startDate >= endDate) {
+        errors.startDate = 'Start date must be before end date'
+        errors.endDate = 'End date must be after start date'
+      }
+    }
+    
+    // CTA Link validation (if provided)
+    if (promotionForm.ctaLink && promotionForm.ctaLink.trim().length > 0) {
+      const link = promotionForm.ctaLink.trim()
+      if (!link.startsWith('/') && !link.startsWith('http://') && !link.startsWith('https://')) {
+        errors.ctaLink = 'Link must start with / for internal pages or http:// / https:// for external links'
+      }
+    }
+    
+    setValidationErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
   // Promotion handlers
   const handleSavePromotion = async () => {
+    if (!validatePromotionForm()) {
+      toast.error('Please fix the validation errors before saving')
+      return
+    }
     setSavingPromotion(true)
     try {
       console.log('[Promotions] Form data:', promotionForm)
@@ -1030,7 +1145,25 @@ export default function HomepageManagementPage() {
         toast.success(editingPromotion ? 'Promotion updated' : 'Promotion created')
         setPromotionDialogOpen(false)
         setEditingPromotion(null)
-        setPromotionForm({ title: '', description: '', image: '', ctaText: '', ctaLink: '' })
+        setPromotionForm({
+          title: '',
+          description: '',
+          image: '',
+          type: 'banner',
+          promoCode: '',
+          discountType: 'percentage',
+          discountValue: '',
+          minOrderAmount: '',
+          maxDiscountAmount: '',
+          startDate: '',
+          endDate: '',
+          ctaText: '',
+          ctaLink: '',
+          usageLimit: '',
+          userLimit: '',
+          conditions: ''
+        })
+        setValidationErrors({})
         fetchPromotions()
       } else {
         toast.error(data.error || 'Failed to save promotion')
@@ -2652,65 +2785,338 @@ export default function HomepageManagementPage() {
               <DialogTrigger asChild>
                 <Button onClick={() => {
                   setEditingPromotion(null)
-                  setPromotionForm({ title: '', description: '', image: '', ctaText: '', ctaLink: '' })
+                  setPromotionForm({
+                    title: '',
+                    description: '',
+                    image: '',
+                    type: 'banner',
+                    promoCode: '',
+                    discountType: 'percentage',
+                    discountValue: '',
+                    minOrderAmount: '',
+                    maxDiscountAmount: '',
+                    startDate: '',
+                    endDate: '',
+                    ctaText: '',
+                    ctaLink: '',
+                    usageLimit: '',
+                    userLimit: '',
+                    conditions: ''
+                  })
+                  setValidationErrors({})
                 }}>
                   <Plus className="w-4 h-4 mr-2" />
                   Add Promotion
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden" aria-describedby="promotion-dialog-description">
+              <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto overflow-x-hidden" aria-describedby="promotion-dialog-description">
                 <DialogHeader>
                   <DialogTitle>{editingPromotion ? 'Edit Promotion' : 'Add Promotion'}</DialogTitle>
                   <DialogDescription id="promotion-dialog-description">
                     {editingPromotion ? 'Update promotion information' : 'Add a new promotional card to the homepage'}
                   </DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label>Title</Label>
-                    <Input
-                      value={promotionForm.title}
-                      onChange={(e) => setPromotionForm({ ...promotionForm, title: e.target.value })}
-                      placeholder="Promotion title"
-                    />
-                  </div>
-                  <div>
-                    <Label>Description</Label>
-                    <Textarea
-                      value={promotionForm.description}
-                      onChange={(e) => setPromotionForm({ ...promotionForm, description: e.target.value })}
-                      placeholder="Promotion description"
-                      rows={3}
-                    />
-                  </div>
-                  <div>
-                    <Label>Image</Label>
-                    <ImageUpload
-                      images={promotionForm.image ? [promotionForm.image] : []}
-                      onImagesChange={(urls) => setPromotionForm({ ...promotionForm, image: urls[0] || '' })}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-5">
+                  {/* Basic Information */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-semibold text-gray-900 border-b pb-2">Basic Information</h3>
+                    
                     <div>
-                      <Label>CTA Text</Label>
+                      <Label htmlFor="promotion-title">Title <span className="text-red-500">*</span></Label>
                       <Input
-                        value={promotionForm.ctaText}
-                        onChange={(e) => setPromotionForm({ ...promotionForm, ctaText: e.target.value })}
-                        placeholder="Shop Now"
+                        id="promotion-title"
+                        value={promotionForm.title}
+                        onChange={(e) => {
+                          setPromotionForm({ ...promotionForm, title: e.target.value })
+                          if (validationErrors.title) {
+                            setValidationErrors({ ...validationErrors, title: '' })
+                          }
+                        }}
+                        placeholder="Promotion title"
+                        className={validationErrors.title ? 'border-red-500' : ''}
+                      />
+                      {validationErrors.title && (
+                        <p className="text-sm text-red-500 mt-1">{validationErrors.title}</p>
+                      )}
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="promotion-description">Description <span className="text-gray-400">(Optional)</span></Label>
+                      <Textarea
+                        id="promotion-description"
+                        value={promotionForm.description}
+                        onChange={(e) => setPromotionForm({ ...promotionForm, description: e.target.value })}
+                        placeholder="Promotion description"
+                        rows={3}
                       />
                     </div>
+                    
                     <div>
-                      <Label>CTA Link</Label>
-                      <Input
-                        value={promotionForm.ctaLink}
-                        onChange={(e) => setPromotionForm({ ...promotionForm, ctaLink: e.target.value })}
-                        placeholder="/shop"
+                      <Label htmlFor="promotion-image">Image <span className="text-red-500">*</span></Label>
+                      <ImageUpload
+                        images={promotionForm.image ? [promotionForm.image] : []}
+                        onImagesChange={(urls) => {
+                          setPromotionForm({ ...promotionForm, image: urls[0] || '' })
+                          if (validationErrors.image) {
+                            setValidationErrors({ ...validationErrors, image: '' })
+                          }
+                        }}
                       />
+                      {validationErrors.image && (
+                        <p className="text-sm text-red-500 mt-1">{validationErrors.image}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Discount Settings */}
+                  <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
+                    <h3 className="text-sm font-semibold text-gray-900 border-b pb-2">Discount Settings <span className="text-gray-400">(Optional)</span></h3>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="promotion-promocode">Promo Code</Label>
+                        <Input
+                          id="promotion-promocode"
+                          value={promotionForm.promoCode}
+                          onChange={(e) => {
+                            const value = e.target.value.toUpperCase()
+                            setPromotionForm({ ...promotionForm, promoCode: value })
+                            if (validationErrors.promoCode) {
+                              setValidationErrors({ ...validationErrors, promoCode: '' })
+                            }
+                          }}
+                          placeholder="SUMMER2024"
+                          className={validationErrors.promoCode ? 'border-red-500' : ''}
+                        />
+                        {validationErrors.promoCode && (
+                          <p className="text-sm text-red-500 mt-1">{validationErrors.promoCode}</p>
+                        )}
+                        <p className="text-xs text-gray-500 mt-1">Enter a unique code for customers to use</p>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="promotion-discounttype">Discount Type</Label>
+                        <select
+                          id="promotion-discounttype"
+                          value={promotionForm.discountType}
+                          onChange={(e) => setPromotionForm({ ...promotionForm, discountType: e.target.value as 'percentage' | 'fixed' })}
+                          className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500"
+                        >
+                          <option value="percentage">Percentage (%)</option>
+                          <option value="fixed">Fixed Amount</option>
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="promotion-discountvalue">
+                          Discount Value {promotionForm.discountType === 'percentage' ? '(%)' : '(Amount)'}
+                        </Label>
+                        <Input
+                          id="promotion-discountvalue"
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          max={promotionForm.discountType === 'percentage' ? 100 : undefined}
+                          value={promotionForm.discountValue}
+                          onChange={(e) => {
+                            setPromotionForm({ ...promotionForm, discountValue: e.target.value })
+                            if (validationErrors.discountValue) {
+                              setValidationErrors({ ...validationErrors, discountValue: '' })
+                            }
+                          }}
+                          placeholder={promotionForm.discountType === 'percentage' ? '10' : '100'}
+                          className={validationErrors.discountValue ? 'border-red-500' : ''}
+                        />
+                        {validationErrors.discountValue && (
+                          <p className="text-sm text-red-500 mt-1">{validationErrors.discountValue}</p>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="promotion-minorder">Min Order Amount</Label>
+                        <Input
+                          id="promotion-minorder"
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={promotionForm.minOrderAmount}
+                          onChange={(e) => {
+                            setPromotionForm({ ...promotionForm, minOrderAmount: e.target.value })
+                            if (validationErrors.minOrderAmount) {
+                              setValidationErrors({ ...validationErrors, minOrderAmount: '' })
+                            }
+                          }}
+                          placeholder="500"
+                          className={validationErrors.minOrderAmount ? 'border-red-500' : ''}
+                        />
+                        {validationErrors.minOrderAmount && (
+                          <p className="text-sm text-red-500 mt-1">{validationErrors.minOrderAmount}</p>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="promotion-maxdiscount">Max Discount Amount</Label>
+                        <Input
+                          id="promotion-maxdiscount"
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={promotionForm.maxDiscountAmount}
+                          onChange={(e) => {
+                            setPromotionForm({ ...promotionForm, maxDiscountAmount: e.target.value })
+                            if (validationErrors.maxDiscountAmount) {
+                              setValidationErrors({ ...validationErrors, maxDiscountAmount: '' })
+                            }
+                          }}
+                          placeholder="1000"
+                          className={validationErrors.maxDiscountAmount ? 'border-red-500' : ''}
+                        />
+                        {validationErrors.maxDiscountAmount && (
+                          <p className="text-sm text-red-500 mt-1">{validationErrors.maxDiscountAmount}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Date & Usage Settings */}
+                  <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
+                    <h3 className="text-sm font-semibold text-gray-900 border-b pb-2">Date & Usage Limits <span className="text-gray-400">(Optional)</span></h3>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="promotion-startdate">Start Date</Label>
+                        <Input
+                          id="promotion-startdate"
+                          type="datetime-local"
+                          value={promotionForm.startDate}
+                          onChange={(e) => {
+                            setPromotionForm({ ...promotionForm, startDate: e.target.value })
+                            if (validationErrors.startDate || validationErrors.endDate) {
+                              setValidationErrors({ ...validationErrors, startDate: '', endDate: '' })
+                            }
+                          }}
+                          className={validationErrors.startDate ? 'border-red-500' : ''}
+                        />
+                        {validationErrors.startDate && (
+                          <p className="text-sm text-red-500 mt-1">{validationErrors.startDate}</p>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="promotion-enddate">End Date</Label>
+                        <Input
+                          id="promotion-enddate"
+                          type="datetime-local"
+                          value={promotionForm.endDate}
+                          onChange={(e) => {
+                            setPromotionForm({ ...promotionForm, endDate: e.target.value })
+                            if (validationErrors.startDate || validationErrors.endDate) {
+                              setValidationErrors({ ...validationErrors, startDate: '', endDate: '' })
+                            }
+                          }}
+                          className={validationErrors.endDate ? 'border-red-500' : ''}
+                        />
+                        {validationErrors.endDate && (
+                          <p className="text-sm text-red-500 mt-1">{validationErrors.endDate}</p>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="promotion-usagelimit">Usage Limit</Label>
+                        <Input
+                          id="promotion-usagelimit"
+                          type="number"
+                          min="0"
+                          value={promotionForm.usageLimit}
+                          onChange={(e) => {
+                            setPromotionForm({ ...promotionForm, usageLimit: e.target.value })
+                            if (validationErrors.usageLimit) {
+                              setValidationErrors({ ...validationErrors, usageLimit: '' })
+                            }
+                          }}
+                          placeholder="100"
+                          className={validationErrors.usageLimit ? 'border-red-500' : ''}
+                        />
+                        {validationErrors.usageLimit && (
+                          <p className="text-sm text-red-500 mt-1">{validationErrors.usageLimit}</p>
+                        )}
+                        <p className="text-xs text-gray-500 mt-1">Total times this promotion can be used</p>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="promotion-userlimit">User Limit</Label>
+                        <Input
+                          id="promotion-userlimit"
+                          type="number"
+                          min="0"
+                          value={promotionForm.userLimit}
+                          onChange={(e) => {
+                            setPromotionForm({ ...promotionForm, userLimit: e.target.value })
+                            if (validationErrors.userLimit) {
+                              setValidationErrors({ ...validationErrors, userLimit: '' })
+                            }
+                          }}
+                          placeholder="1"
+                          className={validationErrors.userLimit ? 'border-red-500' : ''}
+                        />
+                        {validationErrors.userLimit && (
+                          <p className="text-sm text-red-500 mt-1">{validationErrors.userLimit}</p>
+                        )}
+                        <p className="text-xs text-gray-500 mt-1">Times each user can use this promotion</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* CTA Settings */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-semibold text-gray-900 border-b pb-2">Call to Action <span className="text-gray-400">(Optional)</span></h3>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="promotion-ctatext">CTA Button Text</Label>
+                        <Input
+                          id="promotion-ctatext"
+                          value={promotionForm.ctaText}
+                          onChange={(e) => setPromotionForm({ ...promotionForm, ctaText: e.target.value })}
+                          placeholder="Shop Now"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="promotion-ctalink">CTA Link</Label>
+                        <Input
+                          id="promotion-ctalink"
+                          value={promotionForm.ctaLink}
+                          onChange={(e) => {
+                            setPromotionForm({ ...promotionForm, ctaLink: e.target.value })
+                            if (validationErrors.ctaLink) {
+                              setValidationErrors({ ...validationErrors, ctaLink: '' })
+                            }
+                          }}
+                          placeholder="/shop"
+                          className={validationErrors.ctaLink ? 'border-red-500' : ''}
+                        />
+                        {validationErrors.ctaLink && (
+                          <p className="text-sm text-red-500 mt-1">{validationErrors.ctaLink}</p>
+                        )}
+                        <p className="text-xs text-gray-500 mt-1">Start with / for internal pages</p>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="promotion-conditions">Special Conditions</Label>
+                      <Textarea
+                        id="promotion-conditions"
+                        value={promotionForm.conditions}
+                        onChange={(e) => setPromotionForm({ ...promotionForm, conditions: e.target.value })}
+                        placeholder="e.g., Not valid on sale items, Free shipping on orders above ৳500"
+                        rows={2}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Any special conditions or restrictions</p>
                     </div>
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button onClick={handleSavePromotion} disabled={!promotionForm.title || !promotionForm.image || savingPromotion}>
+                  <Button onClick={handleSavePromotion} disabled={savingPromotion || (!promotionForm.title || !promotionForm.image)}>
                     {savingPromotion ? (
                       <>
                         <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
@@ -2787,9 +3193,21 @@ export default function HomepageManagementPage() {
                             title: promotion.title,
                             description: promotion.description || '',
                             image: promotion.image,
+                            type: promotion.type || 'banner',
+                            promoCode: promotion.promoCode || '',
+                            discountType: promotion.discountType || 'percentage',
+                            discountValue: promotion.discountValue ? String(promotion.discountValue) : '',
+                            minOrderAmount: promotion.minOrderAmount ? String(promotion.minOrderAmount) : '',
+                            maxDiscountAmount: promotion.maxDiscountAmount ? String(promotion.maxDiscountAmount) : '',
+                            startDate: promotion.startDate ? promotion.startDate.substring(0, 16) : '',
+                            endDate: promotion.endDate ? promotion.endDate.substring(0, 16) : '',
                             ctaText: promotion.ctaText || '',
-                            ctaLink: promotion.ctaLink || ''
+                            ctaLink: promotion.ctaLink || '',
+                            usageLimit: promotion.usageLimit ? String(promotion.usageLimit) : '',
+                            userLimit: promotion.userLimit ? String(promotion.userLimit) : '',
+                            conditions: promotion.conditions || ''
                           })
+                          setValidationErrors({})
                           setPromotionDialogOpen(true)
                         }}
                       >

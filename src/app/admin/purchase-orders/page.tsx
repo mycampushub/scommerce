@@ -109,6 +109,14 @@ export default function PurchaseOrdersPage() {
     items: [] as POItem[],
   })
 
+  // Form validation errors
+  const [formErrors, setFormErrors] = useState<{
+    supplierId?: string
+    expectedDate?: string
+    items?: string
+    itemErrors?: { index: number; field: string; message: string }[]
+  }>({})
+
   const fetchPurchaseOrders = async () => {
     try {
       setLoading(true)
@@ -188,6 +196,7 @@ export default function PurchaseOrdersPage() {
       notes: '',
       items: [],
     })
+    setFormErrors({})
     setIsModalOpen(true)
   }
 
@@ -200,10 +209,13 @@ export default function PurchaseOrdersPage() {
       })
       return
     }
+    const newItem = { productId: '', productName: '', quantity: 1, unitCost: 0, variantId: 'none' }
     setFormData({
       ...formData,
-      items: [...formData.items, { productId: '', productName: '', quantity: 1, unitCost: 0, variantId: 'none' }],
+      items: [...formData.items, newItem],
     })
+    // Clear item errors when adding new item
+    setFormErrors(prev => ({ ...prev, items: undefined, itemErrors: undefined }))
   }
 
   const updateItem = async (index: number, field: keyof POItem | 'variantId', value: any) => {
@@ -235,24 +247,83 @@ export default function PurchaseOrdersPage() {
     })
   }
 
-  const handleCreate = async () => {
-    if (!formData.supplierId || formData.items.length === 0) {
-      toast({
-        title: 'Validation Error',
-        description: 'Please select a supplier and add at least one item',
-        variant: 'destructive',
-      })
-      return
+  const validateForm = (): boolean => {
+    const errors: typeof formErrors = {}
+    const itemErrors: { index: number; field: string; message: string }[] = []
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    // Validate supplier
+    if (!formData.supplierId) {
+      errors.supplierId = 'Supplier is required. Please select a supplier from the dropdown.'
+    }
+
+    // Validate expected date (if provided) - must be today or in the future
+    if (formData.expectedDate) {
+      const expectedDate = new Date(formData.expectedDate)
+      if (expectedDate < today) {
+        errors.expectedDate = 'Expected date cannot be in the past. Please select today or a future date.'
+      }
     }
 
     // Validate items
-    const invalidItem = formData.items.find(item => !item.productId || item.quantity <= 0 || item.unitCost <= 0)
-    if (invalidItem) {
+    if (formData.items.length === 0) {
+      errors.items = 'At least one item is required. Click "Add Item" to add products to your purchase order.'
+    } else {
+      formData.items.forEach((item, index) => {
+        // Validate product selection
+        if (!item.productId) {
+          itemErrors.push({ index, field: 'productId', message: 'Product is required. Please select a product from the dropdown.' })
+        } else {
+          // Validate variant selection if product has variants
+          const product = products.find(p => p.id === item.productId)
+          if (product?.hasVariants) {
+            if (!item.variantId || item.variantId === 'none') {
+              itemErrors.push({ index, field: 'variantId', message: 'Variant is required. This product has variants, please select one.' })
+            }
+          }
+        }
+
+        // Validate quantity - must be a positive number
+        if (!item.quantity || item.quantity <= 0) {
+          itemErrors.push({ index, field: 'quantity', message: 'Quantity must be greater than 0. Please enter a valid positive quantity.' })
+        } else if (item.quantity > 100000) {
+          itemErrors.push({ index, field: 'quantity', message: 'Quantity exceeds maximum limit of 100,000. Please enter a smaller quantity.' })
+        } else if (!Number.isInteger(item.quantity)) {
+          itemErrors.push({ index, field: 'quantity', message: 'Quantity must be a whole number. Please enter an integer value.' })
+        }
+
+        // Validate unit cost - must be a positive number
+        if (!item.unitCost || item.unitCost <= 0) {
+          itemErrors.push({ index, field: 'unitCost', message: 'Unit cost must be greater than 0. Please enter a valid positive cost.' })
+        } else if (item.unitCost > 100000000) {
+          itemErrors.push({ index, field: 'unitCost', message: 'Unit cost exceeds maximum limit of 100,000,000. Please enter a smaller value.' })
+        }
+      })
+    }
+
+    if (itemErrors.length > 0) {
+      errors.itemErrors = itemErrors
+    }
+
+    setFormErrors(errors)
+    
+    // Show validation summary if there are errors
+    if (Object.keys(errors).length > 0) {
+      const errorCount = itemErrors.length + (errors.supplierId ? 1 : 0) + (errors.expectedDate ? 1 : 0) + (errors.items ? 1 : 0)
       toast({
-        title: 'Validation Error',
-        description: 'Please fill in all item fields with valid values',
+        title: 'Validation Failed',
+        description: `Please correct ${errorCount} error${errorCount > 1 ? 's' : ''} before submitting. Check the highlighted fields below.`,
         variant: 'destructive',
       })
+    }
+    
+    return Object.keys(errors).length === 0
+  }
+
+  const handleCreate = async () => {
+    // Validate form before submission
+    if (!validateForm()) {
       return
     }
 
@@ -712,9 +783,17 @@ export default function PurchaseOrdersPage() {
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="supplier">Supplier *</Label>
-                <Select value={formData.supplierId} onValueChange={(val) => { setFormData({ ...formData, supplierId: val }); }}>
-                  <SelectTrigger id="supplier">
+                <Label htmlFor="supplier">
+                  Supplier <span className="text-red-500">*</span>
+                </Label>
+                <Select 
+                  value={formData.supplierId} 
+                  onValueChange={(val) => { 
+                    setFormData({ ...formData, supplierId: val })
+                    setFormErrors(prev => ({ ...prev, supplierId: undefined }))
+                  }}
+                >
+                  <SelectTrigger id="supplier" className={formErrors.supplierId ? 'border-red-500' : ''}>
                     <SelectValue placeholder="Select supplier" />
                   </SelectTrigger>
                   <SelectContent>
@@ -725,77 +804,165 @@ export default function PurchaseOrdersPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                {formErrors.supplierId && (
+                  <p className="text-sm text-red-500 mt-1">{formErrors.supplierId}</p>
+                )}
               </div>
               <div>
-                <Label htmlFor="expectedDate">Expected Date</Label>
+                <Label htmlFor="expectedDate">
+                  Expected Date <span className="text-xs text-gray-400 font-normal ml-1">(Optional)</span>
+                </Label>
                 <Input
                   id="expectedDate"
                   type="date"
                   value={formData.expectedDate}
-                  onChange={(e) => setFormData({ ...formData, expectedDate: e.target.value })}
+                  min={new Date().toISOString().split('T')[0]}
+                  onChange={(e) => {
+                    setFormData({ ...formData, expectedDate: e.target.value })
+                    setFormErrors(prev => ({ ...prev, expectedDate: undefined }))
+                  }}
+                  className={formErrors.expectedDate ? 'border-red-500' : ''}
                 />
+                {formErrors.expectedDate && (
+                  <p className="text-sm text-red-500 mt-1">{formErrors.expectedDate}</p>
+                )}
               </div>
             </div>
 
             <div>
-              <Label>Items</Label>
+              <Label>
+                Items <span className="text-red-500">*</span>
+              </Label>
+              {formErrors.items && (
+                <p className="text-sm text-red-500 mt-1">{formErrors.items}</p>
+              )}
               <div className="mt-2 space-y-2">
                 {formData.items.map((item, index) => {
                   const product = products.find(p => p.id === item.productId)
                   const hasVariants = product?.hasVariants
+                  const getItemError = (field: string) => 
+                    formErrors.itemErrors?.find(e => e.index === index && e.field === field)?.message
+                  
                   return (
                     <div key={index} className="flex items-start gap-2 p-3 border rounded-lg bg-gray-50">
                       <div className="flex-1 space-y-2">
-                        <Select value={item.productId} onValueChange={(val) => updateItem(index, 'productId', val)}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select product" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {products.map(product => (
-                              <SelectItem key={product.id} value={product.id}>
-                                {product.name} {product.sku && `(${product.sku})`}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-
-                        {hasVariants && item.variants && item.variants.length > 0 && (
-                          <Select
-                            value={(item as any).variantId || 'none'}
-                            onValueChange={(val) => updateItem(index, 'variantId', val)}
+                        <div>
+                          <Label htmlFor={`product-${index}`} className="text-xs text-gray-600">
+                            Product <span className="text-red-500">*</span>
+                          </Label>
+                          <Select 
+                            value={item.productId} 
+                            onValueChange={(val) => {
+                              updateItem(index, 'productId', val)
+                              setFormErrors(prev => ({
+                                ...prev,
+                                itemErrors: prev.itemErrors?.filter(e => !(e.index === index && e.field === 'productId'))
+                              }))
+                            }}
                           >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select variant" />
+                            <SelectTrigger id={`product-${index}`} className={getItemError('productId') ? 'border-red-500' : ''}>
+                              <SelectValue placeholder="Select a product" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="none">No variant</SelectItem>
-                              {item.variants.map(variant => (
-                                <SelectItem key={variant.id} value={variant.id}>
-                                  {variant.name}
+                              {products.map(product => (
+                                <SelectItem key={product.id} value={product.id}>
+                                  {product.name} {product.sku && `(${product.sku})`}
                                 </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
+                          {getItemError('productId') && (
+                            <p className="text-sm text-red-500">{getItemError('productId')}</p>
+                          )}
+                        </div>
+
+                        {hasVariants && item.variants && item.variants.length > 0 && (
+                          <div>
+                            <Label className="text-xs text-gray-600">
+                              Variant <span className="text-red-500">*</span>
+                            </Label>
+                            <Select
+                              value={(item as any).variantId || 'none'}
+                              onValueChange={(val) => {
+                                updateItem(index, 'variantId', val)
+                                setFormErrors(prev => ({
+                                  ...prev,
+                                  itemErrors: prev.itemErrors?.filter(e => !(e.index === index && e.field === 'variantId'))
+                                }))
+                              }}
+                            >
+                              <SelectTrigger className={getItemError('variantId') ? 'border-red-500' : ''}>
+                                <SelectValue placeholder="Select a variant" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">No variant</SelectItem>
+                                {item.variants.map(variant => (
+                                  <SelectItem key={variant.id} value={variant.id}>
+                                    {variant.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {getItemError('variantId') && (
+                              <p className="text-sm text-red-500">{getItemError('variantId')}</p>
+                            )}
+                          </div>
                         )}
                       </div>
                       <div className="w-24">
+                        <Label htmlFor={`quantity-${index}`} className="text-xs text-gray-600">
+                          Quantity <span className="text-red-500">*</span>
+                        </Label>
                         <Input
+                          id={`quantity-${index}`}
                           type="number"
-                          placeholder="Qty"
+                          placeholder="0"
                           value={item.quantity}
-                          onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value) || 0)}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value) || 1
+                            updateItem(index, 'quantity', val)
+                            if (val > 0) {
+                              setFormErrors(prev => ({
+                                ...prev,
+                                itemErrors: prev.itemErrors?.filter(e => !(e.index === index && e.field === 'quantity'))
+                              }))
+                            }
+                          }}
                           min="1"
+                          max="100000"
+                          className={getItemError('quantity') ? 'border-red-500' : ''}
                         />
+                        {getItemError('quantity') && (
+                          <p className="text-xs text-red-500 mt-1">{getItemError('quantity')}</p>
+                        )}
                       </div>
                       <div className="w-32">
+                        <Label htmlFor={`cost-${index}`} className="text-xs text-gray-600">
+                          Unit Cost <span className="text-red-500">*</span>
+                        </Label>
                         <Input
+                          id={`cost-${index}`}
                           type="number"
-                          placeholder="Cost"
+                          placeholder="0.00"
                           value={item.unitCost}
-                          onChange={(e) => updateItem(index, 'unitCost', parseFloat(e.target.value) || 0)}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value) || 0
+                            updateItem(index, 'unitCost', val)
+                            if (val > 0) {
+                              setFormErrors(prev => ({
+                                ...prev,
+                                itemErrors: prev.itemErrors?.filter(e => !(e.index === index && e.field === 'unitCost'))
+                              }))
+                            }
+                          }}
                           min="0"
+                          max="100000000"
                           step="0.01"
+                          className={getItemError('unitCost') ? 'border-red-500' : ''}
                         />
+                        {getItemError('unitCost') && (
+                          <p className="text-xs text-red-500 mt-1">{getItemError('unitCost')}</p>
+                        )}
                       </div>
                       <div className="w-32 text-sm text-gray-600 flex items-center">
                         ৳{(item.quantity * item.unitCost).toFixed(2)}
@@ -835,13 +1002,17 @@ export default function PurchaseOrdersPage() {
             )}
 
             <div>
-              <Label htmlFor="notes">Notes</Label>
+              <Label htmlFor="notes">
+                Notes <span className="text-xs text-gray-400 font-normal ml-1">(Optional)</span>
+              </Label>
               <Input
                 id="notes"
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="Any notes for this purchase order..."
+                placeholder="Add any notes or special instructions..."
+                maxLength={1000}
               />
+              <p className="text-xs text-gray-500 mt-1">{formData.notes?.length || 0}/1000 characters</p>
             </div>
           </div>
           <DialogFooter>

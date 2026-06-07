@@ -112,6 +112,7 @@ export default function StockAdjustmentsPage() {
   });
   const [currentStock, setCurrentStock] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Fetch adjustments
   const fetchAdjustments = async () => {
@@ -239,9 +240,44 @@ export default function StockAdjustmentsPage() {
     }
   };
 
+  // Validate form
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    // Validate product
+    if (!formData.productId) {
+      newErrors.productId = 'Please select a product';
+    }
+
+    // Validate adjustment type
+    if (!formData.adjustmentType) {
+      newErrors.adjustmentType = 'Please select an adjustment type';
+    }
+
+    // Validate quantity
+    if (formData.quantityAfter < 0) {
+      newErrors.quantityAfter = 'Quantity must be a positive number';
+    }
+
+    // Validate reason
+    if (!formData.reason || formData.reason.trim().length === 0) {
+      newErrors.reason = 'Please provide a reason for this adjustment';
+    } else if (formData.reason.trim().length < 10) {
+      newErrors.reason = 'Reason must be at least 10 characters long';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!validateForm()) {
+      toast.error('Please fix the validation errors before submitting');
+      return;
+    }
 
     try {
       setIsSubmitting(true);
@@ -360,6 +396,7 @@ export default function StockAdjustmentsPage() {
     });
     setVariants([]);
     setCurrentStock(0);
+    setErrors({});
   };
 
   // Filter and sort adjustments
@@ -696,6 +733,9 @@ export default function StockAdjustmentsPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                {errors.productId && (
+                  <p className="text-xs text-destructive">{errors.productId}</p>
+                )}
               </div>
 
               {variants.length > 0 && (
@@ -754,6 +794,9 @@ export default function StockAdjustmentsPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                {errors.adjustmentType && (
+                  <p className="text-xs text-destructive">{errors.adjustmentType}</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -765,10 +808,15 @@ export default function StockAdjustmentsPage() {
                   value={formData.quantityAfter}
                   onChange={(e) => setFormData({ ...formData, quantityAfter: parseInt(e.target.value) || 0 })}
                   required
+                  placeholder="Enter new quantity"
+                  className={errors.quantityAfter ? 'border-destructive' : ''}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Current stock: {currentStock}
+                  Current stock: {currentStock} | New stock: {formData.quantityAfter} | Change: {(formData.quantityAfter - currentStock) > 0 ? '+' : ''}{formData.quantityAfter - currentStock}
                 </p>
+                {errors.quantityAfter && (
+                  <p className="text-xs text-destructive">{errors.quantityAfter}</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -780,7 +828,11 @@ export default function StockAdjustmentsPage() {
                   placeholder="Explain why this adjustment is needed..."
                   required
                   rows={3}
+                  className={errors.reason ? 'border-destructive' : ''}
                 />
+                {errors.reason && (
+                  <p className="text-xs text-destructive">{errors.reason}</p>
+                )}
               </div>
             </div>
 

@@ -4,6 +4,8 @@ import { verifyAdminAuth } from '@/lib/admin-auth';
 import { getEnv } from '@/lib/cloudflare';
 import { logAdminAction } from '@/lib/audit-logger';
 import { checkEnv } from '@/lib/api-helpers';
+import { purchaseOrderSchema } from '@/lib/validations';
+import { ZodError } from 'zod';
 
 // GET /api/admin/purchase-orders - List all purchase orders
 export async function GET(request: NextRequest) {
@@ -77,54 +79,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { supplierId, items, orderDate, expectedDate, notes } = body;
+    const { orderDate } = body;
 
     console.log('[Purchase Orders API] Creating PO with body:', body);
     console.log('[Purchase Orders API] Env available:', !!env);
 
-    // Validation
-    if (!supplierId) {
-      console.error('[Purchase Orders API] Supplier ID is required');
-      return NextResponse.json(
-        { success: false, error: 'Supplier is required' },
-        { status: 400 }
-      );
-    }
-
-    if (!items || !Array.isArray(items) || items.length === 0) {
-      console.error('[Purchase Orders API] Items array is required');
-      return NextResponse.json(
-        { success: false, error: 'At least one item is required' },
-        { status: 400 }
-      );
-    }
-
-    // Validate items
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      console.log(`[Purchase Orders API] Validating item ${i + 1}:`, item);
-      if (!item.productId) {
-        console.error('[Purchase Orders API] Product ID is required for each item');
-        return NextResponse.json(
-          { success: false, error: 'Product ID is required for each item' },
-          { status: 400 }
-        );
-      }
-      if (!item.quantity || item.quantity <= 0) {
-        console.error('[Purchase Orders API] Valid quantity is required for each item');
-        return NextResponse.json(
-          { success: false, error: 'Valid quantity is required for each item' },
-          { status: 400 }
-        );
-      }
-      if (!item.unitCost || item.unitCost <= 0) {
-        console.error('[Purchase Orders API] Valid unit cost is required for each item');
-        return NextResponse.json(
-          { success: false, error: 'Valid unit cost is required for each item' },
-          { status: 400 }
-        );
-      }
-    }
+    // Validate using purchaseOrderSchema
+    const validatedData = purchaseOrderSchema.parse(body);
+    const { supplierId, items, expectedDate, notes, status } = validatedData;
 
     // Create purchase order
     console.log('[Purchase Orders API] Calling purchaseOrderRepository.create...');
@@ -133,7 +95,7 @@ export async function POST(request: NextRequest) {
       items,
       orderDate: orderDate ? new Date(orderDate).toISOString() : new Date().toISOString(),
       expectedDate: expectedDate ? new Date(expectedDate).toISOString() : null,
-      status: 'PENDING',
+      status: status ? status.toUpperCase() : 'PENDING',
       notes: notes || null,
     });
 
@@ -174,6 +136,22 @@ export async function POST(request: NextRequest) {
     console.error('[Purchase Orders API] Error stack:', error instanceof Error ? error.stack : 'No stack available');
     console.error('[Purchase Orders API] Error message:', error instanceof Error ? error.message : String(error));
     console.error('[Purchase Orders API] Error name:', error instanceof Error ? error.name : 'Unknown');
+
+    // Handle Zod validation errors
+    if (error instanceof ZodError) {
+      const errorMessages = error.issues.map(err => ({
+        field: err.path.join('.'),
+        message: err.message,
+      }));
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Validation failed',
+          details: errorMessages
+        },
+        { status: 400 }
+      );
+    }
 
     const errorMessage = error instanceof Error ? error.message : String(error);
     const errorStack = error instanceof Error ? error.stack : undefined;

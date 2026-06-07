@@ -73,7 +73,7 @@ class PrismaPreparedStatement implements PreparedStatement {
         params: this.params,
         error: error instanceof Error ? error.message : String(error)
       });
-      return null;
+      throw error;
     }
   }
 
@@ -88,7 +88,7 @@ class PrismaPreparedStatement implements PreparedStatement {
         params: this.params,
         error: error instanceof Error ? error.message : String(error)
       });
-      return { results: [] };
+      throw error;
     }
   }
 

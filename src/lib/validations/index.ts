@@ -267,7 +267,7 @@ export const settingsSchema = z.object({
 export const promotionSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional(),
-  image: z.string().optional(), // Made optional - not all promotions need images
+  image: z.string().nullable().optional(), // Made optional - not all promotions need images
   type: z.string().optional().default('banner'),
   promoCode: z.string().optional(),
   discountType: z.enum(['percentage', 'fixed']).optional().default('percentage'),
@@ -357,6 +357,20 @@ export const requestRefundSchema = z.object({
   reason: z.string().min(10, 'Refund reason must be at least 10 characters'),
   refundMethod: z.string().min(1, 'Refund method is required'),
   initiatedBy: z.enum(['user', 'admin']).default('user'),
+});
+
+// Purchase Order Schemas
+export const purchaseOrderSchema = z.object({
+  supplierId: z.string().min(1, 'Supplier ID is required'),
+  expectedDate: z.string().min(1, 'Expected date is required'),
+  notes: z.string().optional(),
+  status: z.enum(['pending', 'ordered', 'received', 'cancelled']).optional(),
+  items: z.array(z.object({
+    productId: z.string().min(1, 'Product ID is required'),
+    variantId: z.string().optional(),
+    quantity: z.number().int().positive('Quantity must be a positive integer'),
+    unitCost: z.number().positive('Unit cost must be a positive number'),
+  })).min(1, 'At least one item is required'),
 });
 
 // Export all schemas

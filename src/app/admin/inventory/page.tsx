@@ -151,6 +151,7 @@ export default function InventoryPage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null)
   const [addStockQty, setAddStockQty] = useState<number>(0)
+  const [addStockError, setAddStockError] = useState<string>('')
 
   // Edit Stock modal state
   const [isEditStockOpen, setIsEditStockOpen] = useState(false)
@@ -160,6 +161,7 @@ export default function InventoryPage() {
   const [editLowStockAlert, setEditLowStockAlert] = useState<number>(0)
   const [editReorderLevel, setEditReorderLevel] = useState<number>(0)
   const [editReorderQty, setEditReorderQty] = useState<number>(0)
+  const [editStockErrors, setEditStockErrors] = useState<Record<string, string>>({})
 
   const fetchData = async () => {
     try {
@@ -183,8 +185,18 @@ export default function InventoryPage() {
     const result = await response.json() as any
 
     if (result.success) {
+      // Map category fields to match frontend expectations
+      const productsWithCategory = (result.products || []).map((p: any) => ({
+        ...p,
+        category: {
+          id: p.categoryId,
+          name: p.categoryName || null,
+          slug: p.categorySlug || null,
+        },
+      }))
+
       const productsWithVariants = await Promise.all(
-        (result.products || []).map(async (product: Product) => {
+        productsWithCategory.map(async (product: Product) => {
           if (product.hasVariants) {
             const variantsResponse = await fetch(`/api/admin/products/${product.id}/variants`)
             const variantsResult = await variantsResponse.json() as any
@@ -351,6 +363,7 @@ export default function InventoryPage() {
     setSelectedProduct(product)
     setSelectedVariant(variant || null)
     setAddStockQty(10)
+    setAddStockError('')
     setIsAddStockOpen(true)
   }
 
@@ -361,13 +374,56 @@ export default function InventoryPage() {
     setEditLowStockAlert(variant ? variant.lowStockAlert : product.lowStockAlert)
     setEditReorderLevel(variant ? variant.reorderLevel : product.reorderLevel)
     setEditReorderQty(variant ? variant.reorderQty : product.reorderQty)
+    setEditStockErrors({})
     setIsEditStockOpen(true)
   }
 
   const handleEditStock = async () => {
-    if (!editingProduct) return
+    if (!editingProduct && !editingVariant) {
+      toast({
+        title: 'Validation Error',
+        description: 'Please select a product or variant first',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    // Validate form
+    const errors: Record<string, string> = {}
+    
+    if (editStockQty < 0) {
+      errors.editStockQty = 'Stock quantity must be zero or positive'
+    }
+    if (editLowStockAlert < 0) {
+      errors.editLowStockAlert = 'Low stock alert must be zero or positive'
+    }
+    if (editReorderLevel < 0) {
+      errors.editReorderLevel = 'Reorder level must be zero or positive'
+    }
+    if (editReorderQty < 1) {
+      errors.editReorderQty = 'Reorder quantity must be at least 1'
+    }
+    
+    if (Object.keys(errors).length > 0) {
+      setEditStockErrors(errors)
+      toast({
+        title: 'Validation Error',
+        description: 'Please fix the errors before submitting',
+        variant: 'destructive',
+      })
+      return
+    }
 
     try {
+      if (!editingProduct) {
+        toast({
+          title: 'Error',
+          description: 'No product selected',
+          variant: 'destructive',
+        })
+        return
+      }
+
       const endpoint = editingVariant
         ? `/api/admin/products/${editingProduct.id}/variants/${editingVariant.id}`
         : `/api/admin/products/${editingProduct.id}`
@@ -394,6 +450,7 @@ export default function InventoryPage() {
         setIsEditStockOpen(false)
         setEditingProduct(null)
         setEditingVariant(null)
+        setEditStockErrors({})
         fetchData()
       }
     } catch (err) {
@@ -409,8 +466,30 @@ export default function InventoryPage() {
   const handleAddStock = async () => {
     if (!selectedProduct) {
       toast({
-        title: 'Error',
-        description: 'Please select a product first',
+        title: 'Validation Error',
+        description: 'A product must be selected',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    // Check if variant is required but not selected
+    if (selectedProduct.hasVariants && !selectedVariant) {
+      setAddStockError('Please select a variant for this product')
+      toast({
+        title: 'Validation Error',
+        description: 'Please select a variant for this product',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    // Validate quantity - must be a positive integer
+    if (addStockQty <= 0 || !Number.isInteger(addStockQty)) {
+      setAddStockError('Quantity must be a positive whole number (1 or more)')
+      toast({
+        title: 'Validation Error',
+        description: 'Quantity must be a positive whole number (1 or more)',
         variant: 'destructive',
       })
       return
@@ -443,6 +522,7 @@ export default function InventoryPage() {
         setSelectedProduct(null)
         setSelectedVariant(null)
         setAddStockQty(0)
+        setAddStockError('')
         fetchData()
       }
     } catch (err) {
@@ -1175,7 +1255,7 @@ export default function InventoryPage() {
           <div className="space-y-4 py-4">
             {selectedProduct && (
               <div>
-                <Label htmlFor="product-select">Product</Label>
+                <Label htmlFor="product-select">Product (Optional)</Label>
                 <Input
                   value={selectedProduct.name}
                   disabled
@@ -1185,12 +1265,13 @@ export default function InventoryPage() {
             )}
             {selectedProduct?.hasVariants && !selectedVariant && (
               <div>
-                <Label htmlFor="variant-select">Select Variant</Label>
+                <Label htmlFor="variant-select">Select Variant *</Label>
                 <Select
                   value=""
                   onValueChange={(val) => {
                     const variant = selectedProduct?.variants?.find(v => v.id === val)
                     setSelectedVariant(variant || null)
+                    setAddStockError('')
                   }}
                 >
                   <SelectTrigger id="variant-select">
@@ -1204,18 +1285,29 @@ export default function InventoryPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                {addStockError && addStockError.includes('variant') && (
+                  <p className="text-xs text-destructive mt-1">{addStockError}</p>
+                )}
               </div>
             )}
             <div>
-              <Label htmlFor="stock-qty">Quantity to Add</Label>
+              <Label htmlFor="stock-qty">Quantity to Add *</Label>
               <Input
                 id="stock-qty"
                 type="number"
                 min="1"
                 value={addStockQty}
-                onChange={(e) => setAddStockQty(parseInt(e.target.value) || 0)}
-                placeholder="Enter quantity"
+                onChange={(e) => {
+                  setAddStockQty(parseInt(e.target.value) || 0)
+                  setAddStockError('')
+                }}
+                placeholder="Enter quantity (must be positive integer)"
+                className={addStockError ? 'border-destructive' : ''}
               />
+              <p className="text-xs text-gray-500 mt-1">Must be a positive whole number (1 or more)</p>
+              {addStockError && (
+                <p className="text-xs text-destructive mt-1">{addStockError}</p>
+              )}
             </div>
             {(selectedVariant || selectedProduct) && (
               <div className="p-3 bg-gray-50 rounded-lg">
@@ -1261,7 +1353,7 @@ export default function InventoryPage() {
               <>
                 {editingProduct && !editingVariant && (
                   <div>
-                    <Label htmlFor="product-name">Product</Label>
+                    <Label htmlFor="product-name">Product (Optional)</Label>
                     <Input
                       id="product-name"
                       value={editingProduct.name}
@@ -1272,7 +1364,7 @@ export default function InventoryPage() {
                 )}
                 {editingVariant && (
                   <div>
-                    <Label htmlFor="variant-name">Variant</Label>
+                    <Label htmlFor="variant-name">Variant (Optional)</Label>
                     <Input
                       id="variant-name"
                       value={`${editingProduct?.name} - ${editingVariant.name} (${editingVariant.sku})`}
@@ -1282,52 +1374,80 @@ export default function InventoryPage() {
                   </div>
                 )}
                 <div>
-                  <Label htmlFor="edit-stock-qty">Current Stock Level</Label>
+                  <Label htmlFor="edit-stock-qty">Current Stock Level *</Label>
                   <Input
                     id="edit-stock-qty"
                     type="number"
                     min="0"
                     value={editStockQty}
-                    onChange={(e) => setEditStockQty(parseInt(e.target.value) || 0)}
+                    onChange={(e) => {
+                      setEditStockQty(parseInt(e.target.value) || 0)
+                      setEditStockErrors(prev => ({ ...prev, editStockQty: '' }))
+                    }}
                     placeholder="Current stock quantity"
+                    className={editStockErrors.editStockQty ? 'border-destructive' : ''}
                   />
                   <p className="text-xs text-gray-500 mt-1">Enter the new stock quantity</p>
+                  {editStockErrors.editStockQty && (
+                    <p className="text-xs text-destructive mt-1">{editStockErrors.editStockQty}</p>
+                  )}
                 </div>
                 <div>
-                  <Label htmlFor="edit-low-stock">Low Stock Alert Level</Label>
+                  <Label htmlFor="edit-low-stock">Low Stock Alert Level *</Label>
                   <Input
                     id="edit-low-stock"
                     type="number"
                     min="0"
                     value={editLowStockAlert}
-                    onChange={(e) => setEditLowStockAlert(parseInt(e.target.value) || 0)}
+                    onChange={(e) => {
+                      setEditLowStockAlert(parseInt(e.target.value) || 0)
+                      setEditStockErrors(prev => ({ ...prev, editLowStockAlert: '' }))
+                    }}
                     placeholder="Alert when stock below this level"
+                    className={editStockErrors.editLowStockAlert ? 'border-destructive' : ''}
                   />
                   <p className="text-xs text-gray-500 mt-1">Current: {editingVariant ? editingVariant.lowStockAlert : editingProduct?.lowStockAlert}</p>
+                  {editStockErrors.editLowStockAlert && (
+                    <p className="text-xs text-destructive mt-1">{editStockErrors.editLowStockAlert}</p>
+                  )}
                 </div>
                 <div>
-                  <Label htmlFor="edit-reorder-level">Reorder Level</Label>
+                  <Label htmlFor="edit-reorder-level">Reorder Level *</Label>
                   <Input
                     id="edit-reorder-level"
                     type="number"
                     min="0"
                     value={editReorderLevel}
-                    onChange={(e) => setEditReorderLevel(parseInt(e.target.value) || 0)}
+                    onChange={(e) => {
+                      setEditReorderLevel(parseInt(e.target.value) || 0)
+                      setEditStockErrors(prev => ({ ...prev, editReorderLevel: '' }))
+                    }}
                     placeholder="Stock level to trigger reorder"
+                    className={editStockErrors.editReorderLevel ? 'border-destructive' : ''}
                   />
                   <p className="text-xs text-gray-500 mt-1">Current: {editingVariant ? editingVariant.reorderLevel : editingProduct?.reorderLevel}</p>
+                  {editStockErrors.editReorderLevel && (
+                    <p className="text-xs text-destructive mt-1">{editStockErrors.editReorderLevel}</p>
+                  )}
                 </div>
                 <div>
-                  <Label htmlFor="edit-reorder-qty">Reorder Quantity</Label>
+                  <Label htmlFor="edit-reorder-qty">Reorder Quantity *</Label>
                   <Input
                     id="edit-reorder-qty"
                     type="number"
                     min="1"
                     value={editReorderQty}
-                    onChange={(e) => setEditReorderQty(parseInt(e.target.value) || 0)}
+                    onChange={(e) => {
+                      setEditReorderQty(parseInt(e.target.value) || 0)
+                      setEditStockErrors(prev => ({ ...prev, editReorderQty: '' }))
+                    }}
                     placeholder="Quantity to reorder when stock is low"
+                    className={editStockErrors.editReorderQty ? 'border-destructive' : ''}
                   />
                   <p className="text-xs text-gray-500 mt-1">Current: {editingVariant ? editingVariant.reorderQty : editingProduct?.reorderQty}</p>
+                  {editStockErrors.editReorderQty && (
+                    <p className="text-xs text-destructive mt-1">{editStockErrors.editReorderQty}</p>
+                  )}
                 </div>
                 <div className="p-4 bg-gray-50 rounded-lg">
                   <p className="text-sm text-gray-600 mb-2">

@@ -51,16 +51,11 @@ export function VariantMatrixPreview({
     setCurrentBaseStock(baseStock)
   }, [baseStock])
 
-  const totalVariants = sizes.length * colors.length
+  const totalVariants = sizes.length * colors.length || Math.max(sizes.length, colors.length)
 
   const handleGenerate = async () => {
-    if (sizes.length === 0) {
-      toast.error('Please select at least one size')
-      return
-    }
-
-    if (colors.length === 0) {
-      toast.error('Please select at least one color')
+    if (sizes.length === 0 && colors.length === 0) {
+      toast.error('Please select at least one size or color')
       return
     }
 
@@ -83,9 +78,22 @@ export function VariantMatrixPreview({
 
       // Mark all combinations as generated
       const combinations: string[] = []
-      for (const color of colors) {
+      if (sizes.length > 0 && colors.length > 0) {
+        // Two dimensions: size/color combinations
+        for (const color of colors) {
+          for (const size of sizes) {
+            combinations.push(`${size}/${color}`)
+          }
+        }
+      } else if (sizes.length > 0) {
+        // Sizes only
         for (const size of sizes) {
-          combinations.push(`${size}/${color}`)
+          combinations.push(size)
+        }
+      } else if (colors.length > 0) {
+        // Colors only
+        for (const color of colors) {
+          combinations.push(color)
         }
       }
       setGeneratedVariants(combinations)
@@ -112,13 +120,15 @@ export function VariantMatrixPreview({
             <CardTitle className="text-base">Variant Matrix Preview</CardTitle>
             <CardDescription>
               {totalVariants > 0
-                ? `${totalVariants} combination${totalVariants > 1 ? 's' : ''} will be generated`
-                : 'Select sizes and colors to preview combinations'}
+                ? `${totalVariants} variant${totalVariants > 1 ? 's' : ''} will be generated`
+                : 'Select sizes and/or colors to preview variants'}
             </CardDescription>
           </div>
           {totalVariants > 0 && (
             <Badge variant="outline">
-              {sizes.length} × {colors.length} = {totalVariants}
+              {sizes.length > 0 && colors.length > 0
+                ? `${sizes.length} × ${colors.length} = ${totalVariants}`
+                : `${Math.max(sizes.length, colors.length)} variant${Math.max(sizes.length, colors.length) > 1 ? 's' : ''}`}
             </Badge>
           )}
         </div>
@@ -179,56 +189,129 @@ export function VariantMatrixPreview({
         <Separator />
 
         {/* Matrix preview */}
-        {sizes.length > 0 && colors.length > 0 ? (
+        {totalVariants > 0 ? (
           <div className="space-y-3">
-            <Label>Variant Matrix:</Label>
-            <div className="border rounded-lg overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-24">Size</TableHead>
-                    {colors.map((color) => (
-                      <TableHead key={color} className="text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          <div
-                            className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: color.toLowerCase() }}
-                          />
-                          {color}
-                        </div>
-                      </TableHead>
+            <Label>Variant Preview:</Label>
+            {sizes.length > 0 && colors.length > 0 ? (
+              // Two dimensions: show matrix table
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-24">Size</TableHead>
+                      {colors.map((color) => (
+                        <TableHead key={color} className="text-center">
+                          <div className="flex items-center justify-center gap-1">
+                            <div
+                              className="w-3 h-3 rounded-full"
+                              style={{ backgroundColor: color.toLowerCase() }}
+                            />
+                            {color}
+                          </div>
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sizes.map((size) => (
+                      <TableRow key={size}>
+                        <TableCell className="font-medium">{size}</TableCell>
+                        {colors.map((color) => {
+                          const isGenerated = getVariantStatus(size, color)
+                          return (
+                            <TableCell key={`${size}-${color}`} className="text-center">
+                              <div className="flex items-center justify-center">
+                                {isGenerated ? (
+                                  <CheckCircle className="h-5 w-5 text-green-500" />
+                                ) : (
+                                  <Badge variant="outline" className="text-xs">
+                                    ৳{currentBasePrice}
+                                  </Badge>
+                                )}
+                              </div>
+                            </TableCell>
+                          )
+                        })}
+                      </TableRow>
                     ))}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sizes.map((size) => (
-                    <TableRow key={size}>
-                      <TableCell className="font-medium">{size}</TableCell>
-                      {colors.map((color) => {
-                        const isGenerated = getVariantStatus(size, color)
-                        return (
-                          <TableCell key={`${size}-${color}`} className="text-center">
-                            <div className="flex items-center justify-center">
-                              {isGenerated ? (
-                                <CheckCircle className="h-5 w-5 text-green-500" />
-                              ) : (
-                                <Badge variant="outline" className="text-xs">
-                                  ৳{currentBasePrice}
-                                </Badge>
-                              )}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : sizes.length > 0 ? (
+              // Sizes only: show list
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Size</TableHead>
+                      <TableHead className="text-right">Price</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sizes.map((size) => {
+                      const isGenerated = generatedVariants.includes(size)
+                      return (
+                        <TableRow key={size}>
+                          <TableCell className="font-medium">{size}</TableCell>
+                          <TableCell className="text-right">
+                            {isGenerated ? (
+                              <CheckCircle className="h-5 w-5 text-green-500 ml-auto" />
+                            ) : (
+                              <Badge variant="outline" className="text-xs">
+                                ৳{currentBasePrice}
+                              </Badge>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : colors.length > 0 ? (
+              // Colors only: show list
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Color</TableHead>
+                      <TableHead className="text-right">Price</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {colors.map((color) => {
+                      const isGenerated = generatedVariants.includes(color)
+                      return (
+                        <TableRow key={color}>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-4 h-4 rounded"
+                                style={{ backgroundColor: color.toLowerCase() }}
+                              />
+                              {color}
                             </div>
                           </TableCell>
-                        )
-                      })}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                          <TableCell className="text-right">
+                            {isGenerated ? (
+                              <CheckCircle className="h-5 w-5 text-green-500 ml-auto" />
+                            ) : (
+                              <Badge variant="outline" className="text-xs">
+                                ৳{currentBasePrice}
+                              </Badge>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : null}
           </div>
         ) : (
           <div className="text-center py-8 text-muted-foreground">
-            Select sizes and colors to see the variant matrix
+            Select sizes and/or colors to preview variants
           </div>
         )}
 
@@ -236,7 +319,7 @@ export function VariantMatrixPreview({
         <div className="flex gap-2">
           <Button
             onClick={handleGenerate}
-            disabled={disabled || isGenerating || sizes.length === 0 || colors.length === 0}
+            disabled={disabled || isGenerating || (sizes.length === 0 && colors.length === 0)}
             className="flex-1"
           >
             {isGenerating ? (
