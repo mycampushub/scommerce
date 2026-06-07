@@ -793,10 +793,10 @@ export default function IntegrationsSettings() {
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ ...deleteDialog, open })}>
-        <AlertDialogContent>
+        <AlertDialogContent aria-describedby="delete-integration-description">
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription id="delete-integration-description">
               This will permanently delete the integration "{deleteDialog.name}". This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>

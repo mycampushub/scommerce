@@ -186,11 +186,19 @@ export const adminLogSchema = z.object({
 // Brand Schema
 export const brandSchema = z.object({
   name: z.string().min(1, 'Brand name is required'),
-  slug: z.string().optional(),
-  logo: z.string().optional(),
-  website: z.string().url().optional().or(z.literal('')),
-  description: z.string().optional(),
-  country: z.string().optional(),
+  slug: z.string().min(1, 'Slug is required'),
+  logo: z.string().nullable().optional(),
+  website: z.string().nullable().optional().refine((val) => {
+    if (!val || val.trim() === '') return true;
+    try {
+      new URL(val);
+      return true;
+    } catch {
+      return false;
+    }
+  }, 'Please enter a valid URL (e.g., "https://example.com")'),
+  description: z.string().nullable().optional(),
+  country: z.string().nullable().optional(),
   isActive: z.boolean().optional().default(true),
   featured: z.boolean().optional().default(false),
   sortOrder: z.number().int().min(0).optional().default(0),

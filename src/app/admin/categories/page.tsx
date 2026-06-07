@@ -722,10 +722,10 @@ export default function CategoriesPage() {
                                   Delete
                                 </DropdownMenuItem>
                               </AlertDialogTrigger>
-                              <AlertDialogContent>
+                              <AlertDialogContent aria-describedby="delete-category-description">
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Delete Category</AlertDialogTitle>
-                                  <AlertDialogDescription>
+                                  <AlertDialogDescription id="delete-category-description">
                                     Are you sure you want to delete "{category.name}"? This action cannot be undone.
                                     {category._count.products > 0 && (
                                       <span className="block mt-2 text-orange-600 font-medium">

@@ -583,7 +583,7 @@ export default function InventoryPage() {
     let stockValue = 0
     if (p.hasVariants && p.variants) {
       stockValue = p.variants.reduce((variantSum, v) => {
-        if (v.stock > 0 && v.averageCost) {
+        if (v.stock > 0 && v.averageCost && v.averageCost !== null) {
           return variantSum + (v.stock * v.averageCost)
         }
         return variantSum

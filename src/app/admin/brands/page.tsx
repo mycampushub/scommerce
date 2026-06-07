@@ -145,8 +145,18 @@ export default function BrandsPage() {
       setEditFormData({ ...editFormData, name })
     } else {
       const slug = generateSlug(name)
-      setAddFormData({ ...addFormData, name, slug })
+      setAddFormData({ 
+        ...addFormData, 
+        name, 
+        slug 
+      })
     }
+  }
+
+  // Helper to convert empty strings to null for optional fields
+  const toOptionalString = (value: string): string | null => {
+    if (!value || value.trim() === '') return null
+    return value
   }
 
   // Validate form data
@@ -768,10 +778,10 @@ export default function BrandsPage() {
                                   Delete
                                 </DropdownMenuItem>
                               </AlertDialogTrigger>
-                              <AlertDialogContent>
+                              <AlertDialogContent aria-describedby="delete-brand-description">
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Delete Brand</AlertDialogTitle>
-                                  <AlertDialogDescription>
+                                  <AlertDialogDescription id="delete-brand-description">
                                     Are you sure you want to delete "{brand.name}"? This action cannot be undone.
                                     {(brand.productCount || 0) > 0 && (
                                       <span className="block mt-2 text-orange-600 font-medium">
@@ -854,7 +864,7 @@ export default function BrandsPage() {
               <Input
                 type="url"
                 placeholder="https://example.com"
-                value={addFormData.website}
+                value={addFormData.website || ''}
                 onChange={(e) => setAddFormData({ ...addFormData, website: e.target.value })}
                 className={addFormErrors.website ? 'border-red-500' : ''}
               />
@@ -865,8 +875,8 @@ export default function BrandsPage() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Country</label>
               <Select
-                value={addFormData.country}
-                onValueChange={(value) => setAddFormData({ ...addFormData, country: value })}
+                value={addFormData.country || 'none'}
+                onValueChange={(value) => setAddFormData({ ...addFormData, country: value === 'none' ? '' : value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select country" />
@@ -884,7 +894,7 @@ export default function BrandsPage() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Description</label>
               <Input
-                value={addFormData.description}
+                value={addFormData.description || ''}
                 onChange={(e) => setAddFormData({ ...addFormData, description: e.target.value })}
                 className={addFormErrors.description ? 'border-red-500' : ''}
               />

@@ -376,7 +376,7 @@ export default function InventoryReportsPage() {
                 <CardTitle className="text-sm font-medium">Average Margin</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{averageMargin.toFixed(2)}%</div>
+                <div className="text-2xl font-bold">{averageMargin ? averageMargin.toFixed(2) : 0}%</div>
               </CardContent>
             </Card>
           </div>
@@ -420,7 +420,7 @@ export default function InventoryReportsPage() {
                           <td className="p-4 text-right">{formatCurrency(item.value)}</td>
                           <td className="p-4 text-right">
                             <Badge variant={item.marginPercent >= 20 ? 'default' : 'secondary'}>
-                              {item.marginPercent.toFixed(1)}%
+                              {item.marginPercent ? item.marginPercent.toFixed(1) : 0}%
                             </Badge>
                           </td>
                         </tr>
@@ -700,7 +700,7 @@ export default function InventoryReportsPage() {
                           </td>
                           <td className="p-4 text-right">
                             <Badge variant={item.margin >= 20 ? 'default' : 'secondary'}>
-                              {item.margin.toFixed(1)}%
+                              {item.margin ? item.margin.toFixed(1) : 0}%
                             </Badge>
                           </td>
                         </tr>
