@@ -80,7 +80,7 @@ export default function CartPage() {
   }
 
   const removeItem = async (id: string, variantId?: string) => {
-    // For authenticated users, update server cart
+    // For authenticated users, remove from server first
     if (user) {
       try {
         const response = await fetch('/api/cart', {
@@ -94,19 +94,13 @@ export default function CartPage() {
         })
 
         const data = await response.json() as any
-        if (data.success) {
-          // Update Zustand store - useCartSync will sync to server
-          // and the useEffect will sync to local state
-          const updatedItems = localItems.filter(item => {
-            if (variantId) {
-              return !(item.variantId === variantId)
-            }
-            return !(item.id === id && !item.variantId)
-          })
-          setCartStoreItems(updatedItems)
-        } else {
+        if (!data.success) {
           throw new Error(data.error || 'Failed to remove item')
         }
+
+        // After successful server removal, update local store
+        // This triggers useCartSync to keep everything in sync
+        localRemoveItem(id, variantId)
       } catch (error) {
         console.error('[Cart] Error removing from server cart:', error)
         toast({

@@ -169,8 +169,10 @@ class PurchaseOrderRepository {
     status?: string;
     startDate?: Date | string;
     endDate?: Date | string;
+    limit?: number;
+    offset?: number;
   }): Promise<PurchaseOrderWithItems[]> {
-    const { supplierId, status, startDate, endDate } = options || {};
+    const { supplierId, status, startDate, endDate, limit, offset } = options || {};
 
     const conditions: string[] = [];
     const params: unknown[] = [];
@@ -193,6 +195,8 @@ class PurchaseOrderRepository {
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const limitClause = limit ? `LIMIT ?` : '';
+    const offsetClause = offset ? `OFFSET ?` : '';
 
     const pos = await queryAll<any>(
       env,
@@ -205,8 +209,12 @@ class PurchaseOrderRepository {
        FROM purchase_orders po
        LEFT JOIN suppliers s ON po.supplierId = s.id
        ${whereClause}
-       ORDER BY po.orderDate DESC`,
-      ...params
+       ORDER BY po.orderDate DESC
+       ${limitClause}
+       ${offsetClause}`,
+      ...params,
+      ...(limit ? [limit] : []),
+      ...(offset ? [offset] : [])
     );
 
     const allItemIds = pos.flatMap(po => po.id);

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -80,6 +80,16 @@ export default function StaffPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null)
 
+  // Pagination state
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const [total, setTotal] = useState(0)
+
+  // Intersection Observer ref
+  const observerRef = useRef<IntersectionObserver | null>(null)
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
+
   // Form state
   const [addFormData, setAddFormData] = useState({
     name: '',
@@ -99,36 +109,93 @@ export default function StaffPage() {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const fetchStaff = async () => {
+  const fetchStaff = async (pageNum: number = 1, append: boolean = false) => {
+    if (append && isLoadingMore) return
+
     try {
-      setLoading(true)
+      if (!append) setLoading(true)
+      else setIsLoadingMore(true)
+
       const params = new URLSearchParams()
+      params.append('page', pageNum.toString())
+      params.append('limit', '20')
       if (roleFilter !== 'all') params.append('role', roleFilter)
 
       const response = await fetch(`/api/admin/staff?${params.toString()}`)
       const result = await response.json() as any
 
       if (result.success) {
-        setStaff(result.data || [])
+        if (append) {
+          setStaff(prev => [...prev, ...(result.data || [])])
+        } else {
+          setStaff(result.data || [])
+        }
+
+        if (result.pagination) {
+          setHasMore(result.pagination.hasNextPage)
+          setTotal(result.pagination.totalCount)
+          setPage(pageNum)
+        }
       } else {
         throw new Error(result.error || 'Failed to fetch staff')
       }
     } catch (err: any) {
       setError(err.message)
       console.error('Error fetching staff:', err)
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch staff members',
-        variant: 'destructive',
-      })
+      if (!append) {
+        toast({
+          title: 'Error',
+          description: 'Failed to fetch staff members',
+          variant: 'destructive',
+        })
+      }
     } finally {
-      setLoading(false)
+      if (!append) setLoading(false)
+      else setIsLoadingMore(false)
     }
   }
 
   useEffect(() => {
-    fetchStaff()
+    fetchStaff(1, false)
   }, [roleFilter])
+
+  // Load more data when sentinel is visible
+  const loadMore = useCallback(() => {
+    if (hasMore && !isLoadingMore && !loading) {
+      fetchStaff(page + 1, true)
+    }
+  }, [hasMore, isLoadingMore, loading, page])
+
+  // Setup IntersectionObserver
+  useEffect(() => {
+    if (observerRef.current) {
+      observerRef.current.disconnect()
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore) {
+          loadMore()
+        }
+      },
+      {
+        rootMargin: '100px',
+        threshold: 0.1
+      }
+    )
+
+    if (sentinelRef.current) {
+      observer.observe(sentinelRef.current)
+    }
+
+    observerRef.current = observer
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect()
+      }
+    }
+  }, [sentinelRef, hasMore, isLoadingMore, loading, loadMore])
 
   const openAddModal = () => {
     setAddFormData({
@@ -183,7 +250,7 @@ export default function StaffPage() {
           phone: '',
           address: '',
         })
-        fetchStaff()
+        fetchStaff(1, false)
       } else {
         throw new Error(result.error || 'Failed to create staff member')
       }
@@ -221,7 +288,7 @@ export default function StaffPage() {
           description: 'Staff member updated successfully',
         })
         setIsEditModalOpen(false)
-        fetchStaff()
+        fetchStaff(1, false)
       } else {
         throw new Error(result.error || 'Failed to update staff member')
       }
@@ -263,7 +330,7 @@ export default function StaffPage() {
           title: 'Success',
           description: 'Staff member deleted successfully',
         })
-        fetchStaff()
+        fetchStaff(1, false)
       } else {
         throw new Error(result.error || 'Failed to delete staff member')
       }
@@ -294,7 +361,7 @@ export default function StaffPage() {
     })
   }
 
-  const stats = staff.reduce(
+  const visibleStats = staff.reduce(
     (acc, member) => {
       acc.total++
       if (member.role === 'admin') acc.admins++
@@ -313,7 +380,7 @@ export default function StaffPage() {
           <p className="text-sm text-gray-500 mt-1">Manage admin and staff accounts with role-based access</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={fetchStaff} disabled={loading}>
+          <Button variant="outline" onClick={() => fetchStaff()} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
@@ -334,7 +401,7 @@ export default function StaffPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-white/80">Total Members</p>
-                <p className="text-2xl font-bold mt-1">{stats.total}</p>
+                <p className="text-2xl font-bold mt-1">{total}</p>
               </div>
               <UserCog className="h-8 w-8 text-white/80" />
             </div>
@@ -345,7 +412,7 @@ export default function StaffPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-gray-500">Admins</p>
-                <p className="text-2xl font-bold mt-1 text-violet-600">{stats.admins}</p>
+                <p className="text-2xl font-bold mt-1 text-violet-600">{visibleStats.admins}</p>
               </div>
               <div className="h-8 w-8 rounded-full bg-violet-100 flex items-center justify-center">
                 <Shield className="h-4 w-4 text-violet-600" />
@@ -358,7 +425,7 @@ export default function StaffPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-gray-500">Staff</p>
-                <p className="text-2xl font-bold mt-1 text-indigo-600">{stats.staff}</p>
+                <p className="text-2xl font-bold mt-1 text-indigo-600">{visibleStats.staff}</p>
               </div>
               <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center">
                 <User className="h-4 w-4 text-indigo-600" />
@@ -392,42 +459,49 @@ export default function StaffPage() {
               </SelectContent>
             </Select>
           </div>
+          {total > 0 && (
+            <div className="text-xs text-gray-500">
+              Showing {staff.length} of {total} staff members
+              {!hasMore && staff.length < total && <span className="ml-2"> (all loaded)</span>}
+            </div>
+          )}
         </CardHeader>
         <CardContent>
-          <div className="w-full overflow-x-auto -mx-4 px-4">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-gray-50 hover:bg-gray-50">
-                  <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[220px]">User</TableHead>
-                  <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[120px]">Role</TableHead>
-                  <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[200px]">Contact</TableHead>
-                  <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[140px]">Orders Managed</TableHead>
-                  <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[140px]">Joined</TableHead>
-                  <TableHead className="text-right font-semibold text-gray-700 whitespace-nowrap min-w-[100px]">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="h-24">
-                      <div className="flex items-center justify-center">
-                        <RefreshCw className="h-6 w-6 animate-spin text-violet-600" />
-                      </div>
-                    </TableCell>
+          {loading ? (
+            <TableRow>
+              <TableCell colSpan={6} className="h-24">
+                <div className="flex items-center justify-center">
+                  <RefreshCw className="h-6 w-6 animate-spin text-violet-600" />
+                </div>
+              </TableCell>
+            </TableRow>
+          ) : staff.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={6} className="h-24">
+                <div className="text-center py-12">
+                  <div className="flex flex-col items-center gap-3">
+                    <UserCog className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-500">No staff members found</p>
+                    <p className="text-sm text-gray-400">Click "Add Staff" to create one</p>
+                  </div>
+                </div>
+              </TableCell>
+            </TableRow>
+          ) : (
+            <div className="max-h-[600px] overflow-y-auto">
+              <Table>
+                <TableHeader className="sticky top-0 bg-white z-10">
+                  <TableRow className="bg-gray-50 hover:bg-gray-50">
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[220px]">User</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[120px]">Role</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[200px]">Contact</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[140px]">Orders Managed</TableHead>
+                    <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[140px]">Joined</TableHead>
+                    <TableHead className="text-right font-semibold text-gray-700 whitespace-nowrap min-w-[100px]">Actions</TableHead>
                   </TableRow>
-                ) : filteredStaff.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="h-24">
-                      <div className="text-center py-12">
-                        <div className="flex flex-col items-center gap-3">
-                          <UserCog className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                          <p className="text-gray-500">No staff members found</p>
-                          <p className="text-sm text-gray-400">Click "Add Staff" to create one</p>
-                        </div>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : filteredStaff.map((member) => (
+                </TableHeader>
+                <TableBody>
+                  {staff.map((member) => (
                   <TableRow key={member.id} className="hover:bg-gray-50">
                     <TableCell>
                       <div className="flex items-center gap-3 min-w-[220px]">
@@ -509,9 +583,29 @@ export default function StaffPage() {
                     </TableCell>
                   </TableRow>
                 ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableBody>
+                {isLoadingMore && (
+                  <TableBody>
+                    <TableRow>
+                      <TableCell colSpan={6}>
+                        <div className="flex items-center justify-center py-4">
+                          <Loader2 className="h-6 w-6 animate-spin text-violet-600" />
+                          <span className="ml-2 text-sm text-gray-500">Loading more staff...</span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                )}
+                <TableBody>
+                  <TableRow>
+                    <TableCell colSpan={6}>
+                      <div ref={sentinelRef} className="h-4" />
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
 

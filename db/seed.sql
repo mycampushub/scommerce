@@ -1,9 +1,7 @@
--- Seed Data for SCommerce E-commerce Platform
--- Run this after schema.sql to populate initial data
--- Note: Uses camelCase column names to match database schema
+-- Seed Data for Beauty & Personal Care E-commerce Platform
+-- Complete seed with Aveeno and CeraVe products
 
 -- Clear existing data in correct order (child tables first, then parent tables)
--- This is needed because INSERT OR REPLACE fails with foreign key constraints
 DELETE FROM order_items;
 DELETE FROM product_reviews;
 DELETE FROM inventory_reservations;
@@ -41,13 +39,13 @@ DELETE FROM users;
 INSERT OR REPLACE INTO site_settings (id, siteName, currency, currencySymbol, taxRate, freeShippingThreshold, baseShippingCost, contactEmail, contactPhone, createdAt, updatedAt)
 VALUES (
   'default-settings',
-  'SCommerce',
+  'Beauty & Personal Care',
   'BDT',
   '৳',
-  0.18,
+  0.15,
   5000,
   150,
-  'info@scommerce.com',
+  'info@beautystore.com',
   '+8801700000000',
   datetime('now'),
   datetime('now')
@@ -57,7 +55,7 @@ VALUES (
 INSERT OR REPLACE INTO users (id, email, name, password, role, emailVerified, createdAt, updatedAt)
 VALUES (
   'admin-001',
-  'admin@scommerce.com',
+  'admin@beautystore.com',
   'Admin User',
   'pbkdf2$100000$245cfd1a81687a32a2c548503b960472c1ca4092a3ca9c059b9f6d047fe70884$19674afc0599cdfe8e9fc3e9ce3d498b02cf29133e4c88f266553bd7c7e5ac7d11f993e5dca14ab2207b5d23a491b935f3b24855a7d21e927b9d222c5b479733',
   'admin',
@@ -70,7 +68,7 @@ VALUES (
 INSERT OR REPLACE INTO users (id, email, name, password, role, emailVerified, phone, createdAt, updatedAt)
 VALUES (
   'user-001',
-  'user@scommerce.com',
+  'user@beautystore.com',
   'Demo User',
   'pbkdf2$100000$3f8b7a2e1c9d4a6f8e2b3c5d7a9e1f4c6b8d0a2e4f6a8b0c2d4e6f8a0b2c4d6$8a7c5d3e1f9b2a4c6d8e0f2a4b6c8d0e2f4a6b8c0d2e4f6a8b0c2d4e6f8a0b2c4',
   'user',
@@ -80,266 +78,589 @@ VALUES (
   datetime('now')
 );
 
--- Insert Categories
-INSERT OR REPLACE INTO categories (id, name, slug, description, isActive, sortOrder, createdAt, updatedAt) VALUES
-('cat-saree', 'Sarees', 'saree', 'Beautiful traditional sarees for every occasion', 1, 1, datetime('now'), datetime('now')),
-('cat-salwar', 'Salwar Suits', 'salwar', 'Elegant salwar suits for modern women', 1, 2, datetime('now'), datetime('now')),
-('cat-lehengas', 'Lehengas', 'lehengas', 'Stunning lehengas for special occasions', 1, 3, datetime('now'), datetime('now')),
-('cat-kurtas', 'Kurtas', 'kurtas', 'Comfortable and stylish kurtas', 1, 4, datetime('now'), datetime('now')),
-('cat-menswear', 'Menswear', 'menswear', 'Trendy menswear collection', 1, 5, datetime('now'), datetime('now')),
-('cat-gowns', 'Gowns', 'gowns', 'Elegant gowns for formal events', 1, 6, datetime('now'), datetime('now')),
-('cat-tops', 'Tops', 'tops', 'Casual and formal tops', 1, 7, datetime('now'), datetime('now')),
-('cat-accessories', 'Accessories', 'accessories', 'Fashion accessories to complete your look', 1, 8, datetime('now'), datetime('now'));
+-- Insert Parent Categories (ACTIVE)
+INSERT OR REPLACE INTO categories (id, name, slug, description, parentId, isActive, sortOrder, createdAt, updatedAt) VALUES
+('cat-skincare', 'Skincare', 'skincare', 'Complete range of skincare products', NULL, 1, 1, datetime('now'), datetime('now')),
+('cat-makeup', 'Makeup', 'makeup', 'Complete range of makeup products', NULL, 0, 2, datetime('now'), datetime('now')),
+('cat-hair-care', 'Hair Care', 'hair-care', 'Complete range of hair care products', NULL, 1, 3, datetime('now'), datetime('now')),
+('cat-body-care', 'Body Care', 'body-care', 'Complete range of body care products', NULL, 1, 4, datetime('now'), datetime('now')),
+('cat-personal-care', 'Personal Care', 'personal-care', 'Personal care products for daily hygiene and wellness', NULL, 0, 5, datetime('now'), datetime('now')),
+('cat-baby-care', 'Baby Care', 'baby-care', 'Complete range of baby care products', NULL, 1, 6, datetime('now'), datetime('now')),
+('cat-mom-care', 'Mom Care', 'mom-care', 'Complete range of mom care products', NULL, 0, 7, datetime('now'), datetime('now')),
+('cat-beauty-tools', 'Beauty Tools', 'beauty-tools', 'Beauty tools and accessories for makeup application', NULL, 0, 8, datetime('now'), datetime('now')),
+('cat-oral-care', 'Oral Care', 'oral-care', 'Oral care products for healthy teeth and gums', NULL, 0, 9, datetime('now'), datetime('now')),
+('cat-bath-shower', 'Bath & Shower', 'bath-shower', 'Bath and shower products for a relaxing experience', NULL, 0, 10, datetime('now'), datetime('now')),
+('cat-sun-care', 'Sun Care', 'sun-care', 'Sun protection products for all skin types', NULL, 0, 11, datetime('now'), datetime('now')),
+('cat-home-care', 'Home Care', 'home-care', 'Home care products for a clean and healthy environment', NULL, 0, 12, datetime('now'), datetime('now')),
+('cat-k-beauty', 'K-Beauty', 'k-beauty', 'Korean beauty products and skincare essentials', NULL, 0, 13, datetime('now'), datetime('now'));
 
--- Insert Brands
+-- Insert Subcategories (ACTIVE for those used by Aveeno/CeraVe)
+INSERT OR REPLACE INTO categories (id, name, slug, description, parentId, isActive, sortOrder, createdAt, updatedAt) VALUES
+-- Skincare Subcategories
+('cat-face-wash', 'Face Wash', 'face-wash', 'Premium face wash products', 'cat-skincare', 1, 1, datetime('now'), datetime('now')),
+('cat-cleanser', 'Cleanser', 'cleanser', 'Premium cleanser products', 'cat-skincare', 1, 2, datetime('now'), datetime('now')),
+('cat-toner', 'Toner', 'toner', 'Premium toner products', 'cat-skincare', 0, 3, datetime('now'), datetime('now')),
+('cat-serum', 'Serum', 'serum', 'Premium serum products', 'cat-skincare', 1, 4, datetime('now'), datetime('now')),
+('cat-moisturizer', 'Moisturizer', 'moisturizer', 'Premium moisturizer products', 'cat-skincare', 1, 5, datetime('now'), datetime('now')),
+('cat-day-cream', 'Day Cream', 'day-cream', 'Premium day cream products', 'cat-skincare', 1, 6, datetime('now'), datetime('now')),
+('cat-night-cream', 'Night Cream', 'night-cream', 'Premium night cream products', 'cat-skincare', 1, 7, datetime('now'), datetime('now')),
+('cat-eye-cream', 'Eye Cream', 'eye-cream', 'Premium eye cream products', 'cat-skincare', 1, 8, datetime('now'), datetime('now')),
+('cat-sunscreen', 'Sunscreen', 'sunscreen', 'Premium sunscreen products', 'cat-skincare', 0, 9, datetime('now'), datetime('now')),
+('cat-face-scrub', 'Face Scrub', 'face-scrub', 'Premium face scrub products', 'cat-skincare', 1, 10, datetime('now'), datetime('now')),
+('cat-exfoliator', 'Exfoliator', 'exfoliator', 'Premium exfoliator products', 'cat-skincare', 0, 11, datetime('now'), datetime('now')),
+('cat-lip-balm', 'Lip Balm', 'lip-balm', 'Premium lip balm products', 'cat-skincare', 0, 12, datetime('now'), datetime('now')),
+-- Body Care Subcategories
+('cat-body-wash', 'Body Wash', 'body-wash', 'Premium body wash products', 'cat-body-care', 1, 1, datetime('now'), datetime('now')),
+('cat-body-lotion', 'Body Lotion', 'body-lotion', 'Premium body lotion products', 'cat-body-care', 1, 2, datetime('now'), datetime('now')),
+('cat-body-cream', 'Body Cream', 'body-cream', 'Premium body cream products', 'cat-body-care', 1, 3, datetime('now'), datetime('now')),
+('cat-body-oil', 'Body Oil', 'body-oil', 'Premium body oil products', 'cat-body-care', 0, 4, datetime('now'), datetime('now')),
+('cat-hand-cream', 'Hand Cream', 'hand-cream', 'Premium hand cream products', 'cat-body-care', 0, 5, datetime('now'), datetime('now')),
+-- Baby Care Subcategories
+('cat-baby-lotion', 'Baby Lotion', 'baby-lotion', 'Premium baby lotion products', 'cat-baby-care', 1, 1, datetime('now'), datetime('now')),
+('cat-baby-cream', 'Baby Cream', 'baby-cream', 'Premium baby cream products', 'cat-baby-care', 1, 2, datetime('now'), datetime('now')),
+('cat-baby-moisturizer', 'Baby Moisturizer', 'baby-moisturizer', 'Premium baby moisturizer products', 'cat-baby-care', 0, 3, datetime('now'), datetime('now')),
+('cat-baby-sunscreen', 'Baby Sunscreen', 'baby-sunscreen', 'Premium baby sunscreen products', 'cat-baby-care', 1, 4, datetime('now'), datetime('now')),
+('cat-baby-oil', 'Baby Oil', 'baby-oil', 'Premium baby oil products', 'cat-baby-care', 0, 5, datetime('now'), datetime('now')),
+('cat-baby-powder', 'Baby Powder', 'baby-powder', 'Premium baby powder products', 'cat-baby-care', 0, 6, datetime('now'), datetime('now')),
+('cat-baby-shampoo', 'Baby Shampoo', 'baby-shampoo', 'Premium baby shampoo products', 'cat-baby-care', 0, 7, datetime('now'), datetime('now')),
+('cat-baby-wash', 'Baby Wash', 'baby-wash', 'Premium baby wash products', 'cat-baby-care', 1, 8, datetime('now'), datetime('now')),
+('cat-baby-soap', 'Baby Soap', 'baby-soap', 'Premium baby soap products', 'cat-baby-care', 0, 9, datetime('now'), datetime('now')),
+('cat-baby-wipes', 'Baby Wipes', 'baby-wipes', 'Premium baby wipes products', 'cat-baby-care', 0, 10, datetime('now'), datetime('now')),
+('cat-diaper-rash-cream', 'Diaper Rash Cream', 'diaper-rash-cream', 'Premium diaper rash cream products', 'cat-baby-care', 1, 11, datetime('now'), datetime('now')),
+('cat-baby-lip-balm', 'Baby Lip Balm', 'baby-lip-balm', 'Premium baby lip balm products', 'cat-baby-care', 0, 12, datetime('now'), datetime('now')),
+('cat-baby-toothpaste', 'Baby Toothpaste', 'baby-toothpaste', 'Premium baby toothpaste products', 'cat-baby-care', 0, 13, datetime('now'), datetime('now')),
+('cat-baby-toothbrush', 'Baby Toothbrush', 'baby-toothbrush', 'Premium baby toothbrush products', 'cat-baby-care', 0, 14, datetime('now'), datetime('now')),
+('cat-mosquito-repellent', 'Mosquito Repellent', 'mosquito-repellent', 'Premium mosquito repellent products', 'cat-baby-care', 0, 15, datetime('now'), datetime('now')),
+('cat-baby-food', 'Baby Food', 'baby-food', 'Premium baby food products', 'cat-baby-care', 0, 16, datetime('now'), datetime('now')),
+('cat-baby-formula', 'Baby Formula', 'baby-formula', 'Premium baby formula products', 'cat-baby-care', 0, 17, datetime('now'), datetime('now')),
+('cat-baby-diaper', 'Baby Diaper', 'baby-diaper', 'Premium baby diaper products', 'cat-baby-care', 0, 18, datetime('now'), datetime('now')),
+('cat-feeding-bottle', 'Feeding Bottle', 'feeding-bottle', 'Premium feeding bottle products', 'cat-baby-care', 0, 19, datetime('now'), datetime('now')),
+('cat-feeding-nipple', 'Feeding Nipple', 'feeding-nipple', 'Premium feeding nipple products', 'cat-baby-care', 0, 20, datetime('now'), datetime('now')),
+('cat-bottle-cleaner', 'Bottle Cleaner', 'bottle-cleaner', 'Premium bottle cleaner products', 'cat-baby-care', 0, 21, datetime('now'), datetime('now')),
+('cat-bottle-brush', 'Bottle Brush', 'bottle-brush', 'Premium bottle brush products', 'cat-baby-care', 0, 22, datetime('now'), datetime('now')),
+('cat-bottle-warmer', 'Bottle Warmer', 'bottle-warmer', 'Premium bottle warmer products', 'cat-baby-care', 0, 23, datetime('now'), datetime('now')),
+-- Hair Care Subcategories
+('cat-shampoo', 'Shampoo', 'shampoo', 'Premium shampoo products', 'cat-hair-care', 1, 1, datetime('now'), datetime('now')),
+('cat-conditioner', 'Conditioner', 'conditioner', 'Premium conditioner products', 'cat-hair-care', 1, 2, datetime('now'), datetime('now')),
+('cat-hair-oil', 'Hair Oil', 'hair-oil', 'Premium hair oil products', 'cat-hair-care', 0, 3, datetime('now'), datetime('now')),
+('cat-hair-serum', 'Hair Serum', 'hair-serum', 'Premium hair serum products', 'cat-hair-care', 0, 4, datetime('now'), datetime('now')),
+('cat-hair-mask', 'Hair Mask', 'hair-mask', 'Premium hair mask products', 'cat-hair-care', 0, 5, datetime('now'), datetime('now')),
+('cat-hair-cream', 'Hair Cream', 'hair-cream', 'Premium hair cream products', 'cat-hair-care', 0, 6, datetime('now'), datetime('now')),
+('cat-scalp-treatment', 'Scalp Treatment', 'scalp-treatment', 'Premium scalp treatment products', 'cat-hair-care', 0, 7, datetime('now'), datetime('now')),
+('cat-hair-tonic', 'Hair Tonic', 'hair-tonic', 'Premium hair tonic products', 'cat-hair-care', 0, 8, datetime('now'), datetime('now')),
+('cat-hair-color', 'Hair Color', 'hair-color', 'Premium hair color products', 'cat-hair-care', 0, 9, datetime('now'), datetime('now')),
+('cat-hair-styling-gel', 'Hair Styling Gel', 'hair-styling-gel', 'Premium hair styling gel products', 'cat-hair-care', 0, 10, datetime('now'), datetime('now')),
+('cat-hair-wax', 'Hair Wax', 'hair-wax', 'Premium hair wax products', 'cat-hair-care', 0, 11, datetime('now'), datetime('now')),
+('cat-hair-spray', 'Hair Spray', 'hair-spray', 'Premium hair spray products', 'cat-hair-care', 0, 12, datetime('now'), datetime('now')),
+('cat-hair-mousse', 'Hair Mousse', 'hair-mousse', 'Premium hair mousse products', 'cat-hair-care', 0, 13, datetime('now'), datetime('now')),
+('cat-heat-protectant', 'Heat Protectant', 'heat-protectant', 'Premium heat protectant products', 'cat-hair-care', 0, 14, datetime('now'), datetime('now')),
+('cat-hair-growth-treatment', 'Hair Growth Treatment', 'hair-growth-treatment', 'Premium hair growth treatment products', 'cat-hair-care', 0, 15, datetime('now'), datetime('now')),
+('cat-dandruff-treatment', 'Dandruff Treatment', 'dandruff-treatment', 'Premium dandruff treatment products', 'cat-hair-care', 0, 16, datetime('now'), datetime('now')),
+-- Other subcategories (inactive)
+('cat-cleansing-oil', 'Cleansing Oil', 'cleansing-oil', 'Premium cleansing oil products', 'cat-skincare', 0, 13, datetime('now'), datetime('now')),
+('cat-cleansing-balm', 'Cleansing Balm', 'cleansing-balm', 'Premium cleansing balm products', 'cat-skincare', 0, 14, datetime('now'), datetime('now')),
+('cat-micellar-water', 'Micellar Water', 'micellar-water', 'Premium micellar water products', 'cat-skincare', 0, 15, datetime('now'), datetime('now')),
+('cat-toner-pads', 'Toner Pads', 'toner-pads', 'Premium toner pads products', 'cat-skincare', 0, 16, datetime('now'), datetime('now')),
+('cat-essence', 'Essence', 'essence', 'Premium essence products', 'cat-skincare', 0, 17, datetime('now'), datetime('now')),
+('cat-ampoule', 'Ampoule', 'ampoule', 'Premium ampoule products', 'cat-skincare', 0, 18, datetime('now'), datetime('now')),
+('cat-face-oil', 'Face Oil', 'face-oil', 'Premium face oil products', 'cat-skincare', 0, 19, datetime('now'), datetime('now')),
+('cat-day-night-cream', 'Day & Night Cream', 'day-night-cream', 'Premium day & night cream products', 'cat-skincare', 0, 20, datetime('now'), datetime('now')),
+('cat-gel-cream', 'Gel Cream', 'gel-cream', 'Premium gel cream products', 'cat-skincare', 0, 21, datetime('now'), datetime('now')),
+('cat-sleeping-mask', 'Sleeping Mask', 'sleeping-mask', 'Premium sleeping mask products', 'cat-skincare', 0, 22, datetime('now'), datetime('now')),
+('cat-sheet-mask', 'Sheet Mask', 'sheet-mask', 'Premium sheet mask products', 'cat-skincare', 0, 23, datetime('now'), datetime('now')),
+('cat-clay-mask', 'Clay Mask', 'clay-mask', 'Premium clay mask products', 'cat-skincare', 0, 24, datetime('now'), datetime('now')),
+('cat-wash-off-mask', 'Wash Off Mask', 'wash-off-mask', 'Premium wash off mask products', 'cat-skincare', 0, 25, datetime('now'), datetime('now')),
+('cat-face-pack', 'Face Pack', 'face-pack', 'Premium face pack products', 'cat-skincare', 0, 26, datetime('now'), datetime('now')),
+('cat-peeling-solution', 'Peeling Solution', 'peeling-solution', 'Premium peeling solution products', 'cat-skincare', 0, 27, datetime('now'), datetime('now')),
+('cat-eye-gel', 'Eye Gel', 'eye-gel', 'Premium eye gel products', 'cat-skincare', 0, 28, datetime('now'), datetime('now')),
+('cat-eye-patch', 'Eye Patch', 'eye-patch', 'Premium eye patch products', 'cat-skincare', 0, 29, datetime('now'), datetime('now')),
+('cat-lip-oil', 'Lip Oil', 'lip-oil', 'Premium lip oil products', 'cat-skincare', 0, 30, datetime('now'), datetime('now')),
+('cat-lip-mask', 'Lip Mask', 'lip-mask', 'Premium lip mask products', 'cat-skincare', 0, 31, datetime('now'), datetime('now')),
+('cat-lip-scrub', 'Lip Scrub', 'lip-scrub', 'Premium lip scrub products', 'cat-skincare', 0, 32, datetime('now'), datetime('now')),
+('cat-sun-stick', 'Sun Stick', 'sun-stick', 'Premium sun stick products', 'cat-skincare', 0, 33, datetime('now'), datetime('now')),
+('cat-facial-wipes', 'Facial Wipes', 'facial-wipes', 'Premium facial wipes products', 'cat-skincare', 0, 34, datetime('now'), datetime('now')),
+('cat-pimple-patches', 'Pimple Patches', 'pimple-patches', 'Premium pimple patches products', 'cat-skincare', 0, 35, datetime('now'), datetime('now')),
+('cat-blemish-treatment', 'Blemish Treatment', 'blemish-treatment', 'Premium blemish treatment products', 'cat-skincare', 0, 36, datetime('now'), datetime('now')),
+('cat-spot-treatment', 'Spot Treatment', 'spot-treatment', 'Premium spot treatment products', 'cat-skincare', 0, 37, datetime('now'), datetime('now')),
+('cat-facial-kit', 'Facial Kit', 'facial-kit', 'Premium facial kit products', 'cat-skincare', 0, 38, datetime('now'), datetime('now')),
+('cat-makeup-remover', 'Makeup Remover', 'makeup-remover', 'Premium makeup remover products', 'cat-skincare', 0, 39, datetime('now'), datetime('now')),
+('cat-shower-gel', 'Shower Gel', 'shower-gel', 'Premium shower gel products', 'cat-body-care', 0, 92, datetime('now'), datetime('now')),
+('cat-soap', 'Soap', 'soap', 'Premium soap products', 'cat-body-care', 0, 93, datetime('now'), datetime('now')),
+('cat-body-scrub', 'Body Scrub', 'body-scrub', 'Premium body scrub products', 'cat-body-care', 0, 94, datetime('now'), datetime('now')),
+('cat-body-butter', 'Body Butter', 'body-butter', 'Premium body butter products', 'cat-body-care', 0, 97, datetime('now'), datetime('now')),
+('cat-body-mist', 'Body Mist', 'body-mist', 'Premium body mist products', 'cat-body-care', 0, 99, datetime('now'), datetime('now')),
+('cat-deodorant', 'Deodorant', 'deodorant', 'Premium deodorant products', 'cat-body-care', 0, 100, datetime('now'), datetime('now')),
+('cat-roll-on', 'Roll On', 'roll-on', 'Premium roll on products', 'cat-body-care', 0, 101, datetime('now'), datetime('now')),
+('cat-talcum-powder', 'Talcum Powder', 'talcum-powder', 'Premium talcum powder products', 'cat-body-care', 0, 102, datetime('now'), datetime('now')),
+('cat-foot-cream', 'Foot Cream', 'foot-cream', 'Premium foot cream products', 'cat-body-care', 0, 104, datetime('now'), datetime('now')),
+('cat-hand-wash', 'Hand Wash', 'hand-wash', 'Premium hand wash products', 'cat-body-care', 0, 105, datetime('now'), datetime('now')),
+('cat-hand-sanitizer', 'Hand Sanitizer', 'hand-sanitizer', 'Premium hand sanitizer products', 'cat-body-care', 0, 106, datetime('now'), datetime('now')),
+('cat-intimate-wash', 'Intimate Wash', 'intimate-wash', 'Premium intimate wash products', 'cat-body-care', 0, 107, datetime('now'), datetime('now')),
+('cat-stretch-mark-cream', 'Stretch Mark Cream', 'stretch-mark-cream', 'Premium stretch mark cream products', 'cat-body-care', 0, 108, datetime('now'), datetime('now')),
+('cat-maternity-care', 'Maternity Care', 'maternity-care', 'Premium maternity care products', 'cat-mom-care', 0, 132, datetime('now'), datetime('now')),
+('cat-breast-care', 'Breast Care', 'breast-care', 'Premium breast care products', 'cat-mom-care', 0, 133, datetime('now'), datetime('now')),
+('cat-nipple-cream', 'Nipple Cream', 'nipple-cream', 'Premium nipple cream products', 'cat-mom-care', 0, 134, datetime('now'), datetime('now')),
+('cat-stretch-mark-care', 'Stretch Mark Care', 'stretch-mark-care', 'Premium stretch mark care products', 'cat-mom-care', 0, 135, datetime('now'), datetime('now')),
+('cat-postpartum-care', 'Postpartum Care', 'postpartum-care', 'Premium postpartum care products', 'cat-mom-care', 0, 136, datetime('now'), datetime('now')),
+('cat-feminine-wash', 'Feminine Wash', 'feminine-wash', 'Premium feminine wash products', 'cat-mom-care', 0, 137, datetime('now'), datetime('now')),
+('cat-sanitary-napkin', 'Sanitary Napkin', 'sanitary-napkin', 'Premium sanitary napkin products', 'cat-mom-care', 0, 138, datetime('now'), datetime('now')),
+('cat-panty-liners', 'Panty Liners', 'panty-liners', 'Premium panty liners products', 'cat-mom-care', 0, 139, datetime('now'), datetime('now'));
+
+-- Insert Brands (Aveeno and CeraVe ACTIVE, others inactive)
+-- Note: Only including Aveeno and CeraVe as active to keep seed file manageable
 INSERT OR REPLACE INTO brands (id, name, slug, logo, description, country, isActive, featured, sortOrder, createdAt, updatedAt) VALUES
-('brand-001', 'Luxury Sarees', 'luxury-sarees', 'https://example.com/logos/luxury-sarees.png', 'Premium quality silk sarees', 'India', 1, 1, 1, datetime('now'), datetime('now')),
-('brand-002', 'Modern Fashion', 'modern-fashion', 'https://example.com/logos/modern-fashion.png', 'Contemporary ethnic wear', 'Bangladesh', 1, 1, 2, datetime('now'), datetime('now')),
-('brand-003', 'Elegant Style', 'elegant-style', 'https://example.com/logos/elegant-style.png', 'Traditional with modern touch', 'Pakistan', 1, 0, 3, datetime('now'), datetime('now')),
-('brand-004', 'Royal Collection', 'royal-collection', 'https://example.com/logos/royal-collection.png', 'Luxury bridal wear', 'India', 1, 1, 4, datetime('now'), datetime('now')),
-('brand-005', 'Trendy Threads', 'trendy-threads', 'https://example.com/logos/trendy-threads.png', 'Modern casual wear', 'Bangladesh', 1, 0, 5, datetime('now'), datetime('now')),
-('brand-006', 'Heritage Wear', 'heritage-wear', 'https://example.com/logos/heritage-wear.png', 'Traditional craftsmanship', 'India', 1, 1, 6, datetime('now'), datetime('now')),
-('brand-007', 'Urban Chic', 'urban-chic', 'https://example.com/logos/urban-chic.png', 'City fashion collection', 'Pakistan', 1, 0, 7, datetime('now'), datetime('now')),
-('brand-008', 'Classic Cut', 'classic-cut', 'https://example.com/logos/classic-cut.png', 'Timeless designs', 'India', 1, 1, 8, datetime('now'), datetime('now'));
+('brand-023', 'Aveeno', 'aveeno', NULL, 'Aveeno beauty products', 'USA', 1, 1, 21, datetime('now'), datetime('now')),
+('brand-063', 'CeraVe', 'cerave', NULL, 'CeraVe beauty products', 'USA', 1, 1, 60, datetime('now'), datetime('now'));
 
--- Insert Comprehensive Products - Sarees
-INSERT OR REPLACE INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, images, stock, isActive, isFeatured, hasVariants, brandId, brandName, material, color, availableSizes, availableColors, createdAt, updatedAt) VALUES
--- Sarees
-('prod-001', 'Silk Saree - Royal Blue', 'silk-saree-royal-blue', 'Pure silk saree with intricate golden embroidery. Perfect for weddings and special occasions.', 'cat-saree', 3500, 3500, 4500, '["https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=800", "https://images.unsplash.com/photo-1610030469668-98e550d6193d?w=800"]', 50, 1, 1, 0, 'brand-001', 'Luxury Sarees', 'Silk', 'Blue', '["6m", "6.5m"]', '["Blue", "Gold"]', datetime('now'), datetime('now')),
+-- ============================================
+-- AVEENO PRODUCTS
+-- ============================================
 
-('prod-002', 'Banarasi Silk Saree', 'banarasi-silk-saree', 'Authentic Banarasi silk saree with zari work. Handwoven masterpiece.', 'cat-saree', 12000, 12000, 15000, '["https://images.unsplash.com/photo-1610030469669-8e9d4f8f8e9e?w=800"]', 30, 1, 1, 0, 'brand-001', 'Luxury Sarees', 'Silk', 'Red', '["6m"]', '["Red", "Maroon"]', datetime('now'), datetime('now')),
+-- AVEENO BODY CARE PRODUCTS
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, availableSizes, totalCost, averageCost, createdAt, updatedAt) VALUES
+-- Aveeno Daily Moisturizing Lotion
+('prod-aveeno-001', 'Aveeno Daily Moisturizing Lotion', 'aveeno-daily-moisturizing-lotion', 'Naturally nourishing lotion with oat and rich emollients for 24-hour moisturization. Dermatologist recommended for dry skin.', 'cat-body-lotion', 1800, 1800, 2800, 50, 1, 1, 'brand-023', 'Aveeno', 'USA', '["71g","227g","300ml","354ml","532ml","710ml"]', 1080, 1080, datetime('now'), datetime('now'));
 
-('prod-003', 'Cotton Handloom Saree', 'cotton-handloom-saree', 'Handwoven cotton saree with tribal prints. Comfortable daily wear.', 'cat-saree', 1500, 1500, 2000, '["https://images.unsplash.com/photo-1610030469678-98e550d6193f?w=800"]', 100, 1, 1, 0, 'brand-006', 'Heritage Wear', 'Cotton', 'Multi', '["6m", "6.5m"]', '["Multi", "Blue"]', datetime('now'), datetime('now')),
+-- Variants for Aveeno Daily Moisturizing Lotion
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-aveeno-001-1', 'prod-aveeno-001', 'AVE-ADML-71g', 'Aveeno Daily Moisturizing Lotion - 71g', 700, 1200, 50, '71g', 1, 0, 10, 5, 20, 'USA', 420, 420, datetime('now'), datetime('now')),
+('var-aveeno-001-2', 'prod-aveeno-001', 'AVE-ADML-227g', 'Aveeno Daily Moisturizing Lotion - 227g', 1200, 1800, 50, '227g', 1, 0, 10, 5, 20, 'USA', 720, 720, datetime('now'), datetime('now')),
+('var-aveeno-001-3', 'prod-aveeno-001', 'AVE-ADML-300ml', 'Aveeno Daily Moisturizing Lotion - 300ml', 1500, 2500, 50, '300ml', 1, 0, 10, 5, 20, 'USA', 900, 900, datetime('now'), datetime('now')),
+('var-aveeno-001-4', 'prod-aveeno-001', 'AVE-ADML-354ml', 'Aveeno Daily Moisturizing Lotion - 354ml', 1800, 2800, 50, '354ml', 1, 1, 10, 5, 20, 'USA', 1080, 1080, datetime('now'), datetime('now')),
+('var-aveeno-001-5', 'prod-aveeno-001', 'AVE-ADML-532ml', 'Aveeno Daily Moisturizing Lotion - 532ml', 2500, 3800, 50, '532ml', 1, 0, 10, 5, 20, 'USA', 1500, 1500, datetime('now'), datetime('now')),
+('var-aveeno-001-6', 'prod-aveeno-001', 'AVE-ADML-710ml', 'Aveeno Daily Moisturizing Lotion - 710ml', 3500, 5000, 50, '710ml', 1, 0, 10, 5, 20, 'USA', 2100, 2100, datetime('now'), datetime('now'));
 
-('prod-004', 'Chiffon Saree', 'chiffon-saree', 'Lightweight chiffon saree with digital prints. Perfect for parties.', 'cat-saree', 2800, 2800, 3500, '["https://images.unsplash.com/photo-1610030469676-98e550d6193f?w=800"]', 45, 1, 1, 0, 'brand-002', 'Modern Fashion', 'Chiffon', 'Pink', '["6m"]', '["Pink", "Purple"]', datetime('now'), datetime('now')),
+-- Aveeno Daily Moisturizing Body Wash
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, availableSizes, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-aveeno-002', 'Aveeno Daily Moisturizing Body Wash', 'aveeno-daily-moisturizing-body-wash', 'Daily body wash that moisturizes as it cleanses. Formulated with natural oat and rich emollients.', 'cat-body-wash', 2200, 2200, 3500, 50, 1, 1, 'brand-023', 'Aveeno', 'USA', '["300ml","532ml"]', 1320, 1320, datetime('now'), datetime('now'));
 
-('prod-005', 'Kanjivaram Silk Saree', 'kanjivaram-silk-saree', 'Traditional Kanjivaram silk with temple border. Bridal collection.', 'cat-saree', 25000, 25000, 30000, '["https://images.unsplash.com/photo-1610030469675-98e550d6193f?w=800"]', 15, 1, 1, 0, 'brand-001', 'Luxury Sarees', 'Silk', 'Maroon', '["6m", "6.5m"]', '["Maroon", "Gold"]', datetime('now'), datetime('now')),
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-aveeno-002-1', 'prod-aveeno-002', 'AVE-ADMBW-300ml', 'Aveeno Daily Moisturizing Body Wash - 300ml', 1200, 2200, 50, '300ml', 1, 0, 10, 5, 20, 'USA', 720, 720, datetime('now'), datetime('now')),
+('var-aveeno-002-2', 'prod-aveeno-002', 'AVE-ADMBW-532ml', 'Aveeno Daily Moisturizing Body Wash - 532ml', 2200, 3500, 50, '532ml', 1, 1, 10, 5, 20, 'USA', 1320, 1320, datetime('now'), datetime('now'));
 
-('prod-006', 'Georgette Saree', 'georgette-saree', 'Flowy georgette saree with embroidery. Contemporary design.', 'cat-saree', 3200, 3200, 4000, '["https://images.unsplash.com/photo-1610030469674-98e550d6193f?w=800"]', 40, 1, 0, 0, 'brand-002', 'Modern Fashion', 'Georgette', 'Green', '["6m"]', '["Green", "Teal"]', datetime('now'), datetime('now')),
+-- Aveeno Skin Relief Moisturizing Lotion
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, availableSizes, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-aveeno-003', 'Aveeno Skin Relief Moisturizing Lotion', 'aveeno-skin-relief-moisturizing-lotion', 'Moisturizing lotion with natural oat and shea butter for relief from dry, itchy skin. Fragrance-free and steroid-free.', 'cat-body-lotion', 2200, 2200, 3500, 50, 1, 1, 'brand-023', 'Aveeno', 'USA', '["71g","354ml","532ml"]', 1320, 1320, datetime('now'), datetime('now'));
 
-('prod-007', 'Tussar Silk Saree', 'tussar-silk-saree', 'Natural Tussar silk with minimal work. Elegant simplicity.', 'cat-saree', 5500, 5500, 7000, '["https://images.unsplash.com/photo-1610030469673-98e550d6193f?w=800"]', 25, 1, 1, 0, 'brand-006', 'Heritage Wear', 'Silk', 'Beige', '["6m", "6.5m"]', '["Beige", "Cream"]', datetime('now'), datetime('now')),
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-aveeno-003-1', 'prod-aveeno-003', 'AVE-ASRML-71g', 'Aveeno Skin Relief Moisturizing Lotion - 71g', 800, 1300, 50, '71g', 1, 0, 10, 5, 20, 'USA', 480, 480, datetime('now'), datetime('now')),
+('var-aveeno-003-2', 'prod-aveeno-003', 'AVE-ASRML-354ml', 'Aveeno Skin Relief Moisturizing Lotion - 354ml', 2200, 3500, 50, '354ml', 1, 1, 10, 5, 20, 'USA', 1320, 1320, datetime('now'), datetime('now')),
+('var-aveeno-003-3', 'prod-aveeno-003', 'AVE-ASRML-532ml', 'Aveeno Skin Relief Moisturizing Lotion - 532ml', 3200, 4800, 50, '532ml', 1, 0, 10, 5, 20, 'USA', 1920, 1920, datetime('now'), datetime('now'));
 
-('prod-008', 'Patola Silk Saree', 'patola-silk-saree', 'Gujarati Patola silk with double ikat. Handcrafted luxury.', 'cat-saree', 18000, 18000, 22000, '["https://images.unsplash.com/photo-1610030469672-98e550d6193f?w=800"]', 20, 1, 1, 0, 'brand-001', 'Luxury Sarees', 'Silk', 'Multi', '["6m"]', '["Multi", "Red"]', datetime('now'), datetime('now')),
+-- Aveeno Skin Relief Body Wash
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, availableSizes, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-aveeno-004', 'Aveeno Skin Relief Body Wash', 'aveeno-skin-relief-body-wash', 'Soothing body wash with natural oat and menthol for relief from dry, itchy skin. Gentle enough for sensitive skin.', 'cat-body-wash', 2500, 2500, 4000, 50, 1, 1, 'brand-023', 'Aveeno', 'USA', '["300ml","532ml"]', 1500, 1500, datetime('now'), datetime('now'));
 
--- Salwar Suits
-('prod-009', 'Cotton Salwar Suit', 'cotton-salwar-suit', 'Comfortable cotton salwar suit with embroidery. Daily wear essential.', 'cat-salwar', 1800, 1800, 2200, '["https://images.unsplash.com/photo-1583391733958-3750e0ff4e8b?w=800"]', 30, 1, 1, 0, 'brand-002', 'Modern Fashion', 'Cotton', 'Green', '["S", "M", "L", "XL"]', '["Green", "Pink"]', datetime('now'), datetime('now')),
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-aveeno-004-1', 'prod-aveeno-004', 'AVE-ASRBW-300ml', 'Aveeno Skin Relief Body Wash - 300ml', 1500, 2500, 50, '300ml', 1, 0, 10, 5, 20, 'USA', 900, 900, datetime('now'), datetime('now')),
+('var-aveeno-004-2', 'prod-aveeno-004', 'AVE-ASRBW-532ml', 'Aveeno Skin Relief Body Wash - 532ml', 2500, 4000, 50, '532ml', 1, 1, 10, 5, 20, 'USA', 1500, 1500, datetime('now'), datetime('now'));
 
-('prod-010', 'Anarkali Suit', 'anarkali-suit', 'Floor-length Anarkali with heavy embroidery. Festive wear.', 'cat-salwar', 4500, 4500, 5500, '["https://images.unsplash.com/photo-1583391733957-3750e0ff4e8b?w=800"]', 25, 1, 1, 0, 'brand-003', 'Elegant Style', 'Georgette', 'Navy', '["S", "M", "L"]', '["Navy", "Black"]', datetime('now'), datetime('now')),
+-- Aveeno Stress Relief Lotion
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, availableSizes, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-aveeno-005', 'Aveeno Stress Relief Lotion', 'aveeno-stress-relief-lotion', 'Calming lotion with natural oat, lavender, and chamomile scents for stress relief and skin hydration.', 'cat-body-lotion', 3200, 3200, 4800, 50, 1, 1, 'brand-023', 'Aveeno', 'USA', '["354ml","532ml"]', 1920, 1920, datetime('now'), datetime('now'));
 
-('prod-011', 'Palazzo Suit', 'palazzo-suit', 'Stylish palazzo suit with digital print. Modern silhouette.', 'cat-salwar', 2500, 2500, 3000, '["https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=800"]', 40, 1, 0, 0, 'brand-002', 'Modern Fashion', 'Rayon', 'Yellow', '["S", "M", "L", "XL", "XXL"]', '["Yellow", "Orange"]', datetime('now'), datetime('now')),
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-aveeno-005-1', 'prod-aveeno-005', 'AVE-ASRL-354ml', 'Aveeno Stress Relief Lotion - 354ml', 2200, 3500, 50, '354ml', 1, 0, 10, 5, 20, 'USA', 1320, 1320, datetime('now'), datetime('now')),
+('var-aveeno-005-2', 'prod-aveeno-005', 'AVE-ASRL-532ml', 'Aveeno Stress Relief Lotion - 532ml', 3200, 4800, 50, '532ml', 1, 1, 10, 5, 20, 'USA', 1920, 1920, datetime('now'), datetime('now'));
 
-('prod-012', 'Sharara Suit', 'sharara-suit', 'Traditional sharara with mirror work. Wedding wear.', 'cat-salwar', 6000, 6000, 7500, '["https://images.unsplash.com/photo-1583391733955-3750e0ff4e8b?w=800"]', 20, 1, 1, 0, 'brand-003', 'Elegant Style', 'Silk', 'Maroon', '["S", "M", "L"]', '["Maroon", "Gold"]', datetime('now'), datetime('now')),
+-- Aveeno Stress Relief Body Wash
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, availableSizes, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-aveeno-006', 'Aveeno Stress Relief Body Wash', 'aveeno-stress-relief-body-wash', 'Stress-relieving body wash with calming scents of lavender, chamomile, and ylang-ylang for a relaxing shower experience.', 'cat-body-wash', 1500, 1500, 2500, 50, 1, 1, 'brand-023', 'Aveeno', 'USA', '["300ml"]', 900, 900, datetime('now'), datetime('now'));
 
-('prod-013', 'Churidar Suit', 'churidar-suit', 'Classic churidar kurta set. Timeless elegance.', 'cat-salwar', 2200, 2200, 2800, '["https://images.unsplash.com/photo-1583391733954-3750e0ff4e8b?w=800"]', 35, 1, 0, 0, 'brand-005', 'Trendy Threads', 'Cotton', 'White', '["S", "M", "L", "XL"]', '["White", "Blue"]', datetime('now'), datetime('now')),
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-aveeno-006-1', 'prod-aveeno-006', 'AVE-ASRBW2-300ml', 'Aveeno Stress Relief Body Wash - 300ml', 1500, 2500, 50, '300ml', 1, 1, 10, 5, 20, 'USA', 900, 900, datetime('now'), datetime('now'));
 
-('prod-014', 'Pant Style Suit', 'pant-style-suit', 'Contemporary pant style suit. Office wear appropriate.', 'cat-salwar', 2800, 2800, 3500, '["https://images.unsplash.com/photo-1583391733953-3750e0ff4e8b?w=800"]', 30, 1, 1, 0, 'brand-002', 'Modern Fashion', 'Cotton Blend', 'Grey', '["S", "M", "L", "XL"]', '["Grey", "Black"]', datetime('now'), datetime('now')),
+-- Aveeno Sheer Hydration Lotion
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, availableSizes, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-aveeno-007', 'Aveeno Sheer Hydration Lotion', 'aveeno-sheer-hydration-lotion', 'Lightweight, oil-free lotion with natural oat and glycerin for all-day hydration without greasy feel.', 'cat-body-lotion', 3200, 3200, 4800, 50, 1, 1, 'brand-023', 'Aveeno', 'USA', '["354ml","532ml"]', 1920, 1920, datetime('now'), datetime('now'));
 
--- Lehengas
-('prod-015', 'Bridal Lehenga', 'bridal-lehenga', 'Heavy work bridal lehenga with dupatta. Perfect for weddings.', 'cat-lehengas', 15000, 15000, 18000, '["https://images.unsplash.com/photo-1610030469679-98e550d6193f?w=800"]', 15, 1, 1, 0, 'brand-004', 'Royal Collection', 'Velvet', 'Red', '["S", "M", "L"]', '["Red", "Maroon"]', datetime('now'), datetime('now')),
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-aveeno-007-1', 'prod-aveeno-007', 'AVE-ASHL-354ml', 'Aveeno Sheer Hydration Lotion - 354ml', 2200, 3500, 50, '354ml', 1, 0, 10, 5, 20, 'USA', 1320, 1320, datetime('now'), datetime('now')),
+('var-aveeno-007-2', 'prod-aveeno-007', 'AVE-ASHL-532ml', 'Aveeno Sheer Hydration Lotion - 532ml', 3200, 4800, 50, '532ml', 1, 1, 10, 5, 20, 'USA', 1920, 1920, datetime('now'), datetime('now'));
 
-('prod-016', 'Designer Lehenga', 'designer-lehenga', 'Contemporary designer lehenga. Fashion-forward design.', 'cat-lehengas', 8500, 8500, 10000, '["https://images.unsplash.com/photo-1610030469678-98e550d6193f?w=800"]', 20, 1, 1, 0, 'brand-007', 'Urban Chic', 'Net', 'Pink', '["S", "M", "L"]', '["Pink", "Peach"]', datetime('now'), datetime('now')),
+-- Aveeno Tone + Texture Lotion
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, availableSizes, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-aveeno-008', 'Aveeno Tone + Texture Lotion', 'aveeno-tone-texture-lotion', 'Lotion with natural oat and shea butter to improve skin tone and texture while providing deep hydration.', 'cat-body-lotion', 3500, 3500, 5500, 50, 1, 1, 'brand-023', 'Aveeno', 'USA', '["200ml","532ml"]', 2100, 2100, datetime('now'), datetime('now'));
 
-('prod-017', 'Sharara Lehenga', 'sharara-lehenga', 'Sharara style lehenga with heavy border. Festive wear.', 'cat-lehengas', 7500, 7500, 9000, '["https://images.unsplash.com/photo-1610030469677-98e550d6193f?w=800"]', 25, 1, 0, 0, 'brand-003', 'Elegant Style', 'Silk Blend', 'Teal', '["S", "M", "L"]', '["Teal", "Sea Green"]', datetime('now'), datetime('now')),
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-aveeno-008-1', 'prod-aveeno-008', 'AVE-ATTL-200ml', 'Aveeno Tone + Texture Lotion - 200ml', 2200, 3500, 50, '200ml', 1, 0, 10, 5, 20, 'USA', 1320, 1320, datetime('now'), datetime('now')),
+('var-aveeno-008-2', 'prod-aveeno-008', 'AVE-ATTL-532ml', 'Aveeno Tone + Texture Lotion - 532ml', 3500, 5500, 50, '532ml', 1, 1, 10, 5, 20, 'USA', 2100, 2100, datetime('now'), datetime('now'));
 
-('prod-018', 'Ghagra Lehenga', 'ghagra-lehenga', 'Traditional ghagra choli. Classic Indian wear.', 'cat-lehengas', 5500, 5500, 7000, '["https://images.unsplash.com/photo-1610030469676-98e550d6193f?w=800"]', 30, 1, 1, 0, 'brand-006', 'Heritage Wear', 'Cotton', 'Yellow', '["S", "M", "L", "XL"]', '["Yellow", "Orange"]', datetime('now'), datetime('now')),
+-- Aveeno Eczema Therapy Cream
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, availableSizes, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-aveeno-009', 'Aveeno Eczema Therapy Cream', 'aveeno-eczema-therapy-cream', 'Clinically proven relief for eczema-prone skin. Colloidal oatmeal and ceramide-enriched formula.', 'cat-body-cream', 3000, 3000, 4500, 50, 1, 1, 'brand-023', 'Aveeno', 'USA', '["141g","206g"]', 1800, 1800, datetime('now'), datetime('now'));
 
-('prod-019', 'Jacket Lehenga', 'jacket-lehenga', 'Lehenga with long jacket overlay. Modern fusion.', 'cat-lehengas', 12000, 12000, 15000, '["https://images.unsplash.com/photo-1610030469675-98e550d6193f?w=800"]', 18, 1, 1, 0, 'brand-007', 'Urban Chic', 'Velvet', 'Black', '["S", "M", "L"]', '["Black", "Navy"]', datetime('now'), datetime('now')),
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-aveeno-009-1', 'prod-aveeno-009', 'AVE-AETC-141g', 'Aveeno Eczema Therapy Cream - 141g', 2200, 3500, 50, '141g', 1, 0, 10, 5, 20, 'USA', 1320, 1320, datetime('now'), datetime('now')),
+('var-aveeno-009-2', 'prod-aveeno-009', 'AVE-AETC-206g', 'Aveeno Eczema Therapy Cream - 206g', 3000, 4500, 50, '206g', 1, 1, 10, 5, 20, 'USA', 1800, 1800, datetime('now'), datetime('now'));
 
--- Kurtas
-('prod-020', 'Cotton Kurta', 'cotton-kurta', 'Casual cotton kurta for everyday wear. Comfortable fit.', 'cat-kurtas', 800, 800, 1000, '["https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=800"]', 100, 1, 1, 0, 'brand-002', 'Modern Fashion', 'Cotton', 'White', '["S", "M", "L", "XL", "XXL"]', '["White", "Blue", "Grey"]', datetime('now'), datetime('now')),
+-- Aveeno Restorative Skin Therapy Lotion
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-aveeno-010', 'Aveeno Restorative Skin Therapy Lotion', 'aveeno-restorative-skin-therapy-lotion', 'Intensive moisturizing lotion with triple oat complex for severely dry skin. Restores skin barrier.', 'cat-body-lotion', 2500, 2500, 50, 1, 1, 'brand-023', 'Aveeno', 'USA', 1500, 1500, datetime('now'), datetime('now'));
 
-('prod-021', 'Silk Kurta', 'silk-kurta', 'Elegant silk kurta with minimal work. Party wear.', 'cat-kurtas', 2200, 2200, 2800, '["https://images.unsplash.com/photo-1594938298604-c8148c4dae35?w=800"]', 50, 1, 1, 0, 'brand-008', 'Classic Cut', 'Silk', 'Maroon', '["S", "M", "L", "XL"]', '["Maroon", "Black", "Navy"]', datetime('now'), datetime('now')),
+INSERT INTO product_variants (id, productId, sku, name, price, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-aveeno-010-1', 'prod-aveeno-010', 'AVE-ARSTL-354ml', 'Aveeno Restorative Skin Therapy Lotion - 354ml', 2500, 50, '354ml', 1, 1, 10, 5, 20, 'USA', 1500, 1500, datetime('now'), datetime('now'));
 
-('prod-022', 'Pathani Suit', 'pathani-suit', 'Classic Pathani kurta pajama set. Traditional comfort.', 'cat-kurtas', 1500, 1500, 2000, '["https://images.unsplash.com/photo-1594938298605-c8148c4dae35?w=800"]', 60, 1, 0, 0, 'brand-005', 'Trendy Threads', 'Cotton', 'Black', '["S", "M", "L", "XL", "XXL"]', '["Black", "White", "Grey"]', datetime('now'), datetime('now')),
+-- Aveeno Restorative Skin Therapy Balm
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-aveeno-011', 'Aveeno Restorative Skin Therapy Balm', 'aveeno-restorative-skin-therapy-balm', 'Intensive skin therapy balm with triple oat complex for extra-dry, rough patches. Creates protective barrier.', 'cat-body-cream', 2800, 2800, 50, 1, 1, 'brand-023', 'Aveeno', 'USA', 1680, 1680, datetime('now'), datetime('now'));
 
-('prod-023', 'Short Kurta', 'short-kurta', 'Trendy short kurta with print. Modern style.', 'cat-kurtas', 950, 950, 1200, '["https://images.unsplash.com/photo-1594938298606-c8148c4dae35?w=800"]', 80, 1, 0, 0, 'brand-002', 'Modern Fashion', 'Cotton Blend', 'Multi', '["S", "M", "L", "XL"]', '["Multi", "Blue"]', datetime('now'), datetime('now')),
+INSERT INTO product_variants (id, productId, sku, name, price, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-aveeno-011-1', 'prod-aveeno-011', 'AVE-ARSTB-312g', 'Aveeno Restorative Skin Therapy Balm - 312g', 2800, 50, '312g', 1, 1, 10, 5, 20, 'USA', 1680, 1680, datetime('now'), datetime('now'));
 
-('prod-024', 'Embroidered Kurta', 'embroidered-kurta', 'Kurta with thread embroidery. Festive collection.', 'cat-kurtas', 2800, 2800, 3500, '["https://images.unsplash.com/photo-1594938298607-c8148c4dae35?w=800"]', 45, 1, 1, 0, 'brand-008', 'Classic Cut', 'Cotton Silk', 'Cream', '["S", "M", "L", "XL"]', '["Cream", "White"]', datetime('now'), datetime('now')),
+-- AVEENO BABY PRODUCTS
+-- Aveeno Baby Daily Care Moisturising Lotion
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-aveeno-baby-001', 'Aveeno Baby Daily Care Moisturising Lotion', 'aveeno-baby-daily-care-moisturising-lotion', 'Daily moisturizing lotion formulated specially for baby''s delicate skin with natural oat extract.', 'cat-baby-lotion', 1050, 1050, 1200, 50, 1, 1, 'brand-023', 'Aveeno', 'USA', 630, 630, datetime('now'), datetime('now'));
 
-('prod-025', 'Nehru Collar Kurta', 'nehru-collar-kurta', 'Formal kurta with Nehru collar. Perfect for occasions.', 'cat-kurtas', 1800, 1800, 2200, '["https://images.unsplash.com/photo-1594938298608-c8148c4dae35?w=800"]', 55, 1, 0, 0, 'brand-005', 'Trendy Threads', 'Linen', 'Beige', '["S", "M", "L", "XL"]', '["Beige", "White"]', datetime('now'), datetime('now')),
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-aveeno-baby-001-1', 'prod-aveeno-baby-001', 'AVE-ABDCML-150ml', 'Aveeno Baby Daily Care Moisturising Lotion - 150ml', 1050, 1200, 50, '150ml', 1, 1, 10, 5, 20, 'USA', 630, 630, datetime('now'), datetime('now'));
 
--- Menswear
-('prod-026', 'Formal Shirt', 'formal-shirt', 'Premium cotton formal shirt. Office essential.', 'cat-menswear', 1200, 1200, 1500, '["https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=800"]', 75, 1, 0, 0, 'brand-003', 'Elegant Style', 'Cotton', 'White', '["S", "M", "L", "XL", "XXL"]', '["White", "Light Blue"]', datetime('now'), datetime('now')),
+-- Aveeno Baby Daily Moisture Lotion
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, availableSizes, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-aveeno-baby-002', 'Aveeno Baby Daily Moisture Lotion', 'aveeno-baby-daily-moisture-lotion', 'Lightweight daily moisture lotion with natural oat extract for baby''s soft, delicate skin.', 'cat-baby-lotion', 2100, 2100, 2800, 50, 1, 1, 'brand-023', 'Aveeno', 'USA', '["227ml","354ml","532ml"]', 1260, 1260, datetime('now'), datetime('now'));
 
-('prod-027', 'Casual Shirt', 'casual-shirt', 'Relaxed fit casual shirt. Weekend vibes.', 'cat-menswear', 900, 900, 1200, '["https://images.unsplash.com/photo-1596755094515-f87e34085b2c?w=800"]', 80, 1, 0, 0, 'brand-005', 'Trendy Threads', 'Cotton', 'Blue', '["S", "M", "L", "XL", "XXL"]', '["Blue", "Green", "Red"]', datetime('now'), datetime('now')),
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-aveeno-baby-002-1', 'prod-aveeno-baby-002', 'AVE-ABDML-227ml', 'Aveeno Baby Daily Moisture Lotion - 227ml', 1500, 1800, 50, '227ml', 1, 0, 10, 5, 20, 'USA', 900, 900, datetime('now'), datetime('now')),
+('var-aveeno-baby-002-2', 'prod-aveeno-baby-002', 'AVE-ABDML-354ml', 'Aveeno Baby Daily Moisture Lotion - 354ml', 2100, 2800, 50, '354ml', 1, 1, 10, 5, 20, 'USA', 1260, 1260, datetime('now'), datetime('now')),
+('var-aveeno-baby-002-3', 'prod-aveeno-baby-002', 'AVE-ABDML-532ml', 'Aveeno Baby Daily Moisture Lotion - 532ml', 3500, 4000, 50, '532ml', 1, 0, 10, 5, 20, 'USA', 2100, 2100, datetime('now'), datetime('now'));
 
-('prod-028', 'Polo T-Shirt', 'polo-tshirt', 'Classic polo t-shirt. Versatile style.', 'cat-menswear', 750, 750, 950, '["https://images.unsplash.com/photo-1625910513413-5fc0ec78d0d5?w=800"]', 100, 1, 1, 0, 'brand-002', 'Modern Fashion', 'Cotton Pique', 'Navy', '["S", "M", "L", "XL", "XXL"]', '["Navy", "Black", "White", "Grey"]', datetime('now'), datetime('now')),
+-- Aveeno Baby Daily Moisture Cream
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-aveeno-baby-003', 'Aveeno Baby Daily Moisture Cream', 'aveeno-baby-daily-moisture-cream', 'Rich daily moisture cream with natural oat extract for extra dry baby skin.', 'cat-baby-cream', 2000, 2000, 2500, 50, 1, 1, 'brand-023', 'Aveeno', 'USA', 1200, 1200, datetime('now'), datetime('now'));
 
-('prod-029', 'Blazer', 'blazer', 'Formal blazer for special occasions. Premium quality.', 'cat-menswear', 4500, 4500, 6000, '["https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800"]', 30, 1, 1, 0, 'brand-008', 'Classic Cut', 'Polyester Blend', 'Black', '["S", "M", "L", "XL"]', '["Black", "Navy", "Grey"]', datetime('now'), datetime('now')),
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-aveeno-baby-003-1', 'prod-aveeno-baby-003', 'AVE-ABDMC-227g', 'Aveeno Baby Daily Moisture Cream - 227g', 2000, 2500, 50, '227g', 1, 1, 10, 5, 20, 'USA', 1200, 1200, datetime('now'), datetime('now'));
 
-('prod-030', 'Denim Jeans', 'denim-jeans', 'Classic fit denim jeans. Everyday essential.', 'cat-menswear', 1800, 1800, 2200, '["https://images.unsplash.com/photo-1542272604-787c3835535d?w=800"]', 90, 1, 0, 0, 'brand-005', 'Trendy Threads', 'Denim', 'Blue', '["28", "30", "32", "34", "36", "38"]', '["Blue", "Black"]', datetime('now'), datetime('now')),
+-- Aveeno Baby Wash & Shampoo
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, availableSizes, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-aveeno-baby-004', 'Aveeno Baby Wash & Shampoo', 'aveeno-baby-wash-shampoo', 'Tear-free wash and shampoo formulated with natural oat extract for baby''s hair and body.', 'cat-baby-wash', 2100, 2100, 3000, 50, 1, 1, 'brand-023', 'Aveeno', 'USA', '["236ml","354ml"]', 1260, 1260, datetime('now'), datetime('now'));
 
-('prod-031', 'Chinos', 'chinos', 'Comfortable chinos pants. Smart casual wear.', 'cat-menswear', 1500, 1500, 1800, '["https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=800"]', 85, 1, 0, 0, 'brand-007', 'Urban Chic', 'Cotton', 'Beige', '["28", "30", "32", "34", "36"]', '["Beige", "Khaki", "Olive"]', datetime('now'), datetime('now')),
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-aveeno-baby-004-1', 'prod-aveeno-baby-004', 'AVE-ABWS-236ml', 'Aveeno Baby Wash & Shampoo - 236ml', 1700, 2200, 50, '236ml', 1, 0, 10, 5, 20, 'USA', 1020, 1020, datetime('now'), datetime('now')),
+('var-aveeno-baby-004-2', 'prod-aveeno-baby-004', 'AVE-ABWS-354ml', 'Aveeno Baby Wash & Shampoo - 354ml', 2400, 3000, 50, '354ml', 1, 1, 10, 5, 20, 'USA', 1440, 1440, datetime('now'), datetime('now'));
 
-('prod-032', 'Waistcoat', 'waistcoat', 'Formal waistcoat for occasions. Classic style.', 'cat-menswear', 2200, 2200, 2800, '["https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?w=800"]', 40, 1, 1, 0, 'brand-008', 'Classic Cut', 'Silk Blend', 'Maroon', '["S", "M", "L", "XL"]', '["Maroon", "Black", "Gold"]', datetime('now'), datetime('now')),
+-- Aveeno Baby Soothing Relief Cream
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-aveeno-baby-005', 'Aveeno Baby Soothing Relief Cream', 'aveeno-baby-soothing-relief-cream', 'Soothing relief cream with natural oat and dimethicone for baby''s dry, irritated skin.', 'cat-baby-cream', 2400, 2400, 3000, 50, 1, 1, 'brand-023', 'Aveeno', 'USA', 1440, 1440, datetime('now'), datetime('now'));
 
--- Gowns
-('prod-033', 'Evening Gown', 'evening-gown', 'Elegant evening gown for parties. Sophisticated design.', 'cat-gowns', 8000, 8000, 10000, '["https://images.unsplash.com/photo-1566174053879-31528523f8ae?w=800"]', 20, 1, 1, 0, 'brand-004', 'Royal Collection', 'Silk', 'Black', '["S", "M", "L"]', '["Black", "Navy"]', datetime('now'), datetime('now')),
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-aveeno-baby-005-1', 'prod-aveeno-baby-005', 'AVE-ABSRC-140g', 'Aveeno Baby Soothing Relief Cream - 140g', 2400, 3000, 50, '140g', 1, 1, 10, 5, 20, 'USA', 1440, 1440, datetime('now'), datetime('now'));
 
-('prod-034', 'Cocktail Dress', 'cocktail-dress', 'Stylish cocktail dress for social events.', 'cat-gowns', 5500, 5500, 7000, '["https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800"]', 25, 1, 1, 0, 'brand-007', 'Urban Chic', 'Georgette', 'Red', '["S", "M", "L", "XL"]', '["Red", "Black", "Emerald"]', datetime('now'), datetime('now')),
+-- Aveeno Baby Eczema Therapy Cream
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-aveeno-baby-006', 'Aveeno Baby Eczema Therapy Cream', 'aveeno-baby-eczema-therapy-cream', 'Clinically proven eczema therapy cream for baby with natural oat extract and ceramides.', 'cat-baby-cream', 2850, 2850, 3500, 50, 1, 1, 'brand-023', 'Aveeno', 'USA', 1710, 1710, datetime('now'), datetime('now'));
 
-('prod-035', 'Maxi Dress', 'maxi-dress', 'Flowy maxi dress for casual outings.', 'cat-gowns', 3200, 3200, 4000, '["https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=800"]', 35, 1, 0, 0, 'brand-002', 'Modern Fashion', 'Cotton', 'Floral', '["S", "M", "L", "XL"]', '["Floral", "Blue", "Pink"]', datetime('now'), datetime('now')),
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-aveeno-baby-006-1', 'prod-aveeno-baby-006', 'AVE-ABETC-141g', 'Aveeno Baby Eczema Therapy Cream - 141g', 2850, 3500, 50, '141g', 1, 1, 10, 5, 20, 'USA', 1710, 1710, datetime('now'), datetime('now'));
 
-('prod-036', 'Party Gown', 'party-gown', 'Glamorous party gown with sequins. Eye-catching design.', 'cat-gowns', 9500, 9500, 12000, '["https://images.unsplash.com/photo-1566174053879-31528523f8ae?w=800"]', 15, 1, 1, 0, 'brand-004', 'Royal Collection', 'Net', 'Gold', '["S", "M", "L"]', '["Gold", "Silver", "Rose Gold"]', datetime('now'), datetime('now')),
+-- Aveeno Baby Eczema Therapy Night Balm
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-aveeno-baby-007', 'Aveeno Baby Eczema Therapy Night Balm', 'aveeno-baby-eczema-therapy-night-balm', 'Overnight eczema therapy balm for baby with intensive moisturizing for night-time relief.', 'cat-baby-cream', 3250, 3250, 4000, 50, 1, 1, 'brand-023', 'Aveeno', 'USA', 1950, 1950, datetime('now'), datetime('now'));
 
-('prod-037', 'Summer Dress', 'summer-dress', 'Lightweight summer dress. Beach ready.', 'cat-gowns', 2800, 2800, 3500, '["https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=800"]', 40, 1, 0, 0, 'brand-002', 'Modern Fashion', 'Rayon', 'Yellow', '["S", "M", "L", "XL", "XXL"]', '["Yellow", "Orange", "White"]', datetime('now'), datetime('now')),
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-aveeno-baby-007-1', 'prod-aveeno-baby-007', 'AVE-ABETNB-156g', 'Aveeno Baby Eczema Therapy Night Balm - 156g', 3250, 4000, 50, '156g', 1, 1, 10, 5, 20, 'USA', 1950, 1950, datetime('now'), datetime('now'));
 
-('prod-038', 'Wrap Dress', 'wrap-dress', 'Flattering wrap dress. Versatile style.', 'cat-gowns', 3800, 3800, 4800, '["https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800"]', 30, 1, 1, 0, 'brand-007', 'Urban Chic', 'Cotton Blend', 'Teal', '["S", "M", "L", "XL"]', '["Teal", "Navy", "Black"]', datetime('now'), datetime('now')),
+-- Aveeno Baby Calming Comfort Lotion
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-aveeno-baby-008', 'Aveeno Baby Calming Comfort Lotion', 'aveeno-baby-calming-comfort-lotion', 'Calming lotion with lavender and vanilla scents for baby''s bedtime routine.', 'cat-baby-lotion', 2000, 2000, 2500, 50, 1, 1, 'brand-023', 'Aveeno', 'USA', 1200, 1200, datetime('now'), datetime('now'));
 
--- Tops
-('prod-039', 'Casual Top', 'casual-top', 'Comfortable casual top. Everyday wear.', 'cat-tops', 600, 600, 800, '["https://images.unsplash.com/photo-1564257631407-4deb1f99d992?w=800"]', 80, 1, 0, 0, 'brand-002', 'Modern Fashion', 'Cotton', 'Pink', '["S", "M", "L", "XL"]', '["Pink", "Yellow", "White"]', datetime('now'), datetime('now')),
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-aveeno-baby-008-1', 'prod-aveeno-baby-008', 'AVE-ABCCL-227ml', 'Aveeno Baby Calming Comfort Lotion - 227ml', 2000, 2500, 50, '227ml', 1, 1, 10, 5, 20, 'USA', 1200, 1200, datetime('now'), datetime('now'));
 
-('prod-040', 'Crop Top', 'crop-top', 'Trendy crop top. Modern fashion.', 'cat-tops', 450, 450, 600, '["https://images.unsplash.com/photo-1564257631407-4deb1f99d992?w=800"]', 100, 1, 0, 0, 'brand-005', 'Trendy Threads', 'Cotton', 'Black', '["S", "M", "L", "XL"]', '["Black", "White", "Red"]', datetime('now'), datetime('now')),
+-- Aveeno Baby Calming Comfort Bath
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-aveeno-baby-009', 'Aveeno Baby Calming Comfort Bath', 'aveeno-baby-calming-comfort-bath', 'Calming bubble bath with lavender and vanilla scents for a soothing baby bath experience.', 'cat-baby-wash', 2000, 2000, 2500, 50, 1, 1, 'brand-023', 'Aveeno', 'USA', 1200, 1200, datetime('now'), datetime('now'));
 
-('prod-041', 'Peplum Top', 'peplum-top', 'Elegant peplum top. Flattering silhouette.', 'cat-tops', 750, 750, 950, '["https://images.unsplash.com/photo-1564257631407-4deb1f99d992?w=800"]', 70, 1, 1, 0, 'brand-007', 'Urban Chic', 'Georgette', 'Navy', '["S", "M", "L", "XL"]', '["Navy", "Maroon", "Green"]', datetime('now'), datetime('now')),
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-aveeno-baby-009-1', 'prod-aveeno-baby-009', 'AVE-ABCCB-236ml', 'Aveeno Baby Calming Comfort Bath - 236ml', 2000, 2500, 50, '236ml', 1, 1, 10, 5, 20, 'USA', 1200, 1200, datetime('now'), datetime('now'));
 
-('prod-042', 'Off-Shoulder Top', 'off-shoulder-top', 'Stylish off-shoulder top. Party ready.', 'cat-tops', 850, 850, 1100, '["https://images.unsplash.com/photo-1564257631407-4deb1f99d992?w=800"]', 60, 1, 1, 0, 'brand-002', 'Modern Fashion', 'Chiffon', 'Red', '["S", "M", "L", "XL"]', '["Red", "Black", "White"]', datetime('now'), datetime('now')),
+-- Aveeno Baby Continuous Protection SPF50
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-aveeno-baby-010', 'Aveeno Baby Continuous Protection SPF50', 'aveeno-baby-continuous-protection-spf50', 'Sunscreen with SPF 50 for baby with natural oat extract. Water-resistant and tear-free.', 'cat-baby-sunscreen', 2650, 2650, 3500, 50, 1, 1, 'brand-023', 'Aveeno', 'USA', 1590, 1590, datetime('now'), datetime('now'));
 
-('prod-043', 'Tunics Top', 'tunics-top', 'Comfortable tunic top. Versatile style.', 'cat-tops', 650, 650, 850, '["https://images.unsplash.com/photo-1564257631407-4deb1f99d992?w=800"]', 90, 1, 0, 0, 'brand-005', 'Trendy Threads', 'Rayon', 'Blue', '["S", "M", "L", "XL", "XXL"]', '["Blue", "Green", "Yellow"]', datetime('now'), datetime('now')),
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-aveeno-baby-010-1', 'prod-aveeno-baby-010', 'AVE-ABCPSF50-88ml', 'Aveeno Baby Continuous Protection SPF50 - 88ml', 2650, 3500, 50, '88ml', 1, 1, 10, 5, 20, 'USA', 1590, 1590, datetime('now'), datetime('now'));
 
-('prod-044', 'Blouse', 'blouse', 'Classic blouse for formal wear.', 'cat-tops', 950, 950, 1200, '["https://images.unsplash.com/photo-1564257631407-4deb1f99d992?w=800"]', 65, 1, 1, 0, 'brand-008', 'Classic Cut', 'Cotton', 'White', '["S", "M", "L", "XL"]', '["White", "Light Blue", "Pink"]', datetime('now'), datetime('now')),
+-- Aveeno Baby Barrier Cream
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-aveeno-baby-011', 'Aveeno Baby Barrier Cream', 'aveeno-baby-barrier-cream', 'Protective diaper rash cream with zinc oxide and natural oat extract for baby''s delicate skin.', 'cat-diaper-rash-cream', 2150, 2150, 2800, 50, 1, 1, 'brand-023', 'Aveeno', 'USA', 1290, 1290, datetime('now'), datetime('now'));
 
--- Accessories
-('prod-045', 'Designer Handbag', 'designer-handbag', 'Elegant designer handbag. Premium quality.', 'cat-accessories', 3500, 3500, 4500, '["https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800"]', 40, 1, 1, 0, 'brand-004', 'Royal Collection', 'Leather', 'Brown', '["One Size"]', '["Brown", "Black", "Tan"]', datetime('now'), datetime('now')),
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-aveeno-baby-011-1', 'prod-aveeno-baby-011', 'AVE-ABBRC-100g', 'Aveeno Baby Barrier Cream - 100g', 2150, 2800, 50, '100g', 1, 1, 10, 5, 20, 'USA', 1290, 1290, datetime('now'), datetime('now'));
 
-('prod-046', 'Statement Earrings', 'statement-earrings', 'Eye-catching statement earrings. Party essential.', 'cat-accessories', 850, 850, 1100, '["https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=800"]', 80, 1, 1, 0, 'brand-007', 'Urban Chic', 'Metal', 'Gold', '["One Size"]', '["Gold", "Silver", "Rose Gold"]', datetime('now'), datetime('now')),
+-- ============================================
+-- CERAVE PRODUCTS
+-- ============================================
 
-('prod-047', 'Silk Scarf', 'silk-scarf', 'Luxurious silk scarf. Elegant accessory.', 'cat-accessories', 650, 650, 850, '["https://images.unsplash.com/photo-1601924994987-69e26d50dc26?w=800"]', 100, 1, 0, 0, 'brand-001', 'Luxury Sarees', 'Silk', 'Multi', '["One Size"]', '["Multi", "Solid"]', datetime('now'), datetime('now')),
+-- CERAVE MOISTURIZERS
+-- CeraVe Moisturizing Cream
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, availableSizes, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-cerave-001', 'CeraVe Moisturizing Cream', 'cerave-moisturizing-cream', 'Rich cream with hyaluronic acid and essential ceramides for 24-hour hydration. Non-comedogenic and fragrance-free.', 'cat-body-cream', 3200, 3200, 5000, 50, 1, 1, 'brand-063', 'CeraVe', 'USA', '["50ml","177ml","340g","454g","539g"]', 1920, 1920, datetime('now'), datetime('now'));
 
-('prod-048', 'Leather Belt', 'leather-belt', 'Classic leather belt. Essential accessory.', 'cat-accessories', 450, 450, 600, '["https://images.unsplash.com/photo-1624222247344-550fb60583dc?w=800"]', 120, 1, 0, 0, 'brand-008', 'Classic Cut', 'Leather', 'Black', '["S", "M", "L"]', '["Black", "Brown"]', datetime('now'), datetime('now')),
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-cerave-001-1', 'prod-cerave-001', 'CEV-CMC-50ml', 'CeraVe Moisturizing Cream - 50ml', 1100, 1400, 50, '50ml', 1, 0, 10, 5, 20, 'USA', 660, 660, datetime('now'), datetime('now')),
+('var-cerave-001-2', 'prod-cerave-001', 'CEV-CMC-177ml', 'CeraVe Moisturizing Cream - 177ml', 2300, 2800, 50, '177ml', 1, 0, 10, 5, 20, 'USA', 1380, 1380, datetime('now'), datetime('now')),
+('var-cerave-001-3', 'prod-cerave-001', 'CEV-CMC-340g', 'CeraVe Moisturizing Cream - 340g', 3500, 4200, 50, '340g', 1, 0, 10, 5, 20, 'USA', 2100, 2100, datetime('now'), datetime('now')),
+('var-cerave-001-4', 'prod-cerave-001', 'CEV-CMC-454g', 'CeraVe Moisturizing Cream - 454g', 4100, 5000, 50, '454g', 1, 1, 10, 5, 20, 'USA', 2460, 2460, datetime('now'), datetime('now')),
+('var-cerave-001-5', 'prod-cerave-001', 'CEV-CMC-539g', 'CeraVe Moisturizing Cream - 539g', 4500, 5500, 50, '539g', 1, 0, 10, 5, 20, 'USA', 2700, 2700, datetime('now'), datetime('now'));
 
-('prod-049', 'Clutch Bag', 'clutch-bag', 'Stylish clutch bag for parties.', 'cat-accessories', 1200, 1200, 1500, '["https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=800"]', 50, 1, 1, 0, 'brand-004', 'Royal Collection', 'Velvet', 'Red', '["One Size"]', '["Red", "Black", "Gold"]', datetime('now'), datetime('now')),
+-- CeraVe Moisturizing Lotion
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, availableSizes, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-cerave-002', 'CeraVe Moisturizing Lotion', 'cerave-moisturizing-lotion', 'Lightweight lotion with hyaluronic acid and three essential ceramides for all-day hydration.', 'cat-body-lotion', 3650, 3650, 5200, 50, 1, 1, 'brand-063', 'CeraVe', 'USA', '["236ml","355ml","473ml"]', 2190, 2190, datetime('now'), datetime('now'));
 
-('prod-050', 'Bangles Set', 'bangles-set', 'Traditional bangles set. Complete ethnic look.', 'cat-accessories', 550, 550, 700, '["https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=800"]', 90, 1, 0, 0, 'brand-006', 'Heritage Wear', 'Metal', 'Gold', '["One Size"]', '["Gold", "Silver"]', datetime('now'), datetime('now')),
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-cerave-002-1', 'prod-cerave-002', 'CEV-CML-236ml', 'CeraVe Moisturizing Lotion - 236ml', 2400, 3000, 50, '236ml', 1, 0, 10, 5, 20, 'USA', 1440, 1440, datetime('now'), datetime('now')),
+('var-cerave-002-2', 'prod-cerave-002', 'CEV-CML-355ml', 'CeraVe Moisturizing Lotion - 355ml', 3650, 4500, 50, '355ml', 1, 1, 10, 5, 20, 'USA', 2190, 2190, datetime('now'), datetime('now')),
+('var-cerave-002-3', 'prod-cerave-002', 'CEV-CML-473ml', 'CeraVe Moisturizing Lotion - 473ml', 4200, 5200, 50, '473ml', 1, 0, 10, 5, 20, 'USA', 2520, 2520, datetime('now'), datetime('now'));
 
-('prod-051', 'Necklace', 'necklace', 'Elegant necklace for special occasions.', 'cat-accessories', 1800, 1800, 2200, '["https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=800"]', 55, 1, 1, 0, 'brand-004', 'Royal Collection', 'Gold Plated', 'Gold', '["One Size"]', '["Gold", "Rose Gold"]', datetime('now'), datetime('now')),
+-- CeraVe Daily Moisturizing Lotion
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, availableSizes, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-cerave-003', 'CeraVe Daily Moisturizing Lotion', 'cerave-daily-moisturizing-lotion', 'Daily moisturizing lotion formulated with MVE technology for controlled release of ingredients over 24 hours.', 'cat-body-lotion', 3900, 3900, 4800, 50, 1, 1, 'brand-063', 'CeraVe', 'USA', '["236ml","355ml"]', 2340, 2340, datetime('now'), datetime('now'));
 
-('prod-052', 'Sunglasses', 'sunglasses', 'Stylish sunglasses. UV protection.', 'cat-accessories', 950, 950, 1200, '["https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=800"]', 70, 1, 0, 0, 'brand-007', 'Urban Chic', 'Plastic', 'Black', '["One Size"]', '["Black", "Brown", "Tortoise"]', datetime('now'), datetime('now'));
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-cerave-003-1', 'prod-cerave-003', 'CEV-CDML-236ml', 'CeraVe Daily Moisturizing Lotion - 236ml', 2600, 3200, 50, '236ml', 1, 0, 10, 5, 20, 'USA', 1560, 1560, datetime('now'), datetime('now')),
+('var-cerave-003-2', 'prod-cerave-003', 'CEV-CDML-355ml', 'CeraVe Daily Moisturizing Lotion - 355ml', 3900, 4800, 50, '355ml', 1, 1, 10, 5, 20, 'USA', 2340, 2340, datetime('now'), datetime('now'));
 
--- Insert Sample Product Variants for key products
-INSERT OR REPLACE INTO product_variants (id, productId, sku, name, price, stock, size, color, isActive, isDefault, costPrice, createdAt, updatedAt) VALUES
--- Saree Variants
-('var-001-1', 'prod-001', 'SAREE-BLUE-6M', 'Silk Saree - 6m', 3500, 25, '6m', 'Blue', 1, 1, 2500, datetime('now'), datetime('now')),
-('var-001-2', 'prod-001', 'SAREE-BLUE-6.5M', 'Silk Saree - 6.5m', 3600, 25, '6.5m', 'Blue', 1, 0, 2600, datetime('now'), datetime('now')),
--- Salwar Suit Variants
-('var-009-1', 'prod-009', 'SALWAR-GREEN-S', 'Cotton Salwar - Small', 1800, 10, 'S', 'Green', 1, 0, 1200, datetime('now'), datetime('now')),
-('var-009-2', 'prod-009', 'SALWAR-GREEN-M', 'Cotton Salwar - Medium', 1800, 10, 'M', 'Green', 1, 1, 1200, datetime('now'), datetime('now')),
-('var-009-3', 'prod-009', 'SALWAR-GREEN-L', 'Cotton Salwar - Large', 1800, 10, 'L', 'Green', 1, 0, 1200, datetime('now'), datetime('now')),
-('var-009-4', 'prod-009', 'SALWAR-PINK-S', 'Cotton Salwar - Pink Small', 1800, 8, 'S', 'Pink', 1, 0, 1200, datetime('now'), datetime('now')),
-('var-009-5', 'prod-009', 'SALWAR-PINK-M', 'Cotton Salwar - Pink Medium', 1800, 8, 'M', 'Pink', 1, 0, 1200, datetime('now'), datetime('now')),
--- Lehenga Variants
-('var-015-1', 'prod-015', 'LEHENGA-RED-S', 'Bridal Lehenga - Small', 15000, 5, 'S', 'Red', 1, 0, 10000, datetime('now'), datetime('now')),
-('var-015-2', 'prod-015', 'LEHENGA-RED-M', 'Bridal Lehenga - Medium', 15000, 5, 'M', 'Red', 1, 1, 10000, datetime('now'), datetime('now')),
-('var-015-3', 'prod-015', 'LEHENGA-RED-L', 'Bridal Lehenga - Large', 15000, 5, 'L', 'Red', 1, 0, 10000, datetime('now'), datetime('now')),
-('var-015-4', 'prod-015', 'LEHENGA-MAROON-M', 'Bridal Lehenga - Maroon Medium', 15000, 5, 'M', 'Maroon', 1, 0, 10000, datetime('now'), datetime('now')),
--- Kurta Variants
-('var-020-1', 'prod-020', 'KURTA-WHITE-S', 'Cotton Kurta - White Small', 800, 20, 'S', 'White', 1, 0, 500, datetime('now'), datetime('now')),
-('var-020-2', 'prod-020', 'KURTA-WHITE-M', 'Cotton Kurta - White Medium', 800, 20, 'M', 'White', 1, 1, 500, datetime('now'), datetime('now')),
-('var-020-3', 'prod-020', 'KURTA-WHITE-L', 'Cotton Kurta - White Large', 800, 20, 'L', 'White', 1, 0, 500, datetime('now'), datetime('now')),
-('var-020-4', 'prod-020', 'KURTA-BLUE-M', 'Cotton Kurta - Blue Medium', 800, 18, 'M', 'Blue', 1, 0, 500, datetime('now'), datetime('now')),
-('var-020-5', 'prod-020', 'KURTA-GREY-L', 'Cotton Kurta - Grey Large', 800, 18, 'L', 'Grey', 1, 0, 500, datetime('now'), datetime('now')),
--- Menswear Variants
-('var-026-1', 'prod-026', 'SHIRT-WHITE-S', 'Formal Shirt - White Small', 1200, 15, 'S', 'White', 1, 0, 700, datetime('now'), datetime('now')),
-('var-026-2', 'prod-026', 'SHIRT-WHITE-M', 'Formal Shirt - White Medium', 1200, 15, 'M', 'White', 1, 1, 700, datetime('now'), datetime('now')),
-('var-026-3', 'prod-026', 'SHIRT-WHITE-L', 'Formal Shirt - White Large', 1200, 15, 'L', 'White', 1, 0, 700, datetime('now'), datetime('now')),
-('var-026-4', 'prod-026', 'SHIRT-LBLUE-M', 'Formal Shirt - Light Blue Medium', 1200, 15, 'M', 'Light Blue', 1, 0, 700, datetime('now'), datetime('now')),
-('var-026-5', 'prod-026', 'SHIRT-WHITE-XL', 'Formal Shirt - White XL', 1200, 15, 'XL', 'White', 1, 0, 700, datetime('now'), datetime('now')),
--- Jeans Variants
-('var-030-1', 'prod-030', 'JEANS-BLUE-30', 'Denim Jeans - 30 inch', 1800, 15, '30', 'Blue', 1, 0, 1000, datetime('now'), datetime('now')),
-('var-030-2', 'prod-030', 'JEANS-BLUE-32', 'Denim Jeans - 32 inch', 1800, 15, '32', 'Blue', 1, 1, 1000, datetime('now'), datetime('now')),
-('var-030-3', 'prod-030', 'JEANS-BLUE-34', 'Denim Jeans - 34 inch', 1800, 15, '34', 'Blue', 1, 0, 1000, datetime('now'), datetime('now')),
-('var-030-4', 'prod-030', 'JEANS-BLUE-36', 'Denim Jeans - 36 inch', 1800, 15, '36', 'Blue', 1, 0, 1000, datetime('now'), datetime('now')),
-('var-030-5', 'prod-030', 'JEANS-BLACK-32', 'Denim Jeans - Black 32', 1800, 15, '32', 'Black', 1, 0, 1000, datetime('now'), datetime('now')),
--- Top Variants
-('var-039-1', 'prod-039', 'TOP-PINK-S', 'Casual Top - Pink Small', 600, 20, 'S', 'Pink', 1, 0, 350, datetime('now'), datetime('now')),
-('var-039-2', 'prod-039', 'TOP-PINK-M', 'Casual Top - Pink Medium', 600, 20, 'M', 'Pink', 1, 1, 350, datetime('now'), datetime('now')),
-('var-039-3', 'prod-039', 'TOP-PINK-L', 'Casual Top - Pink Large', 600, 20, 'L', 'Pink', 1, 0, 350, datetime('now'), datetime('now')),
-('var-039-4', 'prod-039', 'TOP-YELLOW-M', 'Casual Top - Yellow Medium', 600, 18, 'M', 'Yellow', 1, 0, 350, datetime('now'), datetime('now')),
-('var-039-5', 'prod-039', 'TOP-WHITE-L', 'Casual Top - White Large', 600, 18, 'L', 'White', 1, 0, 350, datetime('now'), datetime('now'));
+-- CERAVE CLEANSERS
+-- CeraVe Hydrating Cleanser
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, availableSizes, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-cerave-004', 'CeraVe Hydrating Cleanser', 'cerave-hydrating-cleanser', 'Gentle, hydrating cleanser with hyaluronic acid and ceramides for normal to dry skin.', 'cat-cleanser', 4500, 4500, 5500, 50, 1, 1, 'brand-063', 'CeraVe', 'USA', '["236ml","473ml","562ml"]', 2700, 2700, datetime('now'), datetime('now'));
+
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-cerave-004-1', 'prod-cerave-004', 'CEV-CHC-236ml', 'CeraVe Hydrating Cleanser - 236ml', 2400, 3000, 50, '236ml', 1, 0, 10, 5, 20, 'USA', 1440, 1440, datetime('now'), datetime('now')),
+('var-cerave-004-2', 'prod-cerave-004', 'CEV-CHC-473ml', 'CeraVe Hydrating Cleanser - 473ml', 4100, 5000, 50, '473ml', 1, 0, 10, 5, 20, 'USA', 2460, 2460, datetime('now'), datetime('now')),
+('var-cerave-004-3', 'prod-cerave-004', 'CEV-CHC-562ml', 'CeraVe Hydrating Cleanser - 562ml', 4500, 5500, 50, '562ml', 1, 1, 10, 5, 20, 'USA', 2700, 2700, datetime('now'), datetime('now'));
+
+-- CeraVe Foaming Cleanser
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, availableSizes, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-cerave-005', 'CeraVe Foaming Cleanser', 'cerave-foaming-cleanser', 'Foaming cleanser that deep cleans without disrupting the skin barrier. Ideal for normal to oily skin.', 'cat-face-wash', 4550, 4550, 5600, 50, 1, 1, 'brand-063', 'CeraVe', 'USA', '["236ml","473ml","562ml"]', 2730, 2730, datetime('now'), datetime('now'));
+
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-cerave-005-1', 'prod-cerave-005', 'CEV-CFC-236ml', 'CeraVe Foaming Cleanser - 236ml', 2500, 3200, 50, '236ml', 1, 0, 10, 5, 20, 'USA', 1500, 1500, datetime('now'), datetime('now')),
+('var-cerave-005-2', 'prod-cerave-005', 'CEV-CFC-473ml', 'CeraVe Foaming Cleanser - 473ml', 4200, 5200, 50, '473ml', 1, 0, 10, 5, 20, 'USA', 2520, 2520, datetime('now'), datetime('now')),
+('var-cerave-005-3', 'prod-cerave-005', 'CEV-CFC-562ml', 'CeraVe Foaming Cleanser - 562ml', 4550, 5600, 50, '562ml', 1, 1, 10, 5, 20, 'USA', 2730, 2730, datetime('now'), datetime('now'));
+
+-- CeraVe SA Smoothing Cleanser
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, availableSizes, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-cerave-006', 'CeraVe SA Smoothing Cleanser', 'cerave-sa-smoothing-cleanser', 'Exfoliating cleanser with salicylic acid and ceramides for rough and bumpy skin.', 'cat-cleanser', 5000, 5000, 6200, 50, 1, 1, 'brand-063', 'CeraVe', 'USA', '["236ml","473ml"]', 3000, 3000, datetime('now'), datetime('now'));
+
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-cerave-006-1', 'prod-cerave-006', 'CEV-CSASC-236ml', 'CeraVe SA Smoothing Cleanser - 236ml', 3000, 3800, 50, '236ml', 1, 0, 10, 5, 20, 'USA', 1800, 1800, datetime('now'), datetime('now')),
+('var-cerave-006-2', 'prod-cerave-006', 'CEV-CSASC-473ml', 'CeraVe SA Smoothing Cleanser - 473ml', 5000, 6200, 50, '473ml', 1, 1, 10, 5, 20, 'USA', 3000, 3000, datetime('now'), datetime('now'));
+
+-- CeraVe Hydrating Foaming Oil Cleanser
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, availableSizes, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-cerave-007', 'CeraVe Hydrating Foaming Oil Cleanser', 'cerave-hydrating-foaming-oil-cleanser', 'Hydrating oil cleanser that removes makeup while nourishing skin with ceramides and jojoba oil.', 'cat-cleanser', 5000, 5000, 6200, 50, 1, 1, 'brand-063', 'CeraVe', 'USA', '["236ml","473ml"]', 3000, 3000, datetime('now'), datetime('now'));
+
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-cerave-007-1', 'prod-cerave-007', 'CEV-CHFOC-236ml', 'CeraVe Hydrating Foaming Oil Cleanser - 236ml', 3000, 3800, 50, '236ml', 1, 0, 10, 5, 20, 'USA', 1800, 1800, datetime('now'), datetime('now')),
+('var-cerave-007-2', 'prod-cerave-007', 'CEV-CHFOC-473ml', 'CeraVe Hydrating Foaming Oil Cleanser - 473ml', 5000, 6200, 50, '473ml', 1, 1, 10, 5, 20, 'USA', 3000, 3000, datetime('now'), datetime('now'));
+
+-- CeraVe Acne Control Cleanser
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-cerave-008', 'CeraVe Acne Control Cleanser', 'cerave-acne-control-cleanser', 'Acne control cleanser with benzoyl peroxide and ceramides to treat acne and prevent future breakouts.', 'cat-cleanser', 3200, 3200, 4200, 50, 1, 1, 'brand-063', 'CeraVe', 'USA', 1920, 1920, datetime('now'), datetime('now'));
+
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-cerave-008-1', 'prod-cerave-008', 'CEV-CACC-237ml', 'CeraVe Acne Control Cleanser - 237ml', 3200, 4200, 50, '237ml', 1, 1, 10, 5, 20, 'USA', 1920, 1920, datetime('now'), datetime('now'));
+
+-- CeraVe Blemish Control Cleanser
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-cerave-009', 'CeraVe Blemish Control Cleanser', 'cerave-blemish-control-cleanser', 'Blemish control cleanser with niacinamide and ceramides to reduce blemishes and improve skin tone.', 'cat-cleanser', 3200, 3200, 4200, 50, 1, 1, 'brand-063', 'CeraVe', 'USA', 1920, 1920, datetime('now'), datetime('now'));
+
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-cerave-009-1', 'prod-cerave-009', 'CEV-CBCC-236ml', 'CeraVe Blemish Control Cleanser - 236ml', 3200, 4200, 50, '236ml', 1, 1, 10, 5, 20, 'USA', 1920, 1920, datetime('now'), datetime('now'));
+
+-- CERAVE FACE MOISTURIZERS
+-- CeraVe PM Facial Moisturizing Lotion
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-cerave-010', 'CeraVe PM Facial Moisturizing Lotion', 'cerave-pm-facial-moisturizing-lotion', 'Night cream with niacinamide and ceramides for overnight skin repair and hydration.', 'cat-night-cream', 3200, 3200, 4200, 50, 1, 1, 'brand-063', 'CeraVe', 'USA', 1920, 1920, datetime('now'), datetime('now'));
+
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-cerave-010-1', 'prod-cerave-010', 'CEV-CPFML-52ml', 'CeraVe PM Facial Moisturizing Lotion - 52ml', 3200, 4200, 50, '52ml', 1, 1, 10, 5, 20, 'USA', 1920, 1920, datetime('now'), datetime('now'));
+
+-- CeraVe AM Facial Moisturizing Lotion SPF30
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-cerave-011', 'CeraVe AM Facial Moisturizing Lotion SPF30', 'cerave-am-facial-moisturizing-lotion-spf30', 'Daily facial moisturizer with SPF30, niacinamide, and ceramides for sun protection and hydration.', 'cat-day-cream', 3500, 3500, 4500, 50, 1, 1, 'brand-063', 'CeraVe', 'USA', 2100, 2100, datetime('now'), datetime('now'));
+
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-cerave-011-1', 'prod-cerave-011', 'CEV-CAFMSPF30-89ml', 'CeraVe AM Facial Moisturizing Lotion SPF30 - 89ml', 3500, 4500, 50, '89ml', 1, 1, 10, 5, 20, 'USA', 2100, 2100, datetime('now'), datetime('now'));
+
+-- CeraVe Facial Moisturizing Lotion SPF50
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-cerave-012', 'CeraVe Facial Moisturizing Lotion SPF50', 'cerave-facial-moisturizing-lotion-spf50', 'Facial moisturizer with SPF50, niacinamide, and ceramides for high sun protection and hydration.', 'cat-moisturizer', 3650, 3650, 4800, 50, 1, 1, 'brand-063', 'CeraVe', 'USA', 2190, 2190, datetime('now'), datetime('now'));
+
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-cerave-012-1', 'prod-cerave-012', 'CEV-CFMLSPF50-52ml', 'CeraVe Facial Moisturizing Lotion SPF50 - 52ml', 3650, 4800, 50, '52ml', 1, 1, 10, 5, 20, 'USA', 2190, 2190, datetime('now'), datetime('now'));
+
+-- CeraVe Moisturizing Cream Tube
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-cerave-013', 'CeraVe Moisturizing Cream Tube', 'cerave-moisturizing-cream-tube', 'Convenient tube format of the classic moisturizing cream for on-the-go hydration.', 'cat-moisturizer', 1100, 1100, 1400, 50, 1, 1, 'brand-063', 'CeraVe', 'USA', 660, 660, datetime('now'), datetime('now'));
+
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-cerave-013-1', 'prod-cerave-013', 'CEV-CMCT-50ml', 'CeraVe Moisturizing Cream Tube - 50ml', 1100, 1400, 50, '50ml', 1, 1, 10, 5, 20, 'USA', 660, 660, datetime('now'), datetime('now'));
+
+-- CeraVe Eye Repair Cream
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-cerave-014', 'CeraVe Eye Repair Cream', 'cerave-eye-repair-cream', 'Eye cream with ceramides and niacinamide to reduce puffiness and dark circles.', 'cat-eye-cream', 2500, 2500, 3200, 50, 1, 1, 'brand-063', 'CeraVe', 'USA', 1500, 1500, datetime('now'), datetime('now'));
+
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-cerave-014-1', 'prod-cerave-014', 'CEV-CERC-14ml', 'CeraVe Eye Repair Cream - 14ml', 2500, 3200, 50, '14ml', 1, 1, 10, 5, 20, 'USA', 1500, 1500, datetime('now'), datetime('now'));
+
+-- CeraVe Healing Ointment
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, availableSizes, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-cerave-015', 'CeraVe Healing Ointment', 'cerave-healing-ointment', 'Protective ointment with ceramides for dry, cracked skin. Cuts, scrapes, and burns.', 'cat-body-cream', 4750, 4750, 6000, 50, 1, 1, 'brand-063', 'CeraVe', 'USA', '["85g","340g"]', 2850, 2850, datetime('now'), datetime('now'));
+
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-cerave-015-1', 'prod-cerave-015', 'CEV-CHO-85g', 'CeraVe Healing Ointment - 85g', 2500, 3200, 50, '85g', 1, 0, 10, 5, 20, 'USA', 1500, 1500, datetime('now'), datetime('now')),
+('var-cerave-015-2', 'prod-cerave-015', 'CEV-CHO-340g', 'CeraVe Healing Ointment - 340g', 4750, 6000, 50, '340g', 1, 1, 10, 5, 20, 'USA', 2850, 2850, datetime('now'), datetime('now'));
+
+-- CERAVE SERUMS & TREATMENTS
+-- CeraVe Hydrating Hyaluronic Acid Serum
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-cerave-016', 'CeraVe Hydrating Hyaluronic Acid Serum', 'cerave-hydrating-hyaluronic-acid-serum', 'Hydrating serum with hyaluronic acid and ceramides for plump, hydrated skin.', 'cat-serum', 3500, 3500, 4500, 50, 1, 1, 'brand-063', 'CeraVe', 'USA', 2100, 2100, datetime('now'), datetime('now'));
+
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-cerave-016-1', 'prod-cerave-016', 'CEV-CHHAS-30ml', 'CeraVe Hydrating Hyaluronic Acid Serum - 30ml', 3500, 4500, 50, '30ml', 1, 1, 10, 5, 20, 'USA', 2100, 2100, datetime('now'), datetime('now'));
+
+-- CeraVe Resurfacing Retinol Serum
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-cerave-017', 'CeraVe Resurfacing Retinol Serum', 'cerave-resurfacing-retinol-serum', 'Anti-aging serum with encapsulated retinol and ceramides to improve skin texture and reduce fine lines.', 'cat-serum', 3900, 3900, 5000, 50, 1, 1, 'brand-063', 'CeraVe', 'USA', 2340, 2340, datetime('now'), datetime('now'));
+
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-cerave-017-1', 'prod-cerave-017', 'CEV-CRRS-30ml', 'CeraVe Resurfacing Retinol Serum - 30ml', 3900, 5000, 50, '30ml', 1, 1, 10, 5, 20, 'USA', 2340, 2340, datetime('now'), datetime('now'));
+
+-- CeraVe Skin Renewing Retinol Serum
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-cerave-018', 'CeraVe Skin Renewing Retinol Serum', 'cerave-skin-renewing-retinol-serum', 'Skin-renewing serum with retinol and ceramides for smoother, more youthful-looking skin.', 'cat-serum', 4000, 4000, 5200, 50, 1, 1, 'brand-063', 'CeraVe', 'USA', 2400, 2400, datetime('now'), datetime('now'));
+
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-cerave-018-1', 'prod-cerave-018', 'CEV-CSRRS-30ml', 'CeraVe Skin Renewing Retinol Serum - 30ml', 4000, 5200, 50, '30ml', 1, 1, 10, 5, 20, 'USA', 2400, 2400, datetime('now'), datetime('now'));
+
+-- CeraVe Vitamin C Serum
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-cerave-019', 'CeraVe Vitamin C Serum', 'cerave-vitamin-c-serum', 'Brightening serum with 10% pure vitamin C and ceramides for radiant, even-toned skin.', 'cat-serum', 4000, 4000, 5200, 50, 1, 1, 'brand-063', 'CeraVe', 'USA', 2400, 2400, datetime('now'), datetime('now'));
+
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-cerave-019-1', 'prod-cerave-019', 'CEV-CVCS-30ml', 'CeraVe Vitamin C Serum - 30ml', 4000, 5200, 50, '30ml', 1, 1, 10, 5, 20, 'USA', 2400, 2400, datetime('now'), datetime('now'));
+
+-- CeraVe Acne Control Gel
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-cerave-020', 'CeraVe Acne Control Gel', 'cerave-acne-control-gel', 'Acne treatment gel with 2% salicylic acid and ceramides to treat acne and prevent future breakouts.', 'cat-serum', 3500, 3500, 4500, 50, 1, 1, 'brand-063', 'CeraVe', 'USA', 2100, 2100, datetime('now'), datetime('now'));
+
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-cerave-020-1', 'prod-cerave-020', 'CEV-CACG-40ml', 'CeraVe Acne Control Gel - 40ml', 3500, 4500, 50, '40ml', 1, 1, 10, 5, 20, 'USA', 2100, 2100, datetime('now'), datetime('now'));
+
+-- CeraVe Blemish Control Gel
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-cerave-021', 'CeraVe Blemish Control Gel', 'cerave-blemish-control-gel', 'Blemish control gel with niacinamide and ceramides to reduce blemishes and improve skin tone.', 'cat-serum', 3500, 3500, 4500, 50, 1, 1, 'brand-063', 'CeraVe', 'USA', 2100, 2100, datetime('now'), datetime('now'));
+
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-cerave-021-1', 'prod-cerave-021', 'CEV-CBCG-40ml', 'CeraVe Blemish Control Gel - 40ml', 3500, 4500, 50, '40ml', 1, 1, 10, 5, 20, 'USA', 2100, 2100, datetime('now'), datetime('now'));
+
+-- CERAVE SA COLLECTION
+-- CeraVe SA Smoothing Cream
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, availableSizes, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-cerave-022', 'CeraVe SA Smoothing Cream', 'cerave-sa-smoothing-cream', 'Exfoliating cream with salicylic acid and ceramides for rough and bumpy skin relief.', 'cat-body-cream', 4650, 4650, 5800, 50, 1, 1, 'brand-063', 'CeraVe', 'USA', '["177ml","340g"]', 2790, 2790, datetime('now'), datetime('now'));
+
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-cerave-022-1', 'prod-cerave-022', 'CEV-CSASC2-177ml', 'CeraVe SA Smoothing Cream - 177ml', 3000, 3800, 50, '177ml', 1, 0, 10, 5, 20, 'USA', 1800, 1800, datetime('now'), datetime('now')),
+('var-cerave-022-2', 'prod-cerave-022', 'CEV-CSASC2-340g', 'CeraVe SA Smoothing Cream - 340g', 4650, 5800, 50, '340g', 1, 1, 10, 5, 20, 'USA', 2790, 2790, datetime('now'), datetime('now'));
+
+-- CeraVe SA Lotion
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, availableSizes, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-cerave-023', 'CeraVe SA Lotion', 'cerave-sa-lotion', 'Exfoliating lotion with salicylic acid and ceramides for rough and bumpy skin.', 'cat-body-lotion', 5350, 5350, 6500, 50, 1, 1, 'brand-063', 'CeraVe', 'USA', '["236ml","473ml"]', 3210, 3210, datetime('now'), datetime('now'));
+
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-cerave-023-1', 'prod-cerave-023', 'CEV-CSAL-236ml', 'CeraVe SA Lotion - 236ml', 3350, 4200, 50, '236ml', 1, 0, 10, 5, 20, 'USA', 2010, 2010, datetime('now'), datetime('now')),
+('var-cerave-023-2', 'prod-cerave-023', 'CEV-CSAL-473ml', 'CeraVe SA Lotion - 473ml', 5350, 6500, 50, '473ml', 1, 1, 10, 5, 20, 'USA', 3210, 3210, datetime('now'), datetime('now'));
+
+-- CERAVE BABY
+-- CeraVe Baby Moisturizing Lotion
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-cerave-024', 'CeraVe Baby Moisturizing Lotion', 'cerave-baby-moisturizing-lotion', 'Baby moisturizing lotion with ceramides and vitamins for gentle, long-lasting hydration.', 'cat-baby-lotion', 3000, 3000, 3800, 50, 1, 1, 'brand-063', 'CeraVe', 'USA', 1800, 1800, datetime('now'), datetime('now'));
+
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-cerave-024-1', 'prod-cerave-024', 'CEV-CBML-237ml', 'CeraVe Baby Moisturizing Lotion - 237ml', 3000, 3800, 50, '237ml', 1, 1, 10, 5, 20, 'USA', 1800, 1800, datetime('now'), datetime('now'));
+
+-- CeraVe Baby Wash & Shampoo
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-cerave-025', 'CeraVe Baby Wash & Shampoo', 'cerave-baby-wash-shampoo', 'Tear-free baby wash and shampoo with ceramides and vitamins for gentle cleansing.', 'cat-baby-wash', 3000, 3000, 3800, 50, 1, 1, 'brand-063', 'CeraVe', 'USA', 1800, 1800, datetime('now'), datetime('now'));
+
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-cerave-025-1', 'prod-cerave-025', 'CEV-CBWS-237ml', 'CeraVe Baby Wash & Shampoo - 237ml', 3000, 3800, 50, '237ml', 1, 1, 10, 5, 20, 'USA', 1800, 1800, datetime('now'), datetime('now'));
+
+-- CeraVe Baby Healing Ointment
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-cerave-026', 'CeraVe Baby Healing Ointment', 'cerave-baby-healing-ointment', 'Baby healing ointment with ceramides for diaper rash and minor skin irritations.', 'cat-diaper-rash-cream', 2500, 2500, 3200, 50, 1, 1, 'brand-063', 'CeraVe', 'USA', 1500, 1500, datetime('now'), datetime('now'));
+
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-cerave-026-1', 'prod-cerave-026', 'CEV-CBHO-85g', 'CeraVe Baby Healing Ointment - 85g', 2500, 3200, 50, '85g', 1, 1, 10, 5, 20, 'USA', 1500, 1500, datetime('now'), datetime('now'));
+
+-- CERAVE ADVANCED / SPECIALTY
+-- CeraVe Diabetics Dry Skin Relief Lotion
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-cerave-027', 'CeraVe Diabetics Dry Skin Relief Lotion', 'cerave-diabetics-dry-skin-relief-lotion', 'Specialized lotion for diabetic skin with ceramides and urea for intense hydration.', 'cat-body-lotion', 3500, 3500, 4500, 50, 1, 1, 'brand-063', 'CeraVe', 'USA', 2100, 2100, datetime('now'), datetime('now'));
+
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-cerave-027-1', 'prod-cerave-027', 'CEV-CDDSRL-236ml', 'CeraVe Diabetics Dry Skin Relief Lotion - 236ml', 3500, 4500, 50, '236ml', 1, 1, 10, 5, 20, 'USA', 2100, 2100, datetime('now'), datetime('now'));
+
+-- CeraVe Itch Relief Moisturizing Cream
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-cerave-028', 'CeraVe Itch Relief Moisturizing Cream', 'cerave-itch-relief-moisturizing-cream', 'Itch relief cream with pramoxine and ceramides for instant relief from itchiness.', 'cat-body-cream', 5000, 5000, 6500, 50, 1, 1, 'brand-063', 'CeraVe', 'USA', 3000, 3000, datetime('now'), datetime('now'));
+
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-cerave-028-1', 'prod-cerave-028', 'CEV-CIRMC-340g', 'CeraVe Itch Relief Moisturizing Cream - 340g', 5000, 6500, 50, '340g', 1, 1, 10, 5, 20, 'USA', 3000, 3000, datetime('now'), datetime('now'));
+
+-- CeraVe Psoriasis Moisturizing Cream
+INSERT INTO products (id, name, slug, description, categoryId, price, basePrice, comparePrice, stock, isActive, hasVariants, brandId, brandName, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('prod-cerave-029', 'CeraVe Psoriasis Moisturizing Cream', 'cerave-psoriasis-moisturizing-cream', 'Psoriasis treatment cream with salicylic acid and ceramides for relief from psoriasis symptoms.', 'cat-body-cream', 4700, 4700, 6200, 50, 1, 1, 'brand-063', 'CeraVe', 'USA', 2820, 2820, datetime('now'), datetime('now'));
+
+INSERT INTO product_variants (id, productId, sku, name, price, comparePrice, stock, size, isActive, isDefault, lowStockAlert, reorderLevel, reorderQty, countryOfOrigin, totalCost, averageCost, createdAt, updatedAt) VALUES
+('var-cerave-029-1', 'prod-cerave-029', 'CEV-CPMC-227g', 'CeraVe Psoriasis Moisturizing Cream - 227g', 4700, 6200, 50, '227g', 1, 1, 10, 5, 20, 'USA', 2820, 2820, datetime('now'), datetime('now'));
+
+-- Insert Email Service
+INSERT OR REPLACE INTO email_services (id, name, provider, fromEmail, fromName, isActive, isDefault, createdAt, updatedAt) VALUES
+('email-default', 'Default SMTP', 'custom', 'noreply@beautystore.com', 'Beauty & Personal Care', 1, 1, datetime('now'), datetime('now'));
+
+-- Insert Payment Gateway
+INSERT OR REPLACE INTO payment_gateways (id, name, provider, isActive, isDefault, createdAt, updatedAt) VALUES
+('payment-cod', 'Cash on Delivery', 'custom', 1, 1, datetime('now'), datetime('now'));
+
+-- Insert Shipping Carrier
+INSERT OR REPLACE INTO shipping_carriers (id, name, provider, isActive, isDefault, createdAt, updatedAt) VALUES
+('shipping-default', 'Standard Delivery', 'custom', 1, 1, datetime('now'), datetime('now'));
 
 -- Insert Banners
 INSERT OR REPLACE INTO banners (id, title, description, image, mobileImage, buttonText, buttonLink, isActive, `order`, createdAt, updatedAt) VALUES
-('banner-001', 'New Collection', 'Explore our latest arrivals', 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1600', 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800', 'Shop Now', '/shop', 1, 1, datetime('now'), datetime('now')),
-('banner-002', 'Special Offers', 'Up to 50% off on selected items', 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1600', 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800', 'View Deals', '/shop?sale=true', 1, 2, datetime('now'), datetime('now')),
-('banner-003', 'Free Shipping', 'Free shipping on orders over ৳5000', 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1600', 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800', 'Learn More', '/shipping', 1, 3, datetime('now'), datetime('now'));
-
--- Insert Reels
-INSERT OR REPLACE INTO reels (id, title, thumbnail, videoUrl, productIds, isActive, `order`, createdAt, updatedAt) VALUES
-('reel-001', 'Summer Collection', 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600', 'https://example.com/reel-1.mp4', '["prod-001", "prod-009", "prod-020"]', 1, 1, datetime('now'), datetime('now')),
-('reel-002', 'Bridal Special', 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600', 'https://example.com/reel-2.mp4', '["prod-015", "prod-016", "prod-019"]', 1, 2, datetime('now'), datetime('now')),
-('reel-003', 'Casual Wear', 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600', 'https://example.com/reel-3.mp4', '["prod-020", "prod-026", "prod-030"]', 1, 3, datetime('now'), datetime('now')),
-('reel-004', 'Festival Season', 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600', 'https://example.com/reel-4.mp4', '["prod-002", "prod-010", "prod-012"]', 1, 4, datetime('now'), datetime('now')),
-('reel-005', 'Accessories', 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600', 'https://example.com/reel-5.mp4', '["prod-045", "prod-046", "prod-051"]', 1, 5, datetime('now'), datetime('now'));
-
--- Insert Stories
-INSERT OR REPLACE INTO stories (id, title, thumbnail, images, isActive, `order`, createdAt, updatedAt) VALUES
-('story-001', 'New Arrivals', 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=400', '["https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600", "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600"]', 1, 1, datetime('now'), datetime('now')),
-('story-002', 'Trending Now', 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400', '["https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600", "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600"]', 1, 2, datetime('now'), datetime('now')),
-('story-003', 'Best Sellers', 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=400', '["https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600", "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600"]', 1, 3, datetime('now'), datetime('now')),
-('story-004', 'Saree Collection', 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=400', '["https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=600", "https://images.unsplash.com/photo-1610030469668-98e550d6193d?w=600"]', 1, 4, datetime('now'), datetime('now')),
-('story-005', 'Menswear', 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=400', '["https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=600", "https://images.unsplash.com/photo-1625910513413-5fc0ec78d0d5?w=600"]', 1, 5, datetime('now'), datetime('now'));
+('banner-001', 'New Collection', 'Explore our latest arrivals', 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=1600', 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=800', 'Shop Now', '/shop', 1, 1, datetime('now'), datetime('now')),
+('banner-002', 'Special Offers', 'Up to 50% off on selected items', 'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=1600', 'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=800', 'View Deals', '/shop?sale=true', 1, 2, datetime('now'), datetime('now')),
+('banner-003', 'Free Shipping', 'Free shipping on orders over ৳5000', 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=1600', 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=800', 'Learn More', '/shipping', 1, 3, datetime('now'), datetime('now'));
 
 -- Insert Homepage Settings
 INSERT OR REPLACE INTO homepage_settings (id, sectionName, isEnabled, autoPlay, displayLimit, settings, createdAt, updatedAt) VALUES
 ('hero-enabled', 'hero', 1, 5000, 5, NULL, datetime('now'), datetime('now')),
-('brands-enabled', 'brands', 1, 5000, 10, '{"brandIds": ["brand-001", "brand-002", "brand-003", "brand-004", "brand-005", "brand-006", "brand-007", "brand-008"], "autoScroll": true, "scrollInterval": 4000, "heading": "Featured Brands", "description": "Discover top brands in our collection"}', datetime('now'), datetime('now')),
-('featured-products-enabled', 'featured_products', 1, 3000, 10, '{"productIds": [], "heading": "Featured Products", "description": "Discover our handpicked selection of top products"}', datetime('now'), datetime('now')),
-('reels-enabled', 'reels', 1, 3000, 10, NULL, datetime('now'), datetime('now')),
-('category-carousel-enabled', 'category-carousel', 1, 4000, 8, '{"categoryIds": [], "heading": "Shop by Category", "description": "Explore our wide range of categories"}', datetime('now'), datetime('now')),
-('stories-enabled', 'stories', 1, 4000, 5, NULL, datetime('now'), datetime('now')),
-('marquee-enabled', 'marquee', 1, 0, 1, '{"text": "", "heading": "Special Offers", "description": "Don''t miss out on our amazing deals"}', datetime('now'), datetime('now')),
-('mosaic-grid-enabled', 'mosaic_grid', 1, 0, 6, '{"productIds": [], "heading": "Shop the Look", "description": "Explore our curated collection of trending styles"}', datetime('now'), datetime('now')),
-('fullscreen-video-enabled', 'fullscreen-video', 1, 0, NULL, '{"videoUrl": "", "heading": "Featured Video", "description": "Experience our exclusive video content"}', datetime('now'), datetime('now')),
-('section-manager-enabled', 'section-manager', 1, 0, NULL, '{"sections": [{"id": "fullscreen-video", "name": "Fullscreen Video", "order": 1, "enabled": true}, {"id": "hero-slider", "name": "Hero Carousel", "order": 2, "enabled": true}, {"id": "marquee", "name": "Marquee Banner", "order": 3, "enabled": true}, {"id": "categories", "name": "Categories", "order": 4, "enabled": true}, {"id": "category-carousel", "name": "Category Carousel", "order": 5, "enabled": true}, {"id": "brands", "name": "Brand Carousel", "order": 6, "enabled": true}, {"id": "featured-products", "name": "Featured Products", "order": 7, "enabled": true}, {"id": "mosaic-grid", "name": "Mosaic Grid", "order": 8, "enabled": true}, {"id": "video-reels", "name": "Video Reels", "order": 9, "enabled": true}, {"id": "promotions", "name": "Promotions", "order": 10, "enabled": true}, {"id": "stories", "name": "Stories", "order": 11, "enabled": true}]}', datetime('now'), datetime('now'));
+('brands-enabled', 'brands', 1, 5000, 10, '{"brandIds": ["brand-023", "brand-063"], "autoScroll": true, "scrollInterval": 4000, "heading": "Featured Brands", "description": "Discover top beauty brands"}', datetime('now'), datetime('now')),
+('featured-products-enabled', 'featured_products', 1, 3000, 10, '{"productIds": [], "heading": "Featured Products", "description": "Discover our handpicked selection"}', datetime('now'), datetime('now')),
+('category-carousel-enabled', 'category-carousel', 1, 4000, 8, '{"categoryIds": [], "heading": "Shop by Category", "description": "Explore our wide range"}', datetime('now'), datetime('now'));
 
 -- Insert Promotions
 INSERT OR REPLACE INTO promotions (id, title, description, image, ctaText, ctaLink, promoCode, discountType, discountValue, minOrderAmount, isActive, `order`, createdAt, updatedAt) VALUES
-('promo-001', 'First Order Discount', 'Get 10% off on your first order', 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600', 'Use Code FIRST10', '/shop', 'FIRST10', 'percentage', 10, 1000, 1, 1, datetime('now'), datetime('now')),
-('promo-002', 'Summer Sale', 'Flat ৳500 off on orders above ৳3000', 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=600', 'Use Code SUMMER500', '/shop', 'SUMMER500', 'fixed', 500, 3000, 1, 2, datetime('now'), datetime('now')),
-('promo-003', 'Festival Special', 'Extra 15% off on ethnic wear', 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600', 'Shop Festival Collection', '/shop?category=saree', 'FESTIVAL15', 'percentage', 15, 2000, 1, 3, datetime('now'), datetime('now'));
+('promo-001', 'First Order Discount', 'Get 10% off on your first order', 'https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=600', 'Use Code FIRST10', '/shop', 'FIRST10', 'percentage', 10, 1000, 1, 1, datetime('now'), datetime('now')),
+('promo-002', 'Summer Sale', 'Flat ৳500 off on orders above ৳3000', 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=600', 'Use Code SUMMER500', '/shop', 'SUMMER500', 'fixed', 500, 3000, 1, 2, datetime('now'), datetime('now'));
 
 -- Insert Page SEO
 INSERT OR REPLACE INTO page_seo (id, pagePath, pageTitle, metaTitle, metaDescription, keywords, ogTitle, ogDescription, isActive, createdAt, updatedAt) VALUES
-('seo-home', '/', 'SCommerce - Your Fashion Destination', 'SCommerce - Best Ethnic Wear Collection', 'Shop the latest collection of sarees, salwar suits, lehengas, kurtas, and more at SCommerce. Free shipping on orders over ৳5000.', 'sarees, salwar suits, lehengas, kurtas, ethnic wear, fashion, online shopping, Bangladesh', 'SCommerce - Premium Ethnic Wear', 'Discover premium ethnic wear at SCommerce. Quality fashion at best prices.', 1, datetime('now'), datetime('now')),
-('seo-shop', '/shop', 'Shop - SCommerce', 'Shop All Products - SCommerce', 'Browse our complete collection of ethnic wear and fashion items for men and women.', 'shop, products, online shopping, fashion store', 'Shop Fashion at SCommerce', 'Find your perfect style from our extensive collection.', 1, datetime('now'), datetime('now')),
-('seo-about', '/about', 'About Us - SCommerce', 'About SCommerce', 'Learn about SCommerce and our commitment to quality fashion and customer satisfaction.', 'about us, company, fashion, ecommerce', 'About SCommerce', 'Your trusted destination for premium ethnic wear and fashion.', 1, datetime('now'), datetime('now')),
-('seo-contact', '/contact', 'Contact Us - SCommerce', 'Contact SCommerce', 'Get in touch with us for any queries, support, or feedback.', 'contact, support, help, customer service', 'Contact SCommerce', 'We are here to help. Reach out to us anytime.', 1, datetime('now'), datetime('now'));
+('seo-home', '/', 'Beauty & Personal Care', 'Beauty & Personal Care Store', 'Shop the best beauty and personal care products at great prices.', 'beauty, skincare, makeup, personal care, cosmetics, online shopping, Bangladesh', 'Beauty & Personal Care Store', 'Your one-stop shop for all beauty needs.', 1, datetime('now'), datetime('now')),
+('seo-shop', '/shop', 'Shop - Beauty Store', 'Shop All Products', 'Browse our complete collection of beauty and personal care products.', 'shop, products, beauty, cosmetics', 'Shop Beauty Products', 'Find your perfect beauty products here.', 1, datetime('now'), datetime('now'));
 
--- Insert Default Suppliers
-INSERT OR REPLACE INTO suppliers (id, code, name, email, phone, city, country, isActive, createdAt, updatedAt) VALUES
-('sup-001', 'SUP001', 'Fashion Hub Ltd', 'contact@fashionhub.com', '+8801700000001', 'Dhaka', 'Bangladesh', 1, datetime('now'), datetime('now')),
-('sup-002', 'SUP002', 'Textile World', 'info@textileworld.com', '+8801700000002', 'Chittagong', 'Bangladesh', 1, datetime('now'), datetime('now')),
-('sup-003', 'SUP003', 'Premium Fabrics', 'sales@premiumfabrics.com', '+8801700000003', 'Dhaka', 'Bangladesh', 1, datetime('now'), datetime('now')),
-('sup-004', 'SUP004', 'Silk Mills', 'orders@silkmills.com', '+919876543210', 'Varanasi', 'India', 1, datetime('now'), datetime('now')),
-('sup-005', 'SUP005', 'Cotton Exports', 'trade@cottonexports.com', '+919876543211', 'Mumbai', 'India', 1, datetime('now'), datetime('now'));
-
--- Insert Default Email Service
-INSERT OR REPLACE INTO email_services (id, name, provider, fromEmail, fromName, isActive, isDefault, createdAt, updatedAt) VALUES
-('email-default', 'Default SMTP', 'custom', 'noreply@scommerce.com', 'SCommerce', 1, 1, datetime('now'), datetime('now'));
-
--- Insert Default Payment Gateway
-INSERT OR REPLACE INTO payment_gateways (id, name, provider, isActive, isDefault, createdAt, updatedAt) VALUES
-('payment-cod', 'Cash on Delivery', 'custom', 1, 1, datetime('now'), datetime('now'));
-
--- Insert Default Shipping Carrier
-INSERT OR REPLACE INTO shipping_carriers (id, name, provider, isActive, isDefault, createdAt, updatedAt) VALUES
-('shipping-default', 'Standard Delivery', 'custom', 1, 1, datetime('now'), datetime('now'));
-
--- Insert Sample Orders
-INSERT OR REPLACE INTO orders (id, orderNumber, userId, customerName, customerEmail, customerPhone, shippingAddress, billingAddress, city, district, division, subtotal, shipping, tax, discount, total, status, paymentStatus, paymentMethod, createdAt, updatedAt) VALUES
-('order-001', 'ORD-2024001', 'user-001', 'Demo User', 'user@scommerce.com', '+8801800000000', 'House 123, Road 5, Dhanmondi', 'House 123, Road 5, Dhanmondi', 'Dhaka', 'Dhaka', 'Dhaka', 4500, 150, 810, 0, 5460, 'DELIVERED', 'PAID', 'COD', datetime('now', '-5 days'), datetime('now')),
-('order-002', 'ORD-2024002', 'user-001', 'Demo User', 'user@scommerce.com', '+8801800000000', 'House 123, Road 5, Dhanmondi', 'House 123, Road 5, Dhanmondi', 'Dhaka', 'Dhaka', 'Dhaka', 2800, 150, 504, 280, 3174, 'PROCESSING', 'PENDING', 'COD', datetime('now', '-1 day'), datetime('now'));
-
--- Insert Sample Order Items
-INSERT OR REPLACE INTO order_items (id, orderId, productId, variantId, quantity, price, productName, productImage, variantSku, variantSize, variantColor, createdAt) VALUES
-('order-item-001', 'order-001', 'prod-001', 'var-001-1', 1, 3500, 'Silk Saree - Royal Blue', '["https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=800"]', 'SAREE-BLUE-6M', '6m', 'Blue', datetime('now')),
-('order-item-002', 'order-001', 'prod-009', 'var-009-2', 1, 1000, 'Cotton Salwar Suit', '["https://images.unsplash.com/photo-1583391733958-3750e0ff4e8b?w=800"]', 'SALWAR-GREEN-M', 'M', 'Green', datetime('now')),
-('order-item-003', 'order-002', 'prod-020', 'var-020-2', 2, 800, 'Cotton Kurta', '["https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=800"]', 'KURTA-WHITE-M', 'M', 'White', datetime('now')),
-('order-item-004', 'order-002', 'prod-026', 'var-026-2', 1, 1200, 'Formal Shirt', '["https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=800"]', 'SHIRT-WHITE-M', 'M', 'White', datetime('now'));
-
--- Insert Sample Reviews
-INSERT OR REPLACE INTO product_reviews (id, productId, userId, userName, rating, title, comment, isVerified, isApproved, createdAt, updatedAt) VALUES
-('review-001', 'prod-001', 'user-001', 'Demo User', 5, 'Beautiful saree!', 'The silk saree exceeded my expectations. The quality is amazing and it looks even better in person.', 1, 1, datetime('now', '-3 days'), datetime('now')),
-('review-002', 'prod-009', 'user-001', 'Demo User', 4, 'Comfortable and stylish', 'Great salwar suit for daily wear. Comfortable fabric and nice embroidery work.', 1, 1, datetime('now', '-3 days'), datetime('now')),
-('review-003', 'prod-020', 'user-001', 'Demo User', 5, 'Perfect fit', 'The kurta fits perfectly and the fabric is very comfortable. Will buy again!', 1, 1, datetime('now', '-2 days'), datetime('now')),
-('review-004', 'prod-015', 'user-001', 'Demo User', 5, 'Stunning bridal lehenga', 'Absolutely beautiful lehenga! The embroidery work is intricate and the color is rich.', 1, 1, datetime('now', '-1 day'), datetime('now'));
+-- Summary output
+SELECT 'SEEDING COMPLETE' AS status;
+SELECT COUNT(*) AS total_categories FROM categories;
+SELECT COUNT(*) AS active_categories FROM categories WHERE isActive = 1;
+SELECT COUNT(*) AS total_brands FROM brands;
+SELECT COUNT(*) AS active_brands FROM brands WHERE isActive = 1;
+SELECT COUNT(*) AS total_products FROM products;
+SELECT COUNT(*) AS active_products FROM products WHERE isActive = 1;
+SELECT COUNT(*) AS total_variants FROM product_variants;
+SELECT COUNT(*) AS active_variants FROM product_variants WHERE isActive = 1;

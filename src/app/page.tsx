@@ -197,7 +197,7 @@ function HeroCarousel({ banners, autoPlay = 5000 }: { banners: Banner[], autoPla
   }, [nextSlide, autoPlay])
 
   return (
-    <section className="relative w-full" style={{ minHeight: '378px' }}>
+    <section className="relative w-full">
       <div className="relative w-full overflow-hidden">
         <div 
           className="flex transition-transform duration-500 ease-in-out"
@@ -206,7 +206,7 @@ function HeroCarousel({ banners, autoPlay = 5000 }: { banners: Banner[], autoPla
           {banners && banners.length > 0 && banners.map((banner, index) => (
             <div key={banner.id} className="flex-shrink-0 w-full relative">
               <picture className="block w-full h-full">
-                <source media="(max-width: 767px)" srcSet={banner.mobileImage} width="580" height="700" />
+                <source media="(max-width: 767px)" srcSet={banner.mobileImage} width="580" />
                 <source media="(min-width: 768px)" srcSet={banner.desktopImage} width="1400" height="450" />
                 <img
                   src={banner.desktopImage}

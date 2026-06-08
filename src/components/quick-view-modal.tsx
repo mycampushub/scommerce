@@ -314,6 +314,79 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
     }
   }
 
+  const handleBuyNow = async () => {
+    if (hasVariants && !selectedVariant) {
+      toast.error('Please select a variant')
+      return
+    }
+
+    setAddingToCart(true)
+
+    // Small delay for visual feedback
+    await new Promise(resolve => setTimeout(resolve, 300))
+
+    try {
+      let cartItem: any
+
+      // Use variant data if available
+      if (hasVariants && selectedVariant) {
+        cartItem = {
+          id: product.id,
+          slug: product.slug,
+          name: selectedVariant.name || product.name,
+          price: selectedVariant.price,
+          originalPrice: selectedVariant.comparePrice || product.comparePrice || product.originalPrice,
+          image: (selectedVariant.images && selectedVariant.images[0]) || product.images?.[0] || product.image,
+          variantId: selectedVariant.id,
+          variantSku: selectedVariant.sku,
+          size: selectedVariant.size,
+          color: selectedVariant.color,
+          material: selectedVariant.material,
+          quantity,
+        }
+      } else {
+        cartItem = {
+          id: product.id,
+          slug: product.slug,
+          name: product.name,
+          price: product.basePrice || product.price,
+          originalPrice: product.comparePrice || product.originalPrice,
+          image: product.images?.[0] || product.image,
+          quantity,
+        }
+      }
+
+      // Add to local cart store
+      addItem(cartItem)
+
+      // Sync to server
+      try {
+        await fetch('/api/cart', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            action: 'add',
+            item: {
+              productId: cartItem.id,
+              variantId: cartItem.variantId,
+              quantity: cartItem.quantity,
+              size: cartItem.size,
+              color: cartItem.color,
+            },
+          }),
+        })
+      } catch (syncError) {
+        console.error('[QuickView] Error syncing cart to server:', syncError)
+      }
+
+      // Navigate to checkout
+      window.location.href = '/checkout'
+    } finally {
+      setAddingToCart(false)
+    }
+  }
+
   const handleToggleWishlist = async () => {
     setIsTogglingWishlist(true)
     try {
@@ -355,7 +428,7 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto overflow-x-hidden p-0 rounded-lg" aria-describedby="quick-view-description">
+      <DialogContent showCloseButton={false} className="max-w-7xl max-h-[90vh] overflow-y-auto overflow-x-hidden p-0 rounded-lg" aria-describedby="quick-view-description">
         <DialogHeader className="sr-only">
           <DialogTitle>Quick View - {product.name}</DialogTitle>
           <DialogDescription id="quick-view-description" className="sr-only">
@@ -647,19 +720,16 @@ export function QuickViewModal({ product, open, onOpenChange }: QuickViewModalPr
                   {addingToCart ? 'Adding...' : variantsError ? 'View Product Page' : currentStock <= 0 ? 'Out of Stock' : hasVariants && !selectedVariant ? 'Select a Variant' : 'Add to Cart'}
                 </button>
                 <button
-                  onClick={handleToggleWishlist}
-                  aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
-                  disabled={isTogglingWishlist}
-                  className={`h-12 w-full sm:w-auto px-6 rounded-lg font-semibold text-sm border-2 transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2 ${
-                    isWishlisted
-                      ? 'border-pink-600 text-pink-600'
-                      : 'border-gray-300 text-gray-700 hover:border-gray-400'
-                  } ${
-                    isTogglingWishlist ? 'opacity-50' : ''
+                  onClick={handleBuyNow}
+                  disabled={currentStock <= 0 || (hasVariants && !selectedVariant && !variantsError) || addingToCart || variantsError}
+                  className={`h-12 w-full sm:w-auto px-6 rounded-lg font-semibold text-sm transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2 ${
+                    currentStock <= 0 || (hasVariants && !selectedVariant && !variantsError) || addingToCart || variantsError
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-gray-900 text-white hover:bg-gray-800'
                   }`}
                 >
-                  {isTogglingWishlist ? <Loader2 className="w-4 h-4 animate-spin" /> : <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-pink-600' : ''}`} />}
-                  <span className="hidden sm:inline">{isTogglingWishlist ? '...' : (isWishlisted ? 'Wishlisted' : 'Wishlist')}</span>
+                  {addingToCart ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                  {addingToCart ? 'Processing...' : variantsError ? 'View Product Page' : currentStock <= 0 ? 'Out of Stock' : hasVariants && !selectedVariant ? 'Select a Variant' : 'Buy Now'}
                 </button>
               </div>
             </div>

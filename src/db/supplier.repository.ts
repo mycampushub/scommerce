@@ -74,12 +74,52 @@ export class SupplierRepository {
   }
 
   /**
+   * Get all suppliers with pagination
+   */
+  static async findAllPaginated(env: Env | null, options: { activeOnly?: boolean } = {}, limit: number = 20, offset: number = 0): Promise<Supplier[]> {
+    const { activeOnly = false } = options;
+
+    const whereClause = activeOnly ? 'WHERE isActive = 1' : '';
+
+    const suppliers = await queryAll<Supplier>(
+      env,
+      `SELECT * FROM suppliers ${whereClause} ORDER BY name ASC LIMIT ? OFFSET ?`,
+      ...(activeOnly ? [1] : []),
+      limit,
+      offset
+    );
+
+    return Array.isArray(suppliers) ? suppliers : [];
+  }
+
+  /**
+   * Search suppliers with pagination
+   */
+  static async searchPaginated(env: Env | null, query: string, activeOnly: boolean = false, limit: number = 20, offset: number = 0): Promise<Supplier[]> {
+    const whereClause = activeOnly ? 'WHERE isActive = 1' : '';
+    
+    const suppliers = await queryAll<Supplier>(
+      env,
+      `SELECT * FROM suppliers WHERE name LIKE ? OR email LIKE ? OR code LIKE ? ${whereClause} ORDER BY name ASC LIMIT ? OFFSET ?`,
+      `%${query}%`,
+      `%${query}%`,
+      `%${query}%`,
+      ...(activeOnly ? [1] : []),
+      limit,
+      offset
+    );
+
+    return Array.isArray(suppliers) ? suppliers : [];
+  }
+
+  /**
    * Get all suppliers
    */
   static async findAll(env: Env | null, options: { activeOnly?: boolean } = {}): Promise<Supplier[]> {
     try {
       const { activeOnly = false } = options;
       const whereClause = activeOnly ? 'WHERE isActive = 1' : '';
+
       const suppliers = await queryAll<Supplier>(
         env,
         `SELECT * FROM suppliers ${whereClause} ORDER BY name ASC`
@@ -87,6 +127,28 @@ export class SupplierRepository {
       return Array.isArray(suppliers) ? suppliers : [];
     } catch (error) {
       console.error('[SupplierRepository] Error fetching suppliers:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Search suppliers
+   */
+  static async search(env: Env | null, query: string, activeOnly: boolean = false): Promise<Supplier[]> {
+    try {
+      const whereClause = activeOnly ? 'WHERE isActive = 1' : '';
+      
+      const suppliers = await queryAll<Supplier>(
+        env,
+        `SELECT * FROM suppliers WHERE name LIKE ? OR email LIKE ? OR code LIKE ? ${whereClause} ORDER BY name ASC LIMIT 20`,
+        `%${query}%`,
+        `%${query}%`,
+        `%${query}%`,
+        ...(activeOnly ? [1] : [])
+      );
+      return Array.isArray(suppliers) ? suppliers : [];
+    } catch (error) {
+      console.error('[SupplierRepository] Error searching suppliers:', error);
       return [];
     }
   }
@@ -205,24 +267,5 @@ export class SupplierRepository {
       'SELECT COUNT(*) as count FROM suppliers'
     );
     return result?.count || 0;
-  }
-
-  /**
-   * Search suppliers
-   */
-  static async search(env: Env | null, query: string): Promise<Supplier[]> {
-    try {
-      const suppliers = await queryAll<Supplier>(
-        env,
-        `SELECT * FROM suppliers WHERE name LIKE ? OR email LIKE ? OR code LIKE ? ORDER BY name ASC`,
-        `%${query}%`,
-        `%${query}%`,
-        `%${query}%`
-      );
-      return Array.isArray(suppliers) ? suppliers : [];
-    } catch (error) {
-      console.error('[SupplierRepository] Error searching suppliers:', error);
-      return [];
-    }
   }
 }

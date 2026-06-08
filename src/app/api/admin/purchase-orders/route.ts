@@ -5,6 +5,7 @@ import { getEnv } from '@/lib/cloudflare';
 import { logAdminAction } from '@/lib/audit-logger';
 import { checkEnv } from '@/lib/api-helpers';
 import { purchaseOrderSchema } from '@/lib/validations';
+import { queryFirst } from '@/db/db';
 import { ZodError } from 'zod';
 
 // GET /api/admin/purchase-orders - List all purchase orders
@@ -29,23 +30,64 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') || undefined;
     const startDate = searchParams.get('startDate') ? new Date(searchParams.get('startDate')!) : undefined;
     const endDate = searchParams.get('endDate') ? new Date(searchParams.get('endDate')!) : undefined;
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
+    const limit = Math.min(100, Math.max(10, parseInt(searchParams.get('limit') || '20')))
+    const offset = (page - 1) * limit;
 
-    console.log('[Purchase Orders API] Fetching orders with filters:', { supplierId, status, startDate, endDate });
+    console.log('[Purchase Orders API] Fetching orders with filters:', { supplierId, status, startDate, endDate, page, limit });
 
     const purchaseOrders = await purchaseOrderRepository.findAll(env, {
       supplierId,
       status,
       startDate,
       endDate,
+      limit,
+      offset,
     });
 
     console.log('[Purchase Orders API] Fetched orders count:', purchaseOrders.length);
 
+    // Get total count for pagination
+    let countSql = 'SELECT COUNT(*) as count FROM purchase_orders WHERE 1=1'
+    const countParams: any[] = []
+    
+    if (supplierId) {
+      countSql += ' AND supplierId = ?'
+      countParams.push(supplierId)
+    }
+    if (status) {
+      countSql += ' AND status = ?'
+      countParams.push(status)
+    }
+    if (startDate) {
+      countSql += ' AND createdAt >= ?'
+      countParams.push(startDate.toISOString())
+    }
+    if (endDate) {
+      countSql += ' AND createdAt <= ?'
+      countParams.push(endDate.toISOString())
+    }
+
+    const countResult = await queryFirst<{ count: number }>(
+      env,
+      countSql,
+      ...countParams
+    )
+    const totalCount = countResult?.count || 0
+    const totalPages = Math.ceil(totalCount / limit)
+
     return NextResponse.json({
       success: true,
       data: purchaseOrders,
-      count: purchaseOrders.length,
-    });
+      pagination: {
+        page,
+        limit,
+        totalCount,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
+    })
   } catch (error) {
     console.error('[Purchase Orders API] Error fetching purchase orders:', error);
     const errorMessage = error instanceof Error ? error.message : String(error);

@@ -18,10 +18,15 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search') || ''
     const role = searchParams.get('role') || ''
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
+    const limit = Math.min(100, Math.max(10, parseInt(searchParams.get('limit') || '20')))
+    const offset = (page - 1) * limit
 
     let users = await queryAll<any>(
       env,
-      'SELECT * FROM users ORDER BY createdAt DESC'
+      'SELECT * FROM users ORDER BY createdAt DESC LIMIT ? OFFSET ?',
+      limit,
+      offset
     )
 
     // Filter by role (admin/staff)
@@ -61,10 +66,23 @@ export async function GET(request: NextRequest) {
       emailVerified: numberToBool(user.emailVerified)
     }))
 
+    // Get total count for pagination
+    const countWhereClause = role ? `WHERE role = '${role}'` : `WHERE role != 'user'`
+    const countResult = await count(env, 'users', countWhereClause)
+    const totalCount = countResult || 0
+    const totalPages = Math.ceil(totalCount / limit)
+
     return NextResponse.json({
       success: true,
       data: users,
-      total: users.length,
+      pagination: {
+        page,
+        limit,
+        totalCount,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
     })
   } catch (error) {
     console.error('Error fetching staff:', error)

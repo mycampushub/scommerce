@@ -385,7 +385,7 @@ export default function CheckoutPage() {
                     inStock: false,
                     availableStock: 0,
                     productExists: true,
-                    productActive: true,
+                    productActive: false,
                     errorMessage: 'Product variant is no longer available'
                   }
                   continue
@@ -415,8 +415,8 @@ export default function CheckoutPage() {
             itemKeys[itemKey] = {
               inStock: false,
               availableStock: 0,
-              productExists: true,
-              productActive: true,
+              productExists: false,
+              productActive: false,
               errorMessage: 'Product variant not found'
             }
             continue

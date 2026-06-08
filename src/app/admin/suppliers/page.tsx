@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -63,6 +63,16 @@ export default function SuppliersPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [activeFilter, setActiveFilter] = useState('all')
 
+  // Pagination state
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const [total, setTotal] = useState(0)
+
+  // Intersection Observer ref
+  const observerRef = useRef<IntersectionObserver | null>(null)
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
+
   // Add/Edit modal state
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null)
@@ -79,30 +89,89 @@ export default function SuppliersPage() {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const fetchSuppliers = async () => {
+  const fetchSuppliers = async (pageNum: number = 1, append: boolean = false) => {
+    if (append && isLoadingMore) return
+
     try {
-      setLoading(true)
-      const response = await fetch('/api/admin/suppliers')
+      if (!append) setLoading(true)
+      else setIsLoadingMore(true)
+
+      const params = new URLSearchParams()
+      params.append('page', pageNum.toString())
+      params.append('limit', '20')
+
+      const response = await fetch(`/api/admin/suppliers?${params.toString()}`)
       const result = await response.json()
 
       if (result.success) {
-        setSuppliers(result.data || [])
+        if (append) {
+          setSuppliers(prev => [...prev, ...(result.data || [])])
+        } else {
+          setSuppliers(result.data || [])
+        }
+
+        if (result.pagination) {
+          setHasMore(result.pagination.hasNextPage)
+          setTotal(result.pagination.totalCount)
+          setPage(pageNum)
+        }
       }
     } catch (err: any) {
       console.error('Error fetching suppliers:', err)
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch suppliers',
-        variant: 'destructive',
-      })
+      if (!append) {
+        toast({
+          title: 'Error',
+          description: 'Failed to fetch suppliers',
+          variant: 'destructive',
+        })
+      }
     } finally {
-      setLoading(false)
+      if (!append) setLoading(false)
+      else setIsLoadingMore(false)
     }
   }
 
   useEffect(() => {
-    fetchSuppliers()
+    fetchSuppliers(1, false)
   }, [])
+
+  // Load more data when sentinel is visible
+  const loadMore = useCallback(() => {
+    if (hasMore && !isLoadingMore && !loading) {
+      fetchSuppliers(page + 1, true)
+    }
+  }, [hasMore, isLoadingMore, loading, page])
+
+  // Setup IntersectionObserver
+  useEffect(() => {
+    if (observerRef.current) {
+      observerRef.current.disconnect()
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore) {
+          loadMore()
+        }
+      },
+      {
+        rootMargin: '100px',
+        threshold: 0.1
+      }
+    )
+
+    if (sentinelRef.current) {
+      observer.observe(sentinelRef.current)
+    }
+
+    observerRef.current = observer
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect()
+      }
+    }
+  }, [sentinelRef, hasMore, isLoadingMore, loading, loadMore])
 
   const openAddModal = () => {
     setEditingSupplier(null)
@@ -157,7 +226,7 @@ export default function SuppliersPage() {
           description: editingSupplier ? 'Supplier updated successfully' : 'Supplier created successfully',
         })
         setIsModalOpen(false)
-        fetchSuppliers()
+        fetchSuppliers(1, false)
       } else {
         const error = await response.json()
         throw new Error(error.error || 'Failed to save supplier')
@@ -191,7 +260,7 @@ export default function SuppliersPage() {
           title: 'Success',
           description: 'Supplier deleted successfully',
         })
-        fetchSuppliers()
+        fetchSuppliers(1, false)
       } else {
         throw new Error(result.error || 'Failed to delete supplier')
       }
@@ -238,7 +307,7 @@ export default function SuppliersPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-white/80">Total Suppliers</p>
-                <p className="text-2xl font-bold mt-1">{suppliers.length}</p>
+                <p className="text-2xl font-bold mt-1">{total}</p>
               </div>
               <Building2 className="h-8 w-8 text-white/80" />
             </div>
@@ -298,6 +367,12 @@ export default function SuppliersPage() {
               </SelectContent>
             </Select>
           </div>
+          {total > 0 && (
+            <div className="text-xs text-gray-500">
+              Showing {suppliers.length} of {total} suppliers
+              {!hasMore && suppliers.length < total && <span className="ml-2"> (all loaded)</span>}
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -310,9 +385,9 @@ export default function SuppliersPage() {
               <p className="text-gray-500">No suppliers found</p>
             </div>
           ) : (
-            <div className="w-full overflow-x-auto -mx-4 px-4">
+            <div className="max-h-[600px] overflow-y-auto">
               <Table>
-                <TableHeader>
+                <TableHeader className="sticky top-0 bg-white z-10">
                   <TableRow className="bg-gray-50 hover:bg-gray-50">
                     <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[120px]">Code</TableHead>
                     <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[180px]">Supplier</TableHead>
@@ -322,8 +397,8 @@ export default function SuppliersPage() {
                     <TableHead className="text-right font-semibold text-gray-700 whitespace-nowrap">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
-              <TableBody>
-                {filteredSuppliers.map((supplier) => (
+                <TableBody>
+                  {suppliers.map((supplier) => (
                   <TableRow key={supplier.id} className="hover:bg-gray-50">
                     <TableCell>
                       <span className="font-mono text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded whitespace-nowrap">{supplier.code}</span>
@@ -391,8 +466,27 @@ export default function SuppliersPage() {
                     </TableCell>
                   </TableRow>
                 ))}
-              </TableBody>
-            </Table>
+                </TableBody>
+                {isLoadingMore && (
+                  <TableBody>
+                    <TableRow>
+                      <TableCell colSpan={6}>
+                        <div className="flex items-center justify-center py-4">
+                          <Loader2 className="h-6 w-6 animate-spin text-violet-600" />
+                          <span className="ml-2 text-sm text-gray-500">Loading more suppliers...</span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                )}
+                <TableBody>
+                  <TableRow>
+                    <TableCell colSpan={6}>
+                      <div ref={sentinelRef} className="h-4" />
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
             </div>
           )}
         </CardContent>

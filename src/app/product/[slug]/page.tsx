@@ -481,6 +481,112 @@ export default function ProductPage() {
     }
   }
 
+  const handleToggleWishlist = async () => {
+    if (!product) return
+
+    setTogglingWishlist(true)
+    try {
+      if (isWishlisted) {
+        // Remove from wishlist
+        const response = await fetch('/api/wishlist', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ productId: product.id })
+        })
+        const data = await response.json() as any
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || 'Failed to remove from wishlist')
+        }
+        toast.success('Removed from wishlist')
+      } else {
+        // Add to wishlist
+        const response = await fetch('/api/wishlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ productId: product.id })
+        })
+        const data = await response.json() as any
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || 'Failed to add to wishlist')
+        }
+        toast.success('Added to wishlist')
+      }
+      setIsWishlisted(!isWishlisted)
+    } catch (error: any) {
+      console.error('Wishlist toggle error:', error)
+      toast.error(error.message || 'Failed to update wishlist')
+    } finally {
+      setTogglingWishlist(false)
+    }
+  }
+
+  const handleBuyNow = async () => {
+    if (!product) return
+
+    // Use variant data if available
+    if (hasVariantsFromDb) {
+      if (!selectedVariant) {
+        toast.error('Please select a variant')
+        return
+      }
+    }
+
+    // If product has size/color attributes but no variant rows, require selection
+    if (!hasVariantsFromDb && hasVariantsFromAttributes) {
+      if (availableSizes.length > 0 && !selectedSize) {
+        toast.error('Please select a size')
+        return
+      }
+      if (availableColors.length > 0 && !selectedColor) {
+        toast.error('Please select a color')
+        return
+      }
+    }
+
+    setAddingToCart(true)
+    try {
+      const cartItem = hasVariantsFromDb
+        ? {
+            id: product.id,
+            slug: product.slug,
+            name: selectedVariant!.name || product.name,
+            price: selectedVariant!.price,
+            originalPrice: selectedVariant!.comparePrice || product.comparePrice,
+            image: (Array.isArray(selectedVariant!.images) && selectedVariant!.images.length > 0 ? selectedVariant!.images[0] : null) || (Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : product.image),
+            variantId: selectedVariant!.id,
+            variantSku: selectedVariant!.sku,
+            size: selectedVariant!.size,
+            color: selectedVariant!.color,
+            material: selectedVariant!.material,
+            quantity,
+          }
+        : {
+            id: product.id,
+            slug: product.slug,
+            name: product.name,
+            price: product.basePrice || product.price,
+            originalPrice: product.comparePrice,
+            image: Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : product.image,
+            size: selectedSize || undefined,
+            color: selectedColor || undefined,
+            material: selectedMaterial || undefined,
+            quantity,
+          }
+
+      // Add to local cart store
+      addItem(cartItem)
+
+      toast.success('Added to cart!')
+      
+      // Navigate to checkout
+      window.location.href = '/checkout'
+    } finally {
+      setAddingToCart(false)
+    }
+  }
+
   const addRelatedProductToCart = (relatedProduct: RelatedProduct) => {
     addItem({
       id: relatedProduct.id,
@@ -649,6 +755,16 @@ export default function ProductPage() {
                     {product.badge}
                   </span>
                 )}
+                <button
+                  onClick={handleToggleWishlist}
+                  aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+                  disabled={togglingWishlist}
+                  className={`absolute top-4 right-4 z-10 min-w-[44px] min-h-[44px] w-11 h-11 sm:w-12 sm:h-12 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-pink-600 hover:text-white transition-all focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2 ${
+                    togglingWishlist ? 'opacity-50' : ''
+                  }`}
+                >
+                  {togglingWishlist ? <Loader2 className="w-5 h-5 animate-spin" /> : <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-pink-600' : ''}`} />}
+                </button>
                 {currentImages.length > 1 && (
                   <>
                     <button
@@ -920,20 +1036,17 @@ export default function ProductPage() {
                     {addingToCart ? 'Adding...' : (isStockLoading ? 'Loading...' : hasVariantsFromDb && !selectedVariant ? 'Select a Variant' : hasVariantsFromAttributes && !selectedSize && !selectedColor ? 'Select Options' : (!showStock || currentStock <= 0) ? 'Out of Stock' : 'Add to Cart')}
                   </button>
                   <button
-                    onClick={() => {
-                      setIsWishlisted(!isWishlisted)
-                      // Toggle wishlist animation
-                    }}
-                    aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
-                    disabled={togglingWishlist}
-                    className={`min-h-[48px] w-full sm:w-auto px-8 py-4 rounded-xl font-semibold border-2 transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2 ${
-                      isWishlisted
-                        ? 'border-pink-600 text-pink-600'
-                        : 'border-gray-300 text-gray-700 hover:border-gray-400'
-                    } ${togglingWishlist ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    onClick={handleBuyNow}
+                    disabled={(!showStock || currentStock <= 0) || (hasVariantsFromDb && !selectedVariant) || (hasVariantsFromAttributes && !selectedSize && !selectedColor) || addingToCart}
+                    className={`min-h-[48px] w-full sm:w-auto px-8 py-4 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-pink-600 focus:ring-offset-2 ${
+                      (!showStock || currentStock <= 0) && !hasVariants ? 'bg-gray-300 text-gray-500 cursor-not-allowed' :
+                      (hasVariantsFromDb && !selectedVariant) || (hasVariantsFromAttributes && !selectedSize && !selectedColor) || addingToCart
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-gray-900 text-white hover:bg-gray-800'
+                    }`}
                   >
-                    {togglingWishlist ? <Loader2 className="w-5 h-5 animate-spin" /> : <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-pink-600' : ''}`} />}
-                    <span className="hidden sm:inline">{togglingWishlist ? '...' : (isWishlisted ? 'Wishlisted' : 'Wishlist')}</span>
+                    {addingToCart ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
+                    {addingToCart ? 'Processing...' : (isStockLoading ? 'Loading...' : hasVariantsFromDb && !selectedVariant ? 'Select a Variant' : hasVariantsFromAttributes && !selectedSize && !selectedColor ? 'Select Options' : (!showStock || currentStock <= 0) ? 'Out of Stock' : 'Buy Now')}
                   </button>
                 </div>
                 <Button

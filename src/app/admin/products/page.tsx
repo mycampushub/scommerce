@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useDebounce } from '@/hooks/use-debounce'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -100,6 +100,16 @@ export default function ProductsPage() {
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
 
+  // Pagination state
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const [total, setTotal] = useState(0)
+
+  // Intersection Observer ref
+  const observerRef = useRef<IntersectionObserver | null>(null)
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
+
   // Unified Modal State
   const [isProductModalOpen, setIsProductModalOpen] = useState(false)
   const [modalMode, setModalMode] = useState<'add' | 'edit'>('add')
@@ -110,10 +120,16 @@ export default function ProductsPage() {
   const [productToDelete, setProductToDelete] = useState<Product | null>(null)
   const [deletingProduct, setDeletingProduct] = useState<string | null>(null)
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (pageNum: number = 1, append: boolean = false) => {
+    if (append && isLoadingMore) return
+
     try {
-      setLoading(true)
+      if (!append) setLoading(true)
+      else setIsLoadingMore(true)
+
       const params = new URLSearchParams()
+      params.append('page', pageNum.toString())
+      params.append('limit', '20')
       if (categoryFilter !== 'all') params.append('category', categoryFilter)
       if (statusFilter !== 'all') params.append('status', statusFilter)
       if (debouncedSearchTerm) params.append('search', debouncedSearchTerm)
@@ -135,17 +151,30 @@ export default function ProductsPage() {
         },
       }))
 
-      setProducts(productsWithCategory)
+      if (append) {
+        setProducts(prev => [...prev, ...productsWithCategory])
+      } else {
+        setProducts(productsWithCategory)
+      }
+
+      if (result.pagination) {
+        setHasMore(result.pagination.hasNextPage)
+        setTotal(result.pagination.totalCount)
+        setPage(pageNum)
+      }
     } catch (err: any) {
       setError(err.message)
       console.error('Error fetching products:', err)
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch products',
-        variant: 'destructive',
-      })
+      if (!append) {
+        toast({
+          title: 'Error',
+          description: 'Failed to fetch products',
+          variant: 'destructive',
+        })
+      }
     } finally {
-      setLoading(false)
+      if (!append) setLoading(false)
+      else setIsLoadingMore(false)
     }
   }
 
@@ -163,13 +192,51 @@ export default function ProductsPage() {
   }
 
   useEffect(() => {
-    fetchProducts()
+    fetchProducts(1, false)
     fetchCategories()
   }, [])
 
   useEffect(() => {
-    fetchProducts()
+    fetchProducts(1, false)
   }, [categoryFilter, statusFilter, debouncedSearchTerm])
+
+  // Load more data when sentinel is visible
+  const loadMore = useCallback(() => {
+    if (hasMore && !isLoadingMore && !loading) {
+      fetchProducts(page + 1, true)
+    }
+  }, [hasMore, isLoadingMore, loading, page])
+
+  // Setup IntersectionObserver
+  useEffect(() => {
+    if (observerRef.current) {
+      observerRef.current.disconnect()
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore) {
+          loadMore()
+        }
+      },
+      {
+        rootMargin: '100px',
+        threshold: 0.1
+      }
+    )
+
+    if (sentinelRef.current) {
+      observer.observe(sentinelRef.current)
+    }
+
+    observerRef.current = observer
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect()
+      }
+    }
+  }, [sentinelRef, hasMore, isLoadingMore, loading, loadMore])
 
   const handleAddProduct = () => {
     setModalMode('add')
@@ -205,7 +272,7 @@ export default function ProductsPage() {
 
       setDeleteProductId(null)
       setProductToDelete(null)
-      fetchProducts()
+      fetchProducts(1, false)
     } catch (err: any) {
       console.error('Error deleting product:', err)
       toast({
@@ -242,7 +309,7 @@ export default function ProductsPage() {
         description: `Product ${product.isActive ? 'deactivated' : 'activated'} successfully`,
       })
 
-      fetchProducts()
+      fetchProducts(1, false)
     } catch (err: any) {
       console.error('Error updating product status:', err)
       toast({
@@ -380,10 +447,16 @@ export default function ProductsPage() {
                 <SelectItem value="inactive">Inactive</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" onClick={fetchProducts} disabled={loading}>
+            <Button variant="outline" onClick={() => fetchProducts(1, false)} disabled={loading}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             </Button>
           </div>
+          {total > 0 && (
+            <div className="text-xs text-gray-500">
+              Showing {products.length} of {total} products
+              {!hasMore && products.length < total && <span className="ml-2"> (all loaded)</span>}
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -409,9 +482,9 @@ export default function ProductsPage() {
               <p className="text-gray-500">No products found</p>
             </div>
           ) : (
-            <div className="w-full overflow-x-auto -mx-4 px-4">
+            <div className="max-h-[600px] overflow-y-auto">
               <Table>
-                <TableHeader>
+                <TableHeader className="sticky top-0 bg-white z-10">
                   <TableRow className="bg-gray-50 hover:bg-gray-50">
                     <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[240px]">Product</TableHead>
                     <TableHead className="font-semibold text-gray-700 whitespace-nowrap min-w-[140px]">Category</TableHead>
@@ -568,6 +641,25 @@ export default function ProductsPage() {
                     </TableRow>
                   ))}
                 </TableBody>
+                {isLoadingMore && (
+                  <TableBody>
+                    <TableRow>
+                      <TableCell colSpan={8}>
+                        <div className="flex items-center justify-center py-4">
+                          <Loader2 className="h-6 w-6 animate-spin text-violet-600" />
+                          <span className="ml-2 text-sm text-gray-500">Loading more products...</span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                )}
+                <TableBody>
+                  <TableRow>
+                    <TableCell colSpan={8}>
+                      <div ref={sentinelRef} className="h-4" />
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
               </Table>
             </div>
           )}
@@ -580,7 +672,7 @@ export default function ProductsPage() {
         onOpenChange={setIsProductModalOpen}
         mode={modalMode}
         product={selectedProduct}
-        onSuccess={fetchProducts}
+        onSuccess={() => fetchProducts(1, false)}
       />
     </div>
   )
