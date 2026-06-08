@@ -338,12 +338,13 @@ export default function CheckoutPage() {
         const hasInsufficientStock = !item.variantId && (product.stock || 0) < item.quantity;
 
         if (hasInsufficientStock) {
+          const availableStock = product.stock || 0;
           itemKeys[itemKey] = {
             inStock: false,
-            availableStock: product.stock || 0,
+            availableStock: availableStock,
             productExists: true,
-            productActive: true,
-            errorMessage: `Only ${product.stock || 0} items available`
+            productActive: availableStock > 0, // Product is active but has insufficient stock
+            errorMessage: availableStock === 0 ? 'Product is out of stock' : `Only ${availableStock} items available`
           }
           continue
         }
@@ -397,8 +398,8 @@ export default function CheckoutPage() {
                     inStock: false,
                     availableStock: variantStock,
                     productExists: true,
-                    productActive: true,
-                    errorMessage: `Only ${variantStock} items available`
+                    productActive: variantStock > 0, // Product is active but has insufficient stock
+                    errorMessage: variantStock === 0 ? 'Product variant is out of stock' : `Only ${variantStock} items available`
                   }
                   continue
                 }

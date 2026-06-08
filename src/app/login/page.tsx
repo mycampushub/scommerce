@@ -257,8 +257,8 @@ export default function LoginPage() {
             {/* Demo Credentials */}
             <div className="text-center text-sm text-gray-600 bg-gray-50 p-4 rounded-lg">
               <p className="font-semibold mb-2">Demo Credentials:</p>
-              <p>Admin: admin@scommerce.com / admin123</p>
-              <p>Customer: fatema@example.com / user123</p>
+              <p>Admin: admin@beautystore.com / admin123</p>
+              <p>Customer: user@beautystore.com / user123</p>
             </div>
 
             {/* Links */}

@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
+import { useDebounce } from '@/hooks/use-debounce'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -33,7 +34,9 @@ import {
   AlertTriangle,
   Loader2,
   TrendingUp,
+  RefreshCw,
 } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface InventoryMovement {
   id: string
@@ -60,43 +63,108 @@ export default function InventoryMovementsPage() {
   const [typeFilter, setTypeFilter] = useState('all')
   const [dateRange, setDateRange] = useState('30') // days
 
-  const fetchMovements = async () => {
+  // Pagination state
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const [total, setTotal] = useState(0)
+
+  // Intersection Observer ref
+  const observerRef = useRef<IntersectionObserver | null>(null)
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
+
+  const fetchMovements = async (pageNum: number = 1, append: boolean = false) => {
+    if (append && isLoadingMore) return
+
     try {
-      setLoading(true)
+      if (!append) setLoading(true)
+      else setIsLoadingMore(true)
+
       const params = new URLSearchParams()
+      params.append('page', pageNum.toString())
+      params.append('limit', '50')
       if (typeFilter !== 'all') params.append('type', typeFilter)
+      if (dateRange !== 'all') params.append('days', dateRange)
+      if (searchTerm) params.append('search', searchTerm)
       
       const response = await fetch(`/api/admin/inventory/movements?${params.toString()}`)
       const result = await response.json()
 
       if (result.success) {
-        let data = result.data || []
+        const newData = result.data || []
         
-        // Filter by date range
-        if (dateRange !== 'all') {
-          const days = parseInt(dateRange)
-          const cutoffDate = new Date()
-          cutoffDate.setDate(cutoffDate.getDate() - days)
-          data = data.filter((m: InventoryMovement) => new Date(m.createdAt) >= cutoffDate)
+        if (append) {
+          setMovements(prev => [...prev, ...newData])
+        } else {
+          setMovements(newData)
         }
-        
-        setMovements(data)
+
+        if (result.pagination) {
+          setHasMore(result.pagination.hasNextPage)
+          setTotal(result.pagination.totalCount)
+          setPage(pageNum)
+        }
       }
     } catch (err: any) {
       console.error('Error fetching movements:', err)
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch inventory movements',
-        variant: 'destructive',
-      })
+      if (!append) {
+        toast({
+          title: 'Error',
+          description: 'Failed to fetch inventory movements',
+          variant: 'destructive',
+        })
+      }
     } finally {
-      setLoading(false)
+      if (!append) setLoading(false)
+      else setIsLoadingMore(false)
     }
   }
 
   useEffect(() => {
-    fetchMovements()
-  }, [typeFilter, dateRange])
+    fetchMovements(1, false)
+  }, [])
+
+  useEffect(() => {
+    fetchMovements(1, false)
+  }, [typeFilter, dateRange, searchTerm])
+
+  // Load more data when sentinel is visible
+  const loadMore = useCallback(() => {
+    if (hasMore && !isLoadingMore && !loading) {
+      fetchMovements(page + 1, true)
+    }
+  }, [hasMore, isLoadingMore, loading, page])
+
+  // Setup IntersectionObserver
+  useEffect(() => {
+    if (observerRef.current) {
+      observerRef.current.disconnect()
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore) {
+          loadMore()
+        }
+      },
+      {
+        rootMargin: '100px',
+        threshold: 0.1
+      }
+    )
+
+    if (sentinelRef.current) {
+      observer.observe(sentinelRef.current)
+    }
+
+    observerRef.current = observer
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect()
+      }
+    }
+  }, [sentinelRef, hasMore, isLoadingMore, loading, loadMore])
 
   const getTypeConfig = (type: string) => {
     const configs = {
@@ -117,11 +185,13 @@ export default function InventoryMovementsPage() {
       (movement.supplierName && movement.supplierName.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (movement.referenceId && movement.referenceId.toLowerCase().includes(searchTerm.toLowerCase()))
 
-    return matchesSearch
+    const matchesType = typeFilter === 'all' || movement.type === typeFilter
+
+    return matchesSearch && matchesType
   })
 
-  // Calculate summary
-  const summary = movements.reduce((acc, m) => {
+  // Calculate summary from current movements (filtered)
+  const summary = filteredMovements.reduce((acc, m) => {
     const config = getTypeConfig(m.type)
     if (config.direction === 'in') {
       acc.in += Math.abs(m.quantity)
@@ -240,7 +310,16 @@ export default function InventoryMovementsPage() {
                 <SelectItem value="all">All Time</SelectItem>
               </SelectContent>
             </Select>
+            <Button variant="outline" onClick={() => fetchMovements(1, false)} disabled={loading}>
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            </Button>
           </div>
+          {total > 0 && (
+            <div className="text-xs text-gray-500">
+              Showing {filteredMovements.length} of {total} movements
+              {!hasMore && filteredMovements.length < total && <span className="ml-2"> (all loaded)</span>}
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           {loading ? (

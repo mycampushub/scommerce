@@ -31,13 +31,6 @@ export async function GET(request: NextRequest) {
     }
 
     const env = await getEnv()
-    if (!env) {
-      console.error('[Section Manager GET] No env available')
-      return NextResponse.json(
-        { success: false, error: 'Database not available' },
-        { status: 500 }
-      )
-    }
 
     const setting = await queryFirst<any>(
       env,
@@ -98,13 +91,6 @@ export async function PUT(request: NextRequest) {
     }
 
     const env = await getEnv()
-    if (!env) {
-      console.error('[Section Manager PUT] No env available')
-      return NextResponse.json(
-        { success: false, error: 'Database not available' },
-        { status: 500 }
-      )
-    }
 
     // Rate limiting: 10 requests per minute per admin
     const clientIp = getClientIp(request)
