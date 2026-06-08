@@ -8,29 +8,10 @@ import { Footer } from '@/components/footer'
 import { MobileBottomNav } from '@/components/mobile-bottom-nav'
 import { QuickViewModal, Product } from '@/components/quick-view-modal'
 import { useCartStore } from '@/lib/store/cart-store'
-import { useProducts } from '@/hooks/use-products'
 import { toast } from 'sonner'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useDebounce } from '@/hooks/use-debounce'
 import { PriceDisplay } from '@/components/price-display'
-
-// Use Product type from QuickViewModal component
-
-interface Category {
-  id: string
-  name: string
-  slug: string
-}
-
-const priceRanges = [
-  { label: 'Under ৳500', min: 0, max: 500 },
-  { label: '৳500 - ৳1000', min: 500, max: 1000 },
-  { label: '৳1000 - ৳2000', min: 1000, max: 2000 },
-  { label: '৳2000 - ৳3000', min: 2000, max: 3000 },
-  { label: '৳3000+', min: 3000, max: 999999 }
-]
-
-
+import { useSearchParams, useParams } from 'next/navigation'
 
 const sortOptions = [
   { label: 'Featured', value: 'featured' },
@@ -40,10 +21,30 @@ const sortOptions = [
   { label: 'Best Selling', value: 'bestselling' }
 ]
 
-export default function ShopPage() {
-  const [categories, setCategories] = useState<Category[]>([])
-  const [categoriesLoading, setCategoriesLoading] = useState(true)
-  const [selectedCategory, setSelectedCategory] = useState('All')
+const priceRanges = [
+  { label: 'Under ৳500', min: 0, max: 500 },
+  { label: '৳500 - ৳1000', min: 500, max: 1000 },
+  { label: '৳1000 - ৳2000', min: 1000, max: 2000 },
+  { label: '৳2000 - ৳3000', min: 2000, max: 3000 },
+  { label: '৳3000+', min: 3000, max: 999999 }
+]
+
+interface Category {
+  id: string
+  name: string
+  slug: string
+  description?: string
+  image?: string
+}
+
+export default function CollectionPage() {
+  const params = useParams()
+  const slug = params.slug as string
+  const searchParams = useSearchParams()
+  const [category, setCategory] = useState<Category | null>(null)
+  const [categoryLoading, setCategoryLoading] = useState(true)
+  const [products, setProducts] = useState<Product[]>([])
+  const [productsLoading, setProductsLoading] = useState(true)
   const [sortBy, setSortBy] = useState('featured')
   const [priceRange, setPriceRange] = useState<{ min: number; max: number } | null>(null)
   const [selectedPriceRange, setSelectedPriceRange] = useState<string | null>(null)
@@ -51,27 +52,8 @@ export default function ShopPage() {
   const [currentPage, setCurrentPage] = useState(0)
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null)
   const [wishlistedProducts, setWishlistedProducts] = useState<Set<string>>(new Set())
-  const itemsPerPage = 8
-  const { addItem, items: cartItems } = useCartStore()
-
-  // Fetch categories from database
-  useEffect(() => {
-    const fetchCategories = async () => {
-      setCategoriesLoading(true)
-      try {
-        const response = await fetch('/api/categories?hierarchical=false')
-        const data = await response.json()
-        if (data.success) {
-          setCategories(data.data)
-        }
-      } catch (error) {
-        console.error('Error fetching categories:', error)
-      } finally {
-        setCategoriesLoading(false)
-      }
-    }
-    fetchCategories()
-  }, [])
+  const itemsPerPage = 12
+  const { addItem } = useCartStore()
 
   // Focus trap for mobile filter modal
   const mobileFilterRef = useRef<HTMLDivElement>(null)
@@ -90,22 +72,59 @@ export default function ShopPage() {
     }
   }, [mobileFiltersOpen])
 
-  // Search query state
-  const [searchQuery, setSearchQuery] = useState('')
-  const debouncedSearchQuery = useDebounce(searchQuery, 500)
+  // Fetch category data
+  useEffect(() => {
+    const fetchCategory = async () => {
+      setCategoryLoading(true)
+      try {
+        const response = await fetch(`/api/categories?hierarchical=false`)
+        const data = await response.json()
+        if (data.success) {
+          const found = data.data.find((c: Category) => c.slug === slug)
+          if (found) {
+            setCategory(found)
+          } else {
+            setCategory(null)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching category:', error)
+      } finally {
+        setCategoryLoading(false)
+      }
+    }
 
-  // Get URL search params
-  const searchParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '')
-  const categoryParam = searchParams.get('category')
-  const searchParam = searchParams.get('search')
+    fetchCategory()
+  }, [slug])
 
-  // Fetch products using React Query
-  const filters = {
-    category: (categoryParam && categoryParam !== 'all') ? categoryParam : (selectedCategory !== 'All' ? selectedCategory : undefined),
-    search: searchParam || debouncedSearchQuery || undefined,
-  }
-  
-  const { data: products = [], isLoading } = useProducts(filters)
+  // Fetch products for this category
+  useEffect(() => {
+    const fetchProducts = async () => {
+      if (!category) {
+        setProducts([])
+        setProductsLoading(false)
+        return
+      }
+
+      setProductsLoading(true)
+      try {
+        const response = await fetch(`/api/products?category=${category.slug}&limit=100`)
+        const data = await response.json()
+        if (data.success) {
+          setProducts(data.data.products)
+        } else {
+          setProducts([])
+        }
+      } catch (error) {
+        console.error('Error fetching products:', error)
+        setProducts([])
+      } finally {
+        setProductsLoading(false)
+      }
+    }
+
+    fetchProducts()
+  }, [category])
 
   const openQuickView = (product: Product) => {
     setQuickViewProduct(product)
@@ -143,9 +162,7 @@ export default function ShopPage() {
   }
 
   const filteredProducts = products.filter(product => {
-    // Apply price range filter (API doesn't support this, so we filter client-side)
     const priceMatch = !priceRange || (product.price >= priceRange.min && product.price <= priceRange.max)
-
     return priceMatch
   })
 
@@ -161,20 +178,47 @@ export default function ShopPage() {
   const totalPages = Math.ceil(sortedProducts.length / itemsPerPage)
   const displayedProducts = sortedProducts.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage)
 
+  // Category not found
+  if (!categoryLoading && !category) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="container mx-auto px-4 py-16 text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Category Not Found</h1>
+          <p className="text-gray-600 mb-6">The category you're looking for doesn't exist.</p>
+          <Link href="/" className="inline-block bg-pink-600 text-white px-6 py-3 rounded-lg hover:bg-pink-700 transition-colors">
+            Return Home
+          </Link>
+        </div>
+        <Footer />
+        <MobileBottomNav />
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
 
       {/* Page Header */}
-      <section className="bg-gray-50 py-8 md:py-12">
+      <section className="bg-gradient-to-r from-pink-50 to-purple-50 py-8 md:py-12">
         <div className="container mx-auto px-4 text-center">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">Shop All Products</h1>
-          <p className="text-gray-600">Discover our complete collection</p>
-          <div className="flex items-center justify-center gap-2 mt-4 text-sm text-gray-500">
-            <Link href="/" className="hover:text-pink-600">Home</Link>
-            <span>/</span>
-            <span className="text-gray-900">Shop</span>
-          </div>
+          {categoryLoading ? (
+            <>
+              <Skeleton className="h-10 w-64 mx-auto mb-4" />
+              <Skeleton className="h-5 w-96 mx-auto" />
+            </>
+          ) : category ? (
+            <>
+              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">{category.name}</h1>
+              <p className="text-gray-600">{category.description || 'Discover our collection'}</p>
+              <div className="flex items-center justify-center gap-2 mt-4 text-sm text-gray-500">
+                <Link href="/" className="hover:text-pink-600">Home</Link>
+                <span>/</span>
+                <span className="text-gray-900">{category.name}</span>
+              </div>
+            </>
+          ) : null}
         </div>
       </section>
 
@@ -190,49 +234,6 @@ export default function ShopPage() {
                   Filters
                 </h2>
 
-                {/* Categories */}
-                <div className="mb-6">
-                  <h3 className="font-semibold mb-3 text-gray-900">Categories</h3>
-                  <ul className="space-y-2">
-                    <li>
-                      <button
-                        onClick={() => {
-                          setSelectedCategory('All')
-                          setCurrentPage(0)
-                        }}
-                        className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                          selectedCategory === 'All' || !categoryParam
-                            ? 'bg-pink-600 text-white'
-                            : 'text-gray-700 hover:bg-gray-100'
-                        }`}
-                      >
-                        All Categories
-                      </button>
-                    </li>
-                    {categoriesLoading ? (
-                      <li className="text-gray-500 text-sm">Loading categories...</li>
-                    ) : (
-                      categories.map((category) => (
-                        <li key={category.slug}>
-                          <button
-                            onClick={() => {
-                              setSelectedCategory(category.slug)
-                              setCurrentPage(0)
-                            }}
-                            className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                              selectedCategory === category.slug || categoryParam === category.slug
-                                ? 'bg-pink-600 text-white'
-                                : 'text-gray-700 hover:bg-gray-100'
-                            }`}
-                          >
-                            {category.name}
-                          </button>
-                        </li>
-                      ))
-                    )}
-                  </ul>
-                </div>
-
                 {/* Price Range */}
                 <div className="mb-6">
                   <h3 className="font-semibold mb-3 text-gray-900">Price Range</h3>
@@ -243,6 +244,7 @@ export default function ShopPage() {
                           onClick={() => {
                             setSelectedPriceRange(range.label)
                             setPriceRange(range)
+                            setCurrentPage(0)
                           }}
                           className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
                             selectedPriceRange === range.label
@@ -258,10 +260,9 @@ export default function ShopPage() {
                 </div>
 
                 {/* Clear Filters */}
-                {(selectedCategory !== 'All' || priceRange) && (
+                {priceRange && (
                   <button
                     onClick={() => {
-                      setSelectedCategory('All')
                       setPriceRange(null)
                       setSelectedPriceRange(null)
                     }}
@@ -300,7 +301,10 @@ export default function ShopPage() {
                   <div className="relative">
                     <select
                       value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value)}
+                      onChange={(e) => {
+                        setSortBy(e.target.value)
+                        setCurrentPage(0)
+                      }}
                       className="appearance-none pr-8 pl-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent cursor-pointer"
                     >
                       {sortOptions.map((option) => (
@@ -315,7 +319,7 @@ export default function ShopPage() {
               </div>
 
               {/* Product Grid */}
-              {isLoading ? (
+              {productsLoading || categoryLoading ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
                   {[...Array(6)].map((_, i) => (
                     <div key={i} className="space-y-3">
@@ -331,7 +335,7 @@ export default function ShopPage() {
                 </div>
               ) : displayedProducts.length === 0 ? (
                 <div className="col-span-full py-12 text-center">
-                  <p className="text-gray-600">No products found matching your criteria.</p>
+                  <p className="text-gray-600">No products found in this category.</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -351,7 +355,7 @@ export default function ShopPage() {
                           loading="lazy"
                         />
                       </Link>
-                      <button 
+                      <button
                         onClick={() => toggleWishlist(product.id)}
                         className={`absolute top-3 right-3 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-pink-600 hover:text-white ${
                           wishlistedProducts.has(product.id) ? 'text-pink-600' : ''
@@ -458,49 +462,6 @@ export default function ShopPage() {
                 </button>
               </div>
 
-              {/* Categories */}
-              <div className="mb-6">
-                <h3 className="font-semibold mb-3 text-gray-900">Categories</h3>
-                <ul className="space-y-2">
-                  <li>
-                    <button
-                      onClick={() => {
-                        setSelectedCategory('All')
-                        setCurrentPage(0)
-                      }}
-                      className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                        selectedCategory === 'All'
-                          ? 'bg-pink-600 text-white'
-                          : 'text-gray-700 hover:bg-gray-100'
-                      }`}
-                    >
-                      All Categories
-                    </button>
-                  </li>
-                  {categoriesLoading ? (
-                    <li className="text-gray-500 text-sm">Loading categories...</li>
-                  ) : (
-                    categories.map((category) => (
-                      <li key={category.slug}>
-                        <button
-                          onClick={() => {
-                            setSelectedCategory(category.slug)
-                            setCurrentPage(0)
-                          }}
-                          className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                            selectedCategory === category.slug
-                              ? 'bg-pink-600 text-white'
-                              : 'text-gray-700 hover:bg-gray-100'
-                          }`}
-                        >
-                          {category.name}
-                        </button>
-                      </li>
-                    ))
-                  )}
-                </ul>
-              </div>
-
               {/* Price Range */}
               <div className="mb-6">
                 <h3 className="font-semibold mb-3 text-gray-900">Price Range</h3>
@@ -511,6 +472,7 @@ export default function ShopPage() {
                         onClick={() => {
                           setSelectedPriceRange(range.label)
                           setPriceRange(range)
+                          setCurrentPage(0)
                         }}
                         className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
                           selectedPriceRange === range.label

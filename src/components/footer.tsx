@@ -1,6 +1,31 @@
+'use client'
+
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 
 export function Footer() {
+  const [categories, setCategories] = useState<Array<{ id: string; name: string; slug: string }>>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch('/api/categories?hierarchical=false')
+        const data = await response.json()
+        if (data.success) {
+          // Show only active parent categories
+          const parentCategories = data.data.filter((cat: any) => !cat.slug.includes('-') && cat.name !== cat.slug.replace(/-/g, ' ')).slice(0, 6)
+          setCategories(parentCategories)
+        }
+      } catch (error) {
+        console.error('Error fetching categories:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchCategories()
+  }, [])
+
   return (
     <footer className="bg-gray-900 text-white" role="contentinfo" aria-label="Site footer">
       <div className="container mx-auto px-4 py-12 pb-24 md:pb-12">
@@ -8,23 +33,36 @@ export function Footer() {
           <div>
             <h3 className="text-lg font-bold mb-4 text-pink-500">Shop</h3>
             <ul className="space-y-2">
-              <li><Link href="/collections/saree" className="text-gray-300 hover:text-white transition-colors">Sarees</Link></li>
-              <li><Link href="/collections/salwar" className="text-gray-300 hover:text-white transition-colors">Salwar Suits</Link></li>
-              <li><Link href="/collections/lehengas" className="text-gray-300 hover:text-white transition-colors">Lehengas</Link></li>
-              <li><Link href="/collections/gowns" className="text-gray-300 hover:text-white transition-colors">Gowns</Link></li>
-              <li><Link href="/collections/kurtas" className="text-gray-300 hover:text-white transition-colors">Kurtas</Link></li>
-              <li><Link href="/collections/tops" className="text-gray-300 hover:text-white transition-colors">Tops</Link></li>
+              {loading ? (
+                <li className="text-gray-400">Loading...</li>
+              ) : categories.length > 0 ? (
+                categories.map((cat) => (
+                  <li key={cat.id}>
+                    <Link href={`/collections/${cat.slug}`} className="text-gray-300 hover:text-white transition-colors">
+                      {cat.name}
+                    </Link>
+                  </li>
+                ))
+              ) : (
+                <>
+                  <li><Link href="/shop" className="text-gray-300 hover:text-white transition-colors">All Products</Link></li>
+                  <li><Link href="/collections/skincare" className="text-gray-300 hover:text-white transition-colors">Skincare</Link></li>
+                  <li><Link href="/collections/hair-care" className="text-gray-300 hover:text-white transition-colors">Hair Care</Link></li>
+                  <li><Link href="/collections/body-care" className="text-gray-300 hover:text-white transition-colors">Body Care</Link></li>
+                  <li><Link href="/collections/baby-care" className="text-gray-300 hover:text-white transition-colors">Baby Care</Link></li>
+                </>
+              )}
             </ul>
           </div>
 
           <div>
-            <h3 className="text-lg font-bold mb-4 text-pink-500">Categories</h3>
+            <h3 className="text-lg font-bold mb-4 text-pink-500">Quick Links</h3>
             <ul className="space-y-2">
               <li><Link href="/shop" className="text-gray-300 hover:text-white transition-colors">Sale</Link></li>
               <li><Link href="/shop" className="text-gray-300 hover:text-white transition-colors">New Arrivals</Link></li>
               <li><Link href="/shop" className="text-gray-300 hover:text-white transition-colors">Best Sellers</Link></li>
-              <li><Link href="/shop" className="text-gray-300 hover:text-white transition-colors">Wedding</Link></li>
-              <li><Link href="/shop" className="text-gray-300 hover:text-white transition-colors">Festive</Link></li>
+              <li><Link href="/shop" className="text-gray-300 hover:text-white transition-colors">Featured</Link></li>
+              <li><Link href="/shop" className="text-gray-300 hover:text-white transition-colors">Shop All</Link></li>
             </ul>
           </div>
 
