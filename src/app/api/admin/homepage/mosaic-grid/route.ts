@@ -180,33 +180,35 @@ export async function PUT(request: NextRequest) {
       SECTION_NAME
     )
 
+    console.log('[Mosaic Grid] Existing setting:', existing ? 'Found' : 'Not found')
+
     const customSettings = {
       productIds: productIds || [],
-      heading: heading || undefined,
-      description: description || undefined,
+      heading: heading && heading.trim() ? heading : undefined,
+      description: description && description.trim() ? description : undefined,
     }
 
+    const settingsJson = stringifyJSON(customSettings)
+    console.log('[Mosaic Grid] Settings JSON length:', settingsJson?.length)
+    console.log('[Mosaic Grid] Product IDs count:', productIds?.length || 0)
+
     if (existing) {
-      // Update existing setting
-      const updates: string[] = []
-      const params: any[] = []
+      // Update existing setting - always update isEnabled to ensure consistency
+      const updates: string[] = ['isEnabled = ?', 'settings = ?', 'updatedAt = ?']
+      const params: any[] = [
+        boolToNumber(isEnabled !== undefined ? isEnabled : true),
+        settingsJson,
+        now(),
+        SECTION_NAME
+      ]
 
-      if (isEnabled !== undefined) {
-        updates.push('isEnabled = ?')
-        params.push(boolToNumber(isEnabled))
-      }
-
-      updates.push('settings = ?')
-      params.push(stringifyJSON(customSettings))
-      updates.push('updatedAt = ?')
-      params.push(now())
-      params.push(SECTION_NAME)
-
+      console.log('[Mosaic Grid] Updating existing setting')
       await execute(
         env,
         `UPDATE homepage_settings SET ${updates.join(', ')} WHERE sectionName = ?`,
         ...params
       )
+      console.log('[Mosaic Grid] Updated existing setting')
     } else {
       // Create new setting
       const id = generateId()
@@ -221,10 +223,11 @@ export async function PUT(request: NextRequest) {
         boolToNumber(isEnabled !== undefined ? isEnabled : true),
         null,
         null,
-        stringifyJSON(customSettings),
+        settingsJson,
         currentTime,
         currentTime
       )
+      console.log('[Mosaic Grid] Created new setting')
     }
 
     // Fetch updated setting
@@ -234,7 +237,18 @@ export async function PUT(request: NextRequest) {
       SECTION_NAME
     )
 
-    const settings = parseJSON<any>(updated?.settings) || {}
+    if (!updated) {
+      console.error('[Mosaic Grid] Failed to fetch updated setting')
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Failed to verify update'
+        },
+        { status: 500 }
+      )
+    }
+
+    const settings = parseJSON<any>(updated.settings) || {}
 
     // Log audit event
     const admin = userOrResponse as { id: string }

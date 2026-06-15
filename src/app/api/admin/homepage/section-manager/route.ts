@@ -111,10 +111,22 @@ export async function PUT(request: NextRequest) {
     
     // Validate sections
     if (!sections || !Array.isArray(sections)) {
+      console.error('[Section Manager] Invalid sections:', body)
       return NextResponse.json(
         {
           success: false,
           error: 'sections must be an array'
+        },
+        { status: 400 }
+      )
+    }
+
+    if (sections.length === 0) {
+      console.error('[Section Manager] Empty sections array')
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'sections cannot be empty'
         },
         { status: 400 }
       )
@@ -158,6 +170,8 @@ export async function PUT(request: NextRequest) {
       SECTION_NAME
     )
 
+    console.log('[Section Manager] Existing setting:', existing ? 'Found' : 'Not found')
+
     const customSettings = {
       sections: sections.map((s: any) => ({
         id: s.id,
@@ -167,15 +181,19 @@ export async function PUT(request: NextRequest) {
       })),
     }
 
+    const settingsJson = stringifyJSON(customSettings)
+    console.log('[Section Manager] Settings JSON length:', settingsJson?.length)
+
     if (existing) {
       // Update existing setting
       await execute(
         env,
         `UPDATE homepage_settings SET settings = ?, updatedAt = ? WHERE sectionName = ?`,
-        stringifyJSON(customSettings),
+        settingsJson,
         now(),
         SECTION_NAME
       )
+      console.log('[Section Manager] Updated existing setting')
     } else {
       // Create new setting
       const id = generateId()
@@ -190,10 +208,11 @@ export async function PUT(request: NextRequest) {
         boolToNumber(true),
         null,
         null,
-        stringifyJSON(customSettings),
+        settingsJson,
         currentTime,
         currentTime
       )
+      console.log('[Section Manager] Created new setting')
     }
 
     // Log audit event

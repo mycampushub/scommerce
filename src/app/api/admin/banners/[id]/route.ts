@@ -3,6 +3,7 @@ import { getEnv } from '@/lib/cloudflare'
 import { verifyAdminAuth } from '@/lib/admin-auth'
 import { BannerRepository } from '@/db/banner.repository'
 import { logAdminAction } from '@/lib/audit-logger'
+import { boolToNumber } from '@/db/db'
 
 
 export async function GET(
@@ -117,11 +118,11 @@ export async function PUT(
 
     const banner = await BannerRepository.update(env, id, {
       ...(body.title !== undefined && { title: body.title }),
-      ...(body.description !== undefined && { description: body.description }),
+      ...(body.description !== undefined && { description: body.description || null }),
       ...(body.image !== undefined && { image: body.image }),
-      ...(body.mobileImage !== undefined && { mobileImage: body.mobileImage }),
-      ...(body.buttonText !== undefined && { buttonText: body.buttonText }),
-      ...(body.buttonLink !== undefined && { buttonLink: body.buttonLink }),
+      ...(body.mobileImage !== undefined && { mobileImage: body.mobileImage || null }),
+      ...(body.buttonText !== undefined && { buttonText: body.buttonText || null }),
+      ...(body.buttonLink !== undefined && { buttonLink: body.buttonLink || null }),
       ...(body.isActive !== undefined && { isActive: body.isActive }),
       ...(body.order !== undefined && { order: body.order }),
     })

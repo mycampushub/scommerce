@@ -759,21 +759,32 @@ export default function HomepageManagementPage() {
   }
 
   const handleSaveSectionManager = async () => {
+    if (sections.length === 0) {
+      toast.error('No sections to save')
+      return
+    }
+
     setSavingSections(true)
     try {
+      console.log('[Section Manager] Saving sections:', sections)
       const res = await fetch('/api/admin/homepage/section-manager', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sections })
       })
       const data = await res.json() as any
+      console.log('[Section Manager] Response:', data)
       if (data.success) {
         toast.success('Section order saved successfully')
       } else {
+        console.error('[Section Manager] Error:', data.error, data.details)
         toast.error(data.error || 'Failed to save section order')
+        if (data.details) {
+          console.error('[Section Manager] Error details:', data.details)
+        }
       }
     } catch (error) {
-      console.error('Error saving section manager settings:', error)
+      console.error('[Section Manager] Error saving section manager settings:', error)
       toast.error('Failed to save section order')
     } finally {
       setSavingSections(false)
