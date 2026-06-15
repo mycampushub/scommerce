@@ -227,3 +227,31 @@ Stage Summary:
   - Both API routes are already properly implemented (fixed in Task 3-a)
   - No code changes were needed to the API routes
   - The issue was purely the Prisma client not pointing to the correct database
+
+---
+Task ID: 2-c
+Agent: main
+Task: Fix Cloudflare Workers deployment issue
+
+Work Log:
+- Identified root cause of 500 errors on Cloudflare Workers
+- The `rate-limit.ts` file used `setInterval` which is not available in Cloudflare Workers
+- Cloudflare Workers only support `setTimeout` API, not `setInterval`
+- Updated `InMemoryRateLimiter` class to use recursive `setTimeout` instead of `setInterval`
+- Updated cleanup timer type from `NodeJS.Timeout` to `ReturnType<typeof setTimeout>`
+- Changed `clearInterval` to `clearTimeout` in the `destroy()` method
+- Rebuilt the project successfully with `bun run build`
+- Created new zip file `scommerce-cloudflare-fixed.zip` with the Cloudflare Workers fix
+
+Stage Summary:
+- **Critical Fix**: Replaced `setInterval` with recursive `setTimeout` for Cloudflare Workers compatibility
+- **Files Modified**: `/home/z/my-project/src/lib/rate-limit.ts`
+- **Build Status**: Successful - all 96 pages generated
+- **New Zip**: `scommerce-cloudflare-fixed.zip` (1.5MB) created for download
+
+Artifacts Produced:
+- Updated `/home/z/my-project/src/lib/rate-limit.ts`:
+  - Changed `cleanupInterval` to `cleanupTimer`
+  - Replaced `setInterval` with recursive `setTimeout` in `scheduleCleanup()` method
+  - Updated `destroy()` method to use `clearTimeout` instead of `clearInterval`
+- New zip file: `scommerce-cloudflare-fixed.zip` containing all fixes including Cloudflare Workers compatibility

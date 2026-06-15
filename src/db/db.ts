@@ -75,18 +75,38 @@ export async function execute(
   sql: string,
   ...params: unknown[]
 ): Promise<void> {
+  console.log('[db.ts execute] Starting execution:', {
+    sql: sql.substring(0, 200),
+    paramsCount: params.length,
+    hasEnv: !!env,
+    hasDB: !!(env && env.DB)
+  });
+
   const db = getDatabase(env);
   if (!db) {
+    console.error('[db.ts execute] Database not available');
     throw new Error('Database not available');
   }
   const stmt = db.prepare(sql);
 
   logger.dbQuery(`execute: ${sql.substring(0, 200)}${sql.length > 200 ? '...' : ''}`);
 
+  console.log('[db.ts execute] Statement prepared, binding params');
   const result = await stmt.bind(...params).run();
+
+  console.log('[db.ts execute] Run completed:', {
+    hasMeta: 'meta' in result,
+    hasError: 'error' in result,
+    resultKeys: Object.keys(result)
+  });
 
   // Check if there was an error (for D1)
   if ('error' in result && result.error) {
+    console.error('[db.ts execute] Execute error:', {
+      sql: sql.substring(0, 100),
+      error: result.error.message,
+      errorStack: result.error.stack
+    });
     logger.error('Execute error', {
       sql: sql.substring(0, 100),
       error: result.error.message
