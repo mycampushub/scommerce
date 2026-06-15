@@ -221,8 +221,8 @@ export async function PUT(request: NextRequest) {
         id,
         SECTION_NAME,
         boolToNumber(isEnabled !== undefined ? isEnabled : true),
-        null,
-        null,
+        5000,  // autoPlay default value (NOT NULL in schema)
+        null,  // displayLimit is optional
         settingsJson,
         currentTime,
         currentTime
