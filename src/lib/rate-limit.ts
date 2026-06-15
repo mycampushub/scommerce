@@ -16,13 +16,19 @@ interface RateLimitEntry {
 
 class InMemoryRateLimiter {
   private store: Map<string, RateLimitEntry> = new Map();
-  private cleanupInterval: NodeJS.Timeout | null = null;
+  private cleanupTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly maxEntries = 10000; // Prevent memory leak
 
   constructor() {
-    // Cleanup old entries every minute
-    this.cleanupInterval = setInterval(() => {
+    // Cleanup old entries every minute (using setTimeout recursively for Cloudflare Workers compatibility)
+    this.scheduleCleanup();
+  }
+
+  private scheduleCleanup() {
+    // Use setTimeout instead of setInterval for Cloudflare Workers compatibility
+    this.cleanupTimer = setTimeout(() => {
       this.cleanup();
+      this.scheduleCleanup();
     }, 60000);
   }
 
@@ -106,9 +112,9 @@ class InMemoryRateLimiter {
   }
 
   destroy() {
-    if (this.cleanupInterval) {
-      clearInterval(this.cleanupInterval);
-      this.cleanupInterval = null;
+    if (this.cleanupTimer) {
+      clearTimeout(this.cleanupTimer);
+      this.cleanupTimer = null;
     }
     this.store.clear();
   }
