@@ -100,6 +100,9 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
   const [editingVariant, setEditingVariant] = useState<ProductVariant | null>(null)
   const [editVariantData, setEditVariantData] = useState<Partial<ProductVariant>>({})
   const [isUpdatingVariant, setIsUpdatingVariant] = useState(false)
+  const [isAddingVariant, setIsAddingVariant] = useState(false)
+  const [addingVariantData, setAddingVariantData] = useState<Partial<ProductVariant>>({})
+  const [showAddVariantForm, setShowAddVariantForm] = useState(false)
   
   // Validation errors state
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -749,6 +752,138 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
     }
   }
 
+  const handleAddSingleVariant = async () => {
+    if (!product) return
+
+    // Clear previous variant errors
+    setVariantErrors({})
+
+    // Validate variant fields
+    const newVariantErrors: Record<string, string> = {}
+
+    // Price validation - required field for variants
+    if (addingVariantData.price === undefined || addingVariantData.price === null) {
+      newVariantErrors.price = 'Variant price is required'
+    } else if (isNaN(addingVariantData.price)) {
+      newVariantErrors.price = 'Please enter a valid price'
+    } else if (addingVariantData.price <= 0) {
+      newVariantErrors.price = 'Price must be greater than 0'
+    } else if (addingVariantData.price > 999999.99) {
+      newVariantErrors.price = 'Price cannot exceed 999,999.99'
+    }
+
+    // Stock validation - required field for variants
+    if (addingVariantData.stock === undefined || addingVariantData.stock === null) {
+      newVariantErrors.stock = 'Variant stock is required'
+    } else if (isNaN(addingVariantData.stock)) {
+      newVariantErrors.stock = 'Please enter a valid stock quantity'
+    } else if (addingVariantData.stock < 0) {
+      newVariantErrors.stock = 'Stock cannot be negative'
+    } else if (!Number.isInteger(addingVariantData.stock)) {
+      newVariantErrors.stock = 'Stock must be a whole number'
+    } else if (addingVariantData.stock > 999999) {
+      newVariantErrors.stock = 'Stock cannot exceed 999,999'
+    }
+
+    // If there are errors, show them and stop
+    if (Object.keys(newVariantErrors).length > 0) {
+      setVariantErrors(newVariantErrors)
+      const firstError = Object.values(newVariantErrors)[0]
+      toast({
+        title: 'Validation Error',
+        description: firstError || 'Please fix the variant errors',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    try {
+      setIsAddingVariant(true)
+      const response = await fetch(
+        `/api/admin/products/${product.id}/variants`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            sku: `${product.slug}-${addingVariantData.size || ''}-${addingVariantData.color || ''}`.replace(/-+/g, '-').toLowerCase(),
+            name: `${product.name} - ${addingVariantData.size || ''} ${addingVariantData.color || ''}`.trim(),
+            price: addingVariantData.price,
+            stock: addingVariantData.stock !== undefined ? parseInt(addingVariantData.stock.toString()) : 0,
+            size: addingVariantData.size || null,
+            color: addingVariantData.color || null,
+            material: addingVariantData.material || null,
+            images: addingVariantData.images || [],
+            isActive: true,
+            isDefault: variants.length === 0, // First variant becomes default
+          }),
+        }
+      )
+
+      const result = await response.json() as any
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to add variant')
+      }
+
+      toast({
+        title: 'Success',
+        description: 'Variant added successfully',
+      })
+
+      setShowAddVariantForm(false)
+      setAddingVariantData({})
+      fetchProductVariants(product.id)
+    } catch (err: any) {
+      console.error('Error adding variant:', err)
+      toast({
+        title: 'Error',
+        description: err.message || 'Failed to add variant',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsAddingVariant(false)
+    }
+  }
+
+  const handleSetDefaultVariant = async (variantId: string) => {
+    if (!product) return
+
+    try {
+      const response = await fetch(
+        `/api/admin/products/${product.id}/variants/${variantId}`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            isDefault: true,
+          }),
+        }
+      )
+
+      const result = await response.json() as any
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to set default variant')
+      }
+
+      toast({
+        title: 'Success',
+        description: 'Default variant updated',
+      })
+
+      fetchProductVariants(product.id)
+    } catch (err: any) {
+      console.error('Error setting default variant:', err)
+      toast({
+        title: 'Error',
+        description: err.message || 'Failed to set default variant',
+        variant: 'destructive',
+      })
+    }
+  }
+
   const openEditVariant = (variant: ProductVariant) => {
     setEditingVariant(variant)
     setEditVariantData({
@@ -1047,7 +1182,120 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
                       : 'No variants yet'}
                   </p>
                 </div>
+                {/* Add Variant Button - Only show in edit mode */}
+                {mode === 'edit' && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setShowAddVariantForm(!showAddVariantForm)
+                      setAddingVariantData({})
+                      setVariantErrors({})
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Single Variant
+                  </Button>
+                )}
               </div>
+
+              {/* Add Single Variant Form */}
+              {showAddVariantForm && mode === 'edit' && (
+                <div className="mt-4 border rounded-lg p-4 space-y-3 bg-gray-50">
+                  <h4 className="font-semibold text-sm">Add New Variant</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <Label className={variantErrors.price ? 'text-destructive' : ''}>
+                        Price <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="0.00"
+                        value={addingVariantData.price || ''}
+                        onChange={(e) => {
+                          setAddingVariantData({ ...addingVariantData, price: parseFloat(e.target.value) })
+                          if (variantErrors.price) setVariantErrors({ ...variantErrors, price: '' })
+                        }}
+                        className={variantErrors.price ? 'border-destructive' : ''}
+                      />
+                      {variantErrors.price && (
+                        <p className="text-sm text-destructive mt-1">{variantErrors.price}</p>
+                      )}
+                    </div>
+                    <div>
+                      <Label className={variantErrors.stock ? 'text-destructive' : ''}>
+                        Stock <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        placeholder="0"
+                        value={addingVariantData.stock ?? ''}
+                        onChange={(e) => {
+                          setAddingVariantData({ ...addingVariantData, stock: parseInt(e.target.value) })
+                          if (variantErrors.stock) setVariantErrors({ ...variantErrors, stock: '' })
+                        }}
+                        className={variantErrors.stock ? 'border-destructive' : ''}
+                      />
+                      {variantErrors.stock && (
+                        <p className="text-sm text-destructive mt-1">{variantErrors.stock}</p>
+                      )}
+                    </div>
+                    <div>
+                      <Label>Size (Optional)</Label>
+                      <Input
+                        placeholder="e.g., M, L, XL"
+                        value={addingVariantData.size || ''}
+                        onChange={(e) =>
+                          setAddingVariantData({ ...addingVariantData, size: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <Label>Color (Optional)</Label>
+                      <Input
+                        placeholder="e.g., Red, Blue, etc."
+                        value={addingVariantData.color || ''}
+                        onChange={(e) =>
+                          setAddingVariantData({ ...addingVariantData, color: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label>Material (Optional)</Label>
+                      <Input
+                        placeholder="e.g., Cotton, Silk, etc."
+                        value={addingVariantData.material || ''}
+                        onChange={(e) =>
+                          setAddingVariantData({ ...addingVariantData, material: e.target.value })
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 justify-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setShowAddVariantForm(false)
+                        setAddingVariantData({})
+                        setVariantErrors({})
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button type="button" size="sm" onClick={handleAddSingleVariant} disabled={isAddingVariant}>
+                      {isAddingVariant ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                      {isAddingVariant ? 'Adding...' : 'Add Variant'}
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               {/* Variants List - Show when editing and variants exist */}
               {(mode === 'edit' && variants.length > 0) && (
@@ -1108,6 +1356,17 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
 
                           {/* Actions */}
                           <div className="flex gap-2">
+                            {!variant.isDefault && (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleSetDefaultVariant(variant.id)}
+                                title="Set as default variant"
+                              >
+                                <Package className="h-4 w-4" />
+                              </Button>
+                            )}
                             <Button
                               type="button"
                               variant="ghost"

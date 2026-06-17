@@ -86,13 +86,29 @@ export async function GET(request: NextRequest) {
       offset
     )
 
-    // Parse images JSON field
-    const productsWithImages = products.map((p: any) => ({
-      ...p,
-      images: parseJSON<string[]>(p.images) || [],
-      isActive: numberToBool(p.isActive),
-      isFeatured: numberToBool(p.isFeatured),
-      hasVariants: numberToBool(p.hasVariants),
+    // Parse images JSON field and calculate stock for variant products
+    const productsWithImages = await Promise.all(products.map(async (p: any) => {
+      let calculatedStock = p.stock
+
+      // For products with variants, calculate total stock from variants
+      if (numberToBool(p.hasVariants)) {
+        const variants = await queryAll<any>(
+          env,
+          'SELECT stock FROM product_variants WHERE productId = ? AND isActive = 1',
+          p.id
+        )
+        // Sum up all variant stocks
+        calculatedStock = variants.reduce((total: number, v: any) => total + (v.stock || 0), 0)
+      }
+
+      return {
+        ...p,
+        stock: calculatedStock,
+        images: parseJSON<string[]>(p.images) || [],
+        isActive: numberToBool(p.isActive),
+        isFeatured: numberToBool(p.isFeatured),
+        hasVariants: numberToBool(p.hasVariants),
+      }
     }))
 
     // Get total count for pagination
