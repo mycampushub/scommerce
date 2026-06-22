@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
     const category = await CategoryRepository.create(env, {
       name: validatedData.name,
       slug: validatedData.slug,
-      description: validatedData.description,
+      description: validatedData.description ?? undefined,
       image: validatedData.image,
       isActive: validatedData.isActive ?? true,
       parentId: validatedData.parentId,
