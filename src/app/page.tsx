@@ -1484,7 +1484,7 @@ function VideoReels({ reels, sectionEnabled = true }: { reels: VideoReel[]; sect
                 perspective: '2000px',
               }}
             >
-              {visibleCardsList.map(({ reel, actualIndex, visibleIndex }) => {
+              {visibleCardsList.filter(item => item.reel).map(({ reel, actualIndex, visibleIndex }) => {
                 const style = getCardStyle(visibleIndex)
                 const isCenter = visibleIndex === centerIndexInView
 
