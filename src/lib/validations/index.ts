@@ -64,8 +64,8 @@ export const categorySchema = z.object({
   name: z.string().min(1, 'Category name is required'),
   slug: z.string().min(1, 'Category slug is required'),
   description: z.string().optional().nullable(),
-  image: z.string().optional(),
-  parentId: z.string().optional(),
+  image: z.string().optional().nullable(),
+  parentId: z.string().optional().nullable(),
   sortOrder: z.number().int().min(0).optional().default(0),
   isActive: z.boolean().optional(),
 });
