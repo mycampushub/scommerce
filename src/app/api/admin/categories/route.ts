@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || ''
     const tree = searchParams.get('tree') === 'true'
     const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
-    const limit = Math.min(100, Math.max(10, parseInt(searchParams.get('limit') || '20')))
+    const limit = Math.min(1000, Math.max(1, parseInt(searchParams.get('limit') || '20')))
     const offset = (page - 1) * limit
 
     // Return tree structure if requested (no pagination for tree view)

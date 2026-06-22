@@ -148,7 +148,7 @@ export function ProductModal({ open, onOpenChange, mode, product, onSuccess }: P
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await fetch('/api/admin/categories')
+        const response = await fetch('/api/admin/categories?limit=1000')
         const result = await response.json()
         if (result.success) {
           setCategories(result.data || [])

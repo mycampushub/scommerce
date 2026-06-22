@@ -180,7 +180,7 @@ export default function ProductsPage() {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch('/api/admin/categories')
+      const response = await fetch('/api/admin/categories?limit=1000')
       const result = await response.json() as any
 
       if (result.success) {

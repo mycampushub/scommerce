@@ -823,6 +823,31 @@ function CategoryCarousel({ allCategories, products, sectionEnabled = true }: { 
 // 4. Category Menu Component
 function Categories({ categories }: { categories: Category[] }) {
   const [showAllCategories, setShowAllCategories] = useState(false)
+  const [displayedCategories, setDisplayedCategories] = useState<Category[]>(categories || [])
+
+  // Fetch category grid settings and filter categories
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch('/api/homepage/category-grid')
+        const data = await res.json() as any
+        if (data.success) {
+          const selectedIds = data.data.categoryIds || []
+          if (selectedIds.length > 0 && categories) {
+            const filtered = categories.filter(cat => selectedIds.includes(cat.id))
+            setDisplayedCategories(filtered)
+          } else {
+            setDisplayedCategories(categories || [])
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching category grid settings:', error)
+        setDisplayedCategories(categories || [])
+      }
+    }
+
+    fetchSettings()
+  }, [categories])
 
   return (
     <section className="w-full py-8 md:py-12 bg-white">
@@ -838,7 +863,7 @@ function Categories({ categories }: { categories: Category[] }) {
             className="flex gap-3 overflow-x-auto pb-2 md:hidden -mx-4 px-4"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
           >
-            {categories.map((category, index) => (
+            {displayedCategories.map((category, index) => (
               <a
                 key={category.id}
                 data-testid={`category-menu-item-${index}`}
@@ -889,7 +914,7 @@ function Categories({ categories }: { categories: Category[] }) {
             data-testid="category-menu-desktop"
             className="hidden md:grid grid-cols-4 gap-4 md:gap-6"
           >
-            {(showAllCategories ? categories : categories.slice(0, 8)).map((category, index) => (
+            {(showAllCategories ? displayedCategories : displayedCategories.slice(0, 8)).map((category, index) => (
               <a
                 key={category.id}
                 data-testid={`category-menu-item-${index}`}
@@ -932,7 +957,7 @@ function Categories({ categories }: { categories: Category[] }) {
           </div>
 
           {/* Show All / Show Less button */}
-          {categories.length > 8 && (
+          {displayedCategories.length > 8 && (
             <div className="hidden md:flex justify-center mt-8">
               <button
                 onClick={() => setShowAllCategories(!showAllCategories)}

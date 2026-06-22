@@ -288,7 +288,7 @@ export default function HomepageManagementPage() {
 
   const fetchCategories = async () => {
     try {
-      const res = await fetch('/api/admin/categories?limit=100')
+      const res = await fetch('/api/admin/categories?limit=1000')
       const data = await res.json() as any
       if (data.success && Array.isArray(data.data)) {
         setCategories(data.data)
