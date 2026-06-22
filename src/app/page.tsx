@@ -200,11 +200,12 @@ function HeroCarousel({ banners, autoPlay = 5000 }: { banners: Banner[], autoPla
 
   return (
     <section className="relative w-full">
-      <div className="relative w-full overflow-hidden" style={{ minHeight: '300px' }}>
+      <div className="relative w-full overflow-hidden">
+        <div className="grid grid-cols-1 grid-rows-1">
         {banners && banners.length > 0 && banners.map((banner, index) => (
           <div
             key={banner.id}
-            className={`w-full absolute inset-0 transition-opacity duration-700 ease-in-out ${index === currentIndex ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+            className={`col-start-1 row-start-1 relative transition-opacity duration-700 ease-in-out ${index === currentIndex ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
           >
               <picture className="block w-full h-full">
                 <source media="(max-width: 767px)" srcSet={banner.mobileImage} width="580" />
@@ -235,6 +236,7 @@ function HeroCarousel({ banners, autoPlay = 5000 }: { banners: Banner[], autoPla
               </div>
             </div>
           ))}
+        </div>
         <button onClick={prevSlide} className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 bg-white/90 hover:bg-white flex items-center justify-center rounded-full shadow-lg transition-all z-10" aria-label="Previous">
           <ChevronLeft className="w-5 h-5 md:w-6 md:h-6 text-gray-800" />
         </button>
@@ -2253,14 +2255,6 @@ function UnifiedCarousel() {
 }
 
 // 11. Sticky Image Cards Component (replaced with Unified Carousel)
-function StickyImageCards() {
-  return (
-    <section className="py-12 bg-gray-50">
-      <UnifiedCarousel />
-    </section>
-  )
-}
-
 // Types for dynamic homepage data
 interface HomepageSettings {
   banners?: { sectionName: string; isEnabled: boolean; autoPlay: number | null; displayLimit: number | null }
@@ -2594,6 +2588,11 @@ export default function Home() {
         shouldRender: () => isSectionEnabled('video-reels') && homepageSettings.reels?.isEnabled !== false && reels.length > 0
       },
       {
+        id: 'featured-products',
+        render: () => <FeaturedCollection products={featuredProducts} onQuickView={openQuickView} onAddToCart={addToCart} heading={featuredProductsSettings.heading} description={featuredProductsSettings.description} />,
+        shouldRender: () => isSectionEnabled('featured-products') && featuredProductsSettings.enabled && featuredProducts.length > 0
+      },
+      {
         id: 'mosaic-grid',
         render: () => <MosaicGrid products={mosaicProducts} onQuickView={openQuickView} onAddToCart={addToCart} heading={mosaicGridSettings.heading} description={mosaicGridSettings.description} />,
         shouldRender: () => isSectionEnabled('mosaic-grid') && mosaicGridSettings.enabled && mosaicProducts.length > 0
@@ -2651,8 +2650,6 @@ export default function Home() {
             {section.render()}
           </React.Fragment>
         ))}
-        {/* StickyImageCards is always shown at the end */}
-        <StickyImageCards />
       </main>
       <Footer />
       <MobileBottomNav />
