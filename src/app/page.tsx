@@ -200,13 +200,12 @@ function HeroCarousel({ banners, autoPlay = 5000 }: { banners: Banner[], autoPla
 
   return (
     <section className="relative w-full">
-      <div className="relative w-full overflow-hidden">
-        <div 
-          className="flex transition-transform duration-500 ease-in-out"
-          style={{ transform: `translateX(-${currentIndex * 100}%)` }}
-        >
-          {banners && banners.length > 0 && banners.map((banner, index) => (
-            <div key={banner.id} className="flex-shrink-0 w-full relative">
+      <div className="relative w-full overflow-hidden" style={{ minHeight: '300px' }}>
+        {banners && banners.length > 0 && banners.map((banner, index) => (
+          <div
+            key={banner.id}
+            className={`w-full absolute inset-0 transition-opacity duration-700 ease-in-out ${index === currentIndex ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+          >
               <picture className="block w-full h-full">
                 <source media="(max-width: 767px)" srcSet={banner.mobileImage} width="580" />
                 <source media="(min-width: 768px)" srcSet={banner.desktopImage} width="1400" height="450" />
@@ -236,7 +235,6 @@ function HeroCarousel({ banners, autoPlay = 5000 }: { banners: Banner[], autoPla
               </div>
             </div>
           ))}
-        </div>
         <button onClick={prevSlide} className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 bg-white/90 hover:bg-white flex items-center justify-center rounded-full shadow-lg transition-all z-10" aria-label="Previous">
           <ChevronLeft className="w-5 h-5 md:w-6 md:h-6 text-gray-800" />
         </button>
@@ -2594,11 +2592,6 @@ export default function Home() {
         id: 'video-reels',
         render: () => <VideoReels reels={reels} />,
         shouldRender: () => isSectionEnabled('video-reels') && homepageSettings.reels?.isEnabled !== false && reels.length > 0
-      },
-      {
-        id: 'featured-products',
-        render: () => <FeaturedCollection products={featuredProducts} onQuickView={openQuickView} onAddToCart={addToCart} heading={featuredProductsSettings.heading} description={featuredProductsSettings.description} />,
-        shouldRender: () => isSectionEnabled('featured-products') && featuredProductsSettings.enabled && featuredProducts.length > 0
       },
       {
         id: 'mosaic-grid',

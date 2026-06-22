@@ -212,9 +212,11 @@ export async function GET(request: Request) {
     // Batch fetch rating data for all products to avoid N+1 queries
     const productIds = products.map((p: any) => p.id);
     const categoryIds = [...new Set(products.map((p: any) => p.categoryId))];
+    const brandIds = [...new Set(products.map((p: any) => p.brandId).filter(Boolean))];
 
     let ratingsMap = new Map<string, { avgRating: number, totalReviews: number }>();
     let categoriesMap = new Map<string, { name: string, slug: string, image?: string }>();
+    let brandsMap = new Map<string, { name: string, slug: string }>();
 
     // Batch fetch categories
     if (categoryIds.length > 0) {
@@ -228,6 +230,20 @@ export async function GET(request: Request) {
         name: c.name,
         slug: c.slug,
         image: c.image
+      }));
+    }
+
+    // Batch fetch brands
+    if (brandIds.length > 0) {
+      const placeholders = brandIds.map(() => '?').join(',');
+      const brandsData = await queryAll<{ id: string, name: string, slug: string }>(
+        env,
+        `SELECT id, name, slug FROM brands WHERE id IN (${placeholders})`,
+        ...brandIds
+      );
+      brandsData.forEach(b => brandsMap.set(b.id, {
+        name: b.name,
+        slug: b.slug
       }));
     }
 
@@ -286,6 +302,8 @@ export async function GET(request: Request) {
         category: productCategory?.name,
         categorySlug: productCategory?.slug,
         categoryId: product.categoryId,
+        brandId: product.brandId || undefined,
+        brandName: brandsMap.get(product.brandId)?.name,
         stock: product.stock,
         hasVariants: numberToBool(product.hasVariants),
         basePrice: product.basePrice,
