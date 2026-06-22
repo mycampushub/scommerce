@@ -253,7 +253,7 @@ export const storySchema = z.object({
 export const reelSchema = z.object({
   id: z.string().optional(),
   title: z.string().min(1, 'Title is required'),
-  thumbnail: urlOrRelativeSchema,
+  thumbnail: urlOrRelativeSchema.optional(),
   videoUrl: z.string().min(1, 'Video URL is required'),
   productIds: z.array(z.string()).optional(),
   isActive: z.boolean().optional().default(true),
