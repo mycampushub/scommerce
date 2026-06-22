@@ -1192,7 +1192,7 @@ function BrandCarousel({ products = [], sectionEnabled = true }: { products?: Pr
         {/* View All Brands Button */}
         <div className="mt-6 text-center">
           <a
-            href={`/collections?brand=${currentBrand.slug}`}
+            href={`/brands/${currentBrand.slug}`}
             className="inline-flex items-center gap-2 bg-white text-pink-600 border-2 border-pink-600 px-6 py-3 md:px-8 md:py-3.5 rounded-xl text-base md:text-lg font-medium hover:bg-pink-50 transition-colors shadow-md hover:shadow-lg"
           >
             <ShoppingBag className="w-5 h-5" strokeWidth={2} />
