@@ -166,6 +166,7 @@ export const updateCartItemSchema = cartItemSchema.partial();
 export const searchProductsSchema = z.object({
   search: z.string().optional(),
   categoryId: z.string().optional(),
+  brand: z.string().optional(),
   minPrice: z.number().min(0).optional(),
   maxPrice: z.number().min(0).optional(),
   type: z.enum(['featured', 'new', 'sale', 'trending']).optional(),

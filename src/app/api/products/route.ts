@@ -3,6 +3,7 @@ import { searchProductsSchema } from '@/lib/validations';
 import { getEnv } from '@/lib/cloudflare';
 import { ProductRepository } from '@/db/product.repository';
 import { CategoryRepository } from '@/db/category.repository';
+import { BrandRepository } from '@/db/brand.repository';
 import { numberToBool, parseJSON, count } from '@/db/db';
 import { addCacheHeaders, CachePresets } from '@/lib/http-cache';
 import { errorResponse } from '@/lib/api-response';
@@ -98,6 +99,33 @@ export async function GET(request: Request) {
         whereParams.push(category.id);
       } else {
         // Category not found, return empty results with standard format
+        return NextResponse.json({
+          success: true,
+          data: {
+            products: [],
+            pagination: {
+              page,
+              limit,
+              totalCount: 0,
+              totalPages: 0,
+              hasNextPage: false,
+              hasPrevPage: false,
+            },
+          },
+        });
+      }
+    }
+
+    // Filter by brand slug
+    const brandSlug = searchParams.get('brand');
+    let brand: any = null;
+    if (brandSlug) {
+      brand = await BrandRepository.findBySlug(env, brandSlug);
+      if (brand) {
+        conditions.push('brandId = ?');
+        params.push(brand.id);
+        whereParams.push(brand.id);
+      } else {
         return NextResponse.json({
           success: true,
           data: {
