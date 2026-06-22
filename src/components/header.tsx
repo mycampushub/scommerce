@@ -193,6 +193,7 @@ export function Header() {
   }, [mobileMenuOpen, handleTabKey])
 
   return (
+    <>
     <header className={`bg-white shadow-sm z-50 transition-transform duration-300 ${
       isHeaderVisible ? 'translate-y-0' : '-translate-y-full'
     }`}>
@@ -265,6 +266,8 @@ export function Header() {
             </button>
           </div>
         </div>
+      </div>
+    </header>
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
@@ -445,7 +448,6 @@ export function Header() {
             </div>
           </>
         )}
-      </div>
-    </header>
+    </>
   )
 }

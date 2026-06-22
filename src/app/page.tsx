@@ -822,6 +822,8 @@ function CategoryCarousel({ allCategories, products, sectionEnabled = true }: { 
 
 // 4. Category Menu Component
 function Categories({ categories }: { categories: Category[] }) {
+  const [showAllCategories, setShowAllCategories] = useState(false)
+
   return (
     <section className="w-full py-8 md:py-12 bg-white">
       <div className="container mx-auto px-4 max-w-7xl">
@@ -887,7 +889,7 @@ function Categories({ categories }: { categories: Category[] }) {
             data-testid="category-menu-desktop"
             className="hidden md:grid grid-cols-4 gap-4 md:gap-6"
           >
-            {categories.map((category, index) => (
+            {(showAllCategories ? categories : categories.slice(0, 8)).map((category, index) => (
               <a
                 key={category.id}
                 data-testid={`category-menu-item-${index}`}
@@ -928,6 +930,22 @@ function Categories({ categories }: { categories: Category[] }) {
               </a>
             ))}
           </div>
+
+          {/* Show All / Show Less button */}
+          {categories.length > 8 && (
+            <div className="hidden md:flex justify-center mt-8">
+              <button
+                onClick={() => setShowAllCategories(!showAllCategories)}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border-2 border-gray-200 text-gray-700 font-medium hover:border-pink-600 hover:text-pink-600 transition-colors"
+              >
+                {showAllCategories ? (
+                  <>Show Less <ChevronDown className="w-4 h-4 rotate-180 transition-transform" /></>
+                ) : (
+                  <>All Categories <ChevronDown className="w-4 h-4 transition-transform" /></>
+                )}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </section>
