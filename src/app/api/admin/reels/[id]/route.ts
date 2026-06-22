@@ -76,7 +76,7 @@ export async function PUT(
       }
     }
 
-    if (thumbnail !== undefined) {
+    if (thumbnail !== undefined && thumbnail !== '') {
       if (typeof thumbnail !== 'string' || thumbnail.trim().length === 0) {
         return NextResponse.json(
           {
@@ -86,7 +86,6 @@ export async function PUT(
           { status: 400 }
         )
       }
-      // Validate thumbnail URL
       try {
         new URL(thumbnail)
       } catch (e) {
@@ -110,7 +109,6 @@ export async function PUT(
           { status: 400 }
         )
       }
-      // Validate video URL
       try {
         new URL(videoUrl)
       } catch (e) {
