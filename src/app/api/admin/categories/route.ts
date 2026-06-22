@@ -153,9 +153,9 @@ export async function POST(request: NextRequest) {
       name: validatedData.name,
       slug: validatedData.slug,
       description: validatedData.description ?? undefined,
-      image: validatedData.image,
+      image: validatedData.image ?? undefined,
       isActive: validatedData.isActive ?? true,
-      parentId: validatedData.parentId,
+      parentId: validatedData.parentId ?? undefined,
       sortOrder: validatedData.sortOrder ?? 0,
     })
 
