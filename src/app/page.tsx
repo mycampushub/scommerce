@@ -1371,6 +1371,7 @@ function VideoReels({ reels, sectionEnabled = true }: { reels: VideoReel[]; sect
 
   // Calculate visible cards and positions
   const getVisibleCards = () => {
+    if (totalCards === 0) return []
     const visibleCount = isMobile ? 3 : 8
     const result: Array<{ reel: VideoReel; actualIndex: number; visibleIndex: number }> = []
 
