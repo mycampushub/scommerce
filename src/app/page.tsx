@@ -135,6 +135,8 @@ interface Product {
   badge?: string
   category?: string
   categoryId?: string
+  brandId?: string
+  brandName?: string
   description?: string
   sizes?: string[]
   colors?: string[]
@@ -711,18 +713,6 @@ function CategoryCarousel({ allCategories, products, sectionEnabled = true }: { 
   return (
     <section className="w-full py-6 md:py-8 bg-gradient-to-b from-pink-50 to-white">
       <div className="container mx-auto px-4 max-w-7xl">
-        {/* Section Heading and Description */}
-        <div className="text-center mb-6">
-          <h2 className="text-2xl md:text-4xl font-bold text-gray-900 mb-2">
-            {heading}
-          </h2>
-          {description && (
-            <p className="text-sm md:text-base text-gray-600">
-              {description}
-            </p>
-          )}
-        </div>
-
         {/* Category Name Carousel with Left/Right Controls */}
         <div
           className="relative bg-white rounded-2xl shadow-sm p-3 md:p-6"
@@ -978,7 +968,7 @@ function Categories({ categories }: { categories: Category[] }) {
 }
 
 // 4c. Brand Carousel Component
-function BrandCarousel({ sectionEnabled = true }: { sectionEnabled?: boolean }) {
+function BrandCarousel({ products = [], sectionEnabled = true }: { products?: Product[]; sectionEnabled?: boolean }) {
   const [brands, setBrands] = useState<Brand[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
@@ -1080,6 +1070,12 @@ function BrandCarousel({ sectionEnabled = true }: { sectionEnabled?: boolean }) 
   if (loading || !isEnabled || !sectionEnabled || !brands || brands.length === 0) return null
 
   const currentBrand = brands[currentIndex]
+  const brandProducts = (products || [])
+    .filter(p => currentBrand && (p.brandId === currentBrand.id || p.brandName === currentBrand.name))
+    .filter((p, index, self) =>
+      index === self.findIndex((t) => t.id === p.id)
+    )
+    .slice(0, 4)
 
   return (
     <section className="w-full py-8 md:py-12 bg-gradient-to-b from-pink-50 to-white">
@@ -1163,14 +1159,44 @@ function BrandCarousel({ sectionEnabled = true }: { sectionEnabled?: boolean }) 
           </div>
         </div>
 
+        {/* Current Brand Products - Shown Below Carousel */}
+        {brandProducts.length > 0 && (
+          <div className="mt-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+              {brandProducts.map(product => (
+                <a
+                  key={product.id}
+                  href={`/product/${product.slug}`}
+                  className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden group"
+                >
+                  <div className="relative aspect-square overflow-hidden bg-gray-100">
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                    />
+                  </div>
+                  <div className="p-3">
+                    <h3 className="text-sm md:text-base font-medium text-gray-900 line-clamp-2 mb-2">
+                      {product.name}
+                    </h3>
+                    <PriceDisplay value={product.price} className="text-base md:text-lg font-bold text-pink-600" />
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* View All Brands Button */}
         <div className="mt-6 text-center">
           <a
-            href="/brands"
+            href={`/collections?brand=${currentBrand.slug}`}
             className="inline-flex items-center gap-2 bg-white text-pink-600 border-2 border-pink-600 px-6 py-3 md:px-8 md:py-3.5 rounded-xl text-base md:text-lg font-medium hover:bg-pink-50 transition-colors shadow-md hover:shadow-lg"
           >
             <ShoppingBag className="w-5 h-5" strokeWidth={2} />
-            View All Brands
+            All {currentBrand.name} Products
           </a>
         </div>
       </div>
@@ -2561,7 +2587,7 @@ export default function Home() {
       },
       {
         id: 'brands',
-        render: () => <BrandCarousel sectionEnabled={isSectionEnabled('brands')} />,
+        render: () => <BrandCarousel products={[...featuredProducts, ...saleProducts, ...newProducts, ...trendingProducts]} sectionEnabled={isSectionEnabled('brands')} />,
         shouldRender: () => isSectionEnabled('brands')
       },
       {
