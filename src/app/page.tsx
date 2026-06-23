@@ -631,6 +631,8 @@ function CategoryCarousel({ allCategories, products, sectionEnabled = true }: { 
   const [description, setDescription] = useState('Explore our wide range of categories')
   const [loading, setLoading] = useState(true)
   const [isEnabled, setIsEnabled] = useState(true)
+  const [categoryProducts, setCategoryProducts] = useState<Product[]>([])
+  const [productsLoading, setProductsLoading] = useState(false)
 
   // Fetch category carousel settings
   useEffect(() => {
@@ -692,17 +694,43 @@ function CategoryCarousel({ allCategories, products, sectionEnabled = true }: { 
     setCurrentIndex(index)
   }
 
+  const currentCategory = categories && categories[currentIndex]
+
+  // Fetch products for the current category
+  useEffect(() => {
+    if (!currentCategory) return
+    let cancelled = false
+
+    const fetchCategoryProducts = async () => {
+      setProductsLoading(true)
+      try {
+        const res = await fetch(`/api/products?category=${currentCategory.slug}&limit=10`)
+        const data = await res.json() as any
+        if (cancelled) return
+        if (data.success && data.data?.products) {
+          setCategoryProducts(data.data.products.slice(0, 4))
+          setProductsLoading(false)
+          return
+        }
+      } catch (err) {
+        console.error('Error fetching category products:', err)
+        if (cancelled) return
+      }
+      // Fallback to prop-based products
+      const fallback = (products || [])
+        .filter(p => currentCategory && p.categoryId === currentCategory.id)
+        .filter((p, index, self) => index === self.findIndex((t) => t.id === p.id))
+        .slice(0, 4)
+      setCategoryProducts(fallback)
+      setProductsLoading(false)
+    }
+
+    fetchCategoryProducts()
+    return () => { cancelled = true }
+  }, [currentCategory?.id])
+
   // Don't render if disabled, loading, or no categories
   if (loading || !isEnabled || !sectionEnabled || !categories || categories.length === 0) return null
-
-  const currentCategory = categories && categories[currentIndex]
-  const categoryProducts = (products || [])
-    .filter(p => currentCategory && p.categoryId === currentCategory.id)
-    .filter((p, index, self) =>
-      // Remove duplicates based on product ID
-      index === self.findIndex((t) => t.id === p.id)
-    )
-    .slice(0, 4)
 
   const href = currentCategory?.href || `/collections/${currentCategory?.slug}`
 
@@ -974,6 +1002,8 @@ function BrandCarousel({ products = [], sectionEnabled = true }: { products?: Pr
   const [isEnabled, setIsEnabled] = useState(true)
   const [heading, setHeading] = useState('Featured Brands')
   const [description, setDescription] = useState('Discover top brands in our collection')
+  const [brandProducts, setBrandProducts] = useState<Product[]>([])
+  const [productsLoading, setProductsLoading] = useState(false)
 
   // Fetch brand carousel settings
   useEffect(() => {
@@ -981,7 +1011,7 @@ function BrandCarousel({ products = [], sectionEnabled = true }: { products?: Pr
       try {
         const [settingsRes, brandsRes] = await Promise.all([
           fetch('/api/homepage/brands'),
-          fetch('/api/brands?featured=true')
+          fetch('/api/brands') // Fetch ALL active brands, not just featured
         ])
 
         const settingsData = await settingsRes.json() as any
@@ -1002,11 +1032,11 @@ function BrandCarousel({ products = [], sectionEnabled = true }: { products?: Pr
             )
             setBrands(filtered)
           } else if (brandsData.success) {
-            // Otherwise, show all featured brands
+            // Otherwise, show all active brands
             setBrands(brandsData.data || [])
           }
         } else {
-          // If settings fail, use defaults and try to show featured brands
+          // If settings fail, use defaults and try to show active brands
           setIsEnabled(true)
           setAutoScroll(true)
           setScrollInterval(4000)
@@ -1019,15 +1049,15 @@ function BrandCarousel({ products = [], sectionEnabled = true }: { products?: Pr
         }
       } catch (error) {
         console.error('Error fetching brand carousel settings:', error)
-        // On error, show all featured brands if available
+        // On error, show all active brands if available
         try {
-          const brandsRes = await fetch('/api/brands?featured=true')
+          const brandsRes = await fetch('/api/brands')
           const brandsData = await brandsRes.json() as any
           if (brandsData.success) {
             setBrands(brandsData.data || [])
           }
         } catch (e) {
-          console.error('Error fetching featured brands:', e)
+          console.error('Error fetching brands:', e)
         }
       } finally {
         setLoading(false)
@@ -1062,16 +1092,43 @@ function BrandCarousel({ products = [], sectionEnabled = true }: { products?: Pr
     setCurrentIndex(index)
   }
 
+  const currentBrand = brands[currentIndex]
+
+  // Fetch products for the current brand
+  useEffect(() => {
+    if (!currentBrand) return
+    let cancelled = false
+
+    const fetchBrandProducts = async () => {
+      setProductsLoading(true)
+      try {
+        const res = await fetch(`/api/products?brand=${currentBrand.slug}&limit=10`)
+        const data = await res.json() as any
+        if (cancelled) return
+        if (data.success && data.data?.products) {
+          setBrandProducts(data.data.products.slice(0, 4))
+          setProductsLoading(false)
+          return
+        }
+      } catch (err) {
+        console.error('Error fetching brand products:', err)
+        if (cancelled) return
+      }
+      // Fallback to prop-based products
+      const fallback = (products || [])
+        .filter(p => currentBrand && (p.brandId === currentBrand.id || p.brandName === currentBrand.name))
+        .filter((p, index, self) => index === self.findIndex((t) => t.id === p.id))
+        .slice(0, 4)
+      setBrandProducts(fallback)
+      setProductsLoading(false)
+    }
+
+    fetchBrandProducts()
+    return () => { cancelled = true }
+  }, [currentBrand?.id])
+
   // Don't render if disabled, loading, or no brands
   if (loading || !isEnabled || !sectionEnabled || !brands || brands.length === 0) return null
-
-  const currentBrand = brands[currentIndex]
-  const brandProducts = (products || [])
-    .filter(p => currentBrand && (p.brandId === currentBrand.id || p.brandName === currentBrand.name))
-    .filter((p, index, self) =>
-      index === self.findIndex((t) => t.id === p.id)
-    )
-    .slice(0, 4)
 
   return (
     <section className="w-full py-8 md:py-12 bg-gradient-to-b from-pink-50 to-white">

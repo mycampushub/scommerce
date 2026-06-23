@@ -123,6 +123,7 @@ export default function ReviewsPage() {
     } catch (error) {
       console.error('Error fetching reviews:', error)
       toast({ title: 'Error', description: 'Failed to load reviews', variant: 'destructive' })
+      setHasMore(false)
     } finally {
       setLoading(false)
       setIsLoadingMore(false)

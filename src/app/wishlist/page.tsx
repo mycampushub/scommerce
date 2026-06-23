@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { useWishlist, useRemoveFromWishlist, type WishlistItem } from '@/hooks/use-wishlist'
+import { parseImages } from '@/lib/images'
 import { PriceDisplay } from '@/components/price-display'
 
 export default function WishlistPage() {
@@ -29,8 +30,8 @@ export default function WishlistPage() {
 
   const handleMoveToCart = async (item: WishlistItem) => {
     try {
-      const images = JSON.parse(item.product.images || '[]')
-      const imageUrl = Array.isArray(images) && images.length > 0 ? images[0] : item.product.images
+      const images = parseImages(item.product.images)
+      const imageUrl = images.length > 0 ? images[0] : ''
 
       addItem({
         id: item.product.id,
@@ -81,8 +82,8 @@ export default function WishlistPage() {
       for (const itemId of selectedItems) {
         const item = wishlistItems.find(i => i.id === itemId)
         if (item && item.product.stock > 0) {
-          const images = JSON.parse(item.product.images || '[]')
-          const imageUrl = Array.isArray(images) && images.length > 0 ? images[0] : item.product.images
+          const images = parseImages(item.product.images)
+          const imageUrl = images.length > 0 ? images[0] : ''
 
           addItem({
             id: item.product.id,
@@ -265,8 +266,8 @@ export default function WishlistPage() {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
             {wishlistItems.map((item) => {
-              const images = JSON.parse(item.product.images || '[]')
-              const imageUrl = Array.isArray(images) && images.length > 0 ? images[0] : item.product.images
+              const images = parseImages(item.product.images)
+              const imageUrl = images.length > 0 ? images[0] : ''
               const isOutOfStock = item.product.stock <= 0
 
               const isSelected = selectedItems.has(item.id)

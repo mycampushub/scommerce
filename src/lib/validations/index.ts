@@ -171,7 +171,7 @@ export const searchProductsSchema = z.object({
   maxPrice: z.number().min(0).optional(),
   type: z.enum(['featured', 'new', 'sale', 'trending']).optional(),
   page: z.number().int().positive().optional(),
-  limit: z.number().int().positive().max(100).optional(),
+  limit: z.number().int().positive().max(200).optional(),
   sortBy: z.enum(['name', 'price', 'createdAt', 'stock']).optional(),
   sortOrder: z.enum(['asc', 'desc']).optional(),
 });

@@ -1,14 +1,13 @@
 'use client'
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { ChevronLeft, ChevronRight, SlidersHorizontal, Heart, ShoppingCart, Star, Filter, X, ChevronDown, Home as HomeIcon } from 'lucide-react'
+import { Heart, Star, Filter, X, ChevronDown, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { Header } from '@/components/header'
 import { Footer } from '@/components/footer'
 import { MobileBottomNav } from '@/components/mobile-bottom-nav'
 import { QuickViewModal, Product } from '@/components/quick-view-modal'
 import { useCartStore } from '@/lib/store/cart-store'
-import { useProducts } from '@/hooks/use-products'
 import { toast } from 'sonner'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useDebounce } from '@/hooks/use-debounce'
@@ -48,11 +47,16 @@ export default function ShopPage() {
   const [priceRange, setPriceRange] = useState<{ min: number; max: number } | null>(null)
   const [selectedPriceRange, setSelectedPriceRange] = useState<string | null>(null)
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
-  const [currentPage, setCurrentPage] = useState(0)
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null)
   const [wishlistedProducts, setWishlistedProducts] = useState<Set<string>>(new Set())
-  const itemsPerPage = 8
-  const { addItem, items: cartItems } = useCartStore()
+  const [allProducts, setAllProducts] = useState<Product[]>([])
+  const [initialLoading, setInitialLoading] = useState(true)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const sentinelRef = useRef<HTMLDivElement>(null)
+  const observerRef = useRef<IntersectionObserver | null>(null)
+  const { addItem } = useCartStore()
 
   // Fetch categories from database
   useEffect(() => {
@@ -99,13 +103,69 @@ export default function ShopPage() {
   const categoryParam = searchParams.get('category')
   const searchParam = searchParams.get('search')
 
-  // Fetch products using React Query
-  const filters = {
-    category: (categoryParam && categoryParam !== 'all') ? categoryParam : (selectedCategory !== 'All' ? selectedCategory : undefined),
-    search: searchParam || debouncedSearchQuery || undefined,
-  }
-  
-  const { data: products = [], isLoading } = useProducts(filters)
+  const effectiveCategory = (categoryParam && categoryParam !== 'all') ? categoryParam : (selectedCategory !== 'All' ? selectedCategory : undefined)
+  const effectiveSearch = searchParam || debouncedSearchQuery || undefined
+
+  // Fetch products with pagination
+  const fetchProductsPage = useCallback(async (pageNum: number, category?: string, search?: string) => {
+    const params = new URLSearchParams()
+    params.append('page', pageNum.toString())
+    params.append('limit', '12')
+    if (category) params.append('category', category)
+    if (search) params.append('search', search)
+    const response = await fetch(`/api/products?${params}`)
+    const data = await response.json()
+    if (!data.success) throw new Error('Failed to fetch products')
+    return data.data
+  }, [])
+
+  // Initial load + reset on filter change
+  useEffect(() => {
+    setInitialLoading(true)
+    setAllProducts([])
+    setPage(1)
+    setHasMore(true)
+    fetchProductsPage(1, effectiveCategory, effectiveSearch)
+      .then((data) => {
+        setAllProducts(data.products)
+        setHasMore(data.pagination.hasNextPage)
+        setPage(1)
+      })
+      .catch(console.error)
+      .finally(() => setInitialLoading(false))
+  }, [effectiveCategory, effectiveSearch, fetchProductsPage])
+
+  // Load more products for infinite scroll
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return
+    setLoadingMore(true)
+    const nextPage = page + 1
+    try {
+      const data = await fetchProductsPage(nextPage, effectiveCategory, effectiveSearch)
+      setAllProducts(prev => [...prev, ...data.products])
+      setHasMore(data.pagination.hasNextPage)
+      setPage(nextPage)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoadingMore(false)
+    }
+  }, [page, hasMore, loadingMore, effectiveCategory, effectiveSearch, fetchProductsPage])
+
+  // Setup IntersectionObserver for infinite scroll
+  useEffect(() => {
+    if (observerRef.current) observerRef.current.disconnect()
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore) {
+          loadMore()
+        }
+      },
+      { threshold: 0.1 }
+    )
+    if (sentinelRef.current) observerRef.current.observe(sentinelRef.current)
+    return () => observerRef.current?.disconnect()
+  }, [loadMore, hasMore, loadingMore])
 
   const openQuickView = (product: Product) => {
     setQuickViewProduct(product)
@@ -142,10 +202,8 @@ export default function ShopPage() {
     })
   }
 
-  const filteredProducts = products.filter(product => {
-    // Apply price range filter (API doesn't support this, so we filter client-side)
+  const filteredProducts = allProducts.filter(product => {
     const priceMatch = !priceRange || (product.price >= priceRange.min && product.price <= priceRange.max)
-
     return priceMatch
   })
 
@@ -157,9 +215,6 @@ export default function ShopPage() {
   } else if (sortBy === 'newest') {
     sortedProducts.reverse()
   }
-
-  const totalPages = Math.ceil(sortedProducts.length / itemsPerPage)
-  const displayedProducts = sortedProducts.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage)
 
   return (
     <div className="min-h-screen bg-background">
@@ -198,7 +253,6 @@ export default function ShopPage() {
                       <button
                         onClick={() => {
                           setSelectedCategory('All')
-                          setCurrentPage(0)
                         }}
                         className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
                           selectedCategory === 'All' || !categoryParam
@@ -217,7 +271,6 @@ export default function ShopPage() {
                           <button
                             onClick={() => {
                               setSelectedCategory(category.slug)
-                              setCurrentPage(0)
                             }}
                             className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
                               selectedCategory === category.slug || categoryParam === category.slug
@@ -293,7 +346,7 @@ export default function ShopPage() {
               {/* Sort Bar */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
                 <p className="text-gray-600 text-sm">
-                  Showing {displayedProducts.length} of {sortedProducts.length} products
+                  Showing {sortedProducts.length} products
                 </p>
                 <div className="flex items-center gap-2">
                   <label className="text-sm text-gray-600">Sort by:</label>
@@ -315,7 +368,7 @@ export default function ShopPage() {
               </div>
 
               {/* Product Grid */}
-              {isLoading ? (
+              {initialLoading ? (
                 <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-6">
                   {[...Array(6)].map((_, i) => (
                     <div key={i} className="space-y-3">
@@ -329,13 +382,13 @@ export default function ShopPage() {
                     </div>
                   ))}
                 </div>
-              ) : displayedProducts.length === 0 ? (
+              ) : sortedProducts.length === 0 ? (
                 <div className="col-span-full py-12 text-center">
                   <p className="text-gray-600">No products found matching your criteria.</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                  {displayedProducts.map((product) => (
+                  {sortedProducts.map((product) => (
                   <div key={product.id} className="group">
                     <div className="relative aspect-[3/4] overflow-hidden rounded-xl mb-4 bg-gray-100">
                       {product.badge && (
@@ -397,40 +450,15 @@ export default function ShopPage() {
               </div>
               )}
 
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-8">
-                  <button
-                    onClick={() => setCurrentPage((prev) => Math.max(0, prev - 1))}
-                    disabled={currentPage === 0}
-                    className="w-11 h-11 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-50"
-                    aria-label="Previous page"
-                  >
-                    <ChevronLeft className="w-5 h-5" />
-                  </button>
-                  {[...Array(totalPages)].map((_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setCurrentPage(i)}
-                      className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
-                        currentPage === i
-                          ? 'bg-pink-600 text-white'
-                          : 'hover:bg-gray-100'
-                      }`}
-                      aria-label={`Page ${i + 1}`}
-                    >
-                      {i + 1}
-                    </button>
-                  ))}
-                  <button
-                    onClick={() => setCurrentPage((prev) => Math.min(totalPages - 1, prev + 1))}
-                    disabled={currentPage === totalPages - 1}
-                    className="w-11 h-11 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-50"
-                    aria-label="Next page"
-                  >
-                    <ChevronRight className="w-5 h-5" />
-                  </button>
+              {/* Infinite Scroll Sentinel */}
+              <div ref={sentinelRef} className="h-4" />
+              {loadingMore && (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-pink-600" />
                 </div>
+              )}
+              {!hasMore && sortedProducts.length > 0 && (
+                <p className="text-center text-gray-500 text-sm py-8">All products loaded</p>
               )}
             </div>
           </div>
@@ -466,7 +494,6 @@ export default function ShopPage() {
                     <button
                       onClick={() => {
                         setSelectedCategory('All')
-                        setCurrentPage(0)
                       }}
                       className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
                         selectedCategory === 'All'
@@ -485,7 +512,6 @@ export default function ShopPage() {
                         <button
                           onClick={() => {
                             setSelectedCategory(category.slug)
-                            setCurrentPage(0)
                           }}
                           className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
                             selectedCategory === category.slug

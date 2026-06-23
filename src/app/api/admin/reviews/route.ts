@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
 
     const offset = (page - 1) * limit
 
-    // Build WHERE clause dynamically
+    // Build WHERE clause dynamically (use pr. prefix for JOIN queries)
     const conditions: string[] = []
     const params: any[] = []
 
@@ -41,12 +41,31 @@ export async function GET(request: NextRequest) {
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
 
+    // Build count WHERE clause (no alias prefix for single-table count query)
+    const countConditions: string[] = []
+    const countParams: any[] = []
+
+    if (status && status !== 'all') {
+      if (status === 'pending') {
+        countConditions.push('isApproved = 0')
+      } else if (status === 'approved') {
+        countConditions.push('isApproved = 1')
+      }
+    }
+
+    if (productId) {
+      countConditions.push('productId = ?')
+      countParams.push(productId)
+    }
+
+    const countWhereClause = countConditions.length > 0 ? `WHERE ${countConditions.join(' AND ')}` : ''
+
     // Get total count
     const total = await count(
       env,
-      'product_reviews pr',
-      whereClause,
-      ...params
+      'product_reviews',
+      countWhereClause,
+      ...countParams
     )
 
     // Get reviews with user and product data

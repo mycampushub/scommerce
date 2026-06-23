@@ -487,11 +487,12 @@ export default function ProductPage() {
     setTogglingWishlist(true)
     try {
       const method = isWishlisted ? 'DELETE' : 'POST'
-      const response = await fetch('/api/wishlist', {
+      const url = method === 'DELETE' ? `/api/wishlist?productId=${product.id}` : '/api/wishlist'
+      const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ productId: product.id })
+        body: method === 'POST' ? JSON.stringify({ productId: product.id }) : undefined
       })
       const data = await response.json() as any
       if (!response.ok || !data.success) {

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { ChevronLeft, ChevronRight, SlidersHorizontal, Heart, ShoppingCart, Star, Filter, X, ChevronDown, Home as HomeIcon } from 'lucide-react'
+import { Heart, Star, Filter, X, ChevronDown, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { Header } from '@/components/header'
 import { Footer } from '@/components/footer'
@@ -44,16 +44,19 @@ export default function BrandPage() {
   const slug = params.slug as string
   const [brand, setBrand] = useState<BrandData | null>(null)
   const [brandLoading, setBrandLoading] = useState(true)
-  const [products, setProducts] = useState<Product[]>([])
   const [productsLoading, setProductsLoading] = useState(true)
   const [sortBy, setSortBy] = useState('featured')
   const [priceRange, setPriceRange] = useState<{ min: number; max: number } | null>(null)
   const [selectedPriceRange, setSelectedPriceRange] = useState<string | null>(null)
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
-  const [currentPage, setCurrentPage] = useState(0)
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null)
   const [wishlistedProducts, setWishlistedProducts] = useState<Set<string>>(new Set())
-  const itemsPerPage = 12
+  const [allProducts, setAllProducts] = useState<Product[]>([])
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const sentinelRef = useRef<HTMLDivElement>(null)
+  const observerRef = useRef<IntersectionObserver | null>(null)
   const { addItem } = useCartStore()
 
   const mobileFilterRef = useRef<HTMLDivElement>(null)
@@ -95,33 +98,68 @@ export default function BrandPage() {
     fetchBrand()
   }, [slug])
 
+  // Fetch products with pagination
+  const fetchProductsPage = useCallback(async (pageNum: number) => {
+    const params = new URLSearchParams()
+    params.append('brand', slug)
+    params.append('page', pageNum.toString())
+    params.append('limit', '12')
+    const response = await fetch(`/api/products?${params}`)
+    const data = await response.json()
+    if (!data.success) throw new Error('Failed to fetch products')
+    return data.data
+  }, [slug])
+
+  // Initial load + reset on filter change
   useEffect(() => {
-    const fetchProducts = async () => {
-      if (!brand) {
-        setProducts([])
-        setProductsLoading(false)
-        return
-      }
+    setProductsLoading(true)
+    setAllProducts([])
+    setPage(1)
+    setHasMore(true)
+    fetchProductsPage(1)
+      .then((data) => {
+        setAllProducts(data.products)
+        setHasMore(data.pagination.hasNextPage)
+        setPage(1)
+      })
+      .catch((err) => {
+        console.error('Error fetching products:', err)
+        setAllProducts([])
+      })
+      .finally(() => setProductsLoading(false))
+  }, [fetchProductsPage])
 
-      setProductsLoading(true)
-      try {
-        const response = await fetch(`/api/products?brand=${brand.slug}&limit=100`)
-        const data = await response.json()
-        if (data.success) {
-          setProducts(data.data.products)
-        } else {
-          setProducts([])
-        }
-      } catch (error) {
-        console.error('Error fetching products:', error)
-        setProducts([])
-      } finally {
-        setProductsLoading(false)
-      }
+  // Load more products for infinite scroll
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return
+    setLoadingMore(true)
+    const nextPage = page + 1
+    try {
+      const data = await fetchProductsPage(nextPage)
+      setAllProducts(prev => [...prev, ...data.products])
+      setHasMore(data.pagination.hasNextPage)
+      setPage(nextPage)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoadingMore(false)
     }
+  }, [page, hasMore, loadingMore, fetchProductsPage])
 
-    fetchProducts()
-  }, [brand])
+  // Setup IntersectionObserver for infinite scroll
+  useEffect(() => {
+    if (observerRef.current) observerRef.current.disconnect()
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore && !productsLoading) {
+          loadMore()
+        }
+      },
+      { threshold: 0.1 }
+    )
+    if (sentinelRef.current) observerRef.current.observe(sentinelRef.current)
+    return () => observerRef.current?.disconnect()
+  }, [loadMore, hasMore, loadingMore, productsLoading])
 
   const openQuickView = (product: Product) => {
     setQuickViewProduct(product)
@@ -158,7 +196,7 @@ export default function BrandPage() {
     })
   }
 
-  const filteredProducts = products.filter(product => {
+  const filteredProducts = allProducts.filter(product => {
     const priceMatch = !priceRange || (product.price >= priceRange.min && product.price <= priceRange.max)
     return priceMatch
   })
@@ -171,9 +209,6 @@ export default function BrandPage() {
   } else if (sortBy === 'newest') {
     sortedProducts.reverse()
   }
-
-  const totalPages = Math.ceil(sortedProducts.length / itemsPerPage)
-  const displayedProducts = sortedProducts.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage)
 
   if (!brandLoading && !brand) {
     return (
@@ -245,7 +280,6 @@ export default function BrandPage() {
                           onClick={() => {
                             setSelectedPriceRange(range.label)
                             setPriceRange(range)
-                            setCurrentPage(0)
                           }}
                           className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
                             selectedPriceRange === range.label
@@ -291,7 +325,7 @@ export default function BrandPage() {
 
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
                 <p className="text-gray-600 text-sm">
-                  Showing {displayedProducts.length} of {sortedProducts.length} products
+                  Showing {sortedProducts.length} products
                 </p>
                 <div className="flex items-center gap-2">
                   <label className="text-sm text-gray-600">Sort by:</label>
@@ -300,7 +334,6 @@ export default function BrandPage() {
                       value={sortBy}
                       onChange={(e) => {
                         setSortBy(e.target.value)
-                        setCurrentPage(0)
                       }}
                       className="appearance-none pr-8 pl-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent cursor-pointer"
                     >
@@ -329,13 +362,13 @@ export default function BrandPage() {
                     </div>
                   ))}
                 </div>
-              ) : displayedProducts.length === 0 ? (
+              ) : sortedProducts.length === 0 ? (
                 <div className="col-span-full py-12 text-center">
                   <p className="text-gray-600">No products found for this brand.</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                  {displayedProducts.map((product) => (
+                  {sortedProducts.map((product) => (
                   <div key={product.id} className="group">
                     <div className="relative aspect-[3/4] overflow-hidden rounded-xl mb-4 bg-gray-100">
                       {product.badge && (
@@ -397,39 +430,15 @@ export default function BrandPage() {
               </div>
               )}
 
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-8">
-                  <button
-                    onClick={() => setCurrentPage((prev) => Math.max(0, prev - 1))}
-                    disabled={currentPage === 0}
-                    className="w-11 h-11 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-50"
-                    aria-label="Previous page"
-                  >
-                    <ChevronLeft className="w-5 h-5" />
-                  </button>
-                  {[...Array(totalPages)].map((_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setCurrentPage(i)}
-                      className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
-                        currentPage === i
-                          ? 'bg-pink-600 text-white'
-                          : 'hover:bg-gray-100'
-                      }`}
-                      aria-label={`Page ${i + 1}`}
-                    >
-                      {i + 1}
-                    </button>
-                  ))}
-                  <button
-                    onClick={() => setCurrentPage((prev) => Math.min(totalPages - 1, prev + 1))}
-                    disabled={currentPage === totalPages - 1}
-                    className="w-11 h-11 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors disabled:opacity-50"
-                    aria-label="Next page"
-                  >
-                    <ChevronRight className="w-5 h-5" />
-                  </button>
+              {/* Infinite Scroll Sentinel */}
+              <div ref={sentinelRef} className="h-4" />
+              {loadingMore && (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-pink-600" />
                 </div>
+              )}
+              {!hasMore && sortedProducts.length > 0 && !productsLoading && (
+                <p className="text-center text-gray-500 text-sm py-8">All products loaded</p>
               )}
             </div>
           </div>
@@ -465,7 +474,6 @@ export default function BrandPage() {
                         onClick={() => {
                           setSelectedPriceRange(range.label)
                           setPriceRange(range)
-                          setCurrentPage(0)
                         }}
                         className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
                           selectedPriceRange === range.label

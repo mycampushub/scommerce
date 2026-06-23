@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { Search, X, ShoppingBag, Heart, Star, Home as HomeIcon, Loader2 } from 'lucide-react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
+import { Search, X, Heart, Star, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { Header } from '@/components/header'
 import { Footer } from '@/components/footer'
@@ -43,45 +43,88 @@ export default function SearchPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [searched, setSearched] = useState(false)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const sentinelRef = useRef<HTMLDivElement>(null)
+  const observerRef = useRef<IntersectionObserver | null>(null)
   
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
 
-  // Fetch search results
-  useEffect(() => {
-    async function fetchSearchResults() {
-      const trimmedQuery = debouncedSearchQuery.trim()
-      
-      if (!trimmedQuery) {
-        setSearchResults([])
-        setSearched(false)
-        setError(null)
-        return
-      }
+  // Fetch search results with pagination
+  const fetchSearchPage = useCallback(async (query: string, pageNum: number) => {
+    const response = await fetch(`/api/products?search=${encodeURIComponent(query)}&page=${pageNum}&limit=12`)
+    if (!response.ok) throw new Error('Failed to fetch products')
+    const data = await response.json() as any
+    if (!data.success) throw new Error('Failed to fetch products')
+    return data.data
+  }, [])
 
-      try {
-        setLoading(true)
-        setError(null)
-        setSearched(true)
-        
-        const response = await fetch(`/api/products?search=${encodeURIComponent(trimmedQuery)}&limit=50`)
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch products')
-        }
-        
-        const products = await response.json() as any
-        setSearchResults(products)
-      } catch (err) {
+  // Initial load + reset on query change
+  useEffect(() => {
+    const trimmedQuery = debouncedSearchQuery.trim()
+
+    if (!trimmedQuery) {
+      setSearchResults([])
+      setSearched(false)
+      setError(null)
+      setHasMore(false)
+      setPage(1)
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+    setSearched(true)
+    setSearchResults([])
+    setPage(1)
+    setHasMore(false)
+
+    fetchSearchPage(trimmedQuery, 1)
+      .then((data) => {
+        setSearchResults(data.products)
+        setHasMore(data.pagination.hasNextPage)
+        setPage(1)
+      })
+      .catch((err) => {
         console.error('Error searching products:', err)
         setError('Unable to load search results. Please try again.')
         setSearchResults([])
-      } finally {
-        setLoading(false)
-      }
-    }
+      })
+      .finally(() => setLoading(false))
+  }, [debouncedSearchQuery, fetchSearchPage])
 
-    fetchSearchResults()
-  }, [debouncedSearchQuery])
+  // Load more search results
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore || !debouncedSearchQuery.trim()) return
+    setLoadingMore(true)
+    const nextPage = page + 1
+    try {
+      const data = await fetchSearchPage(debouncedSearchQuery.trim(), nextPage)
+      setSearchResults(prev => [...prev, ...data.products])
+      setHasMore(data.pagination.hasNextPage)
+      setPage(nextPage)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoadingMore(false)
+    }
+  }, [page, hasMore, loadingMore, debouncedSearchQuery, fetchSearchPage])
+
+  // Setup IntersectionObserver
+  useEffect(() => {
+    if (observerRef.current) observerRef.current.disconnect()
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
+          loadMore()
+        }
+      },
+      { threshold: 0.1 }
+    )
+    if (sentinelRef.current) observerRef.current.observe(sentinelRef.current)
+    return () => observerRef.current?.disconnect()
+  }, [loadMore, hasMore, loadingMore, loading])
 
   return (
     <div className="min-h-screen bg-background">
@@ -161,6 +204,7 @@ export default function SearchPage() {
 
               {/* Results Grid */}
               {!loading && searchResults.length > 0 ? (
+                <>
                 <ul className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" role="list" aria-label={`Search results for ${searchQuery}`}>
                   {searchResults.map((product) => (
                     <li key={product.id} className="group">
@@ -210,6 +254,16 @@ export default function SearchPage() {
                     </li>
                   ))}
                 </ul>
+                <div ref={sentinelRef} className="h-4" />
+                {loadingMore && (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin text-pink-600" />
+                  </div>
+                )}
+                {!hasMore && searchResults.length > 0 && !loading && (
+                  <p className="text-center text-gray-500 text-sm py-8">All results loaded</p>
+                )}
+                </>
               ) : !loading && searchResults.length === 0  && (
                 <div className="text-center py-16" role="status" aria-live="polite">
                   <div className="w-24 h-24 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center" aria-hidden="true">
