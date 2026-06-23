@@ -237,10 +237,10 @@ function HeroCarousel({ banners, autoPlay = 5000 }: { banners: Banner[], autoPla
             </div>
           ))}
         </div>
-        <button onClick={prevSlide} className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 bg-white/90 hover:bg-white flex items-center justify-center rounded-full shadow-lg transition-all z-10" aria-label="Previous">
+        <button onClick={prevSlide} className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 bg-white/90 hover:bg-white hidden md:flex items-center justify-center rounded-full shadow-lg transition-all z-10" aria-label="Previous">
           <ChevronLeft className="w-5 h-5 md:w-6 md:h-6 text-gray-800" />
         </button>
-        <button onClick={nextSlide} className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 bg-white/90 hover:bg-white flex items-center justify-center rounded-full shadow-lg transition-all z-10" aria-label="Next">
+        <button onClick={nextSlide} className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 bg-white/90 hover:bg-white hidden md:flex items-center justify-center rounded-full shadow-lg transition-all z-10" aria-label="Next">
           <ChevronRight className="w-5 h-5 md:w-6 md:h-6 text-gray-800" />
         </button>
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
@@ -860,27 +860,27 @@ function Categories({ categories }: { categories: Category[] }) {
                 href={category.href}
                 className="flex-shrink-0"
               >
-                <div className="w-[90px] flex flex-col items-center group">
+                <div className="w-[100px] flex flex-col items-center group">
                   {category.image ? (
                     <div className="relative rounded-lg overflow-hidden">
                       <img
                         src={category.image}
                         alt={category.name}
                         className="rounded-lg object-cover group-hover:scale-105 transition-transform duration-300"
-                        style={{ width: '90px', height: '120px' }}
+                        style={{ width: '100px', height: '133px' }}
                         data-testid={`category-menu-item-${index}-image`}
-                        width="90"
-                        height="120"
+                        width="100"
+                        height="133"
                         loading="lazy"
                       />
                     </div>
                   ) : (
-                    <div className="relative rounded-lg overflow-hidden bg-gray-200" style={{ width: '90px', height: '120px' }}>
+                    <div className="relative rounded-lg overflow-hidden bg-gray-200" style={{ width: '100px', height: '133px' }}>
                       <span className="absolute inset-0 flex items-center justify-center text-gray-400 text-xs text-center p-2">{category.name}</span>
                     </div>
                   )}
                   <span
-                    className="text-center font-medium text-[11px] mt-2 leading-tight block w-[90px] transition-colors group-hover:text-pink-600"
+                    className="text-center font-medium text-[12px] mt-2 leading-tight block w-[100px] transition-colors group-hover:text-pink-600"
                     data-testid={`category-menu-item-${index}-text`}
                     style={{
                       color: '#4b5563',
@@ -1938,7 +1938,7 @@ function FeaturedCollection({ products, onQuickView, onAddToCart, heading, descr
                         e.preventDefault()
                         onAddToCart(product)
                       }}
-                      className="flex-shrink-0 bg-pink-600 text-white p-2 rounded-lg hover:bg-pink-700 transition-colors"
+                      className="hidden md:flex flex-shrink-0 bg-pink-600 text-white p-2 rounded-lg hover:bg-pink-700 transition-colors"
                       aria-label="Add to cart"
                     >
                       <ShoppingCart className="w-4 h-4" />
@@ -1947,6 +1947,18 @@ function FeaturedCollection({ products, onQuickView, onAddToCart, heading, descr
                 </div>
               ))}
             </div>
+          ))}
+        </div>
+        <div className="flex justify-center gap-2 mt-6 md:hidden">
+          {Array.from({ length: Math.ceil(productsArray.length / itemsPerPage) }).map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentIndex(index)}
+              className={`h-2 rounded-full transition-all ${
+                index === currentIndex ? 'bg-pink-600 w-6' : 'bg-gray-300 w-2 hover:bg-gray-400'
+              }`}
+              aria-label={`Go to page ${index + 1}`}
+            />
           ))}
         </div>
       </div>
@@ -1963,7 +1975,7 @@ function MosaicGrid({ products, onQuickView, onAddToCart, heading, description }
   }
 
   return (
-    <section className="mosaic bg-gray-50 py-12">
+    <section className="mosaic bg-gray-50 py-8">
       <div className="container mx-auto px-4">
         <div className="text-center mb-8">
           <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{heading || 'Shop the Look'}</h2>
