@@ -1213,6 +1213,7 @@ function VideoReels({ reels, sectionEnabled = true }: { reels: VideoReel[]; sect
   const [isPaused, setIsPaused] = useState(false)
   const [scrollPosition, setScrollPosition] = useState(0)
   const [touchStartX, setTouchStartX] = useState(0)
+  const [touchStartY, setTouchStartY] = useState(0)
   const carouselRef = useRef<HTMLDivElement>(null)
 
   // Detect mobile/desktop
@@ -1255,6 +1256,24 @@ function VideoReels({ reels, sectionEnabled = true }: { reels: VideoReel[]; sect
         handleNext() // Swipe left - next
       } else {
         handlePrev() // Swipe right - previous
+      }
+    }
+  }
+
+  const handleModalTouchStart = (e: React.TouchEvent) => {
+    setTouchStartY(e.touches[0].clientY)
+  }
+
+  const handleModalTouchEnd = (e: React.TouchEvent) => {
+    if (!isMobile || !reels || reels.length === 0) return
+    const touchEndY = e.changedTouches[0].clientY
+    const diff = touchStartY - touchEndY
+
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) {
+        handleNext()
+      } else {
+        handlePrev()
       }
     }
   }
@@ -1336,27 +1355,35 @@ function VideoReels({ reels, sectionEnabled = true }: { reels: VideoReel[]; sect
   const handlePrev = useCallback(() => {
     if (isTransitioning || !reels || reels.length === 0) return
     setIsTransitioning(true)
-    setCurrentIndex((prev) => (prev - 1 + reels.length) % reels.length)
+    const prevIndex = (currentIndex - 1 + reels.length) % reels.length
+    setCurrentIndex(prevIndex)
+    if (selectedReel) {
+      setSelectedReel(reels[prevIndex])
+    }
     setTimeout(() => setIsTransitioning(false), 400)
-  }, [isTransitioning, reels?.length])
+  }, [isTransitioning, reels, currentIndex, selectedReel])
 
   const handleNext = useCallback(() => {
     if (isTransitioning || !reels || reels.length === 0) return
     setIsTransitioning(true)
-    setCurrentIndex((prev) => (prev + 1) % reels.length)
+    const nextIndex = (currentIndex + 1) % reels.length
+    setCurrentIndex(nextIndex)
+    if (selectedReel) {
+      setSelectedReel(reels[nextIndex])
+    }
     setTimeout(() => setIsTransitioning(false), 400)
-  }, [isTransitioning, reels?.length])
+  }, [isTransitioning, reels, currentIndex, selectedReel])
 
   // Auto-scroll effect
   useEffect(() => {
-    if (!carouselSettings.autoScroll || isPaused || isTransitioning || !reels || reels.length === 0) return
+    if (!carouselSettings.autoScroll || isPaused || isTransitioning || !reels || reels.length === 0 || selectedReel) return
 
     const interval = setInterval(() => {
       handleNext()
     }, carouselSettings.autoPlay)
 
     return () => clearInterval(interval)
-  }, [isPaused, isTransitioning, carouselSettings.autoScroll, carouselSettings.autoPlay, reels?.length, handleNext])
+  }, [isPaused, isTransitioning, carouselSettings.autoScroll, carouselSettings.autoPlay, reels?.length, handleNext, selectedReel])
 
   const handleCardClick = (index: number) => {
     if (isTransitioning || index === currentIndex) return
@@ -1595,7 +1622,7 @@ function VideoReels({ reels, sectionEnabled = true }: { reels: VideoReel[]; sect
 
       {/* Fullscreen Video Modal */}
       {selectedReel && (
-        <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center p-2 sm:p-4 md:p-6">
+        <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center" onTouchStart={handleModalTouchStart} onTouchEnd={handleModalTouchEnd}>
           <button
             onClick={() => setSelectedReel(null)}
             className="absolute top-2 right-2 sm:top-4 sm:right-4 z-20 text-white hover:bg-white/20 rounded-full p-2 sm:p-3 transition-all hover:scale-110"
@@ -1604,15 +1631,15 @@ function VideoReels({ reels, sectionEnabled = true }: { reels: VideoReel[]; sect
             <X className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
 
-          <div className="relative w-full max-w-7xl h-full max-h-[95vh] md:max-h-[90vh] flex flex-col md:flex-row items-center justify-center gap-4 md:gap-6">
+          <div className="relative w-full h-full flex flex-col md:flex-row items-center justify-center">
             {/* Video Player Area */}
-            <div className="w-full md:w-2/3 h-[60vh] md:h-full flex items-center justify-center">
-              <div className="relative w-full h-full max-w-md md:max-w-none aspect-[9/16] md:aspect-auto bg-black rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl">
+            <div className="w-full md:w-2/3 h-full flex items-center justify-center">
+              <div className="relative w-full h-full bg-black rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl">
                 {selectedReel.videoUrl ? (
                   <iframe
                     src={`${getYouTubeEmbedUrl(selectedReel.videoUrl)}?autoplay=1&mute=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`}
                     title={selectedReel.title}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     allowFullScreen
                     loading="lazy"
@@ -1773,18 +1800,20 @@ function FullscreenVideo({ sectionEnabled = true }: { sectionEnabled?: boolean }
   }
 
   return (
-    <section className="relative w-full overflow-hidden bg-black py-12 md:py-16">
-      <div className="container mx-auto px-4">
-        <div className="relative w-full mx-auto" style={{ maxWidth: '1080px', aspectRatio: '16/9' }}>
-          <iframe
-            className="absolute inset-0 w-full h-full"
-            src={videoUrl}
-            title="YouTube video player"
-            frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            referrerPolicy="strict-origin-when-cross-origin"
-            allowFullScreen
-          />
+    <section className="relative w-full bg-gradient-to-b from-pink-50 to-white py-12 md:py-16">
+      <div className="container mx-auto px-4 max-w-7xl">
+        <div className="relative bg-white rounded-2xl shadow-sm border border-gray-200 p-2 md:p-3">
+          <div className="relative w-full mx-auto" style={{ maxWidth: '1080px', aspectRatio: '16/9' }}>
+            <iframe
+              className="absolute inset-0 w-full h-full rounded-xl"
+              src={videoUrl}
+              title="YouTube video player"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              referrerPolicy="strict-origin-when-cross-origin"
+              allowFullScreen
+            />
+          </div>
         </div>
       </div>
     </section>
