@@ -1702,7 +1702,7 @@ function VideoReels({ reels, sectionEnabled = true }: { reels: VideoReel[]; sect
             </div>
 
             {/* Product Info Sidebar (Desktop Only) */}
-            <div className="hidden md:flex w-1/3 h-full flex-col justify-center pl-0 md:pl-4">
+            <div className="hidden md:flex w-1/3 h-full flex-col justify-center px-0 lg:px-4 min-w-0 overflow-y-auto">
               <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 sm:p-6 border border-white/20 w-full max-w-sm mx-auto overflow-hidden flex flex-col">
                 <div className="relative aspect-square mb-4 sm:mb-6 rounded-xl overflow-hidden shadow-lg flex-shrink-0">
                   <img
@@ -1730,16 +1730,16 @@ function VideoReels({ reels, sectionEnabled = true }: { reels: VideoReel[]; sect
                 <div className="space-y-3 flex-shrink-0">
                   <button
                     onClick={() => handleAddToCart(selectedReel)}
-                    className="w-full bg-pink-600 hover:bg-pink-700 text-white px-4 sm:px-6 py-3 rounded-full font-semibold transition-all hover:shadow-lg hover:shadow-pink-600/30 flex items-center justify-center gap-2 text-sm sm:text-base"
+                    className="w-full bg-pink-600 hover:bg-pink-700 text-white px-4 py-3 rounded-full font-semibold transition-all hover:shadow-lg hover:shadow-pink-600/30 flex items-center justify-center gap-2 text-sm"
                   >
-                    <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <ShoppingCart className="w-4 h-4" />
                     <span>Add to Cart</span>
                   </button>
                   <button
                     onClick={() => handleViewDetails(selectedReel)}
-                    className="w-full bg-white/10 hover:bg-white/20 text-white px-4 sm:px-6 py-3 rounded-full font-semibold transition-all flex items-center justify-center gap-2 border border-white/20 text-sm sm:text-base"
+                    className="w-full bg-white/10 hover:bg-white/20 text-white px-4 py-3 rounded-full font-semibold transition-all flex items-center justify-center gap-2 border border-white/20 text-sm"
                   >
-                    <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <Eye className="w-4 h-4" />
                     <span>View Full Details</span>
                   </button>
                 </div>
@@ -1900,7 +1900,7 @@ function FeaturedCollection({ products, onQuickView, onAddToCart, heading, descr
       >
         <div className="flex transition-transform duration-500 ease-in-out" style={{ transform: `translateX(-${currentIndex * 100}%)` }}>
           {Array.from({ length: Math.ceil(productsArray.length / itemsPerPage) }).map((_, pageIndex) => (
-            <div key={pageIndex} className="flex-shrink-0 w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 px-1">
+            <div key={pageIndex} className="flex-shrink-0 w-full grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-6 px-1">
               {productsArray.slice(pageIndex * itemsPerPage, (pageIndex + 1) * itemsPerPage).map((product) => (
                 <div key={product.id} className="product-grid-item group">
                   <a href={`/product/${product.slug}`} className="block">
@@ -1969,7 +1969,7 @@ function MosaicGrid({ products, onQuickView, onAddToCart, heading, description }
           <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{heading || 'Shop the Look'}</h2>
           {description && <p className="text-gray-600 max-w-2xl mx-auto">{description}</p>}
         </div>
-        <div className="mosaic__grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="mosaic__grid grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {productsArray.map((product, index) => (
             <div
               key={product.id}
