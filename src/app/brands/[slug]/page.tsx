@@ -349,7 +349,7 @@ export default function BrandPage() {
               </div>
 
               {productsLoading || brandLoading ? (
-                <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {[...Array(6)].map((_, i) => (
                     <div key={i} className="space-y-3">
                       <Skeleton className="h-64 w-full rounded-xl" />
@@ -367,7 +367,7 @@ export default function BrandPage() {
                   <p className="text-gray-600">No products found for this brand.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {sortedProducts.map((product) => (
                   <div key={product.id} className="group">
                     <div className="relative aspect-[3/4] overflow-hidden rounded-xl mb-4 bg-gray-100">

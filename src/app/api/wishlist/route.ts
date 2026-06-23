@@ -48,6 +48,7 @@ export async function GET(request: NextRequest) {
               name: item.name,
               slug: item.slug,
               description: item.description,
+              price: item.basePrice,
               basePrice: item.basePrice,
               comparePrice: item.comparePrice,
               images: images,
