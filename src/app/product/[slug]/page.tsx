@@ -1166,7 +1166,7 @@ export default function ProductPage() {
           <section className="py-8 md:py-12 bg-gray-50">
             <div className="container mx-auto px-4">
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6">You May Also Like</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {relatedProducts.map((product) => (
                 <div key={product.id} className="group">
                 <div className="relative aspect-[3/4] overflow-hidden rounded-xl mb-4 bg-gray-100">
@@ -1235,7 +1235,7 @@ export default function ProductPage() {
                   Recommended For You
                 </h2>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {recommendedProducts.map((product) => (
                   <div key={product.id} className="group">
                     <div className="relative aspect-[3/4] overflow-hidden rounded-xl mb-4 bg-gray-100">

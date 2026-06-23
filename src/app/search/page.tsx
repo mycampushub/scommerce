@@ -161,7 +161,7 @@ export default function SearchPage() {
 
               {/* Results Grid */}
               {!loading && searchResults.length > 0 ? (
-                <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" role="list" aria-label={`Search results for ${searchQuery}`}>
+                <ul className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" role="list" aria-label={`Search results for ${searchQuery}`}>
                   {searchResults.map((product) => (
                     <li key={product.id} className="group">
                       <article className="h-full">

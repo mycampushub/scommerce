@@ -587,10 +587,6 @@ function Stories({ stories, autoPlay = 4000 }: { stories: Story[], autoPlay?: nu
             )}
           </div>
           
-          {/* Story Counter */}
-          <div className="absolute top-4 right-4 z-20 text-white/70 text-xs bg-black/50 backdrop-blur-sm px-3 py-1 rounded-full">
-            {stories ? `${currentStoryIndex + 1} / ${stories.length}` : '1 / 1'}
-          </div>
           
           <div className="relative w-full h-full md:h-[90vh] md:max-w-md bg-black">
             {selectedStory.videoUrl ? (
