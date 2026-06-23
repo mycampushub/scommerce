@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
     // Create review
     const id = generateId()
     const currentTime = now()
-    const userName = userOrResponse.name || userOrResponse.email.split('@')[0]
+    const userName = userOrResponse.name || (userOrResponse.email ? userOrResponse.email.split('@')[0] : 'Anonymous')
 
     await execute(
       env,

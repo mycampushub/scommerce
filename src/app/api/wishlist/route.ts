@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if already in wishlist
+    // Check if already in wishlist — toggle: remove if exists
     const existingItem = await queryFirst(
       env,
       'SELECT * FROM wishlist_items WHERE userId = ? AND productId = ? LIMIT 1',
@@ -137,10 +137,18 @@ export async function POST(request: NextRequest) {
     )
 
     if (existingItem) {
-      return NextResponse.json(
-        { error: 'Product already in wishlist' },
-        { status: 400 }
+      await execute(
+        env,
+        'DELETE FROM wishlist_items WHERE userId = ? AND productId = ?',
+        userId,
+        productId
       )
+      return NextResponse.json({
+        success: true,
+        action: 'removed',
+        message: 'Product removed from wishlist',
+        source: 'database',
+      })
     }
 
     // Add to wishlist
@@ -169,6 +177,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      action: 'added',
       message: 'Product added to wishlist',
       data: wishlistItem,
       source: 'database',

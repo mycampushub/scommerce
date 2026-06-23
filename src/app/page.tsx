@@ -856,27 +856,27 @@ function Categories({ categories }: { categories: Category[] }) {
                 href={category.href}
                 className="flex-shrink-0"
               >
-                <div className="w-[100px] flex flex-col items-center group">
+                <div className="w-[120px] flex flex-col items-center group">
                   {category.image ? (
                     <div className="relative rounded-lg overflow-hidden">
                       <img
                         src={category.image}
                         alt={category.name}
                         className="rounded-lg object-cover group-hover:scale-105 transition-transform duration-300"
-                        style={{ width: '100px', height: '133px' }}
+                        style={{ width: '120px', height: '160px' }}
                         data-testid={`category-menu-item-${index}-image`}
-                        width="100"
-                        height="133"
+                        width="120"
+                        height="160"
                         loading="lazy"
                       />
                     </div>
                   ) : (
-                    <div className="relative rounded-lg overflow-hidden bg-gray-200" style={{ width: '100px', height: '133px' }}>
+                    <div className="relative rounded-lg overflow-hidden bg-gray-200" style={{ width: '120px', height: '160px' }}>
                       <span className="absolute inset-0 flex items-center justify-center text-gray-400 text-xs text-center p-2">{category.name}</span>
                     </div>
                   )}
                   <span
-                    className="text-center font-medium text-[12px] mt-2 leading-tight block w-[100px] transition-colors group-hover:text-pink-600"
+                    className="text-center font-medium text-[12px] mt-2 leading-tight block w-[120px] transition-colors group-hover:text-pink-600"
                     data-testid={`category-menu-item-${index}-text`}
                     style={{
                       color: '#4b5563',

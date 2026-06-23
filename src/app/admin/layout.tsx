@@ -28,7 +28,8 @@ import {
   ChevronRight,
   Warehouse,
   Building2,
-  Layers
+  Layers,
+  MessageSquare
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/use-auth'
@@ -47,6 +48,7 @@ const productManagementNav = [
   { name: 'Products', href: '/admin/products', icon: Package },
   { name: 'Categories', href: '/admin/categories', icon: Tags },
   { name: 'Brands', href: '/admin/brands', icon: Building2 },
+  { name: 'Reviews', href: '/admin/reviews', icon: MessageSquare },
 ]
 
 const inventoryNav = [

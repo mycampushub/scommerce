@@ -486,32 +486,21 @@ export default function ProductPage() {
 
     setTogglingWishlist(true)
     try {
-      if (isWishlisted) {
-        // Remove from wishlist
-        const response = await fetch('/api/wishlist', {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ productId: product.id })
-        })
-        const data = await response.json() as any
-        if (!response.ok || !data.success) {
-          throw new Error(data.error || 'Failed to remove from wishlist')
-        }
+      const method = isWishlisted ? 'DELETE' : 'POST'
+      const response = await fetch('/api/wishlist', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ productId: product.id })
+      })
+      const data = await response.json() as any
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to update wishlist')
+      }
+      if (data.action === 'removed') {
         toast.success('Removed from wishlist')
       } else {
-        // Add to wishlist
-        const response = await fetch('/api/wishlist', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ productId: product.id })
-        })
-        const data = await response.json() as any
-        if (!response.ok || !data.success) {
-          throw new Error(data.error || 'Failed to add to wishlist')
-        }
-        toast.success('Added to wishlist')
+        toast.success(isWishlisted ? 'Removed from wishlist' : 'Added to wishlist')
       }
       setIsWishlisted(!isWishlisted)
     } catch (error: any) {
