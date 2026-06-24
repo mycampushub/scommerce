@@ -16,6 +16,7 @@ export interface WishlistItem {
     comparePrice?: number
     images: string[]
     stock: number
+    hasVariants?: boolean
     rating?: number
     reviews?: number
     category: {

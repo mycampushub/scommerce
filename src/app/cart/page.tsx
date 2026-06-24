@@ -93,13 +93,19 @@ export default function CartPage() {
           }),
         })
 
+        // Handle 404 as success: item already gone from server, just remove locally
+        if (response.status === 404) {
+          console.warn('[Cart] Item not found on server (already removed), cleaning up locally:', { id, variantId })
+          localRemoveItem(id, variantId)
+          return
+        }
+
         const data = await response.json() as any
         if (!data.success) {
           throw new Error(data.error || 'Failed to remove item')
         }
 
         // After successful server removal, update local store
-        // This triggers useCartSync to keep everything in sync
         localRemoveItem(id, variantId)
       } catch (error) {
         console.error('[Cart] Error removing from server cart:', error)

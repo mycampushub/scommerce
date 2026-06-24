@@ -23,17 +23,12 @@ interface Product {
   category?: string | null
 }
 
-// Popular searches
-const popularSearches = [
-  'Silk Saree',
-  'Wedding Lehenga',
-  'Salwar Suit',
-  'Anarkali Dress',
-  'Designer Kurti',
-  'Banarasi Saree',
-  'Bridal Wear',
-  'Festive Collection'
-]
+interface SuggestionCategory {
+  name: string
+  slug: string
+  description: string | null
+  image: string
+}
 
 
 
@@ -46,6 +41,9 @@ export default function SearchPage() {
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
+  const [suggestionsLoading, setSuggestionsLoading] = useState(true)
+  const [popularSearches, setPopularSearches] = useState<string[]>([])
+  const [suggestionCategories, setSuggestionCategories] = useState<SuggestionCategory[]>([])
   const sentinelRef = useRef<HTMLDivElement>(null)
   const observerRef = useRef<IntersectionObserver | null>(null)
   
@@ -125,6 +123,23 @@ export default function SearchPage() {
     if (sentinelRef.current) observerRef.current.observe(sentinelRef.current)
     return () => observerRef.current?.disconnect()
   }, [loadMore, hasMore, loadingMore, loading])
+
+  // Fetch suggestions on mount
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/search/suggestions')
+      .then(res => res.json())
+      .then(data => {
+        if (cancelled || !data.success) return
+        setPopularSearches(data.data.popularSearches || [])
+        setSuggestionCategories(data.data.categories || [])
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setSuggestionsLoading(false)
+      })
+    return () => { cancelled = true }
+  }, [])
 
   return (
     <div className="min-h-screen bg-background">
@@ -287,42 +302,49 @@ export default function SearchPage() {
               {/* Popular Searches */}
               <div className="max-w-3xl mx-auto">
                 <h2 id="popular-searches-heading" className="text-2xl font-bold text-gray-900 mb-6">Popular Searches</h2>
-                <div className="flex flex-wrap gap-3 mb-12" role="list" aria-labelledby="popular-searches-heading">
-                  {popularSearches.map((search) => (
-                    <button
-                      key={search}
-                      onClick={() => setSearchQuery(search)}
-                      className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:border-pink-600 hover:text-pink-600 transition-colors"
-                      aria-label={`Search for ${search}`}
-                    >
-                      {search}
-                    </button>
-                  ))}
-                </div>
+                {suggestionsLoading ? (
+                  <div className="flex flex-wrap gap-3 mb-12">
+                    {[...Array(6)].map((_, i) => (
+                      <div key={i} className="h-10 w-28 bg-gray-100 rounded-lg animate-pulse" />
+                    ))}
+                  </div>
+                ) : popularSearches.length > 0 ? (
+                  <div className="flex flex-wrap gap-3 mb-12" role="list" aria-labelledby="popular-searches-heading">
+                    {popularSearches.map((search) => (
+                      <button
+                        key={search}
+                        onClick={() => setSearchQuery(search)}
+                        className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:border-pink-600 hover:text-pink-600 transition-colors"
+                        aria-label={`Search for ${search}`}
+                      >
+                        {search}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
 
                 {/* Browse by Category */}
                 <h2 id="categories-heading" className="text-2xl font-bold text-gray-900 mb-6">Browse by Category</h2>
-                <ul className="grid grid-cols-2 md:grid-cols-4 gap-4" role="list" aria-labelledby="categories-heading">
-                  {[
-                    { name: 'Sarees', slug: 'saree' },
-                    { name: 'Salwar Suits', slug: 'salwar' },
-                    { name: 'Lehengas', slug: 'lehengas' },
-                    { name: 'Gowns', slug: 'gowns' },
-                    { name: 'Kurtas', slug: 'kurtas' },
-                    { name: 'Menswear', slug: 'menswear' },
-                    { name: 'Dresses', slug: 'dress-materials' },
-                    { name: 'Accessories', slug: 'shop' }
-                  ].map((category) => (
-                    <li key={category.name}>
-                      <Link
-                        href={`/collections/${category.slug}`}
-                        className="bg-white border border-gray-200 rounded-xl p-6 text-center hover:border-pink-600 hover:shadow-lg transition-all block"
-                      >
-                        <p className="font-semibold text-gray-900">{category.name}</p>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
+                {suggestionsLoading ? (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {[...Array(4)].map((_, i) => (
+                      <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />
+                    ))}
+                  </div>
+                ) : suggestionCategories.length > 0 ? (
+                  <ul className="grid grid-cols-2 md:grid-cols-4 gap-4" role="list" aria-labelledby="categories-heading">
+                    {suggestionCategories.map((category) => (
+                      <li key={category.slug}>
+                        <Link
+                          href={`/collections/${category.slug}`}
+                          className="bg-white border border-gray-200 rounded-xl p-6 text-center hover:border-pink-600 hover:shadow-lg transition-all block"
+                        >
+                          <p className="font-semibold text-gray-900">{category.name}</p>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
               </div>
             </>
           )}

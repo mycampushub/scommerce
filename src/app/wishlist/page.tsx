@@ -81,7 +81,7 @@ export default function WishlistPage() {
 
       for (const itemId of selectedItems) {
         const item = wishlistItems.find(i => i.id === itemId)
-        if (item && item.product.stock > 0) {
+        if (item && (item.product.hasVariants || item.product.stock > 0)) {
           const images = parseImages(item.product.images)
           const imageUrl = images.length > 0 ? images[0] : ''
 
@@ -268,7 +268,7 @@ export default function WishlistPage() {
             {wishlistItems.map((item) => {
               const images = parseImages(item.product.images)
               const imageUrl = images.length > 0 ? images[0] : ''
-              const isOutOfStock = !(item.product.stock ?? 0) || item.product.stock <= 0
+              const isOutOfStock = !item.product.hasVariants && (!(item.product.stock ?? 0) || item.product.stock <= 0)
 
               const isSelected = selectedItems.has(item.id)
 

@@ -473,8 +473,12 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        // Release stock reservation
-        await releaseCartItemReservation(env, userId, item.productId!, item.variantId || null);
+        // Release stock reservation (best-effort — don't block deletion if it fails)
+        try {
+          await releaseCartItemReservation(env, userId, item.productId!, item.variantId || null);
+        } catch (reservationError) {
+          console.error('[Cart Remove] Failed to release reservation, continuing:', reservationError);
+        }
 
         // Remove cart item
         await CartRepository.removeItem(env, existingItemRemove.id);
@@ -802,8 +806,12 @@ export async function POST(request: NextRequest) {
       }
 
       case 'clear': {
-        // Release all inventory reservations for this user
-        await releaseAllUserReservations(env, userId);
+        // Release all inventory reservations for this user (best-effort)
+        try {
+          await releaseAllUserReservations(env, userId);
+        } catch (reservationError) {
+          console.error('[Cart Clear] Failed to release reservations, continuing:', reservationError);
+        }
 
         // Clear all cart items for user
         await CartRepository.clearCart(env, userId);

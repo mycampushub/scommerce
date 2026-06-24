@@ -14,6 +14,7 @@ export function useCartSync() {
   const isInitializedRef = useRef(false)
   const lastUserIdRef = useRef<string | null>(null)
   const pendingSyncItemsRef = useRef<any[]>([])
+  const prevItemsLengthRef = useRef(items.length)
 
   // Fetch server cart when user logs in or changes
   useEffect(() => {
@@ -185,8 +186,17 @@ export function useCartSync() {
 
     // Sync current items to server
     if (items.length === 0) {
+      prevItemsLengthRef.current = items.length
       return
     }
+
+    // If items were removed (count decreased), skip sync — server already handled the removal
+    if (items.length < prevItemsLengthRef.current) {
+      console.log('[Cart Sync] Items decreased, skipping sync (removal handled server-side)')
+      prevItemsLengthRef.current = items.length
+      return
+    }
+    prevItemsLengthRef.current = items.length
 
     const syncCartToServer = async () => {
       console.log('[Cart Sync] Syncing items to server:', items.length)

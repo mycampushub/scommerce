@@ -283,8 +283,8 @@ export default function CheckoutPage() {
       for (const item of itemsToCheck) {
         const itemKey = `${item.id}-${item.variantId || 'no-variant'}`
 
-        // Fetch product data
-        const response = await fetch(`/api/products/${item.id}`)
+        // Fetch product data (no cache to get fresh stock)
+        const response = await fetch(`/api/products/${item.id}`, { cache: 'no-store' })
         const data: ProductResponse = await response.json()
 
         if (!data.success || !data.data) {
@@ -358,7 +358,7 @@ export default function CheckoutPage() {
           let foundVariant = false
 
           try {
-            const variantsResponse = await fetch(`/api/products/${item.id}/variants`)
+            const variantsResponse = await fetch(`/api/products/${item.id}/variants`, { cache: 'no-store' })
             const variantsData = await variantsResponse.json() as any
 
             if (variantsData.success && variantsData.data?.variants) {
@@ -412,19 +412,17 @@ export default function CheckoutPage() {
           }
 
           if (!foundVariant) {
-            // Variant not found
-            itemKeys[itemKey] = {
-              inStock: false,
-              availableStock: 0,
-              productExists: false,
-              productActive: false,
-              errorMessage: 'Product variant not found'
-            }
-            continue
+            // Variant not found — fall back to product-level stock
+            const productStock = product.stock || 0
+            console.warn('[Checkout] Variant not found for product, falling back to product stock:', {
+              productId: item.id,
+              variantId: item.variantId,
+              productStock
+            })
+            stock = productStock
+          } else {
+            stock = variantStock
           }
-
-          variantExists = true
-          stock = variantStock
         } else {
           // Check product stock
           stock = product.stock || 0
